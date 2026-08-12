@@ -24,12 +24,43 @@ const playBeep = () => {
 };
 
 export default function ScanCompanionClient({ session }) {
-  const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied'
+  const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied', 'unsupported'
   const [scannedItems, setScannedItems] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [manualBarcode, setManualBarcode] = useState('');
   const lastScannedBarcodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
+
+  const handleManualSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const code = manualBarcode.trim();
+    if (!code) return;
+
+    try {
+      const response = await fetch('/api/scan-companion', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: session, barcode: code })
+      });
+
+      if (response.ok) {
+        playBeep();
+        triggerVibe();
+        setScannedItems(prev => [code, ...prev]);
+        setSuccessMessage(`Barcode "${code}" sent successfully!`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+        setManualBarcode('');
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.error || 'Failed to submit barcode to PC.');
+        setTimeout(() => setErrorMessage(''), 3000);
+      }
+    } catch (err) {
+      setErrorMessage('Network connection lost.');
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
 
   // Trigger brief mobile vibration feedback on successful scans
   const triggerVibe = () => {
@@ -43,6 +74,10 @@ export default function ScanCompanionClient({ session }) {
   // Check camera permissions
   useEffect(() => {
     if (session) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraPermissionStatus('unsupported');
+        return;
+      }
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
           stream.getTracks().forEach(track => track.stop());
@@ -206,10 +241,51 @@ export default function ScanCompanionClient({ session }) {
           </div>
         )}
 
+        {successMessage && (
+          <div className="bg-success/10 border border-success/20 text-success rounded-lg p-3 text-xs font-semibold flex items-center gap-2 animate-slide-down">
+            <CheckCircle size={14} className="flex-shrink-0" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
         {cameraPermissionStatus === 'prompt' && (
           <div className="flex-1 flex flex-col items-center justify-center py-12 gap-3 bg-surface border border-border rounded-xl">
             <Loader2 size={32} className="animate-spin text-primary" />
             <span className="text-xs text-text-secondary">Requesting camera permissions...</span>
+          </div>
+        )}
+
+        {cameraPermissionStatus === 'unsupported' && (
+          <div className="flex-1 flex flex-col items-center justify-center py-10 px-6 text-center gap-4 bg-surface border border-border rounded-xl">
+            <div className="w-14 h-14 rounded-full bg-warning/10 text-warning flex items-center justify-center">
+              <AlertCircle size={28} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <h3 className="font-display font-extrabold text-sm text-text-primary">Insecure Connection (HTTP Context)</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Mobile browsers block camera access unless the connection uses **HTTPS** or **localhost**. Since you are connected via an insecure HTTP network address, camera access is disabled.
+              </p>
+            </div>
+            
+            {/* Manual Fallback Input Form */}
+            <form onSubmit={handleManualSubmit} className="w-full flex flex-col gap-2 mt-2">
+              <label className="text-[11px] font-bold text-text-secondary text-left">Type/Scan Barcode Manually:</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Scan or type barcode here..."
+                  className="flex-1 bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg transition-colors"
+                >
+                  Send
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
@@ -224,6 +300,7 @@ export default function ScanCompanionClient({ session }) {
                 This app needs camera access to scan barcodes. Please enable it in your mobile browser address bar settings and reload this page.
               </p>
             </div>
+            
             <button
               type="button"
               onClick={async () => {
@@ -235,10 +312,30 @@ export default function ScanCompanionClient({ session }) {
                   alert("Access still blocked. Please check browser privacy/security settings manually.");
                 }
               }}
-              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow"
+              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow w-full"
             >
               Grant Camera Permission
             </button>
+
+            {/* Manual Fallback Input Form */}
+            <form onSubmit={handleManualSubmit} className="w-full flex flex-col gap-2 mt-4 pt-4 border-t border-border">
+              <label className="text-[11px] font-bold text-text-secondary text-left font-sans">Type/Scan Barcode Manually:</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Scan or type barcode here..."
+                  className="flex-1 bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg transition-colors"
+                >
+                  Send
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
@@ -248,6 +345,26 @@ export default function ScanCompanionClient({ session }) {
             <div className="relative w-full rounded-xl overflow-hidden border border-border bg-surface shadow-sm">
               <div id="mobile-reader-element" className="w-full"></div>
             </div>
+
+            {/* Manual scan form fallback */}
+            <form onSubmit={handleManualSubmit} className="bg-surface border border-border p-3 rounded-lg flex flex-col gap-2 shadow-sm">
+              <label className="text-[11px] font-bold text-text-secondary text-left font-sans">Can't Scan? Type or scan with hardware wedge:</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type barcode and press Send/Enter..."
+                  className="flex-1 bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded transition-colors"
+                >
+                  Send
+                </button>
+              </div>
+            </form>
 
             {/* Instruction Banner */}
             <div className="bg-surface border border-border p-3 rounded-lg text-center">

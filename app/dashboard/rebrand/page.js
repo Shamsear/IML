@@ -15,13 +15,15 @@ export default async function RebrandPage() {
     },
     include: {
       product: {
-        include: {
-          brand: true,
+        select: {
+          id: true,
+          name: true,
+          brand: { select: { name: true } }
         }
       },
       serialNumbers: {
-        include: {
-          serialNumber: true
+        select: {
+          serialNumber: { select: { barcode: true } }
         }
       }
     },

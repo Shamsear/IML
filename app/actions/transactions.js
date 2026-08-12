@@ -262,7 +262,10 @@ export async function getStoreInventory(storeId) {
   await checkAuth();
 
   const products = await prisma.product.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      isSerialized: true,
       brand: { select: { name: true } }
     }
   });

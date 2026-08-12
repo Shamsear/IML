@@ -341,6 +341,7 @@ export async function GET(request, { params }) {
       // Fetch Staff placed at store for receiver name & phone
       const staffMember = await prisma.staff.findFirst({
         where: { storeId: id },
+        select: { name: true, phone: true }
       });
       if (staffMember) {
         receiverName = staffMember.name;
@@ -365,11 +366,26 @@ export async function GET(request, { params }) {
             brandId: brandIdQuery,
           }
         },
-        include: {
-          product: true,
+        select: {
+          id: true,
+          notes: true,
+          quantity: true,
+          product: {
+            select: {
+              id: true,
+              name: true,
+              itemCode: true,
+              category: true,
+              isSerialized: true,
+            }
+          },
           serialNumbers: {
-            include: {
-              serialNumber: true
+            select: {
+              serialNumber: {
+                select: {
+                  barcode: true
+                }
+              }
             }
           }
         }
@@ -425,6 +441,7 @@ export async function GET(request, { params }) {
       }
       const staffMember = await prisma.staff.findFirst({
         where: { storeId: id },
+        select: { name: true, phone: true }
       });
       if (staffMember) {
         receiverName = staffMember.name;

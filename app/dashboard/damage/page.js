@@ -13,15 +13,23 @@ export default async function DamagePage() {
     where: {
       transactionType: { in: ['DAMAGE', 'LOST'] },
     },
-    include: {
+    select: {
+      id: true,
+      transactionType: true,
+      quantity: true,
+      fromEntityType: true,
+      fromEntityId: true,
+      timestamp: true,
+      notes: true,
       product: {
-        include: {
-          brand: true,
-        }
-      },
-      serialNumbers: {
-        include: {
-          serialNumber: true
+        select: {
+          id: true,
+          name: true,
+          brand: {
+            select: {
+              name: true
+            }
+          }
         }
       }
     },

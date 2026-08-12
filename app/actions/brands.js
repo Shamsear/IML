@@ -111,7 +111,12 @@ export async function getBrandWithDetails(id) {
         orderBy: { name: 'asc' },
       },
       products: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          category: true,
+          isSerialized: true,
           _count: {
             select: { serialNumbers: true },
           },
@@ -201,9 +206,22 @@ export async function getBrandPortalDetails(secretKey) {
     where: { secretKey },
     include: {
       products: {
-        include: {
-          serialNumbers: true,
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          category: true,
+          isSerialized: true,
           transactions: {
+            select: {
+              id: true,
+              transactionType: true,
+              quantity: true,
+              fromEntityType: true,
+              toEntityType: true,
+              timestamp: true,
+              notes: true,
+            },
             orderBy: { timestamp: 'desc' }
           }
         },

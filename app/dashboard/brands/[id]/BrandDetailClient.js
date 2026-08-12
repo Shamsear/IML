@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   connectStoreToBrand, 
   disconnectStoreFromBrand, 
@@ -16,6 +17,7 @@ import Link from 'next/link';
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
 export default function BrandDetailClient({ brand, allStores, supervisors, staff }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');

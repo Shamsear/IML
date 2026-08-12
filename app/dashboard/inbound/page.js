@@ -13,15 +13,24 @@ export default async function InboundPage() {
     where: {
       transactionType: { in: ['RECEIVE', 'RETURN'] },
     },
-    include: {
+    select: {
+      id: true,
+      transactionType: true,
+      fromEntityType: true,
+      fromEntityId: true,
+      quantity: true,
+      deliveryNote: true,
+      timestamp: true,
+      notes: true,
       product: {
-        include: {
-          brand: true,
-        }
-      },
-      serialNumbers: {
-        include: {
-          serialNumber: true
+        select: {
+          id: true,
+          name: true,
+          brand: {
+            select: {
+              name: true
+            }
+          }
         }
       }
     },

@@ -13,15 +13,24 @@ export default async function OutboundPage() {
     where: {
       transactionType: 'ISSUE',
     },
-    include: {
+    select: {
+      id: true,
+      transactionType: true,
+      toEntityType: true,
+      toEntityId: true,
+      quantity: true,
+      deliveryNote: true,
+      timestamp: true,
+      notes: true,
       product: {
-        include: {
-          brand: true,
-        }
-      },
-      serialNumbers: {
-        include: {
-          serialNumber: true
+        select: {
+          id: true,
+          name: true,
+          brand: {
+            select: {
+              name: true
+            }
+          }
         }
       }
     },

@@ -30,7 +30,11 @@ export async function GET(request) {
           ],
         },
         take: 5,
-        include: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          category: true,
           brand: {
             select: { name: true }
           }
@@ -41,12 +45,22 @@ export async function GET(request) {
           name: { contains: cleanQuery, mode: 'insensitive' },
         },
         take: 5,
+        select: {
+          id: true,
+          name: true,
+          region: true
+        }
       }),
       prisma.staff.findMany({
         where: {
           name: { contains: cleanQuery, mode: 'insensitive' },
         },
         take: 5,
+        select: {
+          id: true,
+          name: true,
+          phone: true
+        }
       }),
       prisma.productSerialNumber.findMany({
         where: {
@@ -56,7 +70,10 @@ export async function GET(request) {
           ],
         },
         take: 5,
-        include: {
+        select: {
+          id: true,
+          barcode: true,
+          currentLocationType: true,
           product: {
             select: { name: true }
           }

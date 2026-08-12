@@ -230,6 +230,12 @@ export async function getProductSerials(productId) {
   await checkAuth();
   return prisma.productSerialNumber.findMany({
     where: { productId },
+    select: {
+      id: true,
+      barcode: true,
+      currentLocationType: true,
+      status: true
+    },
     orderBy: { barcode: 'asc' },
   });
 }
@@ -340,9 +346,19 @@ export async function findProductByBarcode(barcode) {
   
   const serial = await prisma.productSerialNumber.findUnique({
     where: { barcode: barcode.trim() },
-    include: {
+    select: {
+      id: true,
+      barcode: true,
+      secondaryBarcode: true,
+      status: true,
+      currentLocationType: true,
+      currentLocationId: true,
       product: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          isSerialized: true,
+          category: true,
           brand: { select: { id: true, name: true } }
         }
       }

@@ -298,3 +298,87 @@ body {
   outline: none !important;
   margin: 4px !important;
 }
+
+/* Mirror styling for mobile reader companion scanner elements to center the scan icon/permissions elements */
+#mobile-reader-element {
+  border: none !important;
+  color: var(--text-primary) !important;
+  background-color: var(--bg-surface) !important;
+  font-family: inherit !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+#mobile-reader-element img {
+  display: block !important;
+  margin: 12px auto !important;
+  max-width: 48px !important;
+  height: auto !important;
+}
+#mobile-reader-element > div {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  border: none !important;
+}
+#mobile-reader-element input[type="file"] {
+  display: block !important;
+  margin: 12px auto !important;
+  font-size: 11px !important;
+  color: var(--text-secondary) !important;
+  text-align: center !important;
+}
+#mobile-reader-element a {
+  color: var(--accent-primary) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  margin: 6px auto !important;
+}
+#mobile-reader-element > div:first-child {
+  border: none !important;
+}
+#mobile-reader-element > div:last-child {
+  background-color: var(--bg-surface-elevated) !important;
+  padding: 12px !important;
+  border-top: 1px solid var(--border-color) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  border-bottom-left-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+}
+#mobile-reader-element button {
+  background-color: var(--accent-primary) !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-xs) !important;
+  cursor: pointer !important;
+  margin: 4px !important;
+  transition: all 0.2s ease !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+#mobile-reader-element button:hover {
+  background-color: var(--accent-primary-hover) !important;
+}
+#mobile-reader-element select {
+  background-color: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  border-radius: var(--radius-xs) !important;
+  outline: none !important;
+  margin: 4px !important;
+}

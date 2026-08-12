@@ -21,10 +21,20 @@ export default async function StoreDetailPage({ params }) {
         toEntityId: id,
         transactionType: 'ISSUE',
       },
-      include: {
+      select: {
+        id: true,
+        quantity: true,
+        deliveryNote: true,
+        timestamp: true,
         product: {
-          include: {
-            brand: true,
+          select: {
+            id: true,
+            brand: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
           }
         }
       },

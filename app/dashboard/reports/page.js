@@ -18,7 +18,12 @@ export default async function ReportsPage() {
 
   // Fetch all products, their owners, and all ledger logs to calculate aggregated metrics
   const products = await prisma.product.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      itemCode: true,
+      category: true,
+      brandId: true,
       brand: { select: { id: true, name: true } },
       transactions: {
         select: {

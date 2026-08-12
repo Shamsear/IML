@@ -59,6 +59,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
 
   // Global Scan Input State
   const [globalScanInput, setGlobalScanInput] = useState('');
+  const [isGlobalScanExpanded, setIsGlobalScanExpanded] = useState(true);
 
   // Barcode Range Select States
   const [rangeStart, setRangeStart] = useState({});
@@ -216,100 +217,105 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
     }
   };
 
-  const handleGlobalScanSubmit = async (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const code = globalScanInput.trim();
-      if (!code) return;
+  const processGlobalBarcode = async (code) => {
+    const cleanCode = code.trim();
+    if (!cleanCode) return;
 
-      try {
-        // 1. Search if it matches a serialized barcode in the database
-        const serial = await findProductByBarcode(code);
-        if (serial) {
-          if (serial.status !== 'AVAILABLE' || serial.currentLocationType !== 'WAREHOUSE') {
-            alert(`Barcode "${code}" is not available in the Warehouse. Current status: ${serial.status} at ${serial.currentLocationType || 'Unknown'}.`);
-            setGlobalScanInput('');
-            return;
-          }
+    try {
+      // 1. Search if it matches a serialized barcode in the database
+      const serial = await findProductByBarcode(cleanCode);
+      if (serial) {
+        if (serial.status !== 'AVAILABLE' || serial.currentLocationType !== 'WAREHOUSE') {
+          alert(`Barcode "${cleanCode}" is not available in the Warehouse. Current status: ${serial.status} at ${serial.currentLocationType || 'Unknown'}.`);
+          return;
+        }
 
-          const prodId = serial.productId;
+        const prodId = serial.productId;
 
-          // Check if product row already exists in the dispatch ledger
-          const existingItemIndex = items.findIndex(item => item.productId === prodId);
+        // Check if product row already exists in the dispatch ledger
+        const existingItemIndex = items.findIndex(item => item.productId === prodId);
 
-          if (existingItemIndex > -1) {
-            const item = items[existingItemIndex];
-            if (!item.selectedBarcodes.includes(serial.barcode)) {
-              const newSelected = [...item.selectedBarcodes, serial.barcode];
-              setItems(prev => prev.map((x, idx) => idx === existingItemIndex ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x));
-              playBeep();
-            } else {
-              // Already selected, keep it selected
-              alert(`Barcode "${code}" is already selected for ${serial.product.name}.`);
-            }
+        if (existingItemIndex > -1) {
+          const item = items[existingItemIndex];
+          if (!item.selectedBarcodes.includes(serial.barcode)) {
+            const newSelected = [...item.selectedBarcodes, serial.barcode];
+            setItems(prev => prev.map((x, idx) => idx === existingItemIndex ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x));
+            playBeep();
           } else {
-            // Add new row for this product
-            const available = await getAvailableBarcodes(prodId, 'WAREHOUSE', null);
-            setItems(prev => {
-              // If the first row is empty/placeholder, replace it instead of appending
-              if (prev.length === 1 && !prev[0].productId) {
-                return [{
-                  productId: prodId,
-                  quantity: 1,
-                  selectedBarcodes: [serial.barcode],
-                  availableBarcodes: available || [],
-                  notes: ''
-                }];
-              }
-              return [...prev, {
+            // Already selected, keep it selected
+            alert(`Barcode "${cleanCode}" is already selected for ${serial.product.name}.`);
+          }
+        } else {
+          // Add new row for this product
+          const available = await getAvailableBarcodes(prodId, 'WAREHOUSE', null);
+          setItems(prev => {
+            // If the first row is empty/placeholder, replace it instead of appending
+            if (prev.length === 1 && !prev[0].productId) {
+              return [{
                 productId: prodId,
                 quantity: 1,
                 selectedBarcodes: [serial.barcode],
                 availableBarcodes: available || [],
                 notes: ''
               }];
+            }
+            return [...prev, {
+              productId: prodId,
+              quantity: 1,
+              selectedBarcodes: [serial.barcode],
+              availableBarcodes: available || [],
+              notes: ''
+            }];
+          });
+          playBeep();
+        }
+      } else {
+        // 2. Check if the scanned value matches any Product's itemCode (SKU)
+        const matchedProd = products.find(p => p.itemCode && p.itemCode.toLowerCase() === cleanCode.toLowerCase());
+        if (matchedProd) {
+          const existingItemIndex = items.findIndex(item => item.productId === matchedProd.id);
+          if (existingItemIndex > -1) {
+            if (matchedProd.isSerialized) {
+              alert(`SKU "${cleanCode}" matches a serialized product. Please scan its individual serial/IMEI barcodes instead.`);
+            } else {
+              setItems(prev => prev.map((x, idx) => idx === existingItemIndex ? { ...x, quantity: x.quantity + 1 } : x));
+              playBeep();
+            }
+          } else {
+            const available = matchedProd.isSerialized ? await getAvailableBarcodes(matchedProd.id, 'WAREHOUSE', null) : [];
+            setItems(prev => {
+              const newRow = {
+                productId: matchedProd.id,
+                quantity: 1,
+                selectedBarcodes: [],
+                availableBarcodes: available || [],
+                notes: ''
+              };
+              if (prev.length === 1 && !prev[0].productId) {
+                return [newRow];
+              }
+              return [...prev, newRow];
             });
             playBeep();
           }
         } else {
-          // 2. Check if the scanned value matches any Product's itemCode (SKU)
-          const matchedProd = products.find(p => p.itemCode && p.itemCode.toLowerCase() === code.toLowerCase());
-          if (matchedProd) {
-            const existingItemIndex = items.findIndex(item => item.productId === matchedProd.id);
-            if (existingItemIndex > -1) {
-              if (matchedProd.isSerialized) {
-                alert(`SKU "${code}" matches a serialized product. Please scan its individual serial/IMEI barcodes instead.`);
-              } else {
-                setItems(prev => prev.map((x, idx) => idx === existingItemIndex ? { ...x, quantity: x.quantity + 1 } : x));
-                playBeep();
-              }
-            } else {
-              const available = matchedProd.isSerialized ? await getAvailableBarcodes(matchedProd.id, 'WAREHOUSE', null) : [];
-              setItems(prev => {
-                const newRow = {
-                  productId: matchedProd.id,
-                  quantity: 1,
-                  selectedBarcodes: [],
-                  availableBarcodes: available || [],
-                  notes: ''
-                };
-                if (prev.length === 1 && !prev[0].productId) {
-                  return [newRow];
-                }
-                return [...prev, newRow];
-              });
-              playBeep();
-            }
-          } else {
-            alert(`Scanned barcode "${code}" does not match any available product serial or SKU.`);
-          }
+          alert(`Scanned barcode "${cleanCode}" does not match any available product serial or SKU.`);
         }
-      } catch (err) {
-        console.error("Global scan query failed:", err);
-        alert("Error fetching barcode from server.");
       }
+    } catch (err) {
+      console.error("Global scan query failed:", err);
+      alert("Error fetching barcode from server.");
+    }
+  };
 
-      setGlobalScanInput('');
+  const handleGlobalScanSubmit = async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = globalScanInput.trim();
+      if (code) {
+        await processGlobalBarcode(code);
+        setGlobalScanInput('');
+      }
     }
   };
 
@@ -372,7 +378,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
           );
           
           html5QrcodeScanner.render(
-            (decodedText) => {
+            async (decodedText) => {
               const code = decodedText.trim();
               const lowercaseCode = code.toLowerCase();
               const now = Date.now();
@@ -384,34 +390,50 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
               lastScannedBarcodeRef.current = lowercaseCode;
               lastScannedTimeRef.current = now;
 
-              setItems(prev => {
-                const item = prev[activeCameraRow];
-                if (!item) return prev;
-
-                const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
-                if (matched) {
-                  if (!item.selectedBarcodes.includes(matched.barcode)) {
-                    playBeep();
-                    const newSelected = [...item.selectedBarcodes, matched.barcode];
-                    // Trigger a brief green flash on overlay
-                    const flashOverlay = document.querySelector('.custom-scan-overlay > div');
+              if (activeCameraRow === 'GLOBAL') {
+                playBeep();
+                const flashOverlay = document.querySelector('.custom-scan-overlay > div');
+                if (flashOverlay) {
+                  flashOverlay.style.borderColor = '#10b981';
+                  flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
+                  setTimeout(() => {
                     if (flashOverlay) {
-                      flashOverlay.style.borderColor = '#10b981';
-                      flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
-                      setTimeout(() => {
-                        if (flashOverlay) {
-                          flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                          flashOverlay.style.boxShadow = 'none';
-                        }
-                      }, 400);
+                      flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                      flashOverlay.style.boxShadow = 'none';
                     }
-                    return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
-                  }
-                } else {
-                  alert(`Barcode "${decodedText}" is not available in the Warehouse.`);
+                  }, 400);
                 }
-                return prev;
-              });
+                await processGlobalBarcode(code);
+              } else {
+                setItems(prev => {
+                  const item = prev[activeCameraRow];
+                  if (!item) return prev;
+
+                  const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
+                  if (matched) {
+                    if (!item.selectedBarcodes.includes(matched.barcode)) {
+                      playBeep();
+                      const newSelected = [...item.selectedBarcodes, matched.barcode];
+                      // Trigger a brief green flash on overlay
+                      const flashOverlay = document.querySelector('.custom-scan-overlay > div');
+                      if (flashOverlay) {
+                        flashOverlay.style.borderColor = '#10b981';
+                        flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
+                        setTimeout(() => {
+                          if (flashOverlay) {
+                            flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                            flashOverlay.style.boxShadow = 'none';
+                          }
+                        }, 400);
+                      }
+                      return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
+                    }
+                  } else {
+                    alert(`Barcode "${decodedText}" is not available in the Warehouse.`);
+                  }
+                  return prev;
+                });
+              }
 
               if (!isBulkScanRef.current) {
                 setIsCameraOpen(false);
@@ -489,31 +511,35 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
           if (res.ok) {
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
-              data.barcodes.forEach(code => {
+              for (const code of data.barcodes) {
                 const cleanCode = code.trim();
                 const lowercaseCode = cleanCode.toLowerCase();
                 
-                setItems(prev => {
-                  const item = prev[activeCameraRow];
-                  if (!item) return prev;
+                if (activeCameraRow === 'GLOBAL') {
+                  await processGlobalBarcode(cleanCode);
+                } else {
+                  setItems(prev => {
+                    const item = prev[activeCameraRow];
+                    if (!item) return prev;
 
-                  const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
-                  if (matched) {
-                    if (!item.selectedBarcodes.includes(matched.barcode)) {
-                      playBeep();
-                      const newSelected = [...item.selectedBarcodes, matched.barcode];
-                      return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
+                    const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
+                    if (matched) {
+                      if (!item.selectedBarcodes.includes(matched.barcode)) {
+                        playBeep();
+                        const newSelected = [...item.selectedBarcodes, matched.barcode];
+                        return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
+                      }
+                    } else {
+                      alert(`Mobile Scanned Barcode "${cleanCode}" is not available in the Warehouse.`);
                     }
-                  } else {
-                    alert(`Mobile Scanned Barcode "${cleanCode}" is not available in the Warehouse.`);
-                  }
-                  return prev;
-                });
-              });
+                    return prev;
+                  });
+                }
+              }
             }
           }
         } catch (e) {
-          console.error("Polling error:", e);
+          console.error("Failed polling mobile scans:", e);
         }
       }, 1000);
     }
@@ -659,22 +685,67 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
         </div>
 
         {/* Global Barcode Scanner */}
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 flex flex-col gap-3">
-          <label className="text-sm font-bold text-primary flex items-center gap-1.5">
-            <QrCode size={16} />
-            <span>🔍 Direct Barcode Scan (No Need to Select Product)</span>
-          </label>
-          <p className="text-text-secondary text-xs">
-            Scan or type any product IMEI / serial barcode or SKU code below and press Enter. The system will automatically resolve the product, append its ledger row, and select the item!
-          </p>
-          <input
-            type="text"
-            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-primary/30 rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-            value={globalScanInput}
-            onChange={(e) => setGlobalScanInput(e.target.value)}
-            onKeyDown={handleGlobalScanSubmit}
-            placeholder="Place cursor here and scan/type barcode..."
-          />
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-col gap-2 transition-all">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setIsGlobalScanExpanded(!isGlobalScanExpanded)}
+              className="text-xs font-bold text-primary flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            >
+              <QrCode size={14} />
+              <span>🔍 Direct Barcode Scan (No Need to Select Product)</span>
+              <span className="text-[10px] text-text-muted font-normal">
+                {isGlobalScanExpanded ? ' (Click to collapse)' : ' (Click to expand)'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsGlobalScanExpanded(!isGlobalScanExpanded)}
+              className="text-text-secondary hover:text-text-primary text-xs font-semibold"
+            >
+              {isGlobalScanExpanded ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          {isGlobalScanExpanded && (
+            <div className="flex flex-col gap-2 animate-fade-in">
+              <p className="text-text-secondary text-[11px] leading-relaxed">
+                Scan or type any product IMEI/serial barcode or SKU code. The system resolves the product and auto-appends/selects it.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-primary/30 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                  value={globalScanInput}
+                  onChange={(e) => setGlobalScanInput(e.target.value)}
+                  onKeyDown={handleGlobalScanSubmit}
+                  placeholder="Place cursor here and scan/type barcode..."
+                />
+                
+                <div className="flex gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
+                    onClick={() => { setActiveCameraRow('GLOBAL'); setIsCameraOpen(true); }}
+                    title="Scan via PC Webcam"
+                  >
+                    <Camera size={13} />
+                    <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
+                    onClick={() => handleOpenMobileScanner('GLOBAL')}
+                    title="Pair Wireless Mobile phone camera"
+                  >
+                    <Smartphone size={13} className="text-primary" />
+                    <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Ledger Header */}
