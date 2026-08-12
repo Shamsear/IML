@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, Save, Users, Building2, Calendar, FileText, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, Edit2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, Save, Users, Building2, Calendar, FileText, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, Edit2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createBulkProducts } from '@/app/actions/products';
@@ -44,6 +44,9 @@ export default function NewProductClient({ brands, editId = null }) {
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
 
+  // Active target slot for webcam/companion barcode scans: { itemIdx, inboundIdx }
+  const [activeScanTarget, setActiveScanTarget] = useState(null);
+
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
@@ -77,6 +80,17 @@ export default function NewProductClient({ brands, editId = null }) {
     }
   }, []);
 
+  // Helper to construct empty inbound entry details
+  const createEmptyInboundEntry = (index = 0) => ({
+    id: `inb-${Date.now()}-${index}`,
+    fromId: 'Initial Import',
+    receivedBy: '',
+    initialQty: '',
+    initialBarcodes: '',
+    deliveryNote: '',
+    notes: '',
+  });
+
   // Helper to construct a blank product item configuration for bulk creation
   const createEmptyProductItem = (index = 0) => ({
     id: `temp-${Date.now()}-${index}`,
@@ -89,12 +103,7 @@ export default function NewProductClient({ brands, editId = null }) {
     isReturnable: false,
     isPublic: true,
     includeInbound: false, // Default is false (catalog details only)
-    initialQty: '',
-    initialBarcodes: '',
-    deliveryNote: '',
-    notes: '',
-    receivedBy: '',
-    fromId: 'Initial Import',
+    inbounds: [createEmptyInboundEntry(0)], // List of inbound shipments
     imageFile: null,
     imagePreview: '',
     imageUrl: '',
@@ -129,12 +138,7 @@ export default function NewProductClient({ brands, editId = null }) {
               isReturnable: product.isReturnable,
               isPublic: product.isPublic,
               includeInbound: false,
-              initialQty: '',
-              initialBarcodes: '',
-              deliveryNote: '',
-              notes: '',
-              receivedBy: '',
-              fromId: 'Initial Import',
+              inbounds: [createEmptyInboundEntry(0)],
               imageFile: null,
               imagePreview: '',
               imageUrl: product.imageUrl || '',
@@ -174,24 +178,70 @@ export default function NewProductClient({ brands, editId = null }) {
     }));
   };
 
+  // Handle specific sub-inbound field updates
+  const updateInboundField = (itemIdx, inboundIdx, field, value) => {
+    setItems(prev => prev.map((item, i) => {
+      if (i !== itemIdx) return item;
+      const updatedInbounds = item.inbounds.map((inb, j) => {
+        if (j !== inboundIdx) return inb;
+        return { ...inb, [field]: value };
+      });
+      return { ...item, inbounds: updatedInbounds };
+    }));
+  };
+
+  const handleAddInboundEntry = (itemIdx) => {
+    setItems(prev => prev.map((item, i) => {
+      if (i !== itemIdx) return item;
+      return {
+        ...item,
+        inbounds: [...item.inbounds, createEmptyInboundEntry(item.inbounds.length)]
+      };
+    }));
+  };
+
+  const handleRemoveInboundEntry = (itemIdx, inboundIdx) => {
+    setItems(prev => prev.map((item, i) => {
+      if (i !== itemIdx) return item;
+      if (item.inbounds.length === 1) return item;
+      return {
+        ...item,
+        inbounds: item.inbounds.filter((_, j) => j !== inboundIdx)
+      };
+    }));
+  };
+
   const addBarcodeToActiveItem = (code) => {
     const cleanCode = code.trim();
     if (!cleanCode) return false;
 
     let added = false;
     setItems(prev => {
-      const activeIdx = prev.findIndex(item => item.isExpanded);
-      if (activeIdx === -1) return prev;
+      if (!activeScanTarget) return prev;
+      const { itemIdx, inboundIdx } = activeScanTarget;
 
-      const activeItem = prev[activeIdx];
-      const currentList = activeItem.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+      const targetItem = prev[itemIdx];
+      if (!targetItem) return prev;
+
+      const targetInbound = targetItem.inbounds[inboundIdx];
+      if (!targetInbound) return prev;
+
+      const currentList = targetInbound.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
       if (!currentList.includes(cleanCode)) {
         const newList = [...currentList, cleanCode];
         added = true;
-        return prev.map((item, i) => i === activeIdx ? { 
-          ...item, 
-          initialBarcodes: newList.join('\n') 
-        } : item);
+
+        return prev.map((item, i) => {
+          if (i !== itemIdx) return item;
+          const updatedInbounds = item.inbounds.map((inb, j) => {
+            if (j !== inboundIdx) return inb;
+            return {
+              ...inb,
+              initialBarcodes: newList.join('\n')
+            };
+          });
+          return { ...item, inbounds: updatedInbounds };
+        });
       }
       return prev;
     });
@@ -365,15 +415,26 @@ export default function NewProductClient({ brands, editId = null }) {
       updateItemField(idx, 'error', 'Please select an associated brand owner');
       return;
     }
-    
-    if (item.includeInbound) {
-      const hasInboundStock = item.productType === 'NORMAL' 
-        ? (parseInt(item.initialQty, 10) > 0)
-        : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0);
 
-      if (hasInboundStock && !item.fromId.trim()) {
-        updateItemField(idx, 'error', 'Please enter a valid source supplier name for initial stock');
+    if (item.includeInbound) {
+      if (!item.inbounds || item.inbounds.length === 0) {
+        updateItemField(idx, 'error', 'Please add at least one inbound stock entry or disable inbound logging');
         return;
+      }
+      for (let j = 0; j < item.inbounds.length; j++) {
+        const inb = item.inbounds[j];
+        if (!inb.fromId.trim()) {
+          updateItemField(idx, 'error', `Inbound Entry #${j + 1}: Supplier name is required`);
+          return;
+        }
+        const qty = item.productType === 'NORMAL' 
+          ? parseInt(inb.initialQty, 10) 
+          : inb.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length;
+
+        if (qty <= 0 || isNaN(qty)) {
+          updateItemField(idx, 'error', `Inbound Entry #${j + 1}: Please enter a valid quantity / scan barcodes`);
+          return;
+        }
       }
     }
 
@@ -410,17 +471,32 @@ export default function NewProductClient({ brands, editId = null }) {
         setLoading(false);
         return;
       }
-      
-      if (item.includeInbound) {
-        const hasInboundStock = item.productType === 'NORMAL' 
-          ? (parseInt(item.initialQty, 10) > 0)
-          : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0);
 
-        if (hasInboundStock && !item.fromId.trim()) {
-          updateItemField(i, 'error', 'Please enter a valid source supplier name for initial stock');
+      if (item.includeInbound) {
+        if (!item.inbounds || item.inbounds.length === 0) {
+          updateItemField(i, 'error', 'Please add at least one inbound stock entry or disable inbound logging');
           handleExpandItem(i);
           setLoading(false);
           return;
+        }
+        for (let j = 0; j < item.inbounds.length; j++) {
+          const inb = item.inbounds[j];
+          if (!inb.fromId.trim()) {
+            updateItemField(i, 'error', `Inbound Entry #${j + 1}: Supplier name is required`);
+            handleExpandItem(i);
+            setLoading(false);
+            return;
+          }
+          const qty = item.productType === 'NORMAL' 
+            ? parseInt(inb.initialQty, 10) 
+            : inb.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length;
+
+          if (qty <= 0 || isNaN(qty)) {
+            updateItemField(i, 'error', `Inbound Entry #${j + 1}: Please enter a valid quantity / scan barcodes`);
+            handleExpandItem(i);
+            setLoading(false);
+            return;
+          }
         }
       }
     }
@@ -458,13 +534,24 @@ export default function NewProductClient({ brands, editId = null }) {
           formData.append(`item_${idx}_stockCap`, item.stockCap || '');
           formData.append(`item_${idx}_isReturnable`, item.isReturnable ? 'true' : 'false');
           formData.append(`item_${idx}_isPublic`, item.isPublic ? 'true' : 'false');
-          // Inbound values are conditionally mapped based on option selection toggle
-          formData.append(`item_${idx}_initialQty`, item.includeInbound ? (item.initialQty || '0') : '0');
-          formData.append(`item_${idx}_initialBarcodes`, item.includeInbound ? (item.initialBarcodes || '') : '');
-          formData.append(`item_${idx}_deliveryNote`, item.includeInbound ? (item.deliveryNote || 'INITIAL_STOCK') : 'INITIAL_STOCK');
-          formData.append(`item_${idx}_notes`, item.includeInbound ? (item.notes || 'Auto-received initial stock') : 'Auto-received initial stock');
-          formData.append(`item_${idx}_receivedBy`, item.includeInbound ? (item.receivedBy || '') : '');
-          formData.append(`item_${idx}_fromId`, item.includeInbound ? (item.fromId || 'Initial Import') : 'Initial Import');
+
+          // Serialize optional multiple inbounds
+          formData.append(`item_${idx}_inboundCount`, item.includeInbound ? item.inbounds.length.toString() : '0');
+          if (item.includeInbound) {
+            item.inbounds.forEach((inb, j) => {
+              const inboundQty = item.productType === 'NORMAL' 
+                ? (inb.initialQty || '0') 
+                : inb.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length.toString();
+
+              formData.append(`item_${idx}_inbound_${j}_qty`, inboundQty);
+              formData.append(`item_${idx}_inbound_${j}_barcodes`, inb.initialBarcodes || '');
+              formData.append(`item_${idx}_inbound_${j}_fromId`, inb.fromId || 'Initial Import');
+              formData.append(`item_${idx}_inbound_${j}_receivedBy`, inb.receivedBy || '');
+              formData.append(`item_${idx}_inbound_${j}_deliveryNote`, inb.deliveryNote || 'INITIAL_STOCK');
+              formData.append(`item_${idx}_inbound_${j}_notes`, inb.notes || 'Auto-received initial stock');
+            });
+          }
+
           if (item.imageFile) {
             formData.append(`item_${idx}_imageFile`, item.imageFile);
           } else if (item.imageUrl) {
@@ -528,10 +615,20 @@ export default function NewProductClient({ brands, editId = null }) {
       <form onSubmit={handleBatchSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-4">
           {items.map((item, idx) => {
-            const hasInbound = item.includeInbound && (item.productType === 'NORMAL' 
-              ? (parseInt(item.initialQty, 10) > 0)
-              : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0));
+            const hasInbound = item.includeInbound && item.inbounds.some(inb => {
+              const qty = item.productType === 'NORMAL' 
+                ? parseInt(inb.initialQty, 10) 
+                : inb.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length;
+              return qty > 0;
+            });
             
+            const totalQty = item.includeInbound ? item.inbounds.reduce((acc, inb) => {
+              const qty = item.productType === 'NORMAL' 
+                ? (parseInt(inb.initialQty, 10) || 0) 
+                : inb.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length;
+              return acc + qty;
+            }, 0) : 0;
+
             const brandObj = brands.find(b => b.id === item.brandId);
 
             return (
@@ -576,7 +673,7 @@ export default function NewProductClient({ brands, editId = null }) {
                       <div className="text-right hidden sm:block">
                         <span className="text-[10px] font-bold uppercase text-text-secondary block">Initial Stock</span>
                         <span className={`text-xs font-bold ${hasInbound ? 'text-primary' : 'text-text-muted'}`}>
-                          {item.includeInbound ? (item.productType === 'NORMAL' ? (item.initialQty || '0') : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length)) : 0} Qty
+                          {totalQty} items ({item.inbounds.length} Shipments)
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -773,7 +870,7 @@ export default function NewProductClient({ brands, editId = null }) {
 
                     {/* Section 3 Toggle Selection (Inbound stock option) */}
                     {!editId && (
-                      <div className="flex flex-col gap-4 pt-4 border-t border-border/60">
+                      <div className="flex flex-col gap-4">
                         <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider pb-1 border-b border-border/60">3. Initial Stock Configuration</h4>
                         <div className="flex items-center gap-6 pb-2">
                           <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
@@ -799,94 +896,126 @@ export default function NewProductClient({ brands, editId = null }) {
                         </div>
 
                         {item.includeInbound && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slide-down">
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-text-secondary">Inbound Supplier / Source</label>
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                  value={item.fromId}
-                                  onChange={(e) => updateItemField(idx, 'fromId', e.target.value)}
-                                  placeholder="Supplier Name"
-                                />
-                              </div>
-                            </div>
+                          <div className="flex flex-col gap-4 mt-4 bg-surface-elevated/10 p-4 rounded-xl border border-border animate-slide-down">
+                            {item.inbounds.map((inb, subIdx) => {
+                              const parsedQty = item.productType === 'NORMAL' 
+                                ? (parseInt(inb.initialQty, 10) || 0) 
+                                : inb.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length;
 
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-text-secondary">Received By (Staff)</label>
-                              <input
-                                type="text"
-                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                value={item.receivedBy}
-                                onChange={(e) => updateItemField(idx, 'receivedBy', e.target.value)}
-                                placeholder="e.g. John Doe"
-                              />
-                            </div>
+                              return (
+                                <div key={inb.id} className="flex flex-col gap-4 border-b border-border/60 last:border-0 pb-4 last:pb-0">
+                                  <div className="flex items-center justify-between pb-1">
+                                    <span className="text-xs font-extrabold text-text-primary">Inbound Shipment #{subIdx + 1}</span>
+                                    {item.inbounds.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveInboundEntry(idx, subIdx)}
+                                        className="text-[11px] font-bold text-danger hover:underline inline-flex items-center gap-0.5 cursor-pointer"
+                                      >
+                                        <Trash2 size={11} /> Remove Shipment
+                                      </button>
+                                    )}
+                                  </div>
 
-                            {item.productType === 'NORMAL' ? (
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-bold text-text-secondary">Initial Quantity</label>
-                                <input
-                                  type="number"
-                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                  value={item.initialQty}
-                                  onChange={(e) => updateItemField(idx, 'initialQty', e.target.value)}
-                                  placeholder="e.g. 50"
-                                />
-                              </div>
-                            ) : (
-                              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-xs font-bold text-text-secondary">Scan/Enter Serial Numbers (Barcodes)</label>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={handleOpenMobileScanner}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
-                                    >
-                                      <Smartphone size={11} /> <span>Companion Sync</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setIsCameraOpen(true)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
-                                    >
-                                      <Camera size={11} /> <span>Webcam Scan</span>
-                                    </button>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-xs font-bold text-text-secondary">Inbound Supplier / Source</label>
+                                      <input
+                                        type="text"
+                                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                        value={inb.fromId}
+                                        onChange={(e) => updateInboundField(idx, subIdx, 'fromId', e.target.value)}
+                                        placeholder="Supplier Name"
+                                        required
+                                      />
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-xs font-bold text-text-secondary">Received By (Staff)</label>
+                                      <input
+                                        type="text"
+                                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                        value={inb.receivedBy}
+                                        onChange={(e) => updateInboundField(idx, subIdx, 'receivedBy', e.target.value)}
+                                        placeholder="e.g. John Doe"
+                                      />
+                                    </div>
+
+                                    {item.productType === 'NORMAL' ? (
+                                      <div className="flex flex-col gap-1.5">
+                                        <label className="text-xs font-bold text-text-secondary">Initial Quantity</label>
+                                        <input
+                                          type="number"
+                                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                          value={inb.initialQty}
+                                          onChange={(e) => updateInboundField(idx, subIdx, 'initialQty', e.target.value)}
+                                          placeholder="e.g. 50"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                        <div className="flex items-center justify-between pb-1">
+                                          <label className="text-xs font-bold text-text-secondary">Scan/Enter Serial Numbers (Barcodes)</label>
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                                handleOpenMobileScanner();
+                                              }}
+                                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
+                                            >
+                                              <Smartphone size={11} /> <span>Companion Sync</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                                setIsCameraOpen(true);
+                                              }}
+                                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
+                                            >
+                                              <Camera size={11} /> <span>Webcam Scan</span>
+                                            </button>
+                                          </div>
+                                        </div>
+                                        <textarea
+                                          rows={4}
+                                          className="w-full bg-surface text-text-primary font-mono placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs focus:outline-none resize-none leading-relaxed"
+                                          placeholder="Scan barcodes or type them (one per line)..."
+                                          value={inb.initialBarcodes}
+                                          onChange={(e) => updateInboundField(idx, subIdx, 'initialBarcodes', e.target.value)}
+                                        />
+                                        <div className="text-[10px] text-text-secondary mt-0.5">
+                                          Barcodes parsed: <strong className="text-primary">{parsedQty}</strong>
+                                        </div>
+                                      </div>
+                                    )}
+
+
+                                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                      <label className="text-xs font-bold text-text-secondary">Inbound Notes / Remarks</label>
+                                      <input
+                                        type="text"
+                                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                        value={inb.notes}
+                                        onChange={(e) => updateInboundField(idx, subIdx, 'notes', e.target.value)}
+                                        placeholder="e.g. Initial stock import"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
-                                <textarea
-                                  rows={4}
-                                  className="w-full bg-surface text-text-primary font-mono placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none resize-none"
-                                  placeholder="Scan barcodes or type them (one per line)..."
-                                  value={item.initialBarcodes}
-                                  onChange={(e) => updateItemField(idx, 'initialBarcodes', e.target.value)}
-                                />
-                              </div>
-                            )}
+                              );
+                            })}
 
-                            <div className="flex flex-col gap-1.5 sm:col-span-2">
-                              <label className="text-xs font-bold text-text-secondary">Delivery Note # Reference</label>
-                              <input
-                                type="text"
-                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                value={item.deliveryNote}
-                                onChange={(e) => updateItemField(idx, 'deliveryNote', e.target.value)}
-                                placeholder="e.g. DN-998877"
-                              />
-                            </div>
-
-                            <div className="flex flex-col gap-1.5 sm:col-span-2">
-                              <label className="text-xs font-bold text-text-secondary">Inbound Notes / Remarks</label>
-                              <input
-                                type="text"
-                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                value={item.notes}
-                                onChange={(e) => updateItemField(idx, 'notes', e.target.value)}
-                                placeholder="e.g. Initial stock import"
-                              />
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAddInboundEntry(idx)}
+                              className="w-fit mt-2 px-4 py-2 border-2 border-dashed border-border hover:border-primary/50 text-text-secondary hover:text-primary rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all bg-surface hover:bg-surface-elevated duration-200 cursor-pointer"
+                            >
+                              <Plus size={14} />
+                              <span>Add Another Inbound Stock Shipment</span>
+                            </button>
                           </div>
                         )}
                       </div>

@@ -514,12 +514,19 @@ export async function createBulkProducts(formData) {
     const stockCap = formData.get(`item_${i}_stockCap`);
     const isReturnable = formData.get(`item_${i}_isReturnable`) === 'true';
     const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
-    const initialQty = formData.get(`item_${i}_initialQty`) || '0';
-    const initialBarcodes = formData.get(`item_${i}_initialBarcodes`) || '';
-    const deliveryNote = formData.get(`item_${i}_deliveryNote`) || 'INITIAL_STOCK';
-    const notes = formData.get(`item_${i}_notes`) || 'Auto-received initial stock on bulk product registration';
-    const receivedBy = formData.get(`item_${i}_receivedBy`) || null;
-    const fromId = formData.get(`item_${i}_fromId`) || 'Initial Import';
+
+    const inboundCount = parseInt(formData.get(`item_${i}_inboundCount`), 10) || 0;
+    const inbounds = [];
+    for (let j = 0; j < inboundCount; j++) {
+      inbounds.push({
+        qty: parseInt(formData.get(`item_${i}_inbound_${j}_qty`), 10) || 0,
+        barcodes: formData.get(`item_${i}_inbound_${j}_barcodes`) || '',
+        fromId: formData.get(`item_${i}_inbound_${j}_fromId`) || 'Initial Import',
+        receivedBy: formData.get(`item_${i}_inbound_${j}_receivedBy`) || null,
+        deliveryNote: formData.get(`item_${i}_inbound_${j}_deliveryNote`) || 'INITIAL_STOCK',
+        notes: formData.get(`item_${i}_inbound_${j}_notes`) || 'Auto-received initial stock',
+      });
+    }
 
     const imageFile = formData.get(`item_${i}_imageFile`);
     let imageUrl = formData.get(`item_${i}_imageUrl`) || null;
@@ -538,12 +545,7 @@ export async function createBulkProducts(formData) {
       stockCap,
       isReturnable,
       isPublic,
-      initialQty,
-      initialBarcodes,
-      deliveryNote,
-      notes,
-      receivedBy,
-      fromId,
+      inbounds,
       imageUrl
     });
   }
@@ -601,59 +603,63 @@ export async function createBulkProducts(formData) {
       });
       createdProducts.push(prod);
 
-      // 2. Handle initial stock if any
-      const initialQty = parseInt(item.initialQty, 10) || 0;
-      if (initialQty > 0) {
-        // Get last transaction ID dynamically
-        const lastTx = await tx.inventoryTransaction.findFirst({
-          where: { id: { startsWith: 'TX' } },
-          orderBy: { id: 'desc' },
-          select: { id: true },
-        });
-        let lastTxNum = 0;
-        if (lastTx) {
-          const match = lastTx.id.match(/\d+/);
-          if (match) lastTxNum = parseInt(match[0], 10);
-        }
-        const txId = `TX-${String(lastTxNum + 1).padStart(5, '0')}`;
-        
-        // Log transaction
-        await tx.inventoryTransaction.create({
-          data: {
-            id: txId,
-            productId: prodId,
-            transactionType: 'RECEIVE',
-            fromEntityType: 'SUPPLIER',
-            fromEntityId: item.fromId || 'Initial Import',
-            toEntityType: 'WAREHOUSE',
-            toEntityId: 'MAIN',
-            quantity: initialQty,
-            deliveryNote: item.deliveryNote || 'INITIAL_STOCK',
-            notes: item.notes || 'Auto-received initial stock on bulk product registration',
-            receivedBy: item.receivedBy || null,
-          }
-        });
-
-        // 3. Create Serial Numbers if serialized
-        if (isSerialized && item.initialBarcodes) {
-          const barcodes = item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
-          if (barcodes.length > 0) {
-            const serialData = barcodes.map((barcode, idx) => {
-              const serialId = `SERL-${String(nextSerNum + serialOffset).padStart(5, '0')}`;
-              serialOffset++;
-              return {
-                id: serialId,
+      // 2. Handle multiple initial stock entries
+      if (item.inbounds && item.inbounds.length > 0) {
+        for (let j = 0; j < item.inbounds.length; j++) {
+          const entry = item.inbounds[j];
+          if (entry.qty > 0) {
+            // Get last transaction ID dynamically
+            const lastTx = await tx.inventoryTransaction.findFirst({
+              where: { id: { startsWith: 'TX' } },
+              orderBy: { id: 'desc' },
+              select: { id: true },
+            });
+            let lastTxNum = 0;
+            if (lastTx) {
+              const match = lastTx.id.match(/\d+/);
+              if (match) lastTxNum = parseInt(match[0], 10);
+            }
+            const txId = `TX-${String(lastTxNum + 1).padStart(5, '0')}`;
+            
+            // Log transaction
+            await tx.inventoryTransaction.create({
+              data: {
+                id: txId,
                 productId: prodId,
-                barcode,
-                status: 'AVAILABLE',
-                currentLocationType: 'WAREHOUSE',
-                currentLocationId: 'MAIN',
-              };
+                transactionType: 'RECEIVE',
+                fromEntityType: 'SUPPLIER',
+                fromEntityId: entry.fromId || 'Initial Import',
+                toEntityType: 'WAREHOUSE',
+                toEntityId: 'MAIN',
+                quantity: entry.qty,
+                deliveryNote: entry.deliveryNote || 'INITIAL_STOCK',
+                notes: entry.notes || 'Auto-received initial stock',
+                receivedBy: entry.receivedBy || null,
+              }
             });
 
-            await tx.productSerialNumber.createMany({
-              data: serialData,
-            });
+            // 3. Create Serial Numbers if serialized
+            if (isSerialized && entry.barcodes) {
+              const barcodes = entry.barcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+              if (barcodes.length > 0) {
+                const serialData = barcodes.map((barcode, idx) => {
+                  const serialId = `SERL-${String(nextSerNum + serialOffset).padStart(5, '0')}`;
+                  serialOffset++;
+                  return {
+                    id: serialId,
+                    productId: prodId,
+                    barcode,
+                    status: 'AVAILABLE',
+                    currentLocationType: 'WAREHOUSE',
+                    currentLocationId: 'MAIN',
+                  };
+                });
+
+                await tx.productSerialNumber.createMany({
+                  data: serialData,
+                });
+              }
+            }
           }
         }
       }
