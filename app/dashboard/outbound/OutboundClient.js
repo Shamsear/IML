@@ -877,7 +877,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                         <div className="flex flex-col gap-3 mb-3 bg-surface-elevated/45 p-3 rounded-lg border border-border">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-text-secondary uppercase">Starting Barcode</label>
+                              <label className="text-[10px] font-bold text-text-secondary uppercase">1st Barcode (Start)</label>
                               <input
                                 id={`range-start-${index}`}
                                 type="text"
@@ -891,11 +891,11 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                                     if (endInput) endInput.focus();
                                   }
                                 }}
-                                placeholder="Scan or type start barcode..."
+                                placeholder="Scan or type 1st barcode..."
                               />
                             </div>
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-[10px] font-bold text-text-secondary uppercase">Ending Barcode</label>
+                              <label className="text-[10px] font-bold text-text-secondary uppercase">Last Barcode (End)</label>
                               <input
                                 id={`range-end-${index}`}
                                 type="text"
@@ -908,7 +908,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                                     handleApplyRange(index);
                                   }
                                 }}
-                                placeholder="Scan or type end barcode..."
+                                placeholder="Scan or type last barcode..."
                               />
                             </div>
                           </div>

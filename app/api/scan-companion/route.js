@@ -57,22 +57,19 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
   }
 
-  const session = await prisma.scanSession.findUnique({
-    where: { id: sessionId }
-  });
+  // Atomically retrieve and clear the barcodes queue in a single write operation to prevent polling race conditions
+  const result = await prisma.$queryRaw`
+    UPDATE "ScanSession"
+    SET barcodes = ARRAY[]::text[]
+    WHERE id = ${sessionId}
+    RETURNING barcodes
+  `;
 
-  if (!session) {
+  if (!result || result.length === 0) {
     return NextResponse.json({ error: 'Session not found or expired' }, { status: 404 });
   }
 
-  const barcodes = session.barcodes || [];
-  
-  // Atomically clear barcodes queue
-  await prisma.scanSession.update({
-    where: { id: sessionId },
-    data: { barcodes: [] }
-  });
-
+  const barcodes = result[0].barcodes || [];
   return NextResponse.json({ barcodes });
 }
 
