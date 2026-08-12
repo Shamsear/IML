@@ -143,6 +143,47 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
     return added;
   };
 
+  const handleScannedBarcode = (index, code) => {
+    const cleanCode = code.trim();
+    if (!cleanCode) return false;
+
+    if (rangeMode[index]) {
+      // Smart range input population
+      const focusedId = document.activeElement?.id;
+      if (focusedId === `range-start-${index}`) {
+        setRangeStart(prev => ({ ...prev, [index]: cleanCode }));
+        return true;
+      } else if (focusedId === `range-end-${index}`) {
+        setRangeEnd(prev => ({ ...prev, [index]: cleanCode }));
+        return true;
+      } else {
+        // Autofill empty starting then ending sequentially
+        let updated = false;
+        setRangeStart(prevStart => {
+          const currentStart = prevStart[index] || '';
+          if (!currentStart) {
+            updated = true;
+            return { ...prevStart, [index]: cleanCode };
+          } else {
+            setRangeEnd(prevEnd => {
+              const currentEnd = prevEnd[index] || '';
+              if (!currentEnd) {
+                updated = true;
+                return { ...prevEnd, [index]: cleanCode };
+              }
+              return prevEnd;
+            });
+            return prevStart;
+          }
+        });
+        return updated;
+      }
+    } else {
+      // Standard single scan mode
+      return addBarcodeToRow(index, cleanCode);
+    }
+  };
+
   const handleScanInputKeyDown = (e, index) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -259,7 +300,7 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
               lastScannedBarcodeRef.current = code.toLowerCase();
               lastScannedTimeRef.current = now;
 
-              const added = addBarcodeToRow(activeCameraRow, code);
+              const added = handleScannedBarcode(activeCameraRow, code);
               if (added) {
                 playBeep();
                 const flashOverlay = document.querySelector('.custom-scan-overlay > div');
@@ -352,43 +393,8 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
               data.barcodes.forEach(code => {
-                const cleanCode = code.trim();
-                
-                // Smart range input population if the active row is currently set to range mode
-                if (rangeMode[activeCameraRow]) {
-                  const focusedId = document.activeElement?.id;
-                  if (focusedId === `range-start-${activeCameraRow}`) {
-                    setRangeStart(prev => ({ ...prev, [activeCameraRow]: cleanCode }));
-                    playBeep();
-                  } else if (focusedId === `range-end-${activeCameraRow}`) {
-                    setRangeEnd(prev => ({ ...prev, [activeCameraRow]: cleanCode }));
-                    playBeep();
-                  } else {
-                    // Autofill empty starting then ending sequentially
-                    setRangeStart(prevStart => {
-                      const currentStart = prevStart[activeCameraRow] || '';
-                      if (!currentStart) {
-                        playBeep();
-                        return { ...prevStart, [activeCameraRow]: cleanCode };
-                      } else {
-                        // Start is already set, set ending instead
-                        setRangeEnd(prevEnd => {
-                          const currentEnd = prevEnd[activeCameraRow] || '';
-                          if (!currentEnd) {
-                            playBeep();
-                            return { ...prevEnd, [activeCameraRow]: cleanCode };
-                          }
-                          return prevEnd;
-                        });
-                        return prevStart;
-                      }
-                    });
-                  }
-                } else {
-                  // Standard single scan mode
-                  const added = addBarcodeToRow(activeCameraRow, cleanCode);
-                  if (added) playBeep();
-                }
+                const added = handleScannedBarcode(activeCameraRow, code);
+                if (added) playBeep();
               });
             }
           }
@@ -660,22 +666,46 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
                   return (
                     <div className="flex flex-col gap-3 mt-2 bg-surface p-4 border border-border rounded-lg">
                       {isSim && (
-                        /* Selection Method Tabs */
-                        <div className="flex border-b border-border mb-3 pb-1">
-                          <button
-                            type="button"
-                            className={`pb-1.5 text-xs font-bold mr-4 ${!rangeMode[index] ? 'border-b-2 border-primary text-primary' : 'text-text-secondary'}`}
-                            onClick={() => setRangeMode(prev => ({ ...prev, [index]: false }))}
-                          >
-                            Single Scan / Type
-                          </button>
-                          <button
-                            type="button"
-                            className={`pb-1.5 text-xs font-bold ${rangeMode[index] ? 'border-b-2 border-primary text-primary' : 'text-text-secondary'}`}
-                            onClick={() => setRangeMode(prev => ({ ...prev, [index]: true }))}
-                          >
-                            Generate Series Range (Start-to-Stop)
-                          </button>
+                        /* Selection Method Tabs & Global Scanner Action Controls */
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-border mb-3 pb-1.5 gap-2">
+                          <div className="flex">
+                            <button
+                              type="button"
+                              className={`pb-1.5 text-xs font-bold mr-4 transition-all ${!rangeMode[index] ? 'border-b-2 border-primary text-primary' : 'text-text-secondary hover:text-text-primary'}`}
+                              onClick={() => setRangeMode(prev => ({ ...prev, [index]: false }))}
+                            >
+                              Single Scan / Type
+                            </button>
+                            <button
+                              type="button"
+                              className={`pb-1.5 text-xs font-bold transition-all ${rangeMode[index] ? 'border-b-2 border-primary text-primary' : 'text-text-secondary hover:text-text-primary'}`}
+                              onClick={() => setRangeMode(prev => ({ ...prev, [index]: true }))}
+                            >
+                              Generate Series Range (Start-to-Stop)
+                            </button>
+                          </div>
+                          
+                          <div className="flex gap-1.5 flex-shrink-0">
+                            <button
+                              type="button"
+                              className="px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-1"
+                              onClick={() => { setActiveCameraRow(index); setIsCameraOpen(true); }}
+                              title="Scan via PC Webcam"
+                            >
+                              <Camera size={13} className="text-primary" />
+                              <span className="text-[10px] font-bold uppercase">Webcam</span>
+                            </button>
+                            
+                            <button
+                              type="button"
+                              className="px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-1"
+                              onClick={() => handleOpenMobileScanner(index)}
+                              title="Pair Wireless Mobile phone camera"
+                            >
+                              <Smartphone size={13} className="text-primary animate-pulse" />
+                              <span className="text-[10px] font-bold uppercase">Mobile</span>
+                            </button>
+                          </div>
                         </div>
                       )}
 
@@ -685,37 +715,14 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
                             <QrCode size={12} className="text-primary" />
                             <span>Scan / Enter Barcode to Add</span>
                           </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                              value={scanInputs[index] || ''}
-                              onChange={(e) => setScanInputs(prev => ({ ...prev, [index]: e.target.value }))}
-                              onKeyDown={(e) => handleScanInputKeyDown(e, index)}
-                              placeholder="Type barcode or scan, then press Enter..."
-                            />
-                            <div className="flex gap-1 flex-shrink-0">
-                              <button
-                                type="button"
-                                className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
-                                onClick={() => { setActiveCameraRow(index); setIsCameraOpen(true); }}
-                                title="Scan via PC Webcam"
-                              >
-                                <Camera size={13} />
-                                <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
-                              </button>
-                              
-                              <button
-                                type="button"
-                                className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
-                                onClick={() => handleOpenMobileScanner(index)}
-                                title="Pair Wireless Mobile phone camera"
-                              >
-                                <Smartphone size={13} className="text-primary" />
-                                <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
-                              </button>
-                            </div>
-                          </div>
+                          <input
+                            type="text"
+                            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                            value={scanInputs[index] || ''}
+                            onChange={(e) => setScanInputs(prev => ({ ...prev, [index]: e.target.value }))}
+                            onKeyDown={(e) => handleScanInputKeyDown(e, index)}
+                            placeholder="Type barcode or scan, then press Enter..."
+                          />
                         </div>
                       ) : (
                         <div className="flex flex-col gap-3 mb-2 bg-surface-elevated/45 p-3 rounded-lg border border-border">
