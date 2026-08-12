@@ -62,3 +62,8 @@ export type TransactionSerialNumber = Prisma.TransactionSerialNumberModel
  * 
  */
 export type PushSubscription = Prisma.PushSubscriptionModel
+/**
+ * Model ScanSession
+ * 
+ */
+export type ScanSession = Prisma.ScanSessionModel

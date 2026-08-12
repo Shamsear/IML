@@ -59,7 +59,8 @@ export const ModelName = {
   ProductSerialNumber: 'ProductSerialNumber',
   InventoryTransaction: 'InventoryTransaction',
   TransactionSerialNumber: 'TransactionSerialNumber',
-  PushSubscription: 'PushSubscription'
+  PushSubscription: 'PushSubscription',
+  ScanSession: 'ScanSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -200,6 +201,15 @@ export const PushSubscriptionScalarFieldEnum = {
 } as const
 
 export type PushSubscriptionScalarFieldEnum = (typeof PushSubscriptionScalarFieldEnum)[keyof typeof PushSubscriptionScalarFieldEnum]
+
+
+export const ScanSessionScalarFieldEnum = {
+  id: 'id',
+  barcodes: 'barcodes',
+  createdAt: 'createdAt'
+} as const
+
+export type ScanSessionScalarFieldEnum = (typeof ScanSessionScalarFieldEnum)[keyof typeof ScanSessionScalarFieldEnum]
 
 
 export const SortOrder = {

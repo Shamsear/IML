@@ -405,7 +405,8 @@ export const ModelName = {
   ProductSerialNumber: 'ProductSerialNumber',
   InventoryTransaction: 'InventoryTransaction',
   TransactionSerialNumber: 'TransactionSerialNumber',
-  PushSubscription: 'PushSubscription'
+  PushSubscription: 'PushSubscription',
+  ScanSession: 'ScanSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -421,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "brand" | "product" | "supervisor" | "store" | "staff" | "productSerialNumber" | "inventoryTransaction" | "transactionSerialNumber" | "pushSubscription"
+    modelProps: "brand" | "product" | "supervisor" | "store" | "staff" | "productSerialNumber" | "inventoryTransaction" | "transactionSerialNumber" | "pushSubscription" | "scanSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1091,6 +1092,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ScanSession: {
+      payload: Prisma.$ScanSessionPayload<ExtArgs>
+      fields: Prisma.ScanSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ScanSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ScanSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.ScanSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ScanSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>
+        }
+        findMany: {
+          args: Prisma.ScanSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>[]
+        }
+        create: {
+          args: Prisma.ScanSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>
+        }
+        createMany: {
+          args: Prisma.ScanSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ScanSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.ScanSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>
+        }
+        update: {
+          args: Prisma.ScanSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.ScanSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ScanSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ScanSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.ScanSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ScanSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.ScanSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateScanSession>
+        }
+        groupBy: {
+          args: Prisma.ScanSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScanSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ScanSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ScanSessionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1252,6 +1327,15 @@ export const PushSubscriptionScalarFieldEnum = {
 } as const
 
 export type PushSubscriptionScalarFieldEnum = (typeof PushSubscriptionScalarFieldEnum)[keyof typeof PushSubscriptionScalarFieldEnum]
+
+
+export const ScanSessionScalarFieldEnum = {
+  id: 'id',
+  barcodes: 'barcodes',
+  createdAt: 'createdAt'
+} as const
+
+export type ScanSessionScalarFieldEnum = (typeof ScanSessionScalarFieldEnum)[keyof typeof ScanSessionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1506,6 +1590,7 @@ export type GlobalOmitConfig = {
   inventoryTransaction?: Prisma.InventoryTransactionOmit
   transactionSerialNumber?: Prisma.TransactionSerialNumberOmit
   pushSubscription?: Prisma.PushSubscriptionOmit
+  scanSession?: Prisma.ScanSessionOmit
 }
 
 /* Types for Logging */

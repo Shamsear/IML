@@ -168,3 +168,9 @@ model PushSubscription {
   createdAt DateTime @default(now())
 }
 
+model ScanSession {
+  id        String   @id
+  barcodes  String[]
+  createdAt DateTime @default(now())
+}
+
