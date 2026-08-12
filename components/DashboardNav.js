@@ -18,6 +18,7 @@ import {
   ArrowUpRight,
   RefreshCw,
   ShieldAlert,
+  Shirt,
 } from 'lucide-react';
 
 const navSections = [
@@ -36,6 +37,7 @@ const navSections = [
       { name: 'Outbound (Dispatch)', href: '/dashboard/outbound', icon: ArrowUpRight },
       { name: 'Rebrand Stock', href: '/dashboard/rebrand', icon: RefreshCw },
       { name: 'Report Damage', href: '/dashboard/damage', icon: ShieldAlert },
+      { name: 'Uniform Assigning', href: '/dashboard/staff', icon: Shirt },
       { name: 'Ledger Logs', href: '/dashboard/transactions', icon: History },
     ],
   },
@@ -45,7 +47,6 @@ const navSections = [
       { name: 'Brands', href: '/dashboard/brands', icon: Tag },
       { name: 'Stores', href: '/dashboard/stores', icon: Store },
       { name: 'Supervisors', href: '/dashboard/supervisors', icon: UserCheck },
-      { name: 'Staff', href: '/dashboard/staff', icon: Users },
     ],
   },
   {

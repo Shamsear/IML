@@ -50,6 +50,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
             setStockCap(product.stockCap ? product.stockCap.toString() : '');
             setIsReturnable(product.isReturnable);
             setIsPublic(product.isPublic);
+            setImageUrl(product.imageUrl || '');
             if (!product.isSerialized) {
               setProductType('NORMAL');
             } else if (product.category?.toUpperCase().includes('ROUTER')) {
@@ -79,6 +80,9 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
   const [stockCap, setStockCap] = useState('');
   const [isReturnable, setIsReturnable] = useState(false);
   const [isPublic, setIsPublic] = useState(true);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
 
   // Initial stock states
   const [initialQty, setInitialQty] = useState('');
@@ -338,6 +342,12 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
     formData.append('isReturnable', isReturnable ? 'true' : 'false');
     formData.append('isPublic', isPublic ? 'true' : 'false');
 
+    if (imageFile) {
+      formData.append('imageFile', imageFile);
+    } else if (imageUrl) {
+      formData.append('imageUrl', imageUrl);
+    }
+
     // Initial stock parameters
     if (productType === 'NORMAL') {
       formData.append('initialQty', initialQty || '0');
@@ -521,6 +531,61 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                 <span>Returnable Item</span>
               </label>
             </div>
+
+            {/* Product Image Upload Section */}
+            <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2">
+              <label className="text-xs font-semibold text-text-secondary">Product Image</label>
+              <div className="flex items-center gap-4 border border-border border-dashed p-4 rounded-xl bg-surface-elevated/20">
+                {imagePreview || imageUrl ? (
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
+                    <img 
+                      src={imagePreview || imageUrl} 
+                      alt="Preview" 
+                      className="w-full h-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview('');
+                        setImageUrl('');
+                      }}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white p-1 rounded-full transition-colors flex items-center justify-center"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                    <Camera size={24} />
+                  </div>
+                )}
+                
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <span className="text-xs text-text-secondary">Upload product picture for catalogs and delivery notes</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setImageFile(file);
+                        setImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="hidden"
+                    id="product-image-file"
+                  />
+                  <label
+                    htmlFor="product-image-file"
+                    className="px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 inline-flex items-center gap-1.5 w-fit"
+                  >
+                    <span>Browse Picture</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 

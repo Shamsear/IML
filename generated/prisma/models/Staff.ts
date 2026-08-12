@@ -199,6 +199,7 @@ export type StaffWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Staff"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Staff"> | Date | string
   store?: Prisma.XOR<Prisma.StoreNullableScalarRelationFilter, Prisma.StoreWhereInput> | null
+  allocations?: Prisma.StaffUniformAllocationListRelationFilter
 }
 
 export type StaffOrderByWithRelationInput = {
@@ -210,6 +211,7 @@ export type StaffOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   store?: Prisma.StoreOrderByWithRelationInput
+  allocations?: Prisma.StaffUniformAllocationOrderByRelationAggregateInput
 }
 
 export type StaffWhereUniqueInput = Prisma.AtLeast<{
@@ -224,6 +226,7 @@ export type StaffWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Staff"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Staff"> | Date | string
   store?: Prisma.XOR<Prisma.StoreNullableScalarRelationFilter, Prisma.StoreWhereInput> | null
+  allocations?: Prisma.StaffUniformAllocationListRelationFilter
 }, "id">
 
 export type StaffOrderByWithAggregationInput = {
@@ -260,6 +263,7 @@ export type StaffCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   store?: Prisma.StoreCreateNestedOneWithoutStaffInput
+  allocations?: Prisma.StaffUniformAllocationCreateNestedManyWithoutStaffInput
 }
 
 export type StaffUncheckedCreateInput = {
@@ -270,6 +274,7 @@ export type StaffUncheckedCreateInput = {
   storeId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  allocations?: Prisma.StaffUniformAllocationUncheckedCreateNestedManyWithoutStaffInput
 }
 
 export type StaffUpdateInput = {
@@ -280,6 +285,7 @@ export type StaffUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   store?: Prisma.StoreUpdateOneWithoutStaffNestedInput
+  allocations?: Prisma.StaffUniformAllocationUpdateManyWithoutStaffNestedInput
 }
 
 export type StaffUncheckedUpdateInput = {
@@ -290,6 +296,7 @@ export type StaffUncheckedUpdateInput = {
   storeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allocations?: Prisma.StaffUniformAllocationUncheckedUpdateManyWithoutStaffNestedInput
 }
 
 export type StaffCreateManyInput = {
@@ -361,6 +368,11 @@ export type StaffMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type StaffScalarRelationFilter = {
+  is?: Prisma.StaffWhereInput
+  isNot?: Prisma.StaffWhereInput
+}
+
 export type StaffCreateNestedManyWithoutStoreInput = {
   create?: Prisma.XOR<Prisma.StaffCreateWithoutStoreInput, Prisma.StaffUncheckedCreateWithoutStoreInput> | Prisma.StaffCreateWithoutStoreInput[] | Prisma.StaffUncheckedCreateWithoutStoreInput[]
   connectOrCreate?: Prisma.StaffCreateOrConnectWithoutStoreInput | Prisma.StaffCreateOrConnectWithoutStoreInput[]
@@ -403,6 +415,20 @@ export type StaffUncheckedUpdateManyWithoutStoreNestedInput = {
   deleteMany?: Prisma.StaffScalarWhereInput | Prisma.StaffScalarWhereInput[]
 }
 
+export type StaffCreateNestedOneWithoutAllocationsInput = {
+  create?: Prisma.XOR<Prisma.StaffCreateWithoutAllocationsInput, Prisma.StaffUncheckedCreateWithoutAllocationsInput>
+  connectOrCreate?: Prisma.StaffCreateOrConnectWithoutAllocationsInput
+  connect?: Prisma.StaffWhereUniqueInput
+}
+
+export type StaffUpdateOneRequiredWithoutAllocationsNestedInput = {
+  create?: Prisma.XOR<Prisma.StaffCreateWithoutAllocationsInput, Prisma.StaffUncheckedCreateWithoutAllocationsInput>
+  connectOrCreate?: Prisma.StaffCreateOrConnectWithoutAllocationsInput
+  upsert?: Prisma.StaffUpsertWithoutAllocationsInput
+  connect?: Prisma.StaffWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.StaffUpdateToOneWithWhereWithoutAllocationsInput, Prisma.StaffUpdateWithoutAllocationsInput>, Prisma.StaffUncheckedUpdateWithoutAllocationsInput>
+}
+
 export type StaffCreateWithoutStoreInput = {
   id?: string
   name: string
@@ -410,6 +436,7 @@ export type StaffCreateWithoutStoreInput = {
   shirtSize?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  allocations?: Prisma.StaffUniformAllocationCreateNestedManyWithoutStaffInput
 }
 
 export type StaffUncheckedCreateWithoutStoreInput = {
@@ -419,6 +446,7 @@ export type StaffUncheckedCreateWithoutStoreInput = {
   shirtSize?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  allocations?: Prisma.StaffUniformAllocationUncheckedCreateNestedManyWithoutStaffInput
 }
 
 export type StaffCreateOrConnectWithoutStoreInput = {
@@ -460,6 +488,62 @@ export type StaffScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Staff"> | Date | string
 }
 
+export type StaffCreateWithoutAllocationsInput = {
+  id?: string
+  name: string
+  phone?: string | null
+  shirtSize?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  store?: Prisma.StoreCreateNestedOneWithoutStaffInput
+}
+
+export type StaffUncheckedCreateWithoutAllocationsInput = {
+  id?: string
+  name: string
+  phone?: string | null
+  shirtSize?: string | null
+  storeId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type StaffCreateOrConnectWithoutAllocationsInput = {
+  where: Prisma.StaffWhereUniqueInput
+  create: Prisma.XOR<Prisma.StaffCreateWithoutAllocationsInput, Prisma.StaffUncheckedCreateWithoutAllocationsInput>
+}
+
+export type StaffUpsertWithoutAllocationsInput = {
+  update: Prisma.XOR<Prisma.StaffUpdateWithoutAllocationsInput, Prisma.StaffUncheckedUpdateWithoutAllocationsInput>
+  create: Prisma.XOR<Prisma.StaffCreateWithoutAllocationsInput, Prisma.StaffUncheckedCreateWithoutAllocationsInput>
+  where?: Prisma.StaffWhereInput
+}
+
+export type StaffUpdateToOneWithWhereWithoutAllocationsInput = {
+  where?: Prisma.StaffWhereInput
+  data: Prisma.XOR<Prisma.StaffUpdateWithoutAllocationsInput, Prisma.StaffUncheckedUpdateWithoutAllocationsInput>
+}
+
+export type StaffUpdateWithoutAllocationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shirtSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  store?: Prisma.StoreUpdateOneWithoutStaffNestedInput
+}
+
+export type StaffUncheckedUpdateWithoutAllocationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shirtSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type StaffCreateManyStoreInput = {
   id?: string
   name: string
@@ -476,6 +560,7 @@ export type StaffUpdateWithoutStoreInput = {
   shirtSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allocations?: Prisma.StaffUniformAllocationUpdateManyWithoutStaffNestedInput
 }
 
 export type StaffUncheckedUpdateWithoutStoreInput = {
@@ -485,6 +570,7 @@ export type StaffUncheckedUpdateWithoutStoreInput = {
   shirtSize?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allocations?: Prisma.StaffUniformAllocationUncheckedUpdateManyWithoutStaffNestedInput
 }
 
 export type StaffUncheckedUpdateManyWithoutStoreInput = {
@@ -497,6 +583,35 @@ export type StaffUncheckedUpdateManyWithoutStoreInput = {
 }
 
 
+/**
+ * Count Type StaffCountOutputType
+ */
+
+export type StaffCountOutputType = {
+  allocations: number
+}
+
+export type StaffCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  allocations?: boolean | StaffCountOutputTypeCountAllocationsArgs
+}
+
+/**
+ * StaffCountOutputType without action
+ */
+export type StaffCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StaffCountOutputType
+   */
+  select?: Prisma.StaffCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * StaffCountOutputType without action
+ */
+export type StaffCountOutputTypeCountAllocationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.StaffUniformAllocationWhereInput
+}
+
 
 export type StaffSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -507,6 +622,8 @@ export type StaffSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   createdAt?: boolean
   updatedAt?: boolean
   store?: boolean | Prisma.Staff$storeArgs<ExtArgs>
+  allocations?: boolean | Prisma.Staff$allocationsArgs<ExtArgs>
+  _count?: boolean | Prisma.StaffCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["staff"]>
 
 export type StaffSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -544,6 +661,8 @@ export type StaffSelectScalar = {
 export type StaffOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "phone" | "shirtSize" | "storeId" | "createdAt" | "updatedAt", ExtArgs["result"]["staff"]>
 export type StaffInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   store?: boolean | Prisma.Staff$storeArgs<ExtArgs>
+  allocations?: boolean | Prisma.Staff$allocationsArgs<ExtArgs>
+  _count?: boolean | Prisma.StaffCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type StaffIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   store?: boolean | Prisma.Staff$storeArgs<ExtArgs>
@@ -556,6 +675,7 @@ export type $StaffPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   name: "Staff"
   objects: {
     store: Prisma.$StorePayload<ExtArgs> | null
+    allocations: Prisma.$StaffUniformAllocationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -960,6 +1080,7 @@ readonly fields: StaffFieldRefs;
 export interface Prisma__StaffClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   store<T extends Prisma.Staff$storeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Staff$storeArgs<ExtArgs>>): Prisma.Prisma__StoreClient<runtime.Types.Result.GetResult<Prisma.$StorePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  allocations<T extends Prisma.Staff$allocationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Staff$allocationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StaffUniformAllocationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1413,6 +1534,30 @@ export type Staff$storeArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
    */
   include?: Prisma.StoreInclude<ExtArgs> | null
   where?: Prisma.StoreWhereInput
+}
+
+/**
+ * Staff.allocations
+ */
+export type Staff$allocationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StaffUniformAllocation
+   */
+  select?: Prisma.StaffUniformAllocationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StaffUniformAllocation
+   */
+  omit?: Prisma.StaffUniformAllocationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StaffUniformAllocationInclude<ExtArgs> | null
+  where?: Prisma.StaffUniformAllocationWhereInput
+  orderBy?: Prisma.StaffUniformAllocationOrderByWithRelationInput | Prisma.StaffUniformAllocationOrderByWithRelationInput[]
+  cursor?: Prisma.StaffUniformAllocationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.StaffUniformAllocationScalarFieldEnum | Prisma.StaffUniformAllocationScalarFieldEnum[]
 }
 
 /**

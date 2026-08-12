@@ -48,6 +48,11 @@ export type Store = Prisma.StoreModel
  */
 export type Staff = Prisma.StaffModel
 /**
+ * Model StaffUniformAllocation
+ * 
+ */
+export type StaffUniformAllocation = Prisma.StaffUniformAllocationModel
+/**
  * Model ProductSerialNumber
  * 
  */

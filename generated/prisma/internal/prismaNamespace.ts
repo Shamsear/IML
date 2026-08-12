@@ -403,6 +403,7 @@ export const ModelName = {
   Supervisor: 'Supervisor',
   Store: 'Store',
   Staff: 'Staff',
+  StaffUniformAllocation: 'StaffUniformAllocation',
   ProductSerialNumber: 'ProductSerialNumber',
   InventoryTransaction: 'InventoryTransaction',
   TransactionSerialNumber: 'TransactionSerialNumber',
@@ -423,7 +424,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "brand" | "product" | "supervisor" | "store" | "staff" | "productSerialNumber" | "inventoryTransaction" | "transactionSerialNumber" | "pushSubscription" | "scanSession"
+    modelProps: "user" | "brand" | "product" | "supervisor" | "store" | "staff" | "staffUniformAllocation" | "productSerialNumber" | "inventoryTransaction" | "transactionSerialNumber" | "pushSubscription" | "scanSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -868,6 +869,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.StaffCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.StaffCountAggregateOutputType> | number
+        }
+      }
+    }
+    StaffUniformAllocation: {
+      payload: Prisma.$StaffUniformAllocationPayload<ExtArgs>
+      fields: Prisma.StaffUniformAllocationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StaffUniformAllocationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StaffUniformAllocationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>
+        }
+        findFirst: {
+          args: Prisma.StaffUniformAllocationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StaffUniformAllocationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>
+        }
+        findMany: {
+          args: Prisma.StaffUniformAllocationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>[]
+        }
+        create: {
+          args: Prisma.StaffUniformAllocationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>
+        }
+        createMany: {
+          args: Prisma.StaffUniformAllocationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StaffUniformAllocationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>[]
+        }
+        delete: {
+          args: Prisma.StaffUniformAllocationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>
+        }
+        update: {
+          args: Prisma.StaffUniformAllocationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>
+        }
+        deleteMany: {
+          args: Prisma.StaffUniformAllocationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StaffUniformAllocationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StaffUniformAllocationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>[]
+        }
+        upsert: {
+          args: Prisma.StaffUniformAllocationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffUniformAllocationPayload>
+        }
+        aggregate: {
+          args: Prisma.StaffUniformAllocationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStaffUniformAllocation>
+        }
+        groupBy: {
+          args: Prisma.StaffUniformAllocationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StaffUniformAllocationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StaffUniformAllocationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StaffUniformAllocationCountAggregateOutputType> | number
         }
       }
     }
@@ -1365,6 +1440,26 @@ export const StaffScalarFieldEnum = {
 export type StaffScalarFieldEnum = (typeof StaffScalarFieldEnum)[keyof typeof StaffScalarFieldEnum]
 
 
+export const StaffUniformAllocationScalarFieldEnum = {
+  id: 'id',
+  staffId: 'staffId',
+  storeId: 'storeId',
+  uniformQty: 'uniformQty',
+  capQty: 'capQty',
+  uniformReturned: 'uniformReturned',
+  capReturned: 'capReturned',
+  workingPeriod: 'workingPeriod',
+  supervisorId: 'supervisorId',
+  givenDate: 'givenDate',
+  returnDate: 'returnDate',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StaffUniformAllocationScalarFieldEnum = (typeof StaffUniformAllocationScalarFieldEnum)[keyof typeof StaffUniformAllocationScalarFieldEnum]
+
+
 export const ProductSerialNumberScalarFieldEnum = {
   id: 'id',
   productId: 'productId',
@@ -1677,6 +1772,7 @@ export type GlobalOmitConfig = {
   supervisor?: Prisma.SupervisorOmit
   store?: Prisma.StoreOmit
   staff?: Prisma.StaffOmit
+  staffUniformAllocation?: Prisma.StaffUniformAllocationOmit
   productSerialNumber?: Prisma.ProductSerialNumberOmit
   inventoryTransaction?: Prisma.InventoryTransactionOmit
   transactionSerialNumber?: Prisma.TransactionSerialNumberOmit

@@ -190,6 +190,7 @@ export type SupervisorWhereInput = {
   phone?: Prisma.StringNullableFilter<"Supervisor"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Supervisor"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Supervisor"> | Date | string
+  allocations?: Prisma.StaffUniformAllocationListRelationFilter
 }
 
 export type SupervisorOrderByWithRelationInput = {
@@ -199,6 +200,7 @@ export type SupervisorOrderByWithRelationInput = {
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  allocations?: Prisma.StaffUniformAllocationOrderByRelationAggregateInput
 }
 
 export type SupervisorWhereUniqueInput = Prisma.AtLeast<{
@@ -211,6 +213,7 @@ export type SupervisorWhereUniqueInput = Prisma.AtLeast<{
   phone?: Prisma.StringNullableFilter<"Supervisor"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Supervisor"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Supervisor"> | Date | string
+  allocations?: Prisma.StaffUniformAllocationListRelationFilter
 }, "id">
 
 export type SupervisorOrderByWithAggregationInput = {
@@ -244,6 +247,7 @@ export type SupervisorCreateInput = {
   phone?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  allocations?: Prisma.StaffUniformAllocationCreateNestedManyWithoutSupervisorInput
 }
 
 export type SupervisorUncheckedCreateInput = {
@@ -253,6 +257,7 @@ export type SupervisorUncheckedCreateInput = {
   phone?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  allocations?: Prisma.StaffUniformAllocationUncheckedCreateNestedManyWithoutSupervisorInput
 }
 
 export type SupervisorUpdateInput = {
@@ -262,6 +267,7 @@ export type SupervisorUpdateInput = {
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allocations?: Prisma.StaffUniformAllocationUpdateManyWithoutSupervisorNestedInput
 }
 
 export type SupervisorUncheckedUpdateInput = {
@@ -271,6 +277,7 @@ export type SupervisorUncheckedUpdateInput = {
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allocations?: Prisma.StaffUniformAllocationUncheckedUpdateManyWithoutSupervisorNestedInput
 }
 
 export type SupervisorCreateManyInput = {
@@ -327,6 +334,108 @@ export type SupervisorMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type SupervisorNullableScalarRelationFilter = {
+  is?: Prisma.SupervisorWhereInput | null
+  isNot?: Prisma.SupervisorWhereInput | null
+}
+
+export type SupervisorCreateNestedOneWithoutAllocationsInput = {
+  create?: Prisma.XOR<Prisma.SupervisorCreateWithoutAllocationsInput, Prisma.SupervisorUncheckedCreateWithoutAllocationsInput>
+  connectOrCreate?: Prisma.SupervisorCreateOrConnectWithoutAllocationsInput
+  connect?: Prisma.SupervisorWhereUniqueInput
+}
+
+export type SupervisorUpdateOneWithoutAllocationsNestedInput = {
+  create?: Prisma.XOR<Prisma.SupervisorCreateWithoutAllocationsInput, Prisma.SupervisorUncheckedCreateWithoutAllocationsInput>
+  connectOrCreate?: Prisma.SupervisorCreateOrConnectWithoutAllocationsInput
+  upsert?: Prisma.SupervisorUpsertWithoutAllocationsInput
+  disconnect?: Prisma.SupervisorWhereInput | boolean
+  delete?: Prisma.SupervisorWhereInput | boolean
+  connect?: Prisma.SupervisorWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SupervisorUpdateToOneWithWhereWithoutAllocationsInput, Prisma.SupervisorUpdateWithoutAllocationsInput>, Prisma.SupervisorUncheckedUpdateWithoutAllocationsInput>
+}
+
+export type SupervisorCreateWithoutAllocationsInput = {
+  id?: string
+  name: string
+  email?: string | null
+  phone?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type SupervisorUncheckedCreateWithoutAllocationsInput = {
+  id?: string
+  name: string
+  email?: string | null
+  phone?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type SupervisorCreateOrConnectWithoutAllocationsInput = {
+  where: Prisma.SupervisorWhereUniqueInput
+  create: Prisma.XOR<Prisma.SupervisorCreateWithoutAllocationsInput, Prisma.SupervisorUncheckedCreateWithoutAllocationsInput>
+}
+
+export type SupervisorUpsertWithoutAllocationsInput = {
+  update: Prisma.XOR<Prisma.SupervisorUpdateWithoutAllocationsInput, Prisma.SupervisorUncheckedUpdateWithoutAllocationsInput>
+  create: Prisma.XOR<Prisma.SupervisorCreateWithoutAllocationsInput, Prisma.SupervisorUncheckedCreateWithoutAllocationsInput>
+  where?: Prisma.SupervisorWhereInput
+}
+
+export type SupervisorUpdateToOneWithWhereWithoutAllocationsInput = {
+  where?: Prisma.SupervisorWhereInput
+  data: Prisma.XOR<Prisma.SupervisorUpdateWithoutAllocationsInput, Prisma.SupervisorUncheckedUpdateWithoutAllocationsInput>
+}
+
+export type SupervisorUpdateWithoutAllocationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type SupervisorUncheckedUpdateWithoutAllocationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+
+/**
+ * Count Type SupervisorCountOutputType
+ */
+
+export type SupervisorCountOutputType = {
+  allocations: number
+}
+
+export type SupervisorCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  allocations?: boolean | SupervisorCountOutputTypeCountAllocationsArgs
+}
+
+/**
+ * SupervisorCountOutputType without action
+ */
+export type SupervisorCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SupervisorCountOutputType
+   */
+  select?: Prisma.SupervisorCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * SupervisorCountOutputType without action
+ */
+export type SupervisorCountOutputTypeCountAllocationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.StaffUniformAllocationWhereInput
+}
 
 
 export type SupervisorSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -336,6 +445,8 @@ export type SupervisorSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   phone?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  allocations?: boolean | Prisma.Supervisor$allocationsArgs<ExtArgs>
+  _count?: boolean | Prisma.SupervisorCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["supervisor"]>
 
 export type SupervisorSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -366,10 +477,18 @@ export type SupervisorSelectScalar = {
 }
 
 export type SupervisorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "phone" | "createdAt" | "updatedAt", ExtArgs["result"]["supervisor"]>
+export type SupervisorInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  allocations?: boolean | Prisma.Supervisor$allocationsArgs<ExtArgs>
+  _count?: boolean | Prisma.SupervisorCountOutputTypeDefaultArgs<ExtArgs>
+}
+export type SupervisorIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type SupervisorIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $SupervisorPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Supervisor"
-  objects: {}
+  objects: {
+    allocations: Prisma.$StaffUniformAllocationPayload<ExtArgs>[]
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     name: string
@@ -771,6 +890,7 @@ readonly fields: SupervisorFieldRefs;
  */
 export interface Prisma__SupervisorClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  allocations<T extends Prisma.Supervisor$allocationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Supervisor$allocationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StaffUniformAllocationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -823,6 +943,10 @@ export type SupervisorFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
+  /**
    * Filter, which Supervisor to fetch.
    */
   where: Prisma.SupervisorWhereUniqueInput
@@ -841,6 +965,10 @@ export type SupervisorFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extens
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
+  /**
    * Filter, which Supervisor to fetch.
    */
   where: Prisma.SupervisorWhereUniqueInput
@@ -858,6 +986,10 @@ export type SupervisorFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the Supervisor
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
   /**
    * Filter, which Supervisor to fetch.
    */
@@ -907,6 +1039,10 @@ export type SupervisorFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensi
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
+  /**
    * Filter, which Supervisor to fetch.
    */
   where?: Prisma.SupervisorWhereInput
@@ -954,6 +1090,10 @@ export type SupervisorFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the Supervisor
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
   /**
    * Filter, which Supervisors to fetch.
    */
@@ -1003,6 +1143,10 @@ export type SupervisorCreateArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
+  /**
    * The data needed to create a Supervisor.
    */
   data: Prisma.XOR<Prisma.SupervisorCreateInput, Prisma.SupervisorUncheckedCreateInput>
@@ -1050,6 +1194,10 @@ export type SupervisorUpdateArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the Supervisor
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
   /**
    * The data needed to update a Supervisor.
    */
@@ -1117,6 +1265,10 @@ export type SupervisorUpsertArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
+  /**
    * The filter to search for the Supervisor to update in case it exists.
    */
   where: Prisma.SupervisorWhereUniqueInput
@@ -1143,6 +1295,10 @@ export type SupervisorDeleteArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
+  /**
    * Filter which Supervisor to delete.
    */
   where: Prisma.SupervisorWhereUniqueInput
@@ -1163,6 +1319,30 @@ export type SupervisorDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.In
 }
 
 /**
+ * Supervisor.allocations
+ */
+export type Supervisor$allocationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StaffUniformAllocation
+   */
+  select?: Prisma.StaffUniformAllocationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StaffUniformAllocation
+   */
+  omit?: Prisma.StaffUniformAllocationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StaffUniformAllocationInclude<ExtArgs> | null
+  where?: Prisma.StaffUniformAllocationWhereInput
+  orderBy?: Prisma.StaffUniformAllocationOrderByWithRelationInput | Prisma.StaffUniformAllocationOrderByWithRelationInput[]
+  cursor?: Prisma.StaffUniformAllocationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.StaffUniformAllocationScalarFieldEnum | Prisma.StaffUniformAllocationScalarFieldEnum[]
+}
+
+/**
  * Supervisor without action
  */
 export type SupervisorDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1174,4 +1354,8 @@ export type SupervisorDefaultArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the Supervisor
    */
   omit?: Prisma.SupervisorOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
 }

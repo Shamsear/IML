@@ -70,12 +70,13 @@ model Product {
 // ------------------------------------------------------
 
 model Supervisor {
-  id        String   @id @default(uuid())
-  name      String   // e.g., "Shanawas", "Zeeshan"
-  email     String?
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String   // e.g., "Shanawas", "Zeeshan"
+  email       String?
+  phone       String?
+  allocations StaffUniformAllocation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Store {
@@ -89,6 +90,7 @@ model Store {
 
   staff     Staff[]  
   brands    Brand[]
+  allocations StaffUniformAllocation[]
 
   @@index([name])
 }
@@ -101,6 +103,7 @@ model Staff {
   
   storeId      String?  
   store        Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  allocations  StaffUniformAllocation[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -108,6 +111,39 @@ model Staff {
   @@index([name])
 }
 
+
+// ------------------------------------------------------
+// STAFF UNIFORM ALLOCATION TRACKING
+// ------------------------------------------------------
+
+model StaffUniformAllocation {
+  id              String    @id
+  staffId         String
+  staff           Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  storeId         String
+  store           Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  uniformQty      Int       @default(0)
+  capQty          Int       @default(0)
+  uniformReturned Boolean   @default(false)
+  capReturned     Boolean   @default(false)
+  
+  workingPeriod   String?   // e.g., "22th Apr - 4th May"
+  
+  supervisorId    String?
+  supervisor      Supervisor? @relation(fields: [supervisorId], references: [id], onDelete: SetNull)
+  
+  givenDate       DateTime  @default(now())
+  returnDate      DateTime?
+  notes           String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([staffId])
+  @@index([storeId])
+  @@index([supervisorId])
+}
 
 // ------------------------------------------------------
 // SERIAL NUMBER TRACKING

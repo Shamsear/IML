@@ -338,11 +338,29 @@ export default function BrandPortalClient({ brand }) {
                         return (
                           <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
                             <td className="py-3">
-                              <div className="flex flex-col">
-                                <span className="font-semibold text-text-primary">{p.name}</span>
-                                <span className="text-[10px] text-text-secondary mt-0.5 font-mono">
-                                  SKU: {p.itemCode || '---'}
-                                </span>
+                              <div className="flex items-center gap-3">
+                                {p.imageUrl ? (
+                                  <img 
+                                    src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
+                                    alt={p.name} 
+                                    className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0"
+                                    onError={(e) => {
+                                      if (e.target.src !== p.imageUrl) {
+                                        e.target.src = p.imageUrl;
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center font-display font-extrabold text-[10px] border border-primary/10 flex-shrink-0">
+                                    {p.name.substring(0, 2).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-semibold text-text-primary truncate">{p.name}</span>
+                                  <span className="text-[10px] text-text-secondary mt-0.5 font-mono">
+                                    SKU: {p.itemCode || '---'}
+                                  </span>
+                                </div>
                               </div>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap">

@@ -31,12 +31,12 @@ export default function CustomSelect({
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      const dropdownHeight = 240; // max-h-[240px]
-      const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+      const actualHeight = dropdownRef.current ? dropdownRef.current.offsetHeight : 240;
+      const showAbove = spaceBelow < actualHeight && rect.top > spaceBelow;
       
       setCoords({
         top: showAbove 
-          ? rect.top + window.scrollY - dropdownHeight - 4
+          ? rect.top + window.scrollY - actualHeight - 4
           : rect.bottom + window.scrollY + 4,
         left: rect.left + window.scrollX,
         width: rect.width,
@@ -48,14 +48,21 @@ export default function CustomSelect({
   useEffect(() => {
     if (isOpen) {
       updateCoords();
+      // Recalculate once dropdown DOM element renders
+      const rId = requestAnimationFrame(() => {
+        updateCoords();
+      });
+      
       window.addEventListener('resize', updateCoords);
       window.addEventListener('scroll', updateCoords, true);
+      
+      return () => {
+        cancelAnimationFrame(rId);
+        window.removeEventListener('resize', updateCoords);
+        window.removeEventListener('scroll', updateCoords, true);
+      };
     }
-    return () => {
-      window.removeEventListener('resize', updateCoords);
-      window.removeEventListener('scroll', updateCoords, true);
-    };
-  }, [isOpen]);
+  }, [isOpen, search]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {

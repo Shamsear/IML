@@ -200,6 +200,7 @@ export type StoreWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Store"> | Date | string
   staff?: Prisma.StaffListRelationFilter
   brands?: Prisma.BrandListRelationFilter
+  allocations?: Prisma.StaffUniformAllocationListRelationFilter
 }
 
 export type StoreOrderByWithRelationInput = {
@@ -212,6 +213,7 @@ export type StoreOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   staff?: Prisma.StaffOrderByRelationAggregateInput
   brands?: Prisma.BrandOrderByRelationAggregateInput
+  allocations?: Prisma.StaffUniformAllocationOrderByRelationAggregateInput
 }
 
 export type StoreWhereUniqueInput = Prisma.AtLeast<{
@@ -227,6 +229,7 @@ export type StoreWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Store"> | Date | string
   staff?: Prisma.StaffListRelationFilter
   brands?: Prisma.BrandListRelationFilter
+  allocations?: Prisma.StaffUniformAllocationListRelationFilter
 }, "id">
 
 export type StoreOrderByWithAggregationInput = {
@@ -265,6 +268,7 @@ export type StoreCreateInput = {
   updatedAt?: Date | string
   staff?: Prisma.StaffCreateNestedManyWithoutStoreInput
   brands?: Prisma.BrandCreateNestedManyWithoutStoresInput
+  allocations?: Prisma.StaffUniformAllocationCreateNestedManyWithoutStoreInput
 }
 
 export type StoreUncheckedCreateInput = {
@@ -277,6 +281,7 @@ export type StoreUncheckedCreateInput = {
   updatedAt?: Date | string
   staff?: Prisma.StaffUncheckedCreateNestedManyWithoutStoreInput
   brands?: Prisma.BrandUncheckedCreateNestedManyWithoutStoresInput
+  allocations?: Prisma.StaffUniformAllocationUncheckedCreateNestedManyWithoutStoreInput
 }
 
 export type StoreUpdateInput = {
@@ -289,6 +294,7 @@ export type StoreUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   staff?: Prisma.StaffUpdateManyWithoutStoreNestedInput
   brands?: Prisma.BrandUpdateManyWithoutStoresNestedInput
+  allocations?: Prisma.StaffUniformAllocationUpdateManyWithoutStoreNestedInput
 }
 
 export type StoreUncheckedUpdateInput = {
@@ -301,6 +307,7 @@ export type StoreUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   staff?: Prisma.StaffUncheckedUpdateManyWithoutStoreNestedInput
   brands?: Prisma.BrandUncheckedUpdateManyWithoutStoresNestedInput
+  allocations?: Prisma.StaffUniformAllocationUncheckedUpdateManyWithoutStoreNestedInput
 }
 
 export type StoreCreateManyInput = {
@@ -378,6 +385,11 @@ export type StoreNullableScalarRelationFilter = {
   isNot?: Prisma.StoreWhereInput | null
 }
 
+export type StoreScalarRelationFilter = {
+  is?: Prisma.StoreWhereInput
+  isNot?: Prisma.StoreWhereInput
+}
+
 export type StoreCreateNestedManyWithoutBrandsInput = {
   create?: Prisma.XOR<Prisma.StoreCreateWithoutBrandsInput, Prisma.StoreUncheckedCreateWithoutBrandsInput> | Prisma.StoreCreateWithoutBrandsInput[] | Prisma.StoreUncheckedCreateWithoutBrandsInput[]
   connectOrCreate?: Prisma.StoreCreateOrConnectWithoutBrandsInput | Prisma.StoreCreateOrConnectWithoutBrandsInput[]
@@ -432,6 +444,20 @@ export type StoreUpdateOneWithoutStaffNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.StoreUpdateToOneWithWhereWithoutStaffInput, Prisma.StoreUpdateWithoutStaffInput>, Prisma.StoreUncheckedUpdateWithoutStaffInput>
 }
 
+export type StoreCreateNestedOneWithoutAllocationsInput = {
+  create?: Prisma.XOR<Prisma.StoreCreateWithoutAllocationsInput, Prisma.StoreUncheckedCreateWithoutAllocationsInput>
+  connectOrCreate?: Prisma.StoreCreateOrConnectWithoutAllocationsInput
+  connect?: Prisma.StoreWhereUniqueInput
+}
+
+export type StoreUpdateOneRequiredWithoutAllocationsNestedInput = {
+  create?: Prisma.XOR<Prisma.StoreCreateWithoutAllocationsInput, Prisma.StoreUncheckedCreateWithoutAllocationsInput>
+  connectOrCreate?: Prisma.StoreCreateOrConnectWithoutAllocationsInput
+  upsert?: Prisma.StoreUpsertWithoutAllocationsInput
+  connect?: Prisma.StoreWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.StoreUpdateToOneWithWhereWithoutAllocationsInput, Prisma.StoreUpdateWithoutAllocationsInput>, Prisma.StoreUncheckedUpdateWithoutAllocationsInput>
+}
+
 export type StoreCreateWithoutBrandsInput = {
   id?: string
   name: string
@@ -441,6 +467,7 @@ export type StoreCreateWithoutBrandsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   staff?: Prisma.StaffCreateNestedManyWithoutStoreInput
+  allocations?: Prisma.StaffUniformAllocationCreateNestedManyWithoutStoreInput
 }
 
 export type StoreUncheckedCreateWithoutBrandsInput = {
@@ -452,6 +479,7 @@ export type StoreUncheckedCreateWithoutBrandsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   staff?: Prisma.StaffUncheckedCreateNestedManyWithoutStoreInput
+  allocations?: Prisma.StaffUniformAllocationUncheckedCreateNestedManyWithoutStoreInput
 }
 
 export type StoreCreateOrConnectWithoutBrandsInput = {
@@ -497,6 +525,7 @@ export type StoreCreateWithoutStaffInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   brands?: Prisma.BrandCreateNestedManyWithoutStoresInput
+  allocations?: Prisma.StaffUniformAllocationCreateNestedManyWithoutStoreInput
 }
 
 export type StoreUncheckedCreateWithoutStaffInput = {
@@ -508,6 +537,7 @@ export type StoreUncheckedCreateWithoutStaffInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   brands?: Prisma.BrandUncheckedCreateNestedManyWithoutStoresInput
+  allocations?: Prisma.StaffUniformAllocationUncheckedCreateNestedManyWithoutStoreInput
 }
 
 export type StoreCreateOrConnectWithoutStaffInput = {
@@ -535,6 +565,7 @@ export type StoreUpdateWithoutStaffInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   brands?: Prisma.BrandUpdateManyWithoutStoresNestedInput
+  allocations?: Prisma.StaffUniformAllocationUpdateManyWithoutStoreNestedInput
 }
 
 export type StoreUncheckedUpdateWithoutStaffInput = {
@@ -545,6 +576,71 @@ export type StoreUncheckedUpdateWithoutStaffInput = {
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  brands?: Prisma.BrandUncheckedUpdateManyWithoutStoresNestedInput
+  allocations?: Prisma.StaffUniformAllocationUncheckedUpdateManyWithoutStoreNestedInput
+}
+
+export type StoreCreateWithoutAllocationsInput = {
+  id?: string
+  name: string
+  region?: string | null
+  location?: string | null
+  isPublic?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  staff?: Prisma.StaffCreateNestedManyWithoutStoreInput
+  brands?: Prisma.BrandCreateNestedManyWithoutStoresInput
+}
+
+export type StoreUncheckedCreateWithoutAllocationsInput = {
+  id?: string
+  name: string
+  region?: string | null
+  location?: string | null
+  isPublic?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  staff?: Prisma.StaffUncheckedCreateNestedManyWithoutStoreInput
+  brands?: Prisma.BrandUncheckedCreateNestedManyWithoutStoresInput
+}
+
+export type StoreCreateOrConnectWithoutAllocationsInput = {
+  where: Prisma.StoreWhereUniqueInput
+  create: Prisma.XOR<Prisma.StoreCreateWithoutAllocationsInput, Prisma.StoreUncheckedCreateWithoutAllocationsInput>
+}
+
+export type StoreUpsertWithoutAllocationsInput = {
+  update: Prisma.XOR<Prisma.StoreUpdateWithoutAllocationsInput, Prisma.StoreUncheckedUpdateWithoutAllocationsInput>
+  create: Prisma.XOR<Prisma.StoreCreateWithoutAllocationsInput, Prisma.StoreUncheckedCreateWithoutAllocationsInput>
+  where?: Prisma.StoreWhereInput
+}
+
+export type StoreUpdateToOneWithWhereWithoutAllocationsInput = {
+  where?: Prisma.StoreWhereInput
+  data: Prisma.XOR<Prisma.StoreUpdateWithoutAllocationsInput, Prisma.StoreUncheckedUpdateWithoutAllocationsInput>
+}
+
+export type StoreUpdateWithoutAllocationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  staff?: Prisma.StaffUpdateManyWithoutStoreNestedInput
+  brands?: Prisma.BrandUpdateManyWithoutStoresNestedInput
+}
+
+export type StoreUncheckedUpdateWithoutAllocationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  staff?: Prisma.StaffUncheckedUpdateManyWithoutStoreNestedInput
   brands?: Prisma.BrandUncheckedUpdateManyWithoutStoresNestedInput
 }
 
@@ -557,6 +653,7 @@ export type StoreUpdateWithoutBrandsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   staff?: Prisma.StaffUpdateManyWithoutStoreNestedInput
+  allocations?: Prisma.StaffUniformAllocationUpdateManyWithoutStoreNestedInput
 }
 
 export type StoreUncheckedUpdateWithoutBrandsInput = {
@@ -568,6 +665,7 @@ export type StoreUncheckedUpdateWithoutBrandsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   staff?: Prisma.StaffUncheckedUpdateManyWithoutStoreNestedInput
+  allocations?: Prisma.StaffUniformAllocationUncheckedUpdateManyWithoutStoreNestedInput
 }
 
 export type StoreUncheckedUpdateManyWithoutBrandsInput = {
@@ -588,11 +686,13 @@ export type StoreUncheckedUpdateManyWithoutBrandsInput = {
 export type StoreCountOutputType = {
   staff: number
   brands: number
+  allocations: number
 }
 
 export type StoreCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   staff?: boolean | StoreCountOutputTypeCountStaffArgs
   brands?: boolean | StoreCountOutputTypeCountBrandsArgs
+  allocations?: boolean | StoreCountOutputTypeCountAllocationsArgs
 }
 
 /**
@@ -619,6 +719,13 @@ export type StoreCountOutputTypeCountBrandsArgs<ExtArgs extends runtime.Types.Ex
   where?: Prisma.BrandWhereInput
 }
 
+/**
+ * StoreCountOutputType without action
+ */
+export type StoreCountOutputTypeCountAllocationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.StaffUniformAllocationWhereInput
+}
+
 
 export type StoreSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -630,6 +737,7 @@ export type StoreSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   updatedAt?: boolean
   staff?: boolean | Prisma.Store$staffArgs<ExtArgs>
   brands?: boolean | Prisma.Store$brandsArgs<ExtArgs>
+  allocations?: boolean | Prisma.Store$allocationsArgs<ExtArgs>
   _count?: boolean | Prisma.StoreCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["store"]>
 
@@ -667,6 +775,7 @@ export type StoreOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = ru
 export type StoreInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   staff?: boolean | Prisma.Store$staffArgs<ExtArgs>
   brands?: boolean | Prisma.Store$brandsArgs<ExtArgs>
+  allocations?: boolean | Prisma.Store$allocationsArgs<ExtArgs>
   _count?: boolean | Prisma.StoreCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type StoreIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -677,6 +786,7 @@ export type $StorePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   objects: {
     staff: Prisma.$StaffPayload<ExtArgs>[]
     brands: Prisma.$BrandPayload<ExtArgs>[]
+    allocations: Prisma.$StaffUniformAllocationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1082,6 +1192,7 @@ export interface Prisma__StoreClient<T, Null = never, ExtArgs extends runtime.Ty
   readonly [Symbol.toStringTag]: "PrismaPromise"
   staff<T extends Prisma.Store$staffArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Store$staffArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StaffPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   brands<T extends Prisma.Store$brandsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Store$brandsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrandPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  allocations<T extends Prisma.Store$allocationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Store$allocationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StaffUniformAllocationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1556,6 +1667,30 @@ export type Store$brandsArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.BrandScalarFieldEnum | Prisma.BrandScalarFieldEnum[]
+}
+
+/**
+ * Store.allocations
+ */
+export type Store$allocationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StaffUniformAllocation
+   */
+  select?: Prisma.StaffUniformAllocationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StaffUniformAllocation
+   */
+  omit?: Prisma.StaffUniformAllocationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StaffUniformAllocationInclude<ExtArgs> | null
+  where?: Prisma.StaffUniformAllocationWhereInput
+  orderBy?: Prisma.StaffUniformAllocationOrderByWithRelationInput | Prisma.StaffUniformAllocationOrderByWithRelationInput[]
+  cursor?: Prisma.StaffUniformAllocationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.StaffUniformAllocationScalarFieldEnum | Prisma.StaffUniformAllocationScalarFieldEnum[]
 }
 
 /**

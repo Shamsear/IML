@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { 
   createProduct, updateProduct, deleteProduct, importBarcodes, getProductSerials,
   bulkCreateProducts, bulkUpdateProducts, bulkDeleteProducts 
@@ -729,9 +730,22 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                           </td>
                           <td className="py-3.5 px-5 whitespace-nowrap">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                                <Package size={15} />
-                              </div>
+                              {product.imageUrl ? (
+                                <img 
+                                  src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
+                                  alt={product.name} 
+                                  className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0"
+                                  onError={(e) => {
+                                    if (e.target.src !== product.imageUrl) {
+                                      e.target.src = product.imageUrl;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                                  <Package size={15} />
+                                </div>
+                              )}
                               <span className="font-semibold">{product.name}</span>
                             </div>
                           </td>

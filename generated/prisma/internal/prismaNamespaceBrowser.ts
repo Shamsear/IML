@@ -57,6 +57,7 @@ export const ModelName = {
   Supervisor: 'Supervisor',
   Store: 'Store',
   Staff: 'Staff',
+  StaffUniformAllocation: 'StaffUniformAllocation',
   ProductSerialNumber: 'ProductSerialNumber',
   InventoryTransaction: 'InventoryTransaction',
   TransactionSerialNumber: 'TransactionSerialNumber',
@@ -163,6 +164,26 @@ export const StaffScalarFieldEnum = {
 } as const
 
 export type StaffScalarFieldEnum = (typeof StaffScalarFieldEnum)[keyof typeof StaffScalarFieldEnum]
+
+
+export const StaffUniformAllocationScalarFieldEnum = {
+  id: 'id',
+  staffId: 'staffId',
+  storeId: 'storeId',
+  uniformQty: 'uniformQty',
+  capQty: 'capQty',
+  uniformReturned: 'uniformReturned',
+  capReturned: 'capReturned',
+  workingPeriod: 'workingPeriod',
+  supervisorId: 'supervisorId',
+  givenDate: 'givenDate',
+  returnDate: 'returnDate',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StaffUniformAllocationScalarFieldEnum = (typeof StaffUniformAllocationScalarFieldEnum)[keyof typeof StaffUniformAllocationScalarFieldEnum]
 
 
 export const ProductSerialNumberScalarFieldEnum = {

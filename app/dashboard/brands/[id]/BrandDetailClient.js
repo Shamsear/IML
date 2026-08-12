@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { 
   connectStoreToBrand, 
   disconnectStoreFromBrand, 
@@ -454,9 +455,27 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                           />
                         </td>
                         <td className="py-3.5 px-5 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-text-primary">{product.name}</span>
-                            <span className="text-xs text-text-muted mt-0.5">SKU: <code>{product.itemCode || '---'}</code></span>
+                          <div className="flex items-center gap-3">
+                            {product.imageUrl ? (
+                              <img 
+                                src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
+                                alt={product.name} 
+                                className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0"
+                                onError={(e) => {
+                                  if (e.target.src !== product.imageUrl) {
+                                    e.target.src = product.imageUrl;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                                <Package size={15} />
+                              </div>
+                            )}
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-text-primary truncate">{product.name}</span>
+                              <span className="text-xs text-text-muted mt-0.5">SKU: <code>{product.itemCode || '---'}</code></span>
+                            </div>
                           </div>
                         </td>
                         <td className="py-3.5 px-5 whitespace-nowrap">
