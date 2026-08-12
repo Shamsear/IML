@@ -119,7 +119,7 @@ export default async function DashboardPage() {
               <h3 className="font-display font-bold text-base text-text-primary">Recent Activity</h3>
             </div>
             <Link 
-              href="/dashboard/activity" 
+              href="/dashboard/transactions" 
               className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover transition-colors"
             >
               <span>View All</span>

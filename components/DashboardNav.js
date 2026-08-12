@@ -25,7 +25,6 @@ const navSections = [
     label: 'Main',
     items: [
       { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-      { name: 'Activity', href: '/dashboard/activity', icon: Activity },
       { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
     ],
   },
