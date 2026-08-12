@@ -492,7 +492,7 @@ export default function RebrandClient({ products }) {
                 <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                   <input 
                     type="checkbox" 
-                    className="rounded border-border text-primary focus:ring-primary/20"
+                    className="custom-checkbox"
                     checked={isBulkScan}
                     onChange={(e) => setIsBulkScan(e.target.checked)}
                   />

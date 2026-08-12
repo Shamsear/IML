@@ -9,6 +9,9 @@ import path from 'path';
 
 import { uploadToImageKit } from '@/lib/imagekit';
 
+import { generateId } from '@/lib/idGenerator';
+import crypto from 'crypto';
+
 async function saveFile(file) {
   return uploadToImageKit(file);
 }
@@ -45,12 +48,18 @@ export async function createBrand(formData) {
 
   if (!name) throw new Error('Brand name is required');
 
+  const id = await generateId('brand', 'BRND', 3);
+  const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const secretKey = `portal-${cleanName}-${crypto.randomBytes(16).toString('hex')}`;
+
   await prisma.brand.create({
     data: {
+      id,
       name,
       description,
       imageUrl,
       isPublic,
+      secretKey,
     },
   });
 
@@ -206,6 +215,12 @@ export async function getBrandPortalDetails(secretKey) {
   const brand = await prisma.brand.findUnique({
     where: { secretKey },
     include: {
+      stores: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
       products: {
         select: {
           id: true,
@@ -219,7 +234,9 @@ export async function getBrandPortalDetails(secretKey) {
               transactionType: true,
               quantity: true,
               fromEntityType: true,
+              fromEntityId: true,
               toEntityType: true,
+              toEntityId: true,
               timestamp: true,
               notes: true,
             },
@@ -229,6 +246,43 @@ export async function getBrandPortalDetails(secretKey) {
         orderBy: { name: 'asc' }
       }
     }
+  });
+
+  if (!brand) return null;
+
+  // Let's resolve store names for transactions so the client has them pre-populated
+  const storeMap = {};
+  brand.stores.forEach(s => {
+    storeMap[s.id] = s.name;
+  });
+
+  // Let's fetch all staff members in the system to build a staff map
+  const staffList = await prisma.staff.findMany({
+    select: { id: true, name: true }
+  });
+  const staffMap = {};
+  staffList.forEach(st => {
+    staffMap[st.id] = st.name;
+  });
+
+  // Map transactions to include the resolved source and destination names
+  brand.products.forEach(p => {
+    p.transactions.forEach(t => {
+      let fromName = 'N/A';
+      if (t.fromEntityType === 'WAREHOUSE') fromName = 'Warehouse';
+      else if (t.fromEntityType === 'SUPPLIER') fromName = t.fromEntityId || 'Supplier';
+      else if (t.fromEntityType === 'STORE' && t.fromEntityId) fromName = storeMap[t.fromEntityId] || t.fromEntityId;
+      else if (t.fromEntityType === 'STAFF' && t.fromEntityId) fromName = staffMap[t.fromEntityId] || t.fromEntityId;
+
+      let toName = 'N/A';
+      if (t.toEntityType === 'WAREHOUSE') toName = 'Warehouse';
+      else if (t.toEntityType === 'STORE' && t.toEntityId) toName = storeMap[t.toEntityId] || t.toEntityId;
+      else if (t.toEntityType === 'STAFF' && t.toEntityId) toName = staffMap[t.toEntityId] || t.toEntityId;
+      else if (t.toEntityType === 'CLIENT') toName = 'Client';
+
+      t.fromEntityName = fromName;
+      t.toEntityName = toName;
+    });
   });
 
   return brand;

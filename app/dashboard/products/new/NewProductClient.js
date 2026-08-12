@@ -514,21 +514,11 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
               <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer">
                 <input 
                   type="checkbox" 
-                  className="rounded border-border text-primary focus:ring-primary/20"
+                  className="custom-checkbox"
                   checked={isReturnable}
                   onChange={(e) => setIsReturnable(e.target.checked)}
                 />
                 <span>Returnable Item</span>
-              </label>
-              
-              <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="rounded border-border text-primary focus:ring-primary/20"
-                  checked={isPublic}
-                  onChange={(e) => setIsPublic(e.target.checked)}
-                />
-                <span>Show in Public Catalogs</span>
               </label>
             </div>
           </div>
@@ -740,7 +730,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                 <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                   <input 
                     type="checkbox" 
-                    className="rounded border-border text-primary focus:ring-primary/20"
+                    className="custom-checkbox"
                     checked={isBulkScan}
                     onChange={(e) => setIsBulkScan(e.target.checked)}
                   />

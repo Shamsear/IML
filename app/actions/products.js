@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { generateId } from '@/lib/idGenerator';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
@@ -120,8 +121,11 @@ export async function createProduct(formData) {
   if (!brandId) throw new Error('Associated Brand is required');
 
   // 1. Create product row
+  const id = await generateId('product', 'PROD', 3);
+
   const product = await prisma.product.create({
     data: {
+      id,
       name,
       brandId,
       itemCode,
@@ -149,7 +153,21 @@ export async function createProduct(formData) {
   if (isSerialized) {
     const barcodes = initialBarcodesStr.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
     if (barcodes.length > 0) {
-      const data = barcodes.map(barcode => ({
+      const lastSerial = await prisma.productSerialNumber.findFirst({
+        where: { id: { startsWith: 'SERL' } },
+        orderBy: { id: 'desc' },
+        select: { id: true }
+      });
+      let nextSerNum = 1;
+      if (lastSerial) {
+        const parts = lastSerial.id.split('-');
+        const numPart = parts[parts.length - 1];
+        const parsed = parseInt(numPart, 10);
+        if (!isNaN(parsed)) nextSerNum = parsed + 1;
+      }
+
+      const data = barcodes.map((barcode, idx) => ({
+        id: `SERL-${String(nextSerNum + idx).padStart(5, '0')}`,
         productId: product.id,
         barcode,
         currentLocationType: toEntityType,
@@ -169,8 +187,11 @@ export async function createProduct(formData) {
         }
       });
 
+      const txId = await generateId('inventoryTransaction', 'TRAN', 5);
+
       await prisma.inventoryTransaction.create({
         data: {
+          id: txId,
           productId: product.id,
           transactionType: 'RECEIVE',
           fromEntityType,
@@ -190,8 +211,11 @@ export async function createProduct(formData) {
       });
     }
   } else if (initialQty > 0) {
+    const txId = await generateId('inventoryTransaction', 'TRAN', 5);
+
     await prisma.inventoryTransaction.create({
       data: {
+        id: txId,
         productId: product.id,
         transactionType: 'RECEIVE',
         fromEntityType,
@@ -271,7 +295,21 @@ export async function importBarcodes(productId, barcodes = [], secondaryBarcodes
   if (!productId) throw new Error('Product ID is required');
   if (barcodes.length === 0) throw new Error('No barcodes provided');
 
+  const lastSerial = await prisma.productSerialNumber.findFirst({
+    where: { id: { startsWith: 'SERL' } },
+    orderBy: { id: 'desc' },
+    select: { id: true }
+  });
+  let nextSerNum = 1;
+  if (lastSerial) {
+    const parts = lastSerial.id.split('-');
+    const numPart = parts[parts.length - 1];
+    const parsed = parseInt(numPart, 10);
+    if (!isNaN(parsed)) nextSerNum = parsed + 1;
+  }
+
   const data = barcodes.map((barcode, idx) => ({
+    id: `SERL-${String(nextSerNum + idx).padStart(5, '0')}`,
     productId,
     barcode: barcode.trim(),
     secondaryBarcode: secondaryBarcodes[idx] ? secondaryBarcodes[idx].trim() : null,
@@ -326,7 +364,21 @@ export async function bulkCreateProducts(productsList) {
     throw new Error('No products list provided');
   }
 
-  const data = productsList.map(p => ({
+  const lastRecord = await prisma.product.findFirst({
+    where: { id: { startsWith: 'PROD' } },
+    orderBy: { id: 'desc' },
+    select: { id: true }
+  });
+  let nextNum = 1;
+  if (lastRecord) {
+    const parts = lastRecord.id.split('-');
+    const numPart = parts[parts.length - 1];
+    const parsed = parseInt(numPart, 10);
+    if (!isNaN(parsed)) nextNum = parsed + 1;
+  }
+
+  const data = productsList.map((p, idx) => ({
+    id: `PROD-${String(nextNum + idx).padStart(3, '0')}`,
     name: p.name,
     brandId: p.brandId,
     itemCode: p.itemCode || null,

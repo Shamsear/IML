@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
+import { generateId } from '@/lib/idGenerator';
+
 async function checkAuth() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error('Unauthorized');
@@ -27,8 +29,11 @@ export async function createSupervisor(formData) {
 
   if (!name) throw new Error('Supervisor name is required');
 
+  const id = await generateId('supervisor', 'SUPR', 3);
+
   await prisma.supervisor.create({
     data: {
+      id,
       name,
       email,
       phone,

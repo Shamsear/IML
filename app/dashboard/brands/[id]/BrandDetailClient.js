@@ -10,7 +10,7 @@ import {
 import { createProduct, importBarcodes, getProductSerials } from '@/app/actions/products';
 import { 
   ArrowLeft, Store, Plus, Package, Edit2, Trash2, QrCode, 
-  Loader2, X, Link as LinkIcon, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight
+  Loader2, X, Link as LinkIcon, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight, Share2
 } from 'lucide-react';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
@@ -25,6 +25,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
 
   // Portal link copy state
   const [copied, setCopied] = useState(false);
+  const [showPortalAccess, setShowPortalAccess] = useState(false);
   const handleCopyLink = () => {
     if (typeof window !== 'undefined') {
       const portalUrl = `${window.location.origin}/portal/brand/${brand.secretKey}`;
@@ -305,7 +306,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-border">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/brands" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
             <ArrowLeft size={16} />
@@ -318,17 +319,29 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-2.5">
-          <button className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" onClick={() => { setStoreToConnect(''); setError(''); setActiveModal('connectStore'); }}>
-            <LinkIcon size={15} />
+        <div className="flex flex-wrap lg:justify-end items-center gap-2">
+          <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setStoreToConnect(''); setError(''); setActiveModal('connectStore'); }}>
+            <LinkIcon size={14} />
             <span>Link Outlet</span>
           </button>
-          <button className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" onClick={() => { setNewStoreName(''); setNewStoreLocation(''); setError(''); setActiveModal('createStore'); }}>
-            <Store size={15} />
+          <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setNewStoreName(''); setNewStoreLocation(''); setError(''); setActiveModal('createStore'); }}>
+            <Store size={14} />
             <span>Register &amp; Link Outlet</span>
           </button>
-          <Link href={`/dashboard/products/new?brandId=${brand.id}`} className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200">
-            <Plus size={15} />
+          <button 
+            type="button" 
+            className={`inline-flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-semibold transition-all duration-200 ${
+              showPortalAccess 
+                ? 'bg-primary/10 border-primary/20 text-primary' 
+                : 'bg-surface border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
+            }`} 
+            onClick={() => setShowPortalAccess(!showPortalAccess)}
+          >
+            <Share2 size={14} />
+            <span>Portal Access</span>
+          </button>
+          <Link href={`/dashboard/products/new?brandId=${brand.id}`} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+            <Plus size={14} />
             <span>Add Product</span>
           </Link>
         </div>
@@ -346,41 +359,40 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         </div>
       )}
 
-      {/* Brand Portal Share Card */}
-      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
-        <h3 className="font-display font-bold text-lg text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-          <QrCode size={18} className="text-primary animate-pulse-once" />
-          <span>Brand Partner Portal Access</span>
-        </h3>
-        <p className="text-xs text-text-secondary -mt-1 leading-relaxed">
-          Provide your brand client with this secure link to view their catalog products, live stocks, inbound dispatches, and warehouse ledger logs. No username/password is required.
-        </p>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-surface-elevated/40 border border-black/5 p-4 rounded-xl">
+      {/* Brand Portal Share Card (Collapsible) */}
+      {showPortalAccess && (
+        <div className="bg-surface border border-primary/25 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-slide-down">
           <div className="flex-1 min-w-0">
-            <span className="text-[10px] uppercase font-bold text-text-secondary block">Partner Portal Link</span>
-            <span className="text-xs font-mono font-semibold text-text-primary truncate block select-all mt-1">
+            <div className="flex items-center gap-2">
+              <QrCode size={16} className="text-primary animate-pulse-once" />
+              <h4 className="font-display font-bold text-sm text-text-primary">Brand Partner Portal Link</h4>
+            </div>
+            <p className="text-[11px] text-text-secondary mt-1">
+              Provide your brand client with this secure link to view their catalog products, live stocks, inbound dispatches, and warehouse ledger logs.
+            </p>
+            <span className="text-xs font-mono font-semibold text-primary truncate block select-all mt-1.5 bg-primary/5 px-2.5 py-1 rounded border border-primary/10">
               {typeof window !== 'undefined' ? `${window.location.origin}/portal/brand/${brand.secretKey}` : `/portal/brand/${brand.secretKey}`}
             </span>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2 w-full sm:w-auto justify-end flex-shrink-0">
             <button
               type="button"
               onClick={handleCopyLink}
-              className="px-4 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200"
+              className="flex-1 sm:flex-initial px-3 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200"
             >
-              {copied ? 'Copied!' : 'Copy Share Link'}
+              {copied ? 'Copied!' : 'Copy Link'}
             </button>
             <a
               href={`/portal/brand/${brand.secretKey}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center"
+              className="flex-1 sm:flex-initial px-3 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-lg text-xs font-semibold transition-all duration-200 flex items-center justify-center"
             >
-              Preview Portal
+              Preview
             </a>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 2. Catalog Products Section */}
       <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">

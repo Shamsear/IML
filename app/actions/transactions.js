@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { generateId } from '@/lib/idGenerator';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
@@ -100,8 +101,23 @@ export async function createTransaction(data) {
   // Handle transaction inside a secure Prisma Transaction block
   const transaction = await prisma.$transaction(async (tx) => {
     // A. Create the core ledger transaction
+    const lastRecord = await tx.inventoryTransaction.findFirst({
+      where: { id: { startsWith: 'TRAN' } },
+      orderBy: { id: 'desc' },
+      select: { id: true }
+    });
+    let nextNum = 1;
+    if (lastRecord) {
+      const parts = lastRecord.id.split('-');
+      const numPart = parts[parts.length - 1];
+      const parsed = parseInt(numPart, 10);
+      if (!isNaN(parsed)) nextNum = parsed + 1;
+    }
+    const txId = `TRAN-${String(nextNum).padStart(5, '0')}`;
+
     const invTx = await tx.inventoryTransaction.create({
       data: {
+        id: txId,
         productId,
         transactionType,
         fromEntityType,

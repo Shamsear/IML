@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
+import { generateId } from '@/lib/idGenerator';
+
 async function checkAuth() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error('Unauthorized');
@@ -28,8 +30,11 @@ export async function createStore(formData) {
 
   if (!name) throw new Error('Store name is required');
 
+  const id = await generateId('store', 'STOR', 3);
+
   await prisma.store.create({
     data: {
+      id,
       name,
       region,
       location,
