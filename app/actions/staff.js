@@ -295,3 +295,81 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
 
   revalidatePath('/dashboard/staff');
 }
+
+export async function saveBulkCombinedAllocations(payload) {
+  await checkAuth();
+
+  const { items = [] } = payload;
+  if (items.length === 0) throw new Error('At least one promoter assignment is required');
+
+  const allocations = await prisma.$transaction(async (tx) => {
+    const createdAllocations = [];
+
+    for (const item of items) {
+      const {
+        isNewPromoter,
+        promoterName,
+        promoterPhone = '',
+        promoterShirtSize = 'Medium',
+        existingStaffId,
+        storeId,
+        uniformQty = 0,
+        capQty = 0,
+        workingPeriod = '',
+        notes = ''
+      } = item;
+
+      if (!storeId) {
+        throw new Error('Store placement is required for all allocations');
+      }
+
+      let finalStaffId = existingStaffId;
+
+      if (isNewPromoter) {
+        if (!promoterName) throw new Error('Promoter name is required for registration');
+        const staffIdVal = await generateId('staff', 'STAF', 3);
+        const newStaff = await tx.staff.create({
+          data: {
+            id: staffIdVal,
+            name: promoterName,
+            phone: promoterPhone,
+            shirtSize: promoterShirtSize,
+            storeId,
+          }
+        });
+        finalStaffId = newStaff.id;
+      } else {
+        if (!existingStaffId) throw new Error('Please select an existing promoter or register a new one');
+        
+        await tx.staff.update({
+          where: { id: existingStaffId },
+          data: { storeId }
+        });
+      }
+
+      const id = await generateId('staffUniformAllocation', 'ALOC', 5);
+
+      const allocation = await tx.staffUniformAllocation.create({
+        data: {
+          id,
+          staffId: finalStaffId,
+          storeId,
+          uniformQty,
+          capQty,
+          uniformReturned: false,
+          capReturned: false,
+          workingPeriod,
+          notes,
+        }
+      });
+
+      createdAllocations.push(allocation);
+    }
+
+    return createdAllocations;
+  });
+
+  revalidatePath('/dashboard/staff');
+  return allocations;
+}
+

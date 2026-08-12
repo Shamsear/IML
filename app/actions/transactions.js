@@ -549,17 +549,16 @@ export async function createBulkIssueTransactions(payload) {
 }
 
 // 7. Create multiple receive transactions atomically in a single batch
-export async function createBulkReceiveTransactions(payload) {
+export async function createBulkReceiveTransactions(formData) {
   await checkAuth();
 
-  const {
-    fromEntityType = 'SUPPLIER',
-    fromEntityId = 'Main Supplier',
-    toEntityType = 'WAREHOUSE',
-    toEntityId = null,
-    receivedBy = null,
-    items = [], // Array of { productId, quantity, barcodes, notes }
-  } = payload;
+  const fromEntityType = formData.get('fromEntityType') || 'SUPPLIER';
+  const fromEntityId = formData.get('fromEntityId') || 'Main Supplier';
+  const toEntityType = formData.get('toEntityType') || 'WAREHOUSE';
+  const toEntityId = formData.get('toEntityId') || null;
+  const receivedBy = formData.get('receivedBy') || null;
+  const itemsJson = formData.get('items');
+  const items = JSON.parse(itemsJson || '[]');
 
   if (items.length === 0) throw new Error('At least one product item is required for bulk receive');
 
@@ -569,8 +568,49 @@ export async function createBulkReceiveTransactions(payload) {
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
 
-    for (const item of items) {
-      const { productId, quantity, barcodes = [], notes } = item;
+    for (let idx = 0; idx < items.length; idx++) {
+      const item = items[idx];
+      let { productId, quantity, barcodes = [], notes, isNewProduct } = item;
+
+      if (isNewProduct) {
+        // Register the product inline!
+        const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert = '10', prodIsReturnable } = item;
+
+        if (!prodName) throw new Error(`Product name is required for inline product registration at entry #${idx + 1}`);
+        if (!prodBrandId) throw new Error(`Brand is required for inline product registration at entry #${idx + 1}`);
+
+        // Upload the image file if it exists in the FormData
+        const imageFile = formData.get(`item_${idx}_imageFile`);
+        let imageUrl = null;
+        if (imageFile && imageFile.size > 0) {
+          const savedPath = await uploadToImageKit(imageFile);
+          if (savedPath) imageUrl = savedPath;
+        }
+
+        const newProductId = await generateId('product', 'PROD', 4);
+        const newProduct = await tx.product.create({
+          data: {
+            id: newProductId,
+            name: prodName,
+            isSerialized: prodType === 'SIM' || prodType === 'ROUTER',
+            productType: prodType,
+            brandId: prodBrandId,
+            category: prodCategory || 'General',
+            itemCode: prodItemCode || '',
+            lowStockAlert: parseInt(prodLowStockAlert, 10) || 10,
+            isReturnable: !!prodIsReturnable,
+            imageUrl,
+          }
+        });
+
+        // Set the newly created product's ID
+        productId = newProduct.id;
+        
+        // Ensure quantity is correct if newly registered is serialized
+        if (newProduct.isSerialized) {
+          quantity = barcodes.length;
+        }
+      }
 
       if (!productId) throw new Error('Product ID is required for all items');
       if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0 for all items');

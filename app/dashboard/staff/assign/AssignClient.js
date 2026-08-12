@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { saveCombinedAllocation, updateStaff } from '@/app/actions/staff';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { saveCombinedAllocation, updateStaff, saveBulkCombinedAllocations } from '@/app/actions/staff';
 import { 
-  Shirt, ArrowLeft, Loader2, Save, Users, Building2, Calendar, FileText, CheckCircle2, XCircle
+  Shirt, ArrowLeft, Loader2, Save, Users, Building2, Calendar, FileText, CheckCircle2, XCircle, Edit2, Trash2, Plus
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import CustomSelect from '@/components/CustomSelect';
 
 const shirtSizes = ['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'];
@@ -18,26 +17,42 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
   const isEditMode = !!initialAllocation;
   const isEditStaffMode = !!editStaffObj;
 
-  // Form states
+  // Single Item states (Only used for Edit Mode)
   const [isNewPromoter, setIsNewPromoter] = useState(!isEditMode && !preselectedStaffId && !isEditStaffMode);
   const [promoterName, setPromoterName] = useState('');
   const [promoterPhone, setPromoterPhone] = useState('');
   const [promoterShirtSize, setPromoterShirtSize] = useState('Medium');
   const [existingStaffId, setExistingStaffId] = useState('');
-
   const [storeId, setStoreId] = useState('');
   const [uniformQty, setUniformQty] = useState('1');
   const [capQty, setCapQty] = useState('1');
-  
-  // Working Period Date fields
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-
-  // Return statuses (for edit mode)
   const [uniformReturned, setUniformReturned] = useState(false);
   const [capReturned, setCapReturned] = useState(false);
-
   const [notes, setNotes] = useState('');
+
+  // Bulk Queue items state (Used for Add Mode)
+  const createEmptyItem = (index) => ({
+    id: `item-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+    isNewPromoter: true,
+    promoterName: '',
+    promoterPhone: '',
+    promoterShirtSize: 'Medium',
+    existingStaffId: '',
+    storeId: '',
+    uniformQty: '1',
+    capQty: '1',
+    startDate: '',
+    endDate: '',
+    notes: '',
+    isExpanded: true,
+    error: '',
+  });
+
+  const [items, setItems] = useState([createEmptyItem(0)]);
+
+  // Common UI states
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -81,7 +96,6 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
       setCapReturned(initialAllocation.capReturned || false);
       setNotes(initialAllocation.notes || '');
 
-      // Parse working period "YYYY-MM-DD to YYYY-MM-DD"
       const period = initialAllocation.workingPeriod || '';
       if (period.includes(' to ')) {
         const parts = period.split(' to ');
@@ -95,7 +109,8 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
     }
   }, [initialAllocation]);
 
-  const handleSubmit = async (e) => {
+  // Single Item Submit Handler (Edit Modes)
+  const handleSingleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -163,7 +178,6 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
       formData.append('workingPeriod', workingPeriodStr);
       formData.append('notes', notes);
 
-      // Return flags (only meaningful in edit mode)
       formData.append('uniformReturned', String(uniformReturned));
       formData.append('capReturned', String(capReturned));
 
@@ -177,8 +191,118 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
     }
   };
 
+  // Bulk Queue Action Handlers
+  const handleAddNewItem = () => {
+    setItems(prev => prev.map(item => ({ ...item, isExpanded: false })).concat(createEmptyItem(prev.length)));
+  };
+
+  const handleRemoveItem = (idx) => {
+    if (items.length > 1) {
+      setItems(prev => {
+        const updated = prev.filter((_, i) => i !== idx);
+        if (!updated.some(item => item.isExpanded)) {
+          updated[updated.length - 1].isExpanded = true;
+        }
+        return updated;
+      });
+    }
+  };
+
+  const updateItemField = (idx, field, value) => {
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+  };
+
+  const handleExpandItem = (idx) => {
+    setItems(prev => prev.map((item, i) => ({ ...item, isExpanded: i === idx })));
+  };
+
+  const handleFinishItem = (idx) => {
+    const item = items[idx];
+    if (item.isNewPromoter && !item.promoterName.trim()) {
+      updateItemField(idx, 'error', 'Promoter name is required');
+      return;
+    }
+    if (!item.isNewPromoter && !item.existingStaffId) {
+      updateItemField(idx, 'error', 'Please select an existing promoter');
+      return;
+    }
+    if (!item.storeId) {
+      updateItemField(idx, 'error', 'Store placement is required');
+      return;
+    }
+    updateItemField(idx, 'isExpanded', false);
+    updateItemField(idx, 'error', '');
+  };
+
+  const handleBulkSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    // Bulk Validation Loop
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.isNewPromoter && !item.promoterName.trim()) {
+        updateItemField(i, 'error', 'Promoter name is required');
+        updateItemField(i, 'isExpanded', true);
+        setLoading(false);
+        return;
+      }
+      if (!item.isNewPromoter && !item.existingStaffId) {
+        updateItemField(i, 'error', 'Please select an existing promoter');
+        updateItemField(i, 'isExpanded', true);
+        setLoading(false);
+        return;
+      }
+      if (!item.storeId) {
+        updateItemField(i, 'error', 'Store placement is required');
+        updateItemField(i, 'isExpanded', true);
+        setLoading(false);
+        return;
+      }
+      if (parseInt(item.uniformQty, 10) === 0 && parseInt(item.capQty, 10) === 0) {
+        updateItemField(i, 'error', 'Please specify quantity for at least one uniform or cap');
+        updateItemField(i, 'isExpanded', true);
+        setLoading(false);
+        return;
+      }
+    }
+
+    try {
+      const payload = {
+        items: items.map(item => {
+          let workingPeriodStr = '';
+          if (item.startDate && item.endDate) {
+            workingPeriodStr = `${item.startDate} to ${item.endDate}`;
+          } else if (item.startDate) {
+            workingPeriodStr = `From ${item.startDate}`;
+          }
+          return {
+            isNewPromoter: item.isNewPromoter,
+            promoterName: item.promoterName,
+            promoterPhone: item.promoterPhone,
+            promoterShirtSize: item.promoterShirtSize,
+            existingStaffId: item.existingStaffId,
+            storeId: item.storeId,
+            uniformQty: parseInt(item.uniformQty, 10) || 0,
+            capQty: parseInt(item.capQty, 10) || 0,
+            workingPeriod: workingPeriodStr,
+            notes: item.notes,
+          };
+        })
+      };
+
+      await saveBulkCombinedAllocations(payload);
+      router.push('/dashboard/staff');
+      router.refresh();
+    } catch (err) {
+      setError(err.message || 'Failed to save uniform assignments.');
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-6 font-sans max-w-3xl mx-auto">
+    <div className="flex flex-col gap-6 font-sans max-w-4xl mx-auto pb-10">
       {/* Back Header */}
       <header className="flex items-center gap-4 pb-4 border-b border-border">
         <button
@@ -189,7 +313,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
         </button>
         <div>
           <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">Staff Operations</span>
-          <h1 className="text-2xl font-display font-extrabold text-text-primary tracking-tight mt-0.5">
+          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight mt-0.5">
             {isEditStaffMode ? 'Edit Promoter Profile' : isEditMode ? 'Modify Uniform Assignment' : 'New Uniform Issue & Assignment'}
           </h1>
         </div>
@@ -201,43 +325,16 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
         </div>
       )}
 
-      {/* Main Combined Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        
-        {/* SECTION 1: PROMOTER IDENTIFICATION */}
-        <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
-          <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-            <Users size={16} className="text-primary" />
-            <span>1. Promoter Profile Details</span>
-          </h3>
+      {/* RENDER EDIT MODE (SINGLE ITEM) */}
+      {(isEditMode || isEditStaffMode) ? (
+        <form onSubmit={handleSingleSubmit} className="flex flex-col gap-6">
+          {/* SECTION 1: PROMOTER IDENTIFICATION */}
+          <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+            <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
+              <Users size={16} className="text-primary" />
+              <span>1. Promoter Profile Details</span>
+            </h3>
 
-          {!isEditMode && !isEditStaffMode && (
-            <div className="flex items-center gap-6 pb-2">
-              <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer">
-                <input 
-                  type="radio" 
-                  name="promoterType" 
-                  checked={isNewPromoter} 
-                  onChange={() => setIsNewPromoter(true)}
-                  className="accent-primary" 
-                />
-                <span>Register a New Promoter</span>
-              </label>
-              <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer">
-                <input 
-                  type="radio" 
-                  name="promoterType" 
-                  checked={!isNewPromoter} 
-                  onChange={() => setIsNewPromoter(false)}
-                  className="accent-primary" 
-                />
-                <span>Choose Existing Promoter</span>
-              </label>
-            </div>
-          )}
-
-          {isEditMode || isEditStaffMode ? (
-            /* EDIT MODE or STAFF EDIT MODE: Direct inputs for promoter info */
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -284,200 +381,438 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                 )}
               </div>
             </div>
-          ) : isNewPromoter ? (
-            /* NEW PROMOTER FORM */
-            <div className="flex flex-col gap-4 animate-slide-down">
+          </div>
+
+          {/* SECTION 2: PLACEMENT & QUANTITY ASSIGNMENT */}
+          {!isEditStaffMode && (
+            <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+              <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
+                <Building2 size={16} className="text-primary" />
+                <span>2. Placement &amp; Asset Assignment</span>
+              </h3>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">Assigned Store Placement</label>
+                <CustomSelect
+                  options={stores.map(store => ({ value: store.id, label: `${store.name} (${store.region || 'DXB'})` }))}
+                  value={storeId}
+                  onChange={(val) => setStoreId(val)}
+                  placeholder="Choose outlet store..."
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Full Name</label>
-                  <input 
-                    type="text" 
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
-                    value={promoterName} 
-                    onChange={(e) => setPromoterName(e.target.value)} 
-                    placeholder="e.g. Saima Ijaz" 
-                    required 
+                  <label className="text-xs font-semibold text-text-secondary">Uniform Shirt Qty Given</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                    value={uniformQty}
+                    onChange={(e) => setUniformQty(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Phone Number</label>
-                  <input 
-                    type="text" 
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
-                    value={promoterPhone} 
-                    onChange={(e) => setPromoterPhone(e.target.value)} 
-                    placeholder="+971 55 123 4567" 
+                  <label className="text-xs font-semibold text-text-secondary">Cap Qty Given</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                    value={capQty}
+                    onChange={(e) => setCapQty(e.target.value)}
+                    required
                   />
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Shirt Size</label>
-                <CustomSelect
-                  options={shirtSizes.map(size => ({ value: size, label: size }))}
-                  value={promoterShirtSize}
-                  onChange={(val) => setPromoterShirtSize(val)}
-                  required
-                />
-              </div>
-            </div>
-          ) : (
-            /* EXISTING PROMOTER SELECTOR */
-            <div className="flex flex-col gap-1.5 animate-slide-down">
-              <label className="text-xs font-semibold text-text-secondary">Select Registered Promoter</label>
-              <CustomSelect
-                options={staffList.map(s => ({ value: s.id, label: `${s.name} (Shirt Size: ${s.shirtSize || 'M'})` }))}
-                value={existingStaffId}
-                onChange={(val) => {
-                  setExistingStaffId(val);
-                  const p = staffList.find(s => s.id === val);
-                  if (p && p.storeId) {
-                    setStoreId(p.storeId);
-                  }
-                }}
-                placeholder="Choose promoter..."
-              />
             </div>
           )}
-        </div>
 
-        {/* SECTION 2: PLACEMENT & QUANTITY ASSIGNMENT (Hidden in Edit Staff mode) */}
-        {!isEditStaffMode && (
-          <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4 animate-slide-down">
-            <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-              <Building2 size={16} className="text-primary" />
-              <span>2. Placement &amp; Asset Assignment</span>
-            </h3>
+          {/* SECTION 3: WORKING PERIOD & STATUS */}
+          {!isEditStaffMode && (
+            <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+              <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
+                <Calendar size={16} className="text-primary" />
+                <span>3. Duration &amp; Return Status</span>
+              </h3>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-text-secondary">Assigned Store Placement</label>
-              <CustomSelect
-                options={stores.map(store => ({ value: store.id, label: `${store.name} (${store.region || 'DXB'})` }))}
-                value={storeId}
-                onChange={(val) => setStoreId(val)}
-                placeholder="Choose outlet store..."
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Uniform Shirt Qty Given</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                  value={uniformQty}
-                  onChange={(e) => setUniformQty(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Cap Qty Given</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                  value={capQty}
-                  onChange={(e) => setCapQty(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* SECTION 3: WORKING PERIOD & STATUS (Hidden in Edit Staff mode) */}
-        {!isEditStaffMode && (
-          <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4 animate-slide-down">
-            <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-              <Calendar size={16} className="text-primary" />
-              <span>3. Duration &amp; Return Status</span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Campaign Start Date</label>
-                <input
-                  type="date"
-                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Campaign End Date</label>
-                <input
-                  type="date"
-                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {isEditMode && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <label className="flex items-center gap-3 p-3 bg-surface-elevated/40 border border-border rounded-xl cursor-pointer hover:bg-surface-elevated/60 transition-colors">
-                  <input 
-                    type="checkbox" 
-                    checked={uniformReturned} 
-                    onChange={(e) => setUniformReturned(e.target.checked)}
-                    className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-text-secondary">Campaign Start Date</label>
+                  <input
+                    type="date"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
                   />
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-text-primary">Uniform Shirt Returned</span>
-                    <span className="text-[10px] text-text-secondary">Toggle once promoter returns the shirt</span>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 bg-surface-elevated/40 border border-border rounded-xl cursor-pointer hover:bg-surface-elevated/60 transition-colors">
-                  <input 
-                    type="checkbox" 
-                    checked={capReturned} 
-                    onChange={(e) => setCapReturned(e.target.checked)}
-                    className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" 
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-text-secondary">Campaign End Date</label>
+                  <input
+                    type="date"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
                   />
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-text-primary">Cap Returned</span>
-                    <span className="text-[10px] text-text-secondary">Toggle once promoter returns the cap</span>
-                  </div>
-                </label>
+                </div>
               </div>
-            )}
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-text-secondary flex items-center gap-1">
-                <FileText size={13} />
-                <span>Remarks / Delivery Notes</span>
-              </label>
-              <textarea
-                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-20 resize-none"
-                placeholder="e.g. Brand new yellow uniform, delivered to Lulu Hypermarket."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
+              {isEditMode && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <label className="flex items-center gap-3 p-3 bg-surface-elevated/40 border border-border rounded-xl cursor-pointer hover:bg-surface-elevated/60 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={uniformReturned} 
+                      onChange={(e) => setUniformReturned(e.target.checked)}
+                      className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" 
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-text-primary">Uniform Shirt Returned</span>
+                      <span className="text-[10px] text-text-secondary">Toggle once promoter returns the shirt</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3 bg-surface-elevated/40 border border-border rounded-xl cursor-pointer hover:bg-surface-elevated/60 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={capReturned} 
+                      onChange={(e) => setCapReturned(e.target.checked)}
+                      className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary" 
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-text-primary">Cap Returned</span>
+                      <span className="text-[10px] text-text-secondary">Toggle once promoter returns the cap</span>
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary flex items-center gap-1">
+                  <FileText size={13} />
+                  <span>Remarks / Delivery Notes</span>
+                </label>
+                <textarea
+                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-20 resize-none"
+                  placeholder="e.g. Brand new yellow uniform, delivered to Lulu Hypermarket."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* SUBMIT BUTTONS */}
-        <div className="flex justify-end gap-3 mt-2">
-          <button 
-            type="button" 
-            onClick={() => router.push('/dashboard/staff')}
-            className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer"
+          {/* SUBMIT BUTTONS */}
+          <div className="flex justify-end gap-3 mt-2">
+            <button 
+              type="button" 
+              onClick={() => router.push('/dashboard/staff')}
+              className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer"
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              <span>{isEditStaffMode || isEditMode ? 'Save Changes' : 'Confirm Assignment'}</span>
+            </button>
+          </div>
+        </form>
+      ) : (
+        /* RENDER ADD MODE (BULK QUEUE ACCORDION LIST) */
+        <form onSubmit={handleBulkSubmit} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4">
+            {items.map((item, idx) => {
+              const store = stores.find(s => s.id === item.storeId);
+              const existingStaff = staffList.find(s => s.id === item.existingStaffId);
+              const promoterDisplayName = item.isNewPromoter
+                ? (item.promoterName || `Promoter Entry #${idx + 1}`)
+                : (existingStaff?.name || `Selected Existing Promoter`);
+
+              return (
+                <div 
+                  key={item.id} 
+                  className={`bg-surface border rounded-2xl shadow-sm transition-all duration-200 overflow-hidden
+                    ${item.isExpanded ? 'border-primary ring-2 ring-primary/5' : 'border-border hover:border-text-secondary/30'}
+                  `}
+                >
+                  {/* 1. COLLAPSED PREVIEW CARD */}
+                  {!item.isExpanded && (
+                    <div 
+                      onClick={() => handleExpandItem(idx)}
+                      className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/10 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                          {idx + 1}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                            {promoterDisplayName}
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider
+                              ${item.isNewPromoter ? 'bg-success/15 text-success border border-success/20' : 'bg-info/15 text-info border border-info/20'}
+                            `}>
+                              {item.isNewPromoter ? 'New' : 'Existing'}
+                            </span>
+                          </span>
+                          <span className="text-[10px] text-text-secondary block mt-0.5">
+                            Placed at: <strong className="text-text-primary">{store?.name || 'Unassigned'}</strong>
+                            <span className="mx-1 text-text-muted">•</span>
+                            Shirts: <strong className="text-text-primary">{item.uniformQty}</strong>, Caps: <strong className="text-text-primary">{item.capQty}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => handleExpandItem(idx)}
+                          className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
+                          title="Expand Entry"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        {items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
+                            title="Remove Entry"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2. EXPANDED FORM CARD */}
+                  {item.isExpanded && (
+                    <div className="p-6 sm:p-8 flex flex-col gap-6">
+                      <div className="flex items-center justify-between pb-3 border-b border-border">
+                        <span className="text-xs font-bold text-primary uppercase tracking-wider">Promoter Assignment #{idx + 1}</span>
+                        {items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="inline-flex items-center gap-1 text-xs text-danger hover:underline font-semibold"
+                          >
+                            <Trash2 size={12} />
+                            <span>Remove Assignment</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {item.error && (
+                        <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-2.5 text-xs font-semibold flex items-center gap-2">
+                          <XCircle size={14} />
+                          <span>{item.error}</span>
+                        </div>
+                      )}
+
+                      {/* SECTION 1: PROMOTER IDENTIFICATION */}
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-6 pb-2">
+                          <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer">
+                            <input 
+                              type="radio" 
+                              name={`promoterType-${item.id}`} 
+                              checked={item.isNewPromoter} 
+                              onChange={() => updateItemField(idx, 'isNewPromoter', true)}
+                              className="accent-primary" 
+                            />
+                            <span>Register a New Promoter</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer">
+                            <input 
+                              type="radio" 
+                              name={`promoterType-${item.id}`} 
+                              checked={!item.isNewPromoter} 
+                              onChange={() => updateItemField(idx, 'isNewPromoter', false)}
+                              className="accent-primary" 
+                            />
+                            <span>Choose Existing Promoter</span>
+                          </label>
+                        </div>
+
+                        {item.isNewPromoter ? (
+                          <div className="flex flex-col gap-4 animate-slide-down">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-text-secondary">Full Name</label>
+                                <input 
+                                  type="text" 
+                                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+                                  value={item.promoterName} 
+                                  onChange={(e) => updateItemField(idx, 'promoterName', e.target.value)} 
+                                  placeholder="e.g. Saima Ijaz" 
+                                  required 
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-text-secondary">Phone Number</label>
+                                <input 
+                                  type="text" 
+                                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+                                  value={item.promoterPhone} 
+                                  onChange={(e) => updateItemField(idx, 'promoterPhone', e.target.value)} 
+                                  placeholder="+971 55 123 4567" 
+                                />
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-semibold text-text-secondary">Shirt Size</label>
+                              <CustomSelect
+                                options={shirtSizes.map(size => ({ value: size, label: size }))}
+                                value={item.promoterShirtSize}
+                                onChange={(val) => updateItemField(idx, 'promoterShirtSize', val)}
+                                required
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1.5 animate-slide-down">
+                            <label className="text-xs font-semibold text-text-secondary">Select Registered Promoter</label>
+                            <CustomSelect
+                              options={staffList.map(s => ({ value: s.id, label: `${s.name} (Shirt Size: ${s.shirtSize || 'M'})` }))}
+                              value={item.existingStaffId}
+                              onChange={(val) => {
+                                updateItemField(idx, 'existingStaffId', val);
+                                const p = staffList.find(s => s.id === val);
+                                if (p && p.storeId) {
+                                  updateItemField(idx, 'storeId', p.storeId);
+                                }
+                              }}
+                              placeholder="Choose promoter..."
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* SECTION 2: PLACEMENT & QUANTITY ASSIGNMENT */}
+                      <div className="flex flex-col gap-4 pt-4 border-t border-border/60">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary">Assigned Store Placement</label>
+                          <CustomSelect
+                            options={stores.map(store => ({ value: store.id, label: `${store.name} (${store.region || 'DXB'})` }))}
+                            value={item.storeId}
+                            onChange={(val) => updateItemField(idx, 'storeId', val)}
+                            placeholder="Choose outlet store..."
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Uniform Shirt Qty Given</label>
+                            <input
+                              type="number"
+                              min="0"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                              value={item.uniformQty}
+                              onChange={(e) => updateItemField(idx, 'uniformQty', e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Cap Qty Given</label>
+                            <input
+                              type="number"
+                              min="0"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                              value={item.capQty}
+                              onChange={(e) => updateItemField(idx, 'capQty', e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* SECTION 3: WORKING PERIOD & STATUS */}
+                      <div className="flex flex-col gap-4 pt-4 border-t border-border/60">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Campaign Start Date</label>
+                            <input
+                              type="date"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                              value={item.startDate}
+                              onChange={(e) => updateItemField(idx, 'startDate', e.target.value)}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Campaign End Date</label>
+                            <input
+                              type="date"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                              value={item.endDate}
+                              onChange={(e) => updateItemField(idx, 'endDate', e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary flex items-center gap-1">
+                            <FileText size={13} />
+                            <span>Remarks / Delivery Notes</span>
+                          </label>
+                          <textarea
+                            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-20 resize-none"
+                            placeholder="e.g. Brand new uniform package."
+                            value={item.notes}
+                            onChange={(e) => updateItemField(idx, 'notes', e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-3 border-t border-border">
+                        <button
+                          type="button"
+                          onClick={() => handleFinishItem(idx)}
+                          className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow cursor-pointer"
+                        >
+                          Finish &amp; Collapse
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Add entry row trigger button */}
+          <button
+            type="button"
+            onClick={handleAddNewItem}
+            className="w-full py-4 border-2 border-dashed border-border hover:border-primary/50 text-text-secondary hover:text-primary rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition-all bg-surface/50 hover:bg-surface duration-200 cursor-pointer"
           >
-            Cancel
+            <Plus size={16} />
+            <span>Add Another Promoter Assignment</span>
           </button>
-          <button 
-            type="submit"
-            disabled={loading}
-            className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer"
-          >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            <span>{isEditStaffMode || isEditMode ? 'Save Changes' : 'Confirm Assignment'}</span>
-          </button>
-        </div>
-      </form>
+
+          {/* SUBMIT BUTTONS */}
+          <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-border">
+            <button 
+              type="button" 
+              onClick={() => router.push('/dashboard/staff')}
+              className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer"
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              <span>Issue &amp; Save All Assignments</span>
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

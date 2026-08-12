@@ -1,5 +1,6 @@
 import { getProductsSlim } from '@/app/actions/products';
 import { getRecentReceivers, getRecentSuppliers } from '@/app/actions/transactions';
+import { getBrands } from '@/app/actions/brands';
 import InboundClient from '../InboundClient';
 
 export const metadata = {
@@ -11,11 +12,13 @@ export default async function NewInboundPage() {
   const [
     products,
     recentReceivers,
-    recentSuppliers
+    recentSuppliers,
+    brands
   ] = await Promise.all([
     getProductsSlim(),
     getRecentReceivers(),
-    getRecentSuppliers()
+    getRecentSuppliers(),
+    getBrands()
   ]);
 
   return (
@@ -23,6 +26,7 @@ export default async function NewInboundPage() {
       products={products} 
       recentReceivers={recentReceivers}
       recentSuppliers={recentSuppliers}
+      brands={brands}
     />
   );
 }

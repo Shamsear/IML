@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Loader2, AlertCircle, Camera, QrCode, X, ArrowDownLeft, Smartphone, CheckCircle, Edit2, Plus, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Trash2, Plus, Loader2, Save, Users, Building2, Calendar, FileText, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, Edit2 } from 'lucide-react';
 import Link from 'next/link';
-import { createProduct, updateProduct, createBulkProducts } from '@/app/actions/products';
+import { useSearchParams } from 'next/navigation';
+import { createBulkProducts } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
@@ -27,22 +28,21 @@ const playBeep = () => {
   }
 };
 
-export default function NewProductClient({ brands, recentReceivers = [], recentSuppliers = [] }) {
+export default function NewProductClient({ brands, editId = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get('editId');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Mobile pairing session state
-  const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
-  const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
-
-  // Webcam camera scanner state
+  // Webcam scanning state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const [isBulkScan, setIsBulkScan] = useState(false);
+
+  // Wireless Mobile companion scanner states
+  const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
+  const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -88,6 +88,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
     stockCap: '',
     isReturnable: false,
     isPublic: true,
+    includeInbound: false, // Default is false (catalog details only)
     initialQty: '',
     initialBarcodes: '',
     deliveryNote: '',
@@ -127,6 +128,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
               stockCap: product.stockCap ? product.stockCap.toString() : '',
               isReturnable: product.isReturnable,
               isPublic: product.isPublic,
+              includeInbound: false,
               initialQty: '',
               initialBarcodes: '',
               deliveryNote: '',
@@ -183,18 +185,20 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
 
       const activeItem = prev[activeIdx];
       const currentList = activeItem.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
-      
       if (!currentList.includes(cleanCode)) {
         const newList = [...currentList, cleanCode];
         added = true;
-        return prev.map((item, i) => i === activeIdx ? { ...item, initialBarcodes: newList.join('\n') } : item);
+        return prev.map((item, i) => i === activeIdx ? { 
+          ...item, 
+          initialBarcodes: newList.join('\n') 
+        } : item);
       }
       return prev;
     });
     return added;
   };
 
-  // Webcam scanning hook
+  // Webcam scanning permissions
   useEffect(() => {
     if (isCameraOpen) {
       navigator.mediaDevices.getUserMedia({ video: true })
@@ -361,13 +365,16 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
       updateItemField(idx, 'error', 'Please select an associated brand owner');
       return;
     }
-    const hasInboundStock = item.productType === 'NORMAL' 
-      ? (parseInt(item.initialQty, 10) > 0)
-      : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0);
+    
+    if (item.includeInbound) {
+      const hasInboundStock = item.productType === 'NORMAL' 
+        ? (parseInt(item.initialQty, 10) > 0)
+        : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0);
 
-    if (hasInboundStock && !item.fromId.trim()) {
-      updateItemField(idx, 'error', 'Please enter a valid source supplier name for initial stock');
-      return;
+      if (hasInboundStock && !item.fromId.trim()) {
+        updateItemField(idx, 'error', 'Please enter a valid source supplier name for initial stock');
+        return;
+      }
     }
 
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, isExpanded: false, error: '' } : it));
@@ -380,7 +387,6 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
         return [createEmptyProductItem(0)];
       }
       const updated = prev.filter((_, i) => i !== idx);
-      // Auto-expand last item if none are expanded
       if (!updated.some(item => item.isExpanded)) {
         updated[updated.length - 1].isExpanded = true;
       }
@@ -404,15 +410,18 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
         setLoading(false);
         return;
       }
-      const hasInboundStock = item.productType === 'NORMAL' 
-        ? (parseInt(item.initialQty, 10) > 0)
-        : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0);
+      
+      if (item.includeInbound) {
+        const hasInboundStock = item.productType === 'NORMAL' 
+          ? (parseInt(item.initialQty, 10) > 0)
+          : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0);
 
-      if (hasInboundStock && !item.fromId.trim()) {
-        updateItemField(i, 'error', 'Please enter a valid source supplier name for initial stock');
-        handleExpandItem(i);
-        setLoading(false);
-        return;
+        if (hasInboundStock && !item.fromId.trim()) {
+          updateItemField(i, 'error', 'Please enter a valid source supplier name for initial stock');
+          handleExpandItem(i);
+          setLoading(false);
+          return;
+        }
       }
     }
 
@@ -449,12 +458,13 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
           formData.append(`item_${idx}_stockCap`, item.stockCap || '');
           formData.append(`item_${idx}_isReturnable`, item.isReturnable ? 'true' : 'false');
           formData.append(`item_${idx}_isPublic`, item.isPublic ? 'true' : 'false');
-          formData.append(`item_${idx}_initialQty`, item.initialQty || '0');
-          formData.append(`item_${idx}_initialBarcodes`, item.initialBarcodes || '');
-          formData.append(`item_${idx}_deliveryNote`, item.deliveryNote || 'INITIAL_STOCK');
-          formData.append(`item_${idx}_notes`, item.notes || 'Auto-received initial stock on bulk product registration');
-          formData.append(`item_${idx}_receivedBy`, item.receivedBy || '');
-          formData.append(`item_${idx}_fromId`, item.fromId || 'Initial Import');
+          // Inbound values are conditionally mapped based on option selection toggle
+          formData.append(`item_${idx}_initialQty`, item.includeInbound ? (item.initialQty || '0') : '0');
+          formData.append(`item_${idx}_initialBarcodes`, item.includeInbound ? (item.initialBarcodes || '') : '');
+          formData.append(`item_${idx}_deliveryNote`, item.includeInbound ? (item.deliveryNote || 'INITIAL_STOCK') : 'INITIAL_STOCK');
+          formData.append(`item_${idx}_notes`, item.includeInbound ? (item.notes || 'Auto-received initial stock') : 'Auto-received initial stock');
+          formData.append(`item_${idx}_receivedBy`, item.includeInbound ? (item.receivedBy || '') : '');
+          formData.append(`item_${idx}_fromId`, item.includeInbound ? (item.fromId || 'Initial Import') : 'Initial Import');
           if (item.imageFile) {
             formData.append(`item_${idx}_imageFile`, item.imageFile);
           } else if (item.imageUrl) {
@@ -463,7 +473,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
         });
 
         await createBulkProducts(formData);
-        setSuccess(`Registered all ${items.length} products successfully with initial stock logs!`);
+        setSuccess(`Registered all ${items.length} products successfully!`);
       }
 
       setTimeout(() => {
@@ -518,9 +528,9 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
       <form onSubmit={handleBatchSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-4">
           {items.map((item, idx) => {
-            const hasInbound = item.productType === 'NORMAL' 
+            const hasInbound = item.includeInbound && (item.productType === 'NORMAL' 
               ? (parseInt(item.initialQty, 10) > 0)
-              : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0);
+              : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0));
             
             const brandObj = brands.find(b => b.id === item.brandId);
 
@@ -566,7 +576,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                       <div className="text-right hidden sm:block">
                         <span className="text-[10px] font-bold uppercase text-text-secondary block">Initial Stock</span>
                         <span className={`text-xs font-bold ${hasInbound ? 'text-primary' : 'text-text-muted'}`}>
-                          {item.productType === 'NORMAL' ? (item.initialQty || '0') : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length)} Qty
+                          {item.includeInbound ? (item.productType === 'NORMAL' ? (item.initialQty || '0') : (item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length)) : 0} Qty
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -578,7 +588,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                         >
                           <Edit2 size={14} />
                         </button>
-                        {items.length > 1 && (
+                        {!editId && items.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(idx)}
@@ -598,7 +608,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                   <div className="p-6 sm:p-8 flex flex-col gap-6">
                     <div className="flex items-center justify-between pb-3 border-b border-border">
                       <span className="text-xs font-bold text-primary uppercase tracking-wider">Item Details Entry #{idx + 1}</span>
-                      {items.length > 1 && (
+                      {!editId && items.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(idx)}
@@ -698,7 +708,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                         </div>
 
                         <div className="flex items-center gap-6 mt-4">
-                          <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer">
+                          <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
                             <input 
                               type="checkbox" 
                               className="custom-checkbox"
@@ -723,7 +733,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                                     updateItemField(idx, 'imagePreview', '');
                                     updateItemField(idx, 'imageUrl', '');
                                   }}
-                                  className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white p-1 rounded-full transition-colors flex items-center justify-center"
+                                  className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white p-1 rounded-full transition-colors flex items-center justify-center cursor-pointer"
                                 >
                                   <X size={10} />
                                 </button>
@@ -761,108 +771,132 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                       </div>
                     </div>
 
-                    {/* Section 3: Initial Stock (Only for new products) */}
+                    {/* Section 3 Toggle Selection (Inbound stock option) */}
                     {!editId && (
-                      <div className="flex flex-col gap-4">
-                        <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider pb-1 border-b border-border/60">3. Initial Inbound Stock (Optional)</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-text-secondary">Inbound Supplier / Source</label>
-                            <div className="relative">
+                      <div className="flex flex-col gap-4 pt-4 border-t border-border/60">
+                        <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider pb-1 border-b border-border/60">3. Initial Stock Configuration</h4>
+                        <div className="flex items-center gap-6 pb-2">
+                          <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                            <input
+                              type="radio"
+                              name={`includeInbound-${item.id}`}
+                              checked={!item.includeInbound}
+                              onChange={() => updateItemField(idx, 'includeInbound', false)}
+                              className="accent-primary"
+                            />
+                            <span>Register Catalog details only (No initial stock)</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                            <input
+                              type="radio"
+                              name={`includeInbound-${item.id}`}
+                              checked={item.includeInbound}
+                              onChange={() => updateItemField(idx, 'includeInbound', true)}
+                              className="accent-primary"
+                            />
+                            <span className="text-primary font-bold">Log Initial Inbound Stock</span>
+                          </label>
+                        </div>
+
+                        {item.includeInbound && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slide-down">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-bold text-text-secondary">Inbound Supplier / Source</label>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                  value={item.fromId}
+                                  onChange={(e) => updateItemField(idx, 'fromId', e.target.value)}
+                                  placeholder="Supplier Name"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-bold text-text-secondary">Received By (Staff)</label>
                               <input
                                 type="text"
                                 className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                value={item.fromId}
-                                onChange={(e) => updateItemField(idx, 'fromId', e.target.value)}
-                                placeholder="Supplier Name"
+                                value={item.receivedBy}
+                                onChange={(e) => updateItemField(idx, 'receivedBy', e.target.value)}
+                                placeholder="e.g. John Doe"
                               />
                             </div>
-                          </div>
 
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold text-text-secondary">Received By (Staff)</label>
-                            <input
-                              type="text"
-                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                              value={item.receivedBy}
-                              onChange={(e) => updateItemField(idx, 'receivedBy', e.target.value)}
-                              placeholder="e.g. John Doe"
-                            />
-                          </div>
-
-                          {item.productType === 'NORMAL' ? (
-                            <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-bold text-text-secondary">Initial Quantity</label>
-                              <input
-                                type="number"
-                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                value={item.initialQty}
-                                onChange={(e) => updateItemField(idx, 'initialQty', e.target.value)}
-                                placeholder="e.g. 50"
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-1.5 sm:col-span-2">
-                              <div className="flex items-center justify-between">
-                                <label className="text-xs font-bold text-text-secondary">Scan/Enter Serial Numbers (Barcodes)</label>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={handleOpenMobileScanner}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
-                                  >
-                                    <Smartphone size={11} /> <span>Companion Sync</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsCameraOpen(true)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
-                                  >
-                                    <Camera size={11} /> <span>Webcam Scan</span>
-                                  </button>
-                                </div>
+                            {item.productType === 'NORMAL' ? (
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-text-secondary">Initial Quantity</label>
+                                <input
+                                  type="number"
+                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                  value={item.initialQty}
+                                  onChange={(e) => updateItemField(idx, 'initialQty', e.target.value)}
+                                  placeholder="e.g. 50"
+                                />
                               </div>
-                              <textarea
-                                rows={4}
-                                className="w-full bg-surface text-text-primary font-mono placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none resize-none"
-                                placeholder="Scan barcodes or type them (one per line)..."
-                                value={item.initialBarcodes}
-                                onChange={(e) => updateItemField(idx, 'initialBarcodes', e.target.value)}
+                            ) : (
+                              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                <div className="flex items-center justify-between">
+                                  <label className="text-xs font-bold text-text-secondary">Scan/Enter Serial Numbers (Barcodes)</label>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={handleOpenMobileScanner}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
+                                    >
+                                      <Smartphone size={11} /> <span>Companion Sync</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setIsCameraOpen(true)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
+                                    >
+                                      <Camera size={11} /> <span>Webcam Scan</span>
+                                    </button>
+                                  </div>
+                                </div>
+                                <textarea
+                                  rows={4}
+                                  className="w-full bg-surface text-text-primary font-mono placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none resize-none"
+                                  placeholder="Scan barcodes or type them (one per line)..."
+                                  value={item.initialBarcodes}
+                                  onChange={(e) => updateItemField(idx, 'initialBarcodes', e.target.value)}
+                                />
+                              </div>
+                            )}
+
+                            <div className="flex flex-col gap-1.5 sm:col-span-2">
+                              <label className="text-xs font-bold text-text-secondary">Delivery Note # Reference</label>
+                              <input
+                                type="text"
+                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                value={item.deliveryNote}
+                                onChange={(e) => updateItemField(idx, 'deliveryNote', e.target.value)}
+                                placeholder="e.g. DN-998877"
                               />
                             </div>
-                          )}
 
-                          <div className="flex flex-col gap-1.5 sm:col-span-2">
-                            <label className="text-xs font-bold text-text-secondary">Delivery Note # Reference</label>
-                            <input
-                              type="text"
-                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                              value={item.deliveryNote}
-                              onChange={(e) => updateItemField(idx, 'deliveryNote', e.target.value)}
-                              placeholder="e.g. DN-998877"
-                            />
+                            <div className="flex flex-col gap-1.5 sm:col-span-2">
+                              <label className="text-xs font-bold text-text-secondary">Inbound Notes / Remarks</label>
+                              <input
+                                type="text"
+                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                value={item.notes}
+                                onChange={(e) => updateItemField(idx, 'notes', e.target.value)}
+                                placeholder="e.g. Initial stock import"
+                              />
+                            </div>
                           </div>
-
-                          <div className="flex flex-col gap-1.5 sm:col-span-2">
-                            <label className="text-xs font-bold text-text-secondary">Inbound Notes / Remarks</label>
-                            <input
-                              type="text"
-                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                              value={item.notes}
-                              onChange={(e) => updateItemField(idx, 'notes', e.target.value)}
-                              placeholder="e.g. Initial stock import"
-                            />
-                          </div>
-
-                        </div>
+                        )}
                       </div>
                     )}
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-border mt-3">
                       <button
                         type="button"
                         onClick={() => handleFinishItem(idx)}
-                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow transition-all cursor-pointer"
+                        className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow cursor-pointer"
                       >
                         Finish &amp; Collapse Card
                       </button>
@@ -874,47 +908,41 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
           })}
         </div>
 
-        {/* Dynamic Add / Action Panel */}
+        {/* Add item trigger */}
         {!editId && (
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={handleAddNewItem}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border border-dashed hover:bg-surface-elevated text-text-primary rounded-xl text-xs font-bold cursor-pointer transition-all hover:border-primary"
-            >
-              <Plus size={14} className="text-primary" />
-              <span>Add Another Product to Batch</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleAddNewItem}
+            className="w-full py-4 border-2 border-dashed border-border hover:border-primary/50 text-text-secondary hover:text-primary rounded-2xl flex items-center justify-center gap-2 text-xs font-bold transition-all bg-surface/50 hover:bg-surface duration-200 cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Add Another Product Catalog Entry</span>
+          </button>
         )}
 
-        {/* Bottom Save Bar */}
+        {/* Submit Actions */}
         <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-border">
-          <button 
-            type="button" 
-            onClick={() => router.back()} 
-            className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200"
-            disabled={loading}
-          >
+          <Link href="/dashboard/products" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
             Cancel
-          </button>
+          </Link>
           <button 
             type="submit" 
-            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
             disabled={loading}
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
-            <span>{editId ? 'Save Product Details' : `Save Batch of ${items.length} Products`}</span>
+            <span>{editId ? 'Save Changes' : 'Confirm Registration'}</span>
           </button>
         </div>
       </form>
 
-      {/* Webcam Scanning Modal Overlay */}
+      {/* Webcam scan overlay modal */}
       {isCameraOpen && (
         <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] sm:max-w-[850px] max-h-[90vh] shadow-lg flex flex-col gap-4 animate-slide-down overflow-hidden">
+            
             <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
-              <h3 className="font-display font-bold text-sm text-text-primary">Scan Initial Stock Barcode</h3>
+              <h3 className="font-display font-bold text-sm text-text-primary">Camera Barcode Scanner</h3>
               <div className="flex items-center gap-3">
                 <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                   <input 
@@ -948,9 +976,9 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                       <Camera size={32} />
                     </div>
                     <div className="flex flex-col gap-1.5 max-w-sm">
-                      <h4 className="font-display font-extrabold text-base text-text-primary">Camera Permissions Blocked</h4>
+                      <h4 className="font-display font-extrabold text-base text-text-primary">Camera Access Blocked</h4>
                       <p className="text-xs text-text-secondary leading-relaxed">
-                        Camera permissions are required to scan barcodes. Please click the button below to request access or adjust your browser address bar settings.
+                        Camera permissions are required to scan barcodes. Please enable it in browser settings.
                       </p>
                     </div>
                     <button
@@ -961,7 +989,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                           stream.getTracks().forEach(track => track.stop());
                           setCameraPermissionStatus('granted');
                         } catch (e) {
-                          alert("Camera access is still blocked. Please enable it in browser settings.");
+                          alert("Camera access is still blocked. Please enable it in site settings.");
                         }
                       }}
                       className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-all"
@@ -980,12 +1008,12 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
         </div>
       )}
 
-      {/* Wireless companion pairing modal */}
+      {/* Wireless companion scanner modal */}
       {isMobileModalOpen && mobileSession && (
         <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down">
             <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-1.5">
+              <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5">
                 <Smartphone size={16} className="text-primary" />
                 <span>Pair Wireless Companion Scanner</span>
               </h3>
@@ -1003,8 +1031,8 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                 <QrCode size={40} />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-extrabold text-text-primary">Pair code: {mobileSession.sessionId}</span>
-                <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed">
+                <span className="text-xs font-extrabold text-text-primary font-mono">Pair code: {mobileSession.sessionId}</span>
+                <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed mt-1">
                   Open the Wireless Companion app on your phone, scan this pairing code or type it in, and scan serial numbers instantly.
                 </p>
               </div>
