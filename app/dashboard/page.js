@@ -20,7 +20,6 @@ export default async function DashboardPage() {
     productCount,
     storeCount,
     promoterCount,
-    projectCount,
     recentTransactions,
     lowStockProducts,
   ] = await Promise.all([
@@ -28,7 +27,6 @@ export default async function DashboardPage() {
     prisma.product.count(),
     prisma.store.count(),
     prisma.staff.count(),
-    prisma.project.count(),
     prisma.inventoryTransaction.findMany({
       take: 8,
       orderBy: { timestamp: 'desc' },
@@ -48,7 +46,6 @@ export default async function DashboardPage() {
   const stats = [
     { name: 'Brands', count: brandCount, icon: Tag, color: 'text-primary bg-primary/10 border-primary/20', href: '/dashboard/brands' },
     { name: 'Products', count: productCount, icon: Package, color: 'text-secondary bg-secondary/10 border-secondary/20', href: '/dashboard/products' },
-    { name: 'Projects', count: projectCount, icon: FolderGit, color: 'text-success bg-success/10 border-success/20', href: '/dashboard/projects' },
     { name: 'Outlets', count: storeCount, icon: Store, color: 'text-warning bg-warning/10 border-warning/20', href: '/dashboard/stores' },
     { name: 'Staff', count: promoterCount, icon: Users, color: 'text-danger bg-danger/10 border-danger/20', href: '/dashboard/staff' },
   ];
