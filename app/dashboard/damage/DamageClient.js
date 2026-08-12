@@ -6,6 +6,7 @@ import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smart
 import Link from 'next/link';
 import { createBulkDamageTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
+import CustomSelect from '@/components/CustomSelect';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -470,17 +471,13 @@ function DamageFormContent({ products }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mr-8">
                   <div className="flex flex-col gap-1.5 md:col-span-2">
                     <label className="text-xs font-semibold text-text-secondary">Product Item</label>
-                    <select 
-                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
+                    <CustomSelect
+                      options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})` }))}
                       value={item.productId}
-                      onChange={(e) => handleProductChange(index, e.target.value)}
+                      onChange={(id) => handleProductChange(index, id)}
+                      placeholder="Choose product..."
                       required
-                    >
-                      <option value="" disabled>Choose product...</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.brand?.name || 'No Brand'})</option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div className="flex flex-col gap-1.5 md:col-span-1">
@@ -643,7 +640,7 @@ function DamageFormContent({ products }) {
                 <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                   <input 
                     type="checkbox" 
-                    className="rounded border-border text-primary focus:ring-primary/20"
+                    className="custom-checkbox"
                     checked={isBulkScan}
                     onChange={(e) => setIsBulkScan(e.target.checked)}
                   />

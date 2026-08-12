@@ -13,6 +13,7 @@ import {
   Loader2, X, Link as LinkIcon, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight
 } from 'lucide-react';
 import Link from 'next/link';
+import CustomSelect from '@/components/CustomSelect';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
@@ -397,10 +398,10 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               <table className="min-w-full divide-y divide-border text-sm">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                    <th className="py-3 px-5 w-10 text-center">
+                    <th className="py-3 pl-4 pr-0 w-8 text-center">
                       <input 
                         type="checkbox" 
-                        className="rounded border-border text-primary focus:ring-primary/20"
+                        className="custom-checkbox"
                         checked={checkedProductIds.length === brand.products.length && brand.products.length > 0}
                         onChange={(e) => {
                           if (e.target.checked) {
@@ -426,10 +427,10 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     const stock = calculateStock(product.transactions);
                     return (
                       <tr key={product.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 px-5 text-center">
+                        <td className="py-3.5 pl-4 pr-0 w-8 text-center">
                           <input 
                             type="checkbox" 
-                            className="rounded border-border text-primary focus:ring-primary/20"
+                            className="custom-checkbox"
                             checked={checkedProductIds.includes(product.id)}
                             onChange={(e) => {
                               if (e.target.checked) {
@@ -587,10 +588,13 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
             <form onSubmit={handleConnectStore} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-text-secondary">Select Store</label>
-                <select className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" value={storeToConnect} onChange={(e) => setStoreToConnect(e.target.value)} required>
-                  <option value="">Choose store...</option>
-                  {unconnectedStores.map(s => <option key={s.id} value={s.id}>{s.name} ({s.region})</option>)}
-                </select>
+                <CustomSelect
+                  options={unconnectedStores.map(s => ({ value: s.id, label: `${s.name} (${s.region})` }))}
+                  value={storeToConnect}
+                  onChange={(val) => setStoreToConnect(val)}
+                  placeholder="Choose store..."
+                  required
+                />
               </div>
               <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg transition-colors" disabled={loading || unconnectedStores.length === 0}>
                 {loading && <Loader2 size={14} className="animate-spin" />}
@@ -619,9 +623,12 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Region</label>
-                  <select className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" value={newStoreRegion} onChange={(e) => setNewStoreRegion(e.target.value)} required>
-                    {regions.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                  <CustomSelect
+                    options={regions.map(r => ({ value: r, label: r }))}
+                    value={newStoreRegion}
+                    onChange={(val) => setNewStoreRegion(val)}
+                    required
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Coordinates</label>
@@ -669,7 +676,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               {productType === 'SIM' && (
                 <div className="p-3 bg-surface-elevated/50 border border-dashed border-border rounded-lg flex flex-col gap-3">
                   <label className="flex items-center gap-2 text-xs font-bold text-text-primary cursor-pointer">
-                    <input type="checkbox" checked={autoGenName} onChange={(e) => setAutoGenName(e.target.checked)} className="rounded text-primary" />
+                    <input type="checkbox" checked={autoGenName} onChange={(e) => setAutoGenName(e.target.checked)} className="custom-checkbox" />
                     <span>Auto-generate Product Name from Store Details</span>
                   </label>
                   {autoGenName && (
@@ -680,9 +687,12 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                       </div>
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-bold text-text-secondary uppercase">Select Store</label>
-                        <select className="w-full bg-surface text-text-primary border border-border rounded-md px-2 py-1.5 text-xs focus:outline-none" value={simStoreId} onChange={(e) => setSimStoreId(e.target.value)}>
-                          {brand.stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
+                        <CustomSelect
+                          options={brand.stores.map(s => ({ value: s.id, label: s.name }))}
+                          value={simStoreId}
+                          onChange={(val) => setSimStoreId(val)}
+                          size="sm"
+                        />
                       </div>
                     </div>
                   )}
@@ -722,7 +732,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                 </div>
                 <div className="flex items-center mt-6">
                   <label className="flex items-center gap-2 text-xs font-semibold text-text-secondary cursor-pointer">
-                    <input type="checkbox" checked={productReturnable} onChange={(e) => setProductReturnable(e.target.checked)} className="rounded text-primary" />
+                    <input type="checkbox" checked={productReturnable} onChange={(e) => setProductReturnable(e.target.checked)} className="custom-checkbox" />
                     <span>Returnable Item</span>
                   </label>
                 </div>

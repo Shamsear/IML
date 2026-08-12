@@ -31,7 +31,7 @@ export default function DashboardShell({ user, children }) {
   };
 
   return (
-    <div className="min-h-screen flex bg-background text-text-primary">
+    <div className="h-[100dvh] overflow-hidden flex bg-background text-text-primary">
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div 
@@ -42,7 +42,7 @@ export default function DashboardShell({ user, children }) {
 
       {/* Sidebar aside */}
       <aside 
-        className={`fixed inset-y-0 left-0 bg-surface border-r border-border z-50 flex flex-col transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen
+        className={`fixed inset-y-0 left-0 bg-surface border-r border-border z-50 flex flex-col transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-full
           ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
           ${collapsed ? 'lg:w-20' : 'lg:w-64'}
         `}
@@ -118,7 +118,7 @@ export default function DashboardShell({ user, children }) {
       </aside>
 
       {/* Main Workspace Frame */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
         {/* Top Header */}
         <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-6 bg-surface/85 backdrop-blur-md border-b border-border">
           <div className="flex items-center gap-4 flex-1">

@@ -45,7 +45,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+    <div className="min-h-[100dvh] flex flex-col md:flex-row bg-background">
       {/* Left Branding Panel (visible only on desktop) */}
       <div className="hidden md:flex w-full md:w-[40%] bg-gradient-to-br from-primary/10 via-background to-secondary/5 border-r border-border p-8 md:p-12 flex-col justify-between">
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">

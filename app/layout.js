@@ -32,7 +32,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${outfit.variable} ${jetbrains.variable}`}>
-      <body className="bg-background text-text-primary antialiased min-h-screen overflow-x-hidden">
+      <body className="bg-background text-text-primary antialiased min-h-[100dvh] overflow-x-hidden">
         <Providers>
           <ThemeProvider>
             {children}

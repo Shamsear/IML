@@ -260,13 +260,19 @@ export default async function DashboardPage() {
                 <AlertTriangle size={18} className="text-danger animate-pulse" />
                 <span className="font-display font-bold text-base text-text-primary">Low Stock Alerts</span>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 {lowStockAlerts.slice(0, 5).map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-3 bg-danger/5 border border-danger/10 rounded-lg">
-                    <span className="text-xs font-semibold text-text-primary truncate max-w-[150px]" title={p.name}>{p.name}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-2xs text-text-secondary font-mono">Stock: {p.currentStock}</span>
-                      <span className="badge bg-danger/10 text-danger border border-danger/20 text-[10px]">Cap: {p.stockCap}</span>
+                  <div key={p.id} className="flex flex-col gap-1.5 p-3.5 bg-danger/5 border border-danger/10 rounded-xl">
+                    <span className="text-xs font-bold text-text-primary leading-tight block" title={p.name}>
+                      {p.name}
+                    </span>
+                    <div className="flex items-center justify-between mt-0.5 pt-1.5 border-t border-danger/10">
+                      <span className="text-[10px] font-bold text-text-secondary uppercase">Warehouse Stock</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] font-mono font-black text-danger">{p.currentStock}</span>
+                        <span className="text-[10px] text-text-muted">/</span>
+                        <span className="text-[10px] text-text-secondary font-mono">Cap: {p.stockCap}</span>
+                      </div>
                     </div>
                   </div>
                 ))}

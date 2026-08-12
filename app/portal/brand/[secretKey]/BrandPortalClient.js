@@ -105,7 +105,7 @@ export default function BrandPortalClient({ brand }) {
   const paginatedTransactions = filteredTransactions.slice(logPage * itemsPerPage, (logPage + 1) * itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-[#fcfbfa] text-text-primary py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-[100dvh] bg-[#fcfbfa] text-text-primary py-8 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         
         {/* Portal Branding Header */}

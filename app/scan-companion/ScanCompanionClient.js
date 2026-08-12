@@ -273,7 +273,7 @@ export default function ScanCompanionClient({ session }) {
   // Error/Success state displays
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#fcfbfa] flex flex-col items-center justify-center p-6 text-center font-sans">
+      <div className="h-[100dvh] bg-[#fcfbfa] flex flex-col items-center justify-center p-6 text-center font-sans overflow-hidden">
         <div className="w-16 h-16 rounded-full bg-danger/10 text-danger flex items-center justify-center mb-4">
           <AlertCircle size={32} />
         </div>
@@ -286,9 +286,9 @@ export default function ScanCompanionClient({ session }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#fcfbfa] flex flex-col font-sans">
+    <div className="h-[100dvh] overflow-hidden bg-[#fcfbfa] flex flex-col font-sans">
       {/* Header banner */}
-      <header className="bg-surface border-b border-border py-4 px-6 flex items-center justify-between sticky top-0 z-50">
+      <header className="bg-surface border-b border-border py-4 px-6 flex items-center justify-between sticky top-0 z-50 flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
             <Smartphone size={18} />
@@ -313,7 +313,7 @@ export default function ScanCompanionClient({ session }) {
       </header>
 
       {/* Main scanner container */}
-      <main className="flex-1 flex flex-col p-4 max-w-md mx-auto w-full gap-4">
+      <main className="flex-1 overflow-y-auto p-4 max-w-md mx-auto w-full flex flex-col gap-4 min-h-0">
         {errorMessage && (
           <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold flex items-center gap-2 animate-slide-down">
             <AlertCircle size={14} className="flex-shrink-0" />

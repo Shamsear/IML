@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createStaff, updateStaff, deleteStaff } from '@/app/actions/staff';
 import { Users, Plus, Edit2, Trash2, Phone, Shirt, Search, Loader2, X } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 const shirtSizes = ['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'];
 
@@ -140,25 +141,20 @@ export default function StaffClient({ initialStaff, stores }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Shirt Size</label>
-                  <select 
-                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" 
-                    value={shirtSize} 
-                    onChange={(e) => setShirtSize(e.target.value)} 
+                  <CustomSelect
+                    options={shirtSizes.map(size => ({ value: size, label: size }))}
+                    value={shirtSize}
+                    onChange={(val) => setShirtSize(val)}
                     required
-                  >
-                    {shirtSizes.map(size => (<option key={size} value={size}>{size}</option>))}
-                  </select>
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Placed Store</label>
-                  <select 
-                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" 
-                    value={storeId} 
-                    onChange={(e) => setStoreId(e.target.value)}
-                  >
-                    <option value="">-- Unassigned --</option>
-                    {stores.map(store => (<option key={store.id} value={store.id}>{store.name} ({store.region || 'DXB'})</option>))}
-                  </select>
+                  <CustomSelect
+                    options={[{ value: '', label: '-- Unassigned --' }, ...stores.map(store => ({ value: store.id, label: `${store.name} (${store.region || 'DXB'})` }))]}
+                    value={storeId}
+                    onChange={(val) => setStoreId(val)}
+                  />
                 </div>
               </div>
 
@@ -212,7 +208,11 @@ export default function StaffClient({ initialStaff, stores }) {
                   </thead>
                   <tbody className="divide-y divide-border text-text-primary">
                     {filteredStaffList.map((staff) => (
-                      <tr key={staff.id} className="hover:bg-surface-elevated/20 transition-colors">
+                      <tr 
+                        key={staff.id} 
+                        className="hover:bg-surface-elevated/30 transition-all duration-150 cursor-pointer"
+                        onClick={() => openEditModal(staff)}
+                      >
                         <td className="py-3.5 px-5">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-secondary/15 text-secondary flex items-center justify-center text-xs font-bold flex-shrink-0">
@@ -238,7 +238,7 @@ export default function StaffClient({ initialStaff, stores }) {
                             {staff.store ? staff.store.name : 'Unassigned'}
                           </span>
                         </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap text-right">
+                        <td className="py-3.5 px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1">
                             <button className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(staff)}>
                               <Edit2 size={13} />

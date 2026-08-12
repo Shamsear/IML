@@ -6,6 +6,7 @@ import {
   ClipboardList, Calendar, FileText, User, Store, UserCheck, Package
 } from 'lucide-react';
 import Link from 'next/link';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function TransactionsClient({ 
   initialTransactions, 
@@ -68,34 +69,33 @@ export default function TransactionsClient({
           <div className="flex items-center gap-2">
             <ClipboardList size={16} className="text-text-secondary" />
             <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Type:</span>
-            <select 
-              className="bg-surface-elevated text-text-primary border border-border rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary transition-colors" 
-              value={filterType} 
-              onChange={(e) => { setFilterType(e.target.value); setCurrentPage(0); }}
-            >
-              <option value="ALL">All Transactions</option>
-              <option value="RECEIVE">Inbound (Receive)</option>
-              <option value="ISSUE">Outbound (Dispatch)</option>
-              <option value="RETURN">Return</option>
-              <option value="DAMAGE">Damage</option>
-              <option value="REBRAND_OUT">Rebrand Out</option>
-              <option value="REBRAND_IN">Rebrand In</option>
-            </select>
+            <CustomSelect
+              options={[
+                { value: 'ALL', label: 'All Transactions' },
+                { value: 'RECEIVE', label: 'Inbound (Receive)' },
+                { value: 'ISSUE', label: 'Outbound (Dispatch)' },
+                { value: 'RETURN', label: 'Return' },
+                { value: 'DAMAGE', label: 'Damage' },
+                { value: 'REBRAND_OUT', label: 'Rebrand Out' },
+                { value: 'REBRAND_IN', label: 'Rebrand In' },
+              ]}
+              value={filterType}
+              onChange={(val) => { setFilterType(val); setCurrentPage(0); }}
+              size="sm"
+              className="w-[180px]"
+            />
           </div>
 
           <div className="flex items-center gap-2">
             <Package size={16} className="text-text-secondary" />
             <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Product:</span>
-            <select 
-              className="bg-surface-elevated text-text-primary border border-border rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary transition-colors" 
-              value={filterProduct} 
-              onChange={(e) => { setFilterProduct(e.target.value); setCurrentPage(0); }}
-            >
-              <option value="ALL">All Products</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <CustomSelect
+              options={[{ value: 'ALL', label: 'All Products' }, ...products.map(p => ({ value: p.id, label: p.name }))]}
+              value={filterProduct}
+              onChange={(val) => { setFilterProduct(val); setCurrentPage(0); }}
+              size="sm"
+              className="w-[200px]"
+            />
           </div>
         </div>
 

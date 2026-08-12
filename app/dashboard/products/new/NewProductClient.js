@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, AlertCircle, Camera, QrCode, X, ArrowDownLeft, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import { createProduct } from '@/app/actions/products';
+import CustomSelect from '@/components/CustomSelect';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -390,30 +391,26 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-text-secondary">Product Tracking Type</label>
-              <select
-                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              <CustomSelect
+                options={[
+                  { value: 'NORMAL', label: 'Bulk Product (Stands, T-Shirts, etc.)' },
+                  { value: 'SIM', label: 'SIM Card (Serialized Barcode)' },
+                  { value: 'ROUTER', label: 'Router Device (Serialized Barcode)' },
+                ]}
                 value={productType}
-                onChange={(e) => setProductType(e.target.value)}
-              >
-                <option value="NORMAL">Bulk Product (Stands, T-Shirts, etc.)</option>
-                <option value="SIM">SIM Card (Serialized Barcode)</option>
-                <option value="ROUTER">Router Device (Serialized Barcode)</option>
-              </select>
+                onChange={(val) => setProductType(val)}
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-text-secondary">Associated Brand Owner</label>
-              <select
-                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              <CustomSelect
+                options={brands.map(b => ({ value: b.id, label: b.name }))}
                 value={brandId}
-                onChange={(e) => setBrandId(e.target.value)}
+                onChange={(val) => setBrandId(val)}
+                placeholder="-- Select Brand --"
                 required
-              >
-                <option value="" disabled>-- Select Brand --</option>
-                {brands.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
+              />
             </div>
           </div>
         </div>

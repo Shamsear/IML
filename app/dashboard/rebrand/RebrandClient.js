@@ -6,6 +6,7 @@ import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCod
 import Link from 'next/link';
 import { createBulkRebrandTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
+import CustomSelect from '@/components/CustomSelect';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -348,30 +349,24 @@ export default function RebrandClient({ products }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Source Product (Convert From)</label>
-            <select 
-              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
-              value={sourceProductId} 
-              onChange={(e) => setSourceProductId(e.target.value)} 
+            <CustomSelect
+              options={sourceProducts.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})` }))}
+              value={sourceProductId}
+              onChange={(val) => setSourceProductId(val)}
+              placeholder="Select Source Product..."
               required
-            >
-              {sourceProducts.map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({p.brand?.name || 'No Brand'})</option>
-              ))}
-            </select>
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Target Product (Convert To)</label>
-            <select 
-              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
-              value={targetProductId} 
-              onChange={(e) => setTargetProductId(e.target.value)} 
+            <CustomSelect
+              options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})` }))}
+              value={targetProductId}
+              onChange={(val) => setTargetProductId(val)}
+              placeholder="Select Target Product..."
               required
-            >
-              {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({p.brand?.name || 'No Brand'})</option>
-              ))}
-            </select>
+            />
           </div>
         </div>
 

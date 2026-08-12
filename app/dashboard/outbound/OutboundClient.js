@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone } from 'lucide-react';
 import Link from 'next/link';
-import { createBulkIssueTransactions } from '@/app/actions/transactions';
+import { createBulkDispatchTransactions } from '@/app/actions/transactions';
+import CustomSelect from '@/components/CustomSelect';
 import { getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
@@ -702,17 +703,17 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Dispatch Destination Type</label>
-            <select 
-              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
-              value={toType} 
-              onChange={(e) => setToType(e.target.value)} 
+            <CustomSelect
+              options={[
+                { value: 'STORE', label: 'Store Outlet' },
+                { value: 'STAFF', label: 'Promoter / Staff' },
+                { value: 'SUPERVISOR', label: 'Supervisor' },
+                { value: 'CLIENT', label: 'Client Possession' },
+              ]}
+              value={toType}
+              onChange={(val) => { setToType(val); setToId(''); }}
               required
-            >
-              <option value="STORE">Store Outlet</option>
-              <option value="STAFF">Promoter / Staff</option>
-              <option value="SUPERVISOR">Supervisor</option>
-              <option value="CLIENT">Client Possession</option>
-            </select>
+            />
           </div>
 
           {toType === 'CLIENT' ? (
@@ -730,17 +731,17 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
           ) : (
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-text-secondary">Select Destination Name</label>
-              <select 
-                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
-                value={toId} 
-                onChange={(e) => setToId(e.target.value)} 
+              <CustomSelect
+                options={
+                  toType === 'STORE' ? stores.map(s => ({ value: s.id, label: `${s.name} (${s.region})` })) :
+                  toType === 'STAFF' ? staff.map(s => ({ value: s.id, label: s.name })) :
+                  toType === 'SUPERVISOR' ? supervisors.map(s => ({ value: s.id, label: s.name })) : []
+                }
+                value={toId}
+                onChange={(val) => setToId(val)}
+                placeholder="Select target..."
                 required
-              >
-                <option value="" disabled>Select target...</option>
-                {toType === 'STORE' && stores.map(s => <option key={s.id} value={s.id}>{s.name} ({s.region})</option>)}
-                {toType === 'STAFF' && staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                {toType === 'SUPERVISOR' && supervisors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              />
             </div>
           )}
         </div>
@@ -833,17 +834,13 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mr-8">
                   <div className="flex flex-col gap-1.5 md:col-span-2">
                     <label className="text-xs font-semibold text-text-secondary">Product Item</label>
-                    <select 
-                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
+                    <CustomSelect
+                      options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})` }))}
                       value={item.productId}
-                      onChange={(e) => handleProductChange(index, e.target.value)}
+                      onChange={(id) => handleProductChange(index, id)}
+                      placeholder="Choose product..."
                       required
-                    >
-                      <option value="" disabled>Choose product...</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.brand?.name || 'No Brand'})</option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div className="flex flex-col gap-1.5 md:col-span-1">
@@ -1111,7 +1108,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                 <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                   <input 
                     type="checkbox" 
-                    className="rounded border-border text-primary focus:ring-primary/20"
+                    className="custom-checkbox"
                     checked={isBulkScan}
                     onChange={(e) => setIsBulkScan(e.target.checked)}
                   />

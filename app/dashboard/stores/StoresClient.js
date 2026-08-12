@@ -1,13 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createStore, updateStore, deleteStore } from '@/app/actions/stores';
 import { Store, Plus, Edit2, Trash2, Globe, EyeOff, MapPin, Search, Loader2, X, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import CustomSelect from '@/components/CustomSelect';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
 export default function StoresClient({ initialStores }) {
+  const router = useRouter();
   const [stores, setStores] = useState(initialStores);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
@@ -131,14 +134,12 @@ export default function StoresClient({ initialStores }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Emirate / Region</label>
-                  <select 
-                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
-                    value={region} 
-                    onChange={(e) => setRegion(e.target.value)} 
+                  <CustomSelect
+                    options={regions.map(r => ({ value: r, label: r }))}
+                    value={region}
+                    onChange={(val) => setRegion(val)}
                     required
-                  >
-                    {regions.map(r => (<option key={r} value={r}>{r}</option>))}
-                  </select>
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Location / Address</label>
@@ -240,8 +241,12 @@ export default function StoresClient({ initialStores }) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredStores.map((store) => (
-                <div className="bg-surface border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-200 flex flex-col gap-4 group" key={store.id}>
-                  <div className="flex items-center justify-between">
+                <div 
+                  className="bg-surface border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col gap-4 group cursor-pointer" 
+                  key={store.id}
+                  onClick={() => router.push(`/dashboard/stores/${store.id}`)}
+                >
+                  <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                     <div className="w-10 h-10 rounded-lg bg-secondary/10 border border-secondary/10 flex items-center justify-center">
                       <Store size={18} className="text-secondary" />
                     </div>
@@ -265,7 +270,7 @@ export default function StoresClient({ initialStores }) {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-4 border-t border-border mt-2">
+                  <div className="flex gap-2 pt-4 border-t border-border mt-2" onClick={(e) => e.stopPropagation()}>
                     <Link href={`/dashboard/stores/${store.id}`} className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200">
                       <ExternalLink size={12} />
                       <span>View</span>

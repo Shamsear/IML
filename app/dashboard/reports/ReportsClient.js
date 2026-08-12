@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Package, Search, Filter, Printer, Download, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function ReportsClient({ initialProducts, brands }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -180,31 +181,23 @@ export default function ReportsClient({ initialProducts, brands }) {
           {/* Brand Filter */}
           <div className="flex flex-col gap-1 w-full sm:w-48">
             <label className="text-[10px] font-bold text-text-secondary uppercase">Brand Owner</label>
-            <select
-              className="bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary"
+            <CustomSelect
+              options={[{ value: 'ALL', label: 'All Brands' }, ...brands.map(b => ({ value: b.id, label: b.name }))]}
               value={selectedBrand}
-              onChange={(e) => setSelectedBrand(e.target.value)}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map(b => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedBrand(val)}
+              size="sm"
+            />
           </div>
 
           {/* Category Filter */}
           <div className="flex flex-col gap-1 w-full sm:w-44">
             <label className="text-[10px] font-bold text-text-secondary uppercase">Category</label>
-            <select
-              className="bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary"
+            <CustomSelect
+              options={[{ value: 'ALL', label: 'All Categories' }, ...categories.map(cat => ({ value: cat, label: cat }))]}
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="ALL">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedCategory(val)}
+              size="sm"
+            />
           </div>
         </div>
       </div>

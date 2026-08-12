@@ -12,6 +12,7 @@ import {
   QrCode, Upload, Filter, Loader2, X,
   Copy, Trash, Camera
 } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 const shirtSizes = ['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'];
 
@@ -452,7 +453,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               {category.toUpperCase().includes('SIM') && (
                 <div className="p-3 bg-surface-elevated/50 border border-dashed border-border rounded-lg flex flex-col gap-3">
                   <label className="flex items-center gap-2 text-xs font-bold text-text-primary cursor-pointer">
-                    <input type="checkbox" checked={autoGenName} onChange={(e) => setAutoGenName(e.target.checked)} className="rounded text-primary" />
+                    <input type="checkbox" checked={autoGenName} onChange={(e) => setAutoGenName(e.target.checked)} className="custom-checkbox" />
                     <span>Auto-generate Product Name from Brand &amp; Store</span>
                   </label>
                   
@@ -460,9 +461,12 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                     <div className="grid grid-cols-3 gap-3">
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-bold text-text-secondary uppercase">Select Brand</label>
-                        <select className="w-full bg-surface text-text-primary border border-border rounded-md px-2 py-1.5 text-xs focus:outline-none" value={simBrandId} onChange={(e) => setSimBrandId(e.target.value)}>
-                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                        </select>
+                        <CustomSelect
+                          options={brands.map(b => ({ value: b.id, label: b.name }))}
+                          value={simBrandId}
+                          onChange={(val) => setSimBrandId(val)}
+                          size="sm"
+                        />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-bold text-text-secondary uppercase">Store Code</label>
@@ -470,9 +474,12 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] font-bold text-text-secondary uppercase">Select Store</label>
-                        <select className="w-full bg-surface text-text-primary border border-border rounded-md px-2 py-1.5 text-xs focus:outline-none" value={simStoreId} onChange={(e) => setSimStoreId(e.target.value)}>
-                          {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
+                        <CustomSelect
+                          options={stores.map(s => ({ value: s.id, label: s.name }))}
+                          value={simStoreId}
+                          onChange={(val) => setSimStoreId(val)}
+                          size="sm"
+                        />
                       </div>
                     </div>
                   )}
@@ -486,9 +493,12 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Brand Owner</label>
-                  <select className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" value={brandId} onChange={(e) => setBrandId(e.target.value)} required>
-                    {brands.map(b => (<option key={b.id} value={b.id}>{b.name}</option>))}
-                  </select>
+                  <CustomSelect
+                    options={brands.map(b => ({ value: b.id, label: b.name }))}
+                    value={brandId}
+                    onChange={(val) => setBrandId(val)}
+                    required
+                  />
                 </div>
               </div>
 
@@ -544,7 +554,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
 
               <div className="flex items-center mt-2">
                 <label className="flex items-center gap-2.5 p-3 border border-border rounded-lg cursor-pointer text-xs font-semibold text-text-primary hover:bg-surface-elevated/40 transition-colors w-full sm:w-auto">
-                  <input type="checkbox" checked={isReturnable} onChange={(e) => setIsReturnable(e.target.checked)} className="rounded text-primary" />
+                  <input type="checkbox" checked={isReturnable} onChange={(e) => setIsReturnable(e.target.checked)} className="custom-checkbox" />
                   <div>
                     <span className="block font-bold">Returnable Item</span>
                     <span className="block text-[10px] text-text-secondary mt-0.5">For promotional uniforms or stands.</span>
@@ -797,10 +807,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
             <div className="flex items-center gap-2">
               <Filter size={14} className="text-text-muted" />
               <span className="text-xs font-semibold text-text-secondary">Filter by Brand:</span>
-              <select className="bg-surface text-text-primary border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20" value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)}>
-                <option value="ALL">All Brands</option>
-                {brands.map(brand => (<option key={brand.id} value={brand.id}>{brand.name}</option>))}
-              </select>
+              <CustomSelect
+                options={[{ value: 'ALL', label: 'All Brands' }, ...brands.map(brand => ({ value: brand.id, label: brand.name }))]}
+                value={brandFilter}
+                onChange={(val) => setBrandFilter(val)}
+                size="sm"
+                className="w-[160px]"
+              />
             </div>
             <span className="text-xs font-semibold text-text-muted">{filteredProducts.length} products total</span>
           </div>
@@ -812,17 +825,25 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 <strong>{selectedProductIds.length}</strong> items selected
               </span>
               <div className="flex flex-wrap items-center gap-2">
-                <select className="bg-surface text-text-primary border border-border rounded-lg px-2 py-1 text-xs focus:outline-none" onChange={(e) => { if (e.target.value) handleBulkUpdate({ brandId: e.target.value }); }} defaultValue="">
-                  <option value="" disabled>Set Brand...</option>
-                  {brands.map(b => (<option key={b.id} value={b.id}>{b.name}</option>))}
-                </select>
-                <select className="bg-surface text-text-primary border border-border rounded-lg px-2 py-1 text-xs focus:outline-none" onChange={(e) => { if (e.target.value) handleBulkUpdate({ category: e.target.value }); }} defaultValue="">
-                  <option value="" disabled>Set Category...</option>
-                  <option value="STANDS">STANDS</option>
-                  <option value="SIMS">SIMS</option>
-                  <option value="UNIFORMS">UNIFORMS</option>
-                  <option value="GIFTS">GIFTS</option>
-                </select>
+                <CustomSelect
+                  options={brands.map(b => ({ value: b.id, label: b.name }))}
+                  onChange={(val) => { if (val) handleBulkUpdate({ brandId: val }); }}
+                  placeholder="Set Brand..."
+                  size="sm"
+                  className="w-[140px]"
+                />
+                <CustomSelect
+                  options={[
+                    { value: 'STANDS', label: 'STANDS' },
+                    { value: 'SIMS', label: 'SIMS' },
+                    { value: 'UNIFORMS', label: 'UNIFORMS' },
+                    { value: 'GIFTS', label: 'GIFTS' },
+                  ]}
+                  onChange={(val) => { if (val) handleBulkUpdate({ category: val }); }}
+                  placeholder="Set Category..."
+                  size="sm"
+                  className="w-[140px]"
+                />
                 <button className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={handleBulkDuplicate}>
                   <Copy size={12} /> 
                   <span>Clone</span>
@@ -852,8 +873,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 px-5 w-10 text-center">
-                          <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
+                        <th className="py-3 pl-4 pr-0 w-8 text-center">
+                          <input type="checkbox" className="custom-checkbox" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
                             onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
                         </th>
                         <th className="py-3 px-5">Product Details</th>
@@ -868,9 +889,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
                       {paginatedProducts.map(product => (
-                        <tr key={product.id} className="hover:bg-surface-elevated/20 transition-colors">
-                          <td className="py-3.5 px-5 text-center">
-                            <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" checked={selectedProductIds.includes(product.id)}
+                        <tr 
+                          key={product.id} 
+                          className="hover:bg-surface-elevated/30 transition-all duration-150 cursor-pointer"
+                          onClick={() => openEditModal(product)}
+                        >
+                          <td className="py-3.5 pl-4 pr-0 w-8 text-center" onClick={(e) => e.stopPropagation()}>
+                            <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
                               onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
                           </td>
                           <td className="py-3.5 px-5 whitespace-nowrap">
@@ -914,7 +939,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                                 className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${
                                   product.category?.toUpperCase().includes('ROUTER') ? 'text-secondary' : 'text-primary'
                                 }`} 
-                                onClick={() => openSerialModal(product)}
+                                onClick={(e) => { e.stopPropagation(); openSerialModal(product); }}
                                 type="button"
                               >
                                 <QrCode size={13} />
@@ -936,7 +961,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               <span className="badge badge-success text-[10px]"><CheckCircle size={10} /> No</span>
                             )}
                           </td>
-                          <td className="py-3.5 px-5 whitespace-nowrap text-right">
+                           <td className="py-3.5 px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">
                               {!product.isSerialized && (
                                 <button 
