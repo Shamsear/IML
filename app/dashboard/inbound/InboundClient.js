@@ -352,8 +352,43 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
               data.barcodes.forEach(code => {
-                const added = addBarcodeToRow(activeCameraRow, code);
-                if (added) playBeep();
+                const cleanCode = code.trim();
+                
+                // Smart range input population if the active row is currently set to range mode
+                if (rangeMode[activeCameraRow]) {
+                  const focusedId = document.activeElement?.id;
+                  if (focusedId === `range-start-${activeCameraRow}`) {
+                    setRangeStart(prev => ({ ...prev, [activeCameraRow]: cleanCode }));
+                    playBeep();
+                  } else if (focusedId === `range-end-${activeCameraRow}`) {
+                    setRangeEnd(prev => ({ ...prev, [activeCameraRow]: cleanCode }));
+                    playBeep();
+                  } else {
+                    // Autofill empty starting then ending sequentially
+                    setRangeStart(prevStart => {
+                      const currentStart = prevStart[activeCameraRow] || '';
+                      if (!currentStart) {
+                        playBeep();
+                        return { ...prevStart, [activeCameraRow]: cleanCode };
+                      } else {
+                        // Start is already set, set ending instead
+                        setRangeEnd(prevEnd => {
+                          const currentEnd = prevEnd[activeCameraRow] || '';
+                          if (!currentEnd) {
+                            playBeep();
+                            return { ...prevEnd, [activeCameraRow]: cleanCode };
+                          }
+                          return prevEnd;
+                        });
+                        return prevStart;
+                      }
+                    });
+                  }
+                } else {
+                  // Standard single scan mode
+                  const added = addBarcodeToRow(activeCameraRow, cleanCode);
+                  if (added) playBeep();
+                }
               });
             }
           }
@@ -365,7 +400,7 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMobileModalOpen, mobileSession, activeCameraRow]);
+  }, [isMobileModalOpen, mobileSession, activeCameraRow, rangeMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

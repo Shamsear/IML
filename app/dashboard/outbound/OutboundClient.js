@@ -517,7 +517,38 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                 
                 if (activeCameraRow === 'GLOBAL') {
                   await processGlobalBarcode(cleanCode);
+                } else if (rangeMode[activeCameraRow]) {
+                  // Smart range input population if the active row is currently set to range mode
+                  const focusedId = document.activeElement?.id;
+                  if (focusedId === `range-start-${activeCameraRow}`) {
+                    setRangeStart(prev => ({ ...prev, [activeCameraRow]: cleanCode }));
+                    playBeep();
+                  } else if (focusedId === `range-end-${activeCameraRow}`) {
+                    setRangeEnd(prev => ({ ...prev, [activeCameraRow]: cleanCode }));
+                    playBeep();
+                  } else {
+                    // Autofill empty starting then ending sequentially
+                    setRangeStart(prevStart => {
+                      const currentStart = prevStart[activeCameraRow] || '';
+                      if (!currentStart) {
+                        playBeep();
+                        return { ...prevStart, [activeCameraRow]: cleanCode };
+                      } else {
+                        // Start is already set, set ending instead
+                        setRangeEnd(prevEnd => {
+                          const currentEnd = prevEnd[activeCameraRow] || '';
+                          if (!currentEnd) {
+                            playBeep();
+                            return { ...prevEnd, [activeCameraRow]: cleanCode };
+                          }
+                          return prevEnd;
+                        });
+                        return prevStart;
+                      }
+                    });
+                  }
                 } else {
+                  // Standard single scan mode
                   setItems(prev => {
                     const item = prev[activeCameraRow];
                     if (!item) return prev;
@@ -546,7 +577,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMobileModalOpen, mobileSession, activeCameraRow]);
+  }, [isMobileModalOpen, mobileSession, activeCameraRow, rangeMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

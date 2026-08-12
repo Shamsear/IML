@@ -117,17 +117,29 @@ export async function createTransaction(data) {
 
     // B. Handle Serialized Barcode Updates
     if (product.isSerialized && barcodes.length > 0) {
-      // Find serials by their barcode strings
-      const dbSerials = await tx.productSerialNumber.findMany({
+      // Find serials globally to give descriptive mismatches
+      const globalSerials = await tx.productSerialNumber.findMany({
         where: {
-          productId,
           barcode: { in: barcodes },
         },
+        include: {
+          product: { select: { name: true } }
+        }
       });
 
-      if (dbSerials.length !== barcodes.length) {
-        throw new Error('Some barcodes could not be found in the database catalog.');
+      const foundBarcodes = globalSerials.map(s => s.barcode);
+      const missingBarcodes = barcodes.filter(b => !foundBarcodes.includes(b));
+      if (missingBarcodes.length > 0) {
+        throw new Error(`Some barcodes could not be found in the database: ${missingBarcodes.join(', ')}`);
       }
+
+      const mismatchedSerials = globalSerials.filter(s => s.productId !== productId);
+      if (mismatchedSerials.length > 0) {
+        const mismatches = mismatchedSerials.map(s => `"${s.barcode}" (belongs to product "${s.product.name}")`).join(', ');
+        throw new Error(`Some barcodes belong to different products: ${mismatches}`);
+      }
+
+      const dbSerials = globalSerials.filter(s => s.productId === productId);
 
       // Check serial states for outbound transactions
       if (fromEntityType) {
@@ -385,16 +397,29 @@ export async function createBulkIssueTransactions(payload) {
 
       // B. Link serialized serials
       if (product.isSerialized && barcodes.length > 0) {
-        const dbSerials = await tx.productSerialNumber.findMany({
+        // Find serials globally to give descriptive mismatches
+        const globalSerials = await tx.productSerialNumber.findMany({
           where: {
-            productId,
             barcode: { in: barcodes },
           },
+          include: {
+            product: { select: { name: true } }
+          }
         });
 
-        if (dbSerials.length !== barcodes.length) {
-          throw new Error(`Some barcodes for product "${product.name}" could not be found in the database.`);
+        const foundBarcodes = globalSerials.map(s => s.barcode);
+        const missingBarcodes = barcodes.filter(b => !foundBarcodes.includes(b));
+        if (missingBarcodes.length > 0) {
+          throw new Error(`Some barcodes for product "${product.name}" could not be found in the database: ${missingBarcodes.join(', ')}`);
         }
+
+        const mismatchedSerials = globalSerials.filter(s => s.productId !== productId);
+        if (mismatchedSerials.length > 0) {
+          const mismatches = mismatchedSerials.map(s => `"${s.barcode}" (belongs to product "${s.product.name}")`).join(', ');
+          throw new Error(`Some barcodes belong to different products instead of "${product.name}": ${mismatches}`);
+        }
+
+        const dbSerials = globalSerials.filter(s => s.productId === productId);
 
         if (fromEntityType) {
           const invalidSerials = dbSerials.filter(
@@ -493,14 +518,16 @@ export async function createBulkReceiveTransactions(payload) {
       if (product.isSerialized && barcodes.length > 0) {
         const existingSerials = await tx.productSerialNumber.findMany({
           where: {
-            productId,
             barcode: { in: barcodes },
           },
+          include: {
+            product: { select: { name: true } }
+          }
         });
 
         if (existingSerials.length > 0) {
-          const dupes = existingSerials.map(s => s.barcode).join(', ');
-          throw new Error(`Some barcodes already exist in the database for product "${product.name}": ${dupes}`);
+          const dupes = existingSerials.map(s => `"${s.barcode}" (linked to product "${s.product.name}")`).join(', ');
+          throw new Error(`Some barcodes already exist in the database: ${dupes}`);
         }
 
         for (const barcode of barcodes) {
