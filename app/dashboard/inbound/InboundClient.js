@@ -805,9 +805,18 @@ function InboundFormContent({ products, brands = [], recentReceivers = [], recen
 
                     <div className="flex items-center gap-4 flex-shrink-0">
                       <div className="text-right hidden sm:block">
-                        <span className="text-[10px] font-bold uppercase text-text-secondary block">Inbound Qty</span>
-                        <span className="text-xs font-bold text-primary">
-                          {item.quantity || 0} items
+                        <span className="text-[10px] font-bold uppercase text-text-secondary block">Stock Level</span>
+                        <span className="text-xs font-bold text-primary block">
+                          {item.isNewProduct ? (
+                            <span>{(parseInt(item.quantity, 10) || 0)} items (New)</span>
+                          ) : (
+                            <span>
+                              {(selectedProd?.warehouseStock || 0) + (parseInt(item.quantity, 10) || 0)} items
+                              <span className="text-[10px] text-text-secondary font-medium block mt-0.5">
+                                ({(selectedProd?.warehouseStock || 0)} current + {(parseInt(item.quantity, 10) || 0)} inbound)
+                              </span>
+                            </span>
+                          )}
                         </span>
                       </div>
                       

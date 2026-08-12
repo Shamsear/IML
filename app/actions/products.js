@@ -85,15 +85,66 @@ export async function getProducts() {
 
 export async function getProductsSlim() {
   await checkAuth();
-  return prisma.product.findMany({
-    orderBy: { name: 'asc' },
-    select: {
-      id: true,
-      name: true,
-      isSerialized: true,
-      category: true,
-      brand: { select: { id: true, name: true } }
+  
+  const [products, aggregates, serialsCount] = await Promise.all([
+    prisma.product.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        isSerialized: true,
+        category: true,
+        imageUrl: true,
+        brand: { select: { id: true, name: true } }
+      }
+    }),
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
+      _sum: {
+        quantity: true,
+      },
+    }),
+    prisma.productSerialNumber.groupBy({
+      by: ['productId'],
+      where: {
+        status: 'AVAILABLE',
+        OR: [
+          { currentLocationType: 'WAREHOUSE' },
+          { currentLocationType: null }
+        ]
+      },
+      _count: {
+        id: true
+      }
+    })
+  ]);
+
+  return products.map(product => {
+    let warehouseStock = 0;
+    if (product.isSerialized) {
+      const serCount = serialsCount.find(s => s.productId === product.id);
+      warehouseStock = serCount?._count.id || 0;
+    } else {
+      const productAggs = aggregates.filter(a => a.productId === product.id);
+      productAggs.forEach(t => {
+        const qty = t._sum.quantity || 0;
+        if (t.toEntityType === 'WAREHOUSE') {
+          if (t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN') {
+            warehouseStock += qty;
+          }
+        }
+        if (t.fromEntityType === 'WAREHOUSE') {
+          if (t.transactionType === 'ISSUE' || t.transactionType === 'DAMAGE' || t.transactionType === 'LOST' || t.transactionType === 'REBRAND_OUT') {
+            warehouseStock -= qty;
+          }
+        }
+      });
     }
+
+    return {
+      ...product,
+      warehouseStock,
+    };
   });
 }
 

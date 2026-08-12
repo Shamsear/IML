@@ -671,7 +671,7 @@ export default function NewProductClient({ brands, editId = null }) {
 
                     <div className="flex items-center gap-4 flex-shrink-0">
                       <div className="text-right hidden sm:block">
-                        <span className="text-[10px] font-bold uppercase text-text-secondary block">Initial Stock</span>
+                        <span className="text-[10px] font-bold uppercase text-text-secondary block">Total Inbound Stock</span>
                         <span className={`text-xs font-bold ${hasInbound ? 'text-primary' : 'text-text-muted'}`}>
                           {totalQty} items ({item.inbounds.length} Shipments)
                         </span>
