@@ -1,4 +1,4 @@
-import { getProducts } from '@/app/actions/products';
+import { getProductsSlim } from '@/app/actions/products';
 import RebrandClient from '../RebrandClient';
 
 export const metadata = {
@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function NewRebrandPage() {
-  const products = await getProducts();
+  const products = await getProductsSlim();
 
   return (
     <RebrandClient products={products} />

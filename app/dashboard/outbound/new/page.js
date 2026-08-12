@@ -1,4 +1,4 @@
-import { getProducts } from '@/app/actions/products';
+import { getProductsSlim } from '@/app/actions/products';
 import { getStores } from '@/app/actions/stores';
 import { getSupervisors } from '@/app/actions/supervisors';
 import { getStaff } from '@/app/actions/staff';
@@ -16,7 +16,7 @@ export default async function NewOutboundPage() {
     supervisors,
     staff
   ] = await Promise.all([
-    getProducts(),
+    getProductsSlim(),
     getStores(),
     getSupervisors(),
     getStaff()

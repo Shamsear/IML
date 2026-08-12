@@ -1,4 +1,4 @@
-import { getProducts } from '@/app/actions/products';
+import { getProductsSlim } from '@/app/actions/products';
 import DamageClient from '../DamageClient';
 
 export const metadata = {
@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function NewDamagePage() {
-  const products = await getProducts();
+  const products = await getProductsSlim();
 
   return (
     <DamageClient products={products} />

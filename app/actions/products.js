@@ -32,6 +32,20 @@ export async function getProducts() {
   });
 }
 
+export async function getProductsSlim() {
+  await checkAuth();
+  return prisma.product.findMany({
+    orderBy: { name: 'asc' },
+    select: {
+      id: true,
+      name: true,
+      isSerialized: true,
+      category: true,
+      brand: { select: { id: true, name: true } }
+    }
+  });
+}
+
 export async function createProduct(formData) {
   await checkAuth();
 

@@ -46,6 +46,7 @@ export async function getTransactions() {
   await checkAuth();
   return prisma.inventoryTransaction.findMany({
     orderBy: { timestamp: 'desc' },
+    take: 400,
     include: {
       product: {
         select: {
@@ -151,30 +152,30 @@ export async function createTransaction(data) {
         }
       }
 
-      // Update location and status on the serial number rows
-      for (const serial of dbSerials) {
-        let nextStatus = 'AVAILABLE';
-        if (transactionType === 'DAMAGE') nextStatus = 'DAMAGED';
-        else if (transactionType === 'LOST') nextStatus = 'LOST';
-        else if (toEntityType === 'CLIENT' || toEntityType === 'STAFF') nextStatus = 'USED'; // Staff holding it or client used it
+      // Update location and status on the serial number rows in bulk (1 write)
+      let nextStatus = 'AVAILABLE';
+      if (transactionType === 'DAMAGE') nextStatus = 'DAMAGED';
+      else if (transactionType === 'LOST') nextStatus = 'LOST';
+      else if (toEntityType === 'CLIENT' || toEntityType === 'STAFF') nextStatus = 'USED';
 
-        await tx.productSerialNumber.update({
-          where: { id: serial.id },
-          data: {
-            currentLocationType: toEntityType || null,
-            currentLocationId: toEntityId || null,
-            status: nextStatus,
-          },
-        });
+      await tx.productSerialNumber.updateMany({
+        where: {
+          id: { in: dbSerials.map(s => s.id) }
+        },
+        data: {
+          currentLocationType: toEntityType || null,
+          currentLocationId: toEntityId || null,
+          status: nextStatus,
+        }
+      });
 
-        // Link the serial to this transaction log
-        await tx.transactionSerialNumber.create({
-          data: {
-            transactionId: invTx.id,
-            serialNumberId: serial.id,
-          },
-        });
-      }
+      // Link the serials to this transaction log in bulk (1 write)
+      await tx.transactionSerialNumber.createMany({
+        data: dbSerials.map(serial => ({
+          transactionId: invTx.id,
+          serialNumberId: serial.id,
+        }))
+      });
     }
 
     return invTx;
@@ -231,37 +232,44 @@ export async function processRebrand(data) {
       },
     });
 
-    // 3. Update serials if serialized
+    // 3. Update serials if serialized in bulk (3 writes total)
     if (oldProduct.isSerialized && barcodes.length > 0) {
-      for (const item of barcodes) {
-        const oldSerial = await tx.productSerialNumber.findUnique({
-          where: { barcode: item.oldBarcode },
-        });
+      const oldBarcodes = barcodes.map(b => b.oldBarcode);
+      const oldSerials = await tx.productSerialNumber.findMany({
+        where: { barcode: { in: oldBarcodes } }
+      });
 
-        if (!oldSerial) throw new Error(`Old barcode ${item.oldBarcode} not found.`);
-
-        // Mark old serial as REPLACED and remove from active location
-        await tx.productSerialNumber.update({
-          where: { id: oldSerial.id },
-          data: {
-            status: 'REPLACED',
-            currentLocationType: null,
-            currentLocationId: null,
-          },
-        });
-
-        // Create new serial record linking back to old serial (replacesId)
-        await tx.productSerialNumber.create({
-          data: {
-            productId: newProductId,
-            barcode: item.newBarcode.trim(),
-            secondaryBarcode: item.newSecondary ? item.newSecondary.trim() : null,
-            currentLocationType: 'WAREHOUSE',
-            status: 'AVAILABLE',
-            replacesId: oldSerial.id, // Traceability link!
-          },
-        });
+      if (oldSerials.length !== barcodes.length) {
+        throw new Error('Some source barcodes could not be found.');
       }
+
+      // Mark old serials as REPLACED in bulk
+      await tx.productSerialNumber.updateMany({
+        where: { id: { in: oldSerials.map(s => s.id) } },
+        data: {
+          status: 'REPLACED',
+          currentLocationType: null,
+          currentLocationId: null,
+        }
+      });
+
+      // Create new serial records linking back to old serials in bulk
+      const newSerialsData = barcodes.map(item => {
+        const matchingOld = oldSerials.find(s => s.barcode.toLowerCase() === item.oldBarcode.toLowerCase());
+        return {
+          productId: newProductId,
+          barcode: item.newBarcode.trim(),
+          secondaryBarcode: item.newSecondary ? item.newSecondary.trim() : null,
+          currentLocationType: 'WAREHOUSE',
+          status: 'AVAILABLE',
+          replacesId: matchingOld.id
+        };
+      });
+
+      await tx.productSerialNumber.createMany({
+        data: newSerialsData,
+        skipDuplicates: true
+      });
     }
   });
 
@@ -273,49 +281,106 @@ export async function processRebrand(data) {
 export async function getStoreInventory(storeId) {
   await checkAuth();
 
-  const products = await prisma.product.findMany({
+  // 1. Fetch all active serialized items at this store, including product & brand
+  const activeSerials = await prisma.productSerialNumber.findMany({
+    where: {
+      currentLocationType: 'STORE',
+      currentLocationId: storeId,
+      status: 'AVAILABLE',
+    },
     select: {
-      id: true,
-      name: true,
-      isSerialized: true,
-      brand: { select: { name: true } }
+      barcode: true,
+      secondaryBarcode: true,
+      status: true,
+      productId: true,
+      product: {
+        select: {
+          name: true,
+          isSerialized: true,
+          brand: { select: { name: true } }
+        }
+      }
+    },
+    orderBy: { barcode: 'asc' }
+  });
+
+  // 2. Fetch all bulk product transactions for this store to compute active stock
+  const bulkTransactions = await prisma.inventoryTransaction.findMany({
+    where: {
+      OR: [
+        { fromEntityType: 'STORE', fromEntityId: storeId },
+        { toEntityType: 'STORE', toEntityId: storeId },
+      ],
+      product: {
+        isSerialized: false, // only bulk products
+      }
+    },
+    select: {
+      productId: true,
+      transactionType: true,
+      fromEntityType: true,
+      toEntityType: true,
+      quantity: true,
+      product: {
+        select: {
+          name: true,
+          isSerialized: true,
+          brand: { select: { name: true } }
+        }
+      }
     }
   });
 
-  const inventory = [];
+  const inventoryMap = {};
 
-  for (const product of products) {
-    let quantity = 0;
-    let serials = [];
+  // Process serialized items (group by product in-memory)
+  for (const s of activeSerials) {
+    const prodId = s.productId;
+    if (!inventoryMap[prodId]) {
+      inventoryMap[prodId] = {
+        productId: prodId,
+        name: s.product.name,
+        brandName: s.product.brand?.name || 'No Brand',
+        isSerialized: true,
+        quantity: 0,
+        serials: []
+      };
+    }
+    inventoryMap[prodId].quantity += 1;
+    inventoryMap[prodId].serials.push({
+      barcode: s.barcode,
+      secondaryBarcode: s.secondaryBarcode,
+      status: s.status
+    });
+  }
 
-    if (product.isSerialized) {
-      serials = await prisma.productSerialNumber.findMany({
-        where: {
-          productId: product.id,
-          currentLocationType: 'STORE',
-          currentLocationId: storeId,
-          status: 'AVAILABLE',
-        },
-        select: { barcode: true, secondaryBarcode: true, status: true },
-      });
-      quantity = serials.length;
-    } else {
-      quantity = await getStockAtLocation(product.id, 'STORE', storeId);
+  // Process bulk items (compute net quantity in-memory)
+  for (const tx of bulkTransactions) {
+    const prodId = tx.productId;
+    let netChange = 0;
+    if (tx.toEntityType === 'STORE' && tx.toEntityId === storeId) {
+      netChange = tx.quantity;
+    } else if (tx.fromEntityType === 'STORE' && tx.fromEntityId === storeId) {
+      netChange = -tx.quantity;
     }
 
-    if (quantity > 0) {
-      inventory.push({
-        productId: product.id,
-        name: product.name,
-        brandName: product.brand.name,
-        isSerialized: product.isSerialized,
-        quantity,
-        serials,
-      });
+    if (netChange !== 0) {
+      if (!inventoryMap[prodId]) {
+        inventoryMap[prodId] = {
+          productId: prodId,
+          name: tx.product.name,
+          brandName: tx.product.brand?.name || 'No Brand',
+          isSerialized: false,
+          quantity: 0,
+          serials: []
+        };
+      }
+      inventoryMap[prodId].quantity += netChange;
     }
   }
 
-  return inventory;
+  // Filter out any products that ended up with 0 or negative quantity
+  return Object.values(inventoryMap).filter(item => item.quantity > 0);
 }
 
 // 6. Create multiple issue transactions atomically in a single batch
@@ -430,26 +495,28 @@ export async function createBulkIssueTransactions(payload) {
           }
         }
 
-        for (const serial of dbSerials) {
-          let nextStatus = 'AVAILABLE';
-          if (toEntityType === 'CLIENT' || toEntityType === 'STAFF') nextStatus = 'USED';
+        let nextStatus = 'AVAILABLE';
+        if (toEntityType === 'CLIENT' || toEntityType === 'STAFF') nextStatus = 'USED';
 
-          await tx.productSerialNumber.update({
-            where: { id: serial.id },
-            data: {
-              currentLocationType: toEntityType || null,
-              currentLocationId: toEntityId || null,
-              status: nextStatus,
-            },
-          });
+        // Bulk update location and status (1 write)
+        await tx.productSerialNumber.updateMany({
+          where: {
+            id: { in: dbSerials.map(s => s.id) }
+          },
+          data: {
+            currentLocationType: toEntityType || null,
+            currentLocationId: toEntityId || null,
+            status: nextStatus,
+          }
+        });
 
-          await tx.transactionSerialNumber.create({
-            data: {
-              transactionId: invTx.id,
-              serialNumberId: serial.id,
-            },
-          });
-        }
+        // Bulk link serials to transaction (1 write)
+        await tx.transactionSerialNumber.createMany({
+          data: dbSerials.map(serial => ({
+            transactionId: invTx.id,
+            serialNumberId: serial.id,
+          }))
+        });
       }
 
       createdTxs.push(invTx);
@@ -530,24 +597,34 @@ export async function createBulkReceiveTransactions(payload) {
           throw new Error(`Some barcodes already exist in the database: ${dupes}`);
         }
 
-        for (const barcode of barcodes) {
-          const serial = await tx.productSerialNumber.create({
-            data: {
-              productId,
-              barcode: barcode.trim(),
-              currentLocationType: toEntityType || 'WAREHOUSE',
-              currentLocationId: toEntityId || null,
-              status: 'AVAILABLE',
-            },
-          });
+        // 1. Bulk insert all new product serials (1 write)
+        await tx.productSerialNumber.createMany({
+          data: barcodes.map(barcode => ({
+            productId,
+            barcode: barcode.trim(),
+            currentLocationType: toEntityType || 'WAREHOUSE',
+            currentLocationId: toEntityId || null,
+            status: 'AVAILABLE',
+          })),
+          skipDuplicates: true
+        });
 
-          await tx.transactionSerialNumber.create({
-            data: {
-              transactionId: invTx.id,
-              serialNumberId: serial.id,
-            },
-          });
-        }
+        // 2. Fetch the newly created serial records to get their IDs
+        const newSerials = await tx.productSerialNumber.findMany({
+          where: {
+            productId,
+            barcode: { in: barcodes }
+          },
+          select: { id: true }
+        });
+
+        // 3. Bulk insert the transaction-serial mappings (1 write)
+        await tx.transactionSerialNumber.createMany({
+          data: newSerials.map(serial => ({
+            transactionId: invTx.id,
+            serialNumberId: serial.id,
+          }))
+        });
       }
 
       createdTxs.push(invTx);
@@ -655,23 +732,25 @@ export async function createBulkDamageTransactions(payload) {
           }
         }
 
-        for (const serial of dbSerials) {
-          await tx.productSerialNumber.update({
-            where: { id: serial.id },
-            data: {
-              status: 'DAMAGED',
-              currentLocationType: null,
-              currentLocationId: null,
-            },
-          });
+        // Bulk mark serial records as DAMAGED (1 write)
+        await tx.productSerialNumber.updateMany({
+          where: {
+            id: { in: dbSerials.map(s => s.id) }
+          },
+          data: {
+            status: 'DAMAGED',
+            currentLocationType: null,
+            currentLocationId: null,
+          }
+        });
 
-          await tx.transactionSerialNumber.create({
-            data: {
-              transactionId: invTx.id,
-              serialNumberId: serial.id,
-            },
-          });
-        }
+        // Bulk insert the transaction-serial mappings (1 write)
+        await tx.transactionSerialNumber.createMany({
+          data: dbSerials.map(serial => ({
+            transactionId: invTx.id,
+            serialNumberId: serial.id,
+          }))
+        });
       }
 
       createdTxs.push(invTx);

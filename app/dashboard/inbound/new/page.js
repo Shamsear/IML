@@ -1,4 +1,4 @@
-import { getProducts } from '@/app/actions/products';
+import { getProductsSlim } from '@/app/actions/products';
 import { getRecentReceivers, getRecentSuppliers } from '@/app/actions/transactions';
 import InboundClient from '../InboundClient';
 
@@ -13,7 +13,7 @@ export default async function NewInboundPage() {
     recentReceivers,
     recentSuppliers
   ] = await Promise.all([
-    getProducts(),
+    getProductsSlim(),
     getRecentReceivers(),
     getRecentSuppliers()
   ]);
