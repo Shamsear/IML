@@ -332,3 +332,22 @@ export async function getAvailableBarcodes(productId, locationType, locationId =
     }
   });
 }
+
+// Find a product and its location availability details by serial barcode
+export async function findProductByBarcode(barcode) {
+  await checkAuth();
+  if (!barcode) return null;
+  
+  const serial = await prisma.productSerialNumber.findUnique({
+    where: { barcode: barcode.trim() },
+    include: {
+      product: {
+        include: {
+          brand: { select: { id: true, name: true } }
+        }
+      }
+    }
+  });
+
+  return serial;
+}

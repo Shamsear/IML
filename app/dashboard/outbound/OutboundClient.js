@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkIssueTransactions } from '@/app/actions/transactions';
-import { getAvailableBarcodes } from '@/app/actions/products';
+import { getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -56,6 +56,14 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
 
   // Scanning inputs states (one per row index)
   const [scanInputs, setScanInputs] = useState({});
+
+  // Global Scan Input State
+  const [globalScanInput, setGlobalScanInput] = useState('');
+
+  // Barcode Range Select States
+  const [rangeStart, setRangeStart] = useState({});
+  const [rangeEnd, setRangeEnd] = useState({});
+  const [rangeMode, setRangeMode] = useState({}); // key: rowIndex, value: boolean (true = range, false = scan)
 
   // Webcam scanning modal state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -206,6 +214,131 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       }
       setScanInputs(prev => ({ ...prev, [index]: '' }));
     }
+  };
+
+  const handleGlobalScanSubmit = async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = globalScanInput.trim();
+      if (!code) return;
+
+      try {
+        // 1. Search if it matches a serialized barcode in the database
+        const serial = await findProductByBarcode(code);
+        if (serial) {
+          if (serial.status !== 'AVAILABLE' || serial.currentLocationType !== 'WAREHOUSE') {
+            alert(`Barcode "${code}" is not available in the Warehouse. Current status: ${serial.status} at ${serial.currentLocationType || 'Unknown'}.`);
+            setGlobalScanInput('');
+            return;
+          }
+
+          const prodId = serial.productId;
+
+          // Check if product row already exists in the dispatch ledger
+          const existingItemIndex = items.findIndex(item => item.productId === prodId);
+
+          if (existingItemIndex > -1) {
+            const item = items[existingItemIndex];
+            if (!item.selectedBarcodes.includes(serial.barcode)) {
+              const newSelected = [...item.selectedBarcodes, serial.barcode];
+              setItems(prev => prev.map((x, idx) => idx === existingItemIndex ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x));
+              playBeep();
+            } else {
+              // Already selected, keep it selected
+              alert(`Barcode "${code}" is already selected for ${serial.product.name}.`);
+            }
+          } else {
+            // Add new row for this product
+            const available = await getAvailableBarcodes(prodId, 'WAREHOUSE', null);
+            setItems(prev => {
+              // If the first row is empty/placeholder, replace it instead of appending
+              if (prev.length === 1 && !prev[0].productId) {
+                return [{
+                  productId: prodId,
+                  quantity: 1,
+                  selectedBarcodes: [serial.barcode],
+                  availableBarcodes: available || [],
+                  notes: ''
+                }];
+              }
+              return [...prev, {
+                productId: prodId,
+                quantity: 1,
+                selectedBarcodes: [serial.barcode],
+                availableBarcodes: available || [],
+                notes: ''
+              }];
+            });
+            playBeep();
+          }
+        } else {
+          // 2. Check if the scanned value matches any Product's itemCode (SKU)
+          const matchedProd = products.find(p => p.itemCode && p.itemCode.toLowerCase() === code.toLowerCase());
+          if (matchedProd) {
+            const existingItemIndex = items.findIndex(item => item.productId === matchedProd.id);
+            if (existingItemIndex > -1) {
+              if (matchedProd.isSerialized) {
+                alert(`SKU "${code}" matches a serialized product. Please scan its individual serial/IMEI barcodes instead.`);
+              } else {
+                setItems(prev => prev.map((x, idx) => idx === existingItemIndex ? { ...x, quantity: x.quantity + 1 } : x));
+                playBeep();
+              }
+            } else {
+              const available = matchedProd.isSerialized ? await getAvailableBarcodes(matchedProd.id, 'WAREHOUSE', null) : [];
+              setItems(prev => {
+                const newRow = {
+                  productId: matchedProd.id,
+                  quantity: 1,
+                  selectedBarcodes: [],
+                  availableBarcodes: available || [],
+                  notes: ''
+                };
+                if (prev.length === 1 && !prev[0].productId) {
+                  return [newRow];
+                }
+                return [...prev, newRow];
+              });
+              playBeep();
+            }
+          } else {
+            alert(`Scanned barcode "${code}" does not match any available product serial or SKU.`);
+          }
+        }
+      } catch (err) {
+        console.error("Global scan query failed:", err);
+        alert("Error fetching barcode from server.");
+      }
+
+      setGlobalScanInput('');
+    }
+  };
+
+  const handleApplyRange = (index) => {
+    const start = (rangeStart[index] || '').trim();
+    const end = (rangeEnd[index] || '').trim();
+    if (!start || !end) {
+      alert("Please enter both starting and ending barcodes.");
+      return;
+    }
+
+    const item = items[index];
+    // Filter available barcodes matching range alphabetically/numerically
+    const matched = item.availableBarcodes
+      .map(b => b.barcode)
+      .filter(bc => bc.toLowerCase() >= start.toLowerCase() && bc.toLowerCase() <= end.toLowerCase());
+
+    if (matched.length === 0) {
+      alert("No available barcodes found in this range.");
+      return;
+    }
+
+    setItems(prev => prev.map((x, idx) => idx === index ? {
+      ...x,
+      selectedBarcodes: matched,
+      quantity: matched.length
+    } : x));
+    
+    playBeep();
   };
 
   // Camera permissions check
@@ -525,6 +658,25 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
           )}
         </div>
 
+        {/* Global Barcode Scanner */}
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 flex flex-col gap-3">
+          <label className="text-sm font-bold text-primary flex items-center gap-1.5">
+            <QrCode size={16} />
+            <span>🔍 Direct Barcode Scan (No Need to Select Product)</span>
+          </label>
+          <p className="text-text-secondary text-xs">
+            Scan or type any product IMEI / serial barcode or SKU code below and press Enter. The system will automatically resolve the product, append its ledger row, and select the item!
+          </p>
+          <input
+            type="text"
+            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-primary/30 rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            value={globalScanInput}
+            onChange={(e) => setGlobalScanInput(e.target.value)}
+            onKeyDown={handleGlobalScanSubmit}
+            placeholder="Place cursor here and scan/type barcode..."
+          />
+        </div>
+
         {/* Ledger Header */}
         <h3 className="font-display font-bold text-lg text-text-primary pb-3 border-b border-border mt-2">
           Products Dispatch Ledger
@@ -586,47 +738,121 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                   </div>
                 </div>
 
-                {selectedProd?.isSerialized && (
-                  <div className="flex flex-col gap-1.5 mt-2 bg-surface p-4 border border-border rounded-lg">
-                    {/* Scan Input Header */}
-                    <div className="flex flex-col gap-1.5 mb-3">
-                      <label className="text-xs font-semibold text-text-primary flex items-center gap-1">
-                        <QrCode size={14} className="text-primary" />
-                        <span>Scan / Enter Barcode to Select</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                          value={scanInputs[index] || ''}
-                          onChange={(e) => setScanInputs(prev => ({ ...prev, [index]: e.target.value }))}
-                          onKeyDown={(e) => handleScanInputKeyDown(e, index, item.availableBarcodes, item.selectedBarcodes)}
-                          placeholder="Scan barcode to select, then press Enter..."
-                        />
-                        
-                        <div className="flex gap-1 flex-shrink-0">
+                {selectedProd?.isSerialized && (() => {
+                  const isSim = selectedProd?.category?.toUpperCase().includes('SIM');
+                  const showRange = isSim && rangeMode[index];
+                  return (
+                    <div className="flex flex-col gap-1.5 mt-2 bg-surface p-4 border border-border rounded-lg">
+                      {isSim && (
+                        /* Selection Method Tabs */
+                        <div className="flex border-b border-border mb-3 pb-1">
                           <button
                             type="button"
-                            className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
-                            onClick={() => { setActiveCameraRow(index); setIsCameraOpen(true); }}
-                            title="Scan via PC Webcam"
+                            className={`pb-1.5 text-xs font-bold mr-4 ${!rangeMode[index] ? 'border-b-2 border-primary text-primary' : 'text-text-secondary'}`}
+                            onClick={() => setRangeMode(prev => ({ ...prev, [index]: false }))}
                           >
-                            <Camera size={13} />
-                            <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
+                            Single Scan / Select
                           </button>
-                          
                           <button
                             type="button"
-                            className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
-                            onClick={() => handleOpenMobileScanner(index)}
-                            title="Pair Wireless Mobile phone camera"
+                            className={`pb-1.5 text-xs font-bold ${rangeMode[index] ? 'border-b-2 border-primary text-primary' : 'text-text-secondary'}`}
+                            onClick={() => setRangeMode(prev => ({ ...prev, [index]: true }))}
                           >
-                            <Smartphone size={13} className="text-primary" />
-                            <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
+                            Select Barcode Range (Series)
                           </button>
                         </div>
-                      </div>
+                      )}
+
+                      {!showRange ? (
+                        <div className="flex flex-col gap-1.5 mb-3">
+                          <label className="text-[10px] font-bold text-text-primary flex items-center gap-1">
+                            <QrCode size={12} className="text-primary" />
+                            <span>Scan / Enter Barcode to Select</span>
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                              value={scanInputs[index] || ''}
+                              onChange={(e) => setScanInputs(prev => ({ ...prev, [index]: e.target.value }))}
+                              onKeyDown={(e) => handleScanInputKeyDown(e, index, item.availableBarcodes, item.selectedBarcodes)}
+                              placeholder="Scan barcode to select, then press Enter..."
+                            />
+                            
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button
+                                type="button"
+                                className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
+                                onClick={() => { setActiveCameraRow(index); setIsCameraOpen(true); }}
+                                title="Scan via PC Webcam"
+                              >
+                                <Camera size={13} />
+                                <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
+                              </button>
+                              
+                              <button
+                                type="button"
+                                className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
+                                onClick={() => handleOpenMobileScanner(index)}
+                                title="Pair Wireless Mobile phone camera"
+                              >
+                                <Smartphone size={13} className="text-primary" />
+                                <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3 mb-3 bg-surface-elevated/45 p-3 rounded-lg border border-border">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-bold text-text-secondary uppercase">Starting Barcode</label>
+                              <input
+                                id={`range-start-${index}`}
+                                type="text"
+                                className="bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"
+                                value={rangeStart[index] || ''}
+                                onChange={(e) => setRangeStart(prev => ({ ...prev, [index]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const endInput = document.getElementById(`range-end-${index}`);
+                                    if (endInput) endInput.focus();
+                                  }
+                                }}
+                                placeholder="Scan or type start barcode..."
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-[10px] font-bold text-text-secondary uppercase">Ending Barcode</label>
+                              <input
+                                id={`range-end-${index}`}
+                                type="text"
+                                className="bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"
+                                value={rangeEnd[index] || ''}
+                                onChange={(e) => setRangeEnd(prev => ({ ...prev, [index]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleApplyRange(index);
+                                  }
+                                }}
+                                placeholder="Scan or type end barcode..."
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyRange(index)}
+                            className="self-start px-3 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-lg shadow-sm transition-colors duration-150"
+                          >
+                            Apply Range Selection
+                          </button>
+                        </div>
+                      )}
                     </div>
+                  );
+                })()}
 
                     <label className="text-xs font-semibold text-text-secondary flex items-center gap-1 pb-1">
                       <span>Available Barcodes ({item.availableBarcodes?.length || 0} in Warehouse)</span>
@@ -861,7 +1087,11 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
               {/* QR Code Container */}
               <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(
+                    typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                      ? `http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`
+                      : `${typeof window !== 'undefined' ? window.location.origin : ''}/scan-companion?session=${mobileSession.sessionId}`
+                  )}`}
                   alt="Scan QR to pair phone"
                   className="w-[200px] h-[200px] block"
                 />
