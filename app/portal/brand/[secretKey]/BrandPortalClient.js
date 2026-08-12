@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, Filter } from 'lucide-react';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function BrandPortalClient({ brand }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,9 +93,14 @@ export default function BrandPortalClient({ brand }) {
           <div className="flex items-center gap-4 text-center sm:text-left flex-col sm:flex-row">
             {brand.imageUrl ? (
               <img 
-                src={brand.imageUrl} 
+                src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
                 alt={brand.name} 
                 className="w-16 h-16 rounded-xl object-contain bg-[#fcfbfa] p-1.5 border border-border"
+                onError={(e) => {
+                  if (e.target.src !== brand.imageUrl) {
+                    e.target.src = brand.imageUrl;
+                  }
+                }}
               />
             ) : (
               <div className="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-display font-extrabold text-2xl">

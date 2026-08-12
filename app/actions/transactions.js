@@ -774,9 +774,11 @@ export async function getRecentReceivers() {
     select: {
       receivedBy: true,
     },
-    distinct: ['receivedBy'],
+    orderBy: { timestamp: 'desc' },
+    take: 200,
   });
-  return transactions.map(t => t.receivedBy).filter(Boolean);
+  const distinct = Array.from(new Set(transactions.map(t => t.receivedBy).filter(Boolean)));
+  return distinct;
 }
 
 export async function getRecentSuppliers() {
@@ -789,9 +791,11 @@ export async function getRecentSuppliers() {
     select: {
       fromEntityId: true,
     },
-    distinct: ['fromEntityId'],
+    orderBy: { timestamp: 'desc' },
+    take: 200,
   });
-  return transactions.map(t => t.fromEntityId).filter(Boolean);
+  const distinct = Array.from(new Set(transactions.map(t => t.fromEntityId).filter(Boolean)));
+  return distinct;
 }
 
 export async function createBulkRebrandTransactions(payload) {

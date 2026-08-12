@@ -16,7 +16,7 @@ export default async function ReportsPage() {
     orderBy: { name: 'asc' }
   });
 
-  // Fetch all products, their owners, and all ledger logs to calculate aggregated metrics
+  // Fetch all products and their brand details
   const products = await prisma.product.findMany({
     select: {
       id: true,
@@ -25,21 +25,37 @@ export default async function ReportsPage() {
       category: true,
       brandId: true,
       brand: { select: { id: true, name: true } },
-      transactions: {
-        select: {
-          transactionType: true,
-          quantity: true,
-          fromEntityType: true,
-          toEntityType: true,
-        }
-      }
     },
     orderBy: { name: 'asc' }
   });
 
+  // Aggregate ledger quantities grouped by product and transaction parameters at database level
+  const aggregates = await prisma.inventoryTransaction.groupBy({
+    by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
+    _sum: {
+      quantity: true,
+    },
+  });
+
+  // Map database aggregates back to the products in the format the component expects
+  const productsWithTransactions = products.map(product => {
+    const productAggs = aggregates.filter(a => a.productId === product.id);
+    const fakeTransactions = productAggs.map(agg => ({
+      transactionType: agg.transactionType,
+      quantity: agg._sum.quantity || 0,
+      fromEntityType: agg.fromEntityType,
+      toEntityType: agg.toEntityType,
+    }));
+
+    return {
+      ...product,
+      transactions: fakeTransactions,
+    };
+  });
+
   return (
     <ReportsClient 
-      initialProducts={products} 
+      initialProducts={productsWithTransactions} 
       brands={brands} 
     />
   );

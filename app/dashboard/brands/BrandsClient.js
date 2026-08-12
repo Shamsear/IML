@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createBrand, updateBrand, deleteBrand } from '@/app/actions/brands';
 import { Tag, Plus, Edit2, Trash2, Globe, EyeOff, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function BrandsClient({ initialBrands }) {
   const [brands, setBrands] = useState(initialBrands);
@@ -221,7 +222,16 @@ export default function BrandsClient({ initialBrands }) {
                   <div className="flex items-center justify-between">
                     <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/10 flex items-center justify-center overflow-hidden">
                       {brand.imageUrl ? (
-                        <img src={brand.imageUrl} alt={brand.name} className="w-full h-full object-cover" />
+                        <img 
+                          src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
+                          alt={brand.name} 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            if (e.target.src !== brand.imageUrl) {
+                              e.target.src = brand.imageUrl;
+                            }
+                          }}
+                        />
                       ) : (
                         <Tag size={20} className="text-primary" />
                       )}

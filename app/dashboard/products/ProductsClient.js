@@ -859,7 +859,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                           <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" checked={selectedProductIds.includes(product.id)}
                             onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
                         </td>
-                        <td className="py-3.5 px-5">
+                        <td className="py-3.5 px-5 whitespace-nowrap">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
                               <Package size={15} />
@@ -867,7 +867,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                             <span className="font-semibold">{product.name}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-5 font-mono text-xs text-text-secondary">{product.itemCode || '---'}</td>
+                        <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">{product.itemCode || '---'}</td>
                         <td className="py-3.5 px-5 whitespace-nowrap">
                           <span className="badge bg-secondary/15 text-secondary border border-secondary/10">
                             {product.brand.name}
