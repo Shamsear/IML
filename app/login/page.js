@@ -133,13 +133,19 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                   disabled={loading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 text-text-muted hover:text-text-secondary transition-colors duration-200 focus:outline-none"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowPassword(!showPassword);
+                  }}
+                  className="absolute right-3 text-text-muted hover:text-text-secondary transition-colors duration-200 focus:outline-none focus:ring-0 cursor-pointer z-10"
                   disabled={loading}
                   aria-label={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
