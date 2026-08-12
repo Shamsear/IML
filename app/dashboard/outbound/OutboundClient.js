@@ -850,49 +850,47 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                           </button>
                         </div>
                       )}
+
+                      <label className="text-xs font-semibold text-text-secondary flex items-center gap-1 pb-1">
+                        <span>Available Barcodes ({item.availableBarcodes?.length || 0} in Warehouse)</span>
+                      </label>
+                      
+                      {item.availableBarcodes?.length === 0 ? (
+                        <span className="text-xs text-danger font-semibold py-1">No available barcodes found in the Warehouse for this product.</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto p-2 bg-surface-elevated/20 border border-border rounded-md mt-1">
+                          {item.availableBarcodes.map(s => {
+                            const isSelected = item.selectedBarcodes.includes(s.barcode);
+                            return (
+                              <label 
+                                key={s.id} 
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-semibold cursor-pointer transition-all duration-200 select-none
+                                  ${isSelected 
+                                    ? 'bg-primary/10 border-primary text-primary' 
+                                    : 'bg-surface border-border text-text-secondary hover:border-text-primary hover:text-text-primary'
+                                  }
+                                `}
+                              >
+                                <input 
+                                  type="checkbox"
+                                  className="sr-only"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    const newSelected = isSelected
+                                      ? item.selectedBarcodes.filter(b => b !== s.barcode)
+                                      : [...item.selectedBarcodes, s.barcode];
+                                    handleFieldChange(index, 'selectedBarcodes', newSelected);
+                                  }}
+                                />
+                                <span>{s.barcode}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
-
-                    <label className="text-xs font-semibold text-text-secondary flex items-center gap-1 pb-1">
-                      <span>Available Barcodes ({item.availableBarcodes?.length || 0} in Warehouse)</span>
-                    </label>
-                    
-                    {item.availableBarcodes?.length === 0 ? (
-                      <span className="text-xs text-danger font-semibold py-1">No available barcodes found in the Warehouse for this product.</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto p-2 bg-surface-elevated/20 border border-border rounded-md mt-1">
-                        {item.availableBarcodes.map(s => {
-                          const isSelected = item.selectedBarcodes.includes(s.barcode);
-                          return (
-                            <label 
-                              key={s.id} 
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-semibold cursor-pointer transition-all duration-200 select-none
-                                ${isSelected 
-                                  ? 'bg-primary/10 border-primary text-primary' 
-                                  : 'bg-surface border-border text-text-secondary hover:border-text-primary hover:text-text-primary'
-                                }
-                              `}
-                            >
-                              <input 
-                                type="checkbox"
-                                className="sr-only"
-                                checked={isSelected}
-                                onChange={() => {
-                                  const newSelected = isSelected
-                                    ? item.selectedBarcodes.filter(b => b !== s.barcode)
-                                    : [...item.selectedBarcodes, s.barcode];
-                                  handleFieldChange(index, 'selectedBarcodes', newSelected);
-                                }}
-                              />
-                              <span>{s.barcode}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Item Specific Remarks / Notes</label>

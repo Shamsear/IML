@@ -54,11 +54,6 @@ export async function getTransactions() {
           isSerialized: true,
           brand: { select: { name: true } },
         }
-      },
-      serialNumbers: {
-        include: {
-          serialNumber: { select: { barcode: true } }
-        }
       }
     }
   });

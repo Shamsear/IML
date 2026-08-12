@@ -730,25 +730,23 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
                           </button>
                         </div>
                       )}
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-text-secondary">
+                          Inbound Serial Barcodes List (one per line)
+                        </label>
+                        <textarea 
+                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
+                          rows={4} 
+                          value={item.barcodesInput}
+                          onChange={(e) => handleFieldChange(index, 'barcodesInput', e.target.value)}
+                          placeholder="e.g. SN-892742918&#10;SN-892742919"
+                          required
+                        />
+                      </div>
                     </div>
                   );
                 })()}
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-text-secondary">
-                        Inbound Serial Barcodes List (one per line)
-                      </label>
-                      <textarea 
-                        className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
-                        rows={4} 
-                        value={item.barcodesInput}
-                        onChange={(e) => handleFieldChange(index, 'barcodesInput', e.target.value)}
-                        placeholder="e.g. SN-892742918&#10;SN-892742919"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Item Specific Remarks / Notes</label>
