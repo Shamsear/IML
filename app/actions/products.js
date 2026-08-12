@@ -1,0 +1,334 @@
+'use server';
+
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
+import fs from 'fs';
+import path from 'path';
+
+import { uploadToImageKit } from '@/lib/imagekit';
+
+async function saveFile(file) {
+  return uploadToImageKit(file);
+}
+
+async function checkAuth() {
+  const session = await getServerSession(authOptions);
+  if (!session) throw new Error('Unauthorized');
+  return session;
+}
+
+export async function getProducts() {
+  await checkAuth();
+  return prisma.product.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      brand: { select: { id: true, name: true } },
+      _count: {
+        select: { serialNumbers: true }
+      }
+    }
+  });
+}
+
+export async function createProduct(formData) {
+  await checkAuth();
+
+  const name = formData.get('name');
+  const brandId = formData.get('brandId');
+  const itemCode = formData.get('itemCode') || null;
+  const category = formData.get('category') || null;
+  const imageFile = formData.get('imageFile');
+  let imageUrl = formData.get('imageUrl') || null;
+
+  if (imageFile && imageFile.size > 0) {
+    const savedPath = await saveFile(imageFile);
+    if (savedPath) imageUrl = savedPath;
+  }
+
+  const isReturnable = formData.get('isReturnable') === 'true';
+  const isPublic = formData.get('isPublic') === 'true';
+  const isSerialized = formData.get('isSerialized') === 'true';
+  const stockCap = formData.get('stockCap') ? parseInt(formData.get('stockCap'), 10) : null;
+
+  if (!name) throw new Error('Product name is required');
+  if (!brandId) throw new Error('Associated Brand is required');
+
+  // 1. Create product row
+  const product = await prisma.product.create({
+    data: {
+      name,
+      brandId,
+      itemCode,
+      category,
+      imageUrl,
+      isReturnable,
+      isPublic,
+      isSerialized,
+      stockCap,
+    },
+  });
+
+  // 2. Read optional initial stock parameters
+  const initialQty = parseInt(formData.get('initialQty'), 10) || 0;
+  const initialBarcodesStr = formData.get('initialBarcodes') || '';
+  const deliveryNote = formData.get('deliveryNote') || 'INITIAL_STOCK';
+  const notesStr = formData.get('notes') || 'Auto-received initial stock on product registration';
+
+  const fromEntityType = formData.get('fromEntityType') || 'SUPPLIER';
+  const fromEntityId = formData.get('fromEntityId') || 'Initial Import';
+  const toEntityType = formData.get('toEntityType') || 'WAREHOUSE';
+  const toEntityId = formData.get('toEntityId') || null;
+  const receivedBy = formData.get('receivedBy') || null;
+
+  if (isSerialized) {
+    const barcodes = initialBarcodesStr.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+    if (barcodes.length > 0) {
+      const data = barcodes.map(barcode => ({
+        productId: product.id,
+        barcode,
+        currentLocationType: toEntityType,
+        currentLocationId: toEntityId || null,
+        status: 'AVAILABLE',
+      }));
+
+      await prisma.productSerialNumber.createMany({
+        data,
+        skipDuplicates: true,
+      });
+
+      const serials = await prisma.productSerialNumber.findMany({
+        where: {
+          productId: product.id,
+          barcode: { in: barcodes }
+        }
+      });
+
+      await prisma.inventoryTransaction.create({
+        data: {
+          productId: product.id,
+          transactionType: 'RECEIVE',
+          fromEntityType,
+          fromEntityId,
+          toEntityType,
+          toEntityId,
+          quantity: serials.length,
+          deliveryNote,
+          notes: notesStr,
+          receivedBy,
+          serialNumbers: {
+            create: serials.map(s => ({
+              serialNumberId: s.id
+            }))
+          }
+        }
+      });
+    }
+  } else if (initialQty > 0) {
+    await prisma.inventoryTransaction.create({
+      data: {
+        productId: product.id,
+        transactionType: 'RECEIVE',
+        fromEntityType,
+        fromEntityId,
+        toEntityType,
+        toEntityId,
+        quantity: initialQty,
+        deliveryNote,
+        notes: notesStr,
+        receivedBy,
+      }
+    });
+  }
+
+  revalidatePath('/dashboard/products');
+  revalidatePath('/');
+  return product;
+}
+
+export async function updateProduct(id, formData) {
+  await checkAuth();
+
+  const name = formData.get('name');
+  const brandId = formData.get('brandId');
+  const itemCode = formData.get('itemCode') || null;
+  const category = formData.get('category') || null;
+  const imageFile = formData.get('imageFile');
+  let imageUrl = formData.get('imageUrl') || null;
+
+  if (imageFile && imageFile.size > 0) {
+    const savedPath = await saveFile(imageFile);
+    if (savedPath) imageUrl = savedPath;
+  }
+
+  const isReturnable = formData.get('isReturnable') === 'true';
+  const isPublic = formData.get('isPublic') === 'true';
+  const isSerialized = formData.get('isSerialized') === 'true';
+  const stockCap = formData.get('stockCap') ? parseInt(formData.get('stockCap'), 10) : null;
+
+  if (!name) throw new Error('Product name is required');
+  if (!brandId) throw new Error('Associated Brand is required');
+
+  await prisma.product.update({
+    where: { id },
+    data: {
+      name,
+      brandId,
+      itemCode,
+      category,
+      imageUrl,
+      isReturnable,
+      isPublic,
+      isSerialized,
+      stockCap,
+    },
+  });
+
+  revalidatePath('/dashboard/products');
+  revalidatePath('/');
+}
+
+export async function deleteProduct(id) {
+  await checkAuth();
+
+  await prisma.product.delete({
+    where: { id },
+  });
+
+  revalidatePath('/dashboard/products');
+  revalidatePath('/');
+}
+
+// Upload/import barcodes in bulk for a serialized product
+export async function importBarcodes(productId, barcodes = [], secondaryBarcodes = []) {
+  await checkAuth();
+
+  if (!productId) throw new Error('Product ID is required');
+  if (barcodes.length === 0) throw new Error('No barcodes provided');
+
+  const data = barcodes.map((barcode, idx) => ({
+    productId,
+    barcode: barcode.trim(),
+    secondaryBarcode: secondaryBarcodes[idx] ? secondaryBarcodes[idx].trim() : null,
+    currentLocationType: 'WAREHOUSE', // Fresh barcodes start in the main Warehouse
+    status: 'AVAILABLE',
+  }));
+
+  // Create barcodes in bulk, ignore duplicates
+  const result = await prisma.productSerialNumber.createMany({
+    data,
+    skipDuplicates: true,
+  });
+
+  revalidatePath('/dashboard/products');
+  return result.count; // Return number of successfully imported barcodes
+}
+
+// Fetch barcodes for a single product
+export async function getProductSerials(productId) {
+  await checkAuth();
+  return prisma.productSerialNumber.findMany({
+    where: { productId },
+    orderBy: { barcode: 'asc' },
+  });
+}
+
+// Fetch active barcodes currently at a specific location
+export async function getActiveSerialsAtLocation(productId, locationType, locationId) {
+  await checkAuth();
+  return prisma.productSerialNumber.findMany({
+    where: {
+      productId,
+      currentLocationType: locationType,
+      currentLocationId: locationId || null,
+      status: 'AVAILABLE',
+    },
+    orderBy: { barcode: 'asc' },
+  });
+}
+
+// Bulk create products from CSV import
+export async function bulkCreateProducts(productsList) {
+  await checkAuth();
+
+  if (!productsList || productsList.length === 0) {
+    throw new Error('No products list provided');
+  }
+
+  const data = productsList.map(p => ({
+    name: p.name,
+    brandId: p.brandId,
+    itemCode: p.itemCode || null,
+    category: p.category || null,
+    isReturnable: !!p.isReturnable,
+    isPublic: p.isPublic !== false,
+    isSerialized: !!p.isSerialized,
+    stockCap: p.stockCap ? parseInt(p.stockCap, 10) : null,
+  }));
+
+  const result = await prisma.product.createMany({
+    data,
+    skipDuplicates: true,
+  });
+
+  revalidatePath('/dashboard/products');
+  revalidatePath('/');
+  return result.count;
+}
+
+// Bulk update multiple products
+export async function bulkUpdateProducts(ids = [], updateData = {}) {
+  await checkAuth();
+
+  if (ids.length === 0) throw new Error('No product IDs specified');
+
+  const data = {};
+  if (updateData.brandId !== undefined) data.brandId = updateData.brandId;
+  if (updateData.category !== undefined) data.category = updateData.category;
+  if (updateData.isReturnable !== undefined) data.isReturnable = !!updateData.isReturnable;
+  if (updateData.isPublic !== undefined) data.isPublic = !!updateData.isPublic;
+
+  await prisma.product.updateMany({
+    where: { id: { in: ids } },
+    data,
+  });
+
+  revalidatePath('/dashboard/products');
+  revalidatePath('/');
+}
+
+// Bulk delete multiple products
+export async function bulkDeleteProducts(ids = []) {
+  await checkAuth();
+
+  if (ids.length === 0) throw new Error('No product IDs specified');
+
+  await prisma.product.deleteMany({
+    where: { id: { in: ids } },
+  });
+
+  revalidatePath('/dashboard/products');
+  revalidatePath('/');
+}
+
+// Fetch available barcodes/serials at a specific location
+export async function getAvailableBarcodes(productId, locationType, locationId = null) {
+  await checkAuth();
+  return prisma.productSerialNumber.findMany({
+    where: {
+      productId,
+      currentLocationType: locationType,
+      currentLocationId: locationId ? locationId : null,
+      status: 'AVAILABLE'
+    },
+    select: {
+      id: true,
+      barcode: true,
+      secondaryBarcode: true
+    },
+    orderBy: {
+      barcode: 'asc'
+    }
+  });
+}

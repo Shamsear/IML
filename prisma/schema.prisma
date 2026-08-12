@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------
+// CORE ENTITIES
+// ------------------------------------------------------
+
+model Brand {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  imageUrl    String?
+  isPublic    Boolean   @default(true)
+  secretKey   String    @unique @default(uuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+  stores      Store[]
+}
+
+model Product {
+  id             String    @id @default(uuid())
+  brandId        String
+  itemCode       String?   @unique
+  name           String    // e.g. "Sadia Yellow T-Shirt (Large)"
+  category       String?   
+  imageUrl       String?
+  isReturnable   Boolean   @default(false) 
+  isPublic       Boolean   @default(true)
+  isSerialized   Boolean   @default(false) 
+  stockCap       Int?      
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  brand          Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  transactions   InventoryTransaction[]
+  serialNumbers  ProductSerialNumber[] 
+
+  @@index([name])
+}
+
+// ------------------------------------------------------
+// PEOPLE & PLACES
+// ------------------------------------------------------
+
+model Supervisor {
+  id        String   @id @default(uuid())
+  name      String   // e.g., "Shanawas", "Zeeshan"
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  name      String   // e.g., "Lulu Hypermarket Khalifa City"
+  region    String?  // e.g., "AUH", "SHJ"
+  location  String?
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff     Staff[]  
+  brands    Brand[]
+
+  @@index([name])
+}
+
+model Staff {
+  id           String   @id @default(uuid())
+  name         String   // Promoter Name
+  phone        String?  // Promoter Contact
+  shirtSize    String?  // e.g., "Small", "Medium", "Large"
+  
+  storeId      String?  
+  store        Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([name])
+}
+
+
+// ------------------------------------------------------
+// SERIAL NUMBER TRACKING
+// ------------------------------------------------------
+
+model ProductSerialNumber {
+  id              String   @id @default(uuid())
+  productId       String
+  barcode         String   @unique 
+  secondaryBarcode String? 
+  
+  currentLocationType String?  
+  currentLocationId   String?  
+  
+  status          String   @default("AVAILABLE") 
+
+  replacesId      String?  @unique
+  replaces        ProductSerialNumber? @relation("SerialReplacement", fields: [replacesId], references: [id])
+  replacedBy      ProductSerialNumber? @relation("SerialReplacement")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  transactions    TransactionSerialNumber[] 
+
+  @@index([currentLocationType, currentLocationId])
+}
+
+// ------------------------------------------------------
+// INVENTORY TRACKING (THE LEDGER)
+// ------------------------------------------------------
+
+model InventoryTransaction {
+  id              String   @id @default(uuid())
+  productId       String
+  
+  transactionType String   // e.g., 'RECEIVE', 'ISSUE', 'RETURN', 'DAMAGE', etc.
+  
+  fromEntityType  String?  
+  fromEntityId    String?  
+  toEntityType    String?  
+  toEntityId      String?  
+  quantity        Int
+  
+  deliveryNote    String?
+  deliveryStatus  String?  
+  notes           String?
+  receivedBy      String?  
+  timestamp       DateTime @default(now())
+
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  serialNumbers   TransactionSerialNumber[]
+
+  @@index([timestamp])
+  @@index([transactionType])
+  @@index([fromEntityType, fromEntityId])
+  @@index([toEntityType, toEntityId])
+}
+
+model TransactionSerialNumber {
+  transactionId  String
+  serialNumberId String
+
+  transaction    InventoryTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  serialNumber   ProductSerialNumber  @relation(fields: [serialNumberId], references: [id], onDelete: Cascade)
+
+  @@id([transactionId, serialNumberId])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}
+

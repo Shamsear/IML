@@ -1,0 +1,115 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  LayoutDashboard, 
+  Tag, 
+  Package, 
+  Store, 
+  UserCheck, 
+  Users, 
+  FolderGit, 
+  History,
+  Activity,
+  BarChart3,
+  Settings,
+  ArrowDownLeft,
+  ArrowUpRight,
+  RefreshCw,
+  ShieldAlert,
+} from 'lucide-react';
+
+const navSections = [
+  {
+    label: 'Main',
+    items: [
+      { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+      { name: 'Activity', href: '/dashboard/activity', icon: Activity },
+      { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { name: 'Products', href: '/dashboard/products', icon: Package },
+      { name: 'Inbound (Receive)', href: '/dashboard/inbound', icon: ArrowDownLeft },
+      { name: 'Outbound (Dispatch)', href: '/dashboard/outbound', icon: ArrowUpRight },
+      { name: 'Rebrand Stock', href: '/dashboard/rebrand', icon: RefreshCw },
+      { name: 'Report Damage', href: '/dashboard/damage', icon: ShieldAlert },
+      { name: 'Ledger Logs', href: '/dashboard/transactions', icon: History },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { name: 'Brands', href: '/dashboard/brands', icon: Tag },
+      { name: 'Stores', href: '/dashboard/stores', icon: Store },
+      { name: 'Supervisors', href: '/dashboard/supervisors', icon: UserCheck },
+      { name: 'Staff', href: '/dashboard/staff', icon: Users },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+    ],
+  },
+];
+
+export default function DashboardNav({ collapsed }) {
+  const pathname = usePathname();
+
+  return (
+    <nav className="flex flex-col gap-6">
+      {navSections.map((section) => (
+        <div key={section.label} className="flex flex-col gap-1.5">
+          {!collapsed ? (
+            <span className="px-3 text-[11px] font-bold tracking-wider text-text-muted uppercase">
+              {section.label}
+            </span>
+          ) : (
+            <div className="h-px bg-border my-1 mx-3" />
+          )}
+          
+          <div className="flex flex-col gap-1">
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.href === '/dashboard' 
+                ? pathname === '/dashboard'
+                : pathname.startsWith(item.href);
+              
+              return (
+                <Link 
+                  key={item.href} 
+                  href={item.href} 
+                  className={`flex items-center gap-3 rounded-lg text-sm font-semibold transition-all duration-200 group relative
+                    ${collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5'}
+                    ${isActive 
+                      ? 'text-primary bg-primary/10 border-l-2 border-primary rounded-l-none' 
+                      : 'text-text-secondary hover:text-text-primary hover:bg-black/5'
+                    }
+                  `}
+                  title={collapsed ? item.name : undefined}
+                >
+                  <Icon 
+                    size={18} 
+                    className={`transition-colors duration-200
+                      ${isActive ? 'text-primary' : 'text-text-secondary group-hover:text-text-primary'}
+                    `} 
+                  />
+                  {!collapsed && <span className="truncate">{item.name}</span>}
+                  
+                  {/* Subtle hover indicator dot if collapsed */}
+                  {isActive && collapsed && (
+                    <div className="absolute right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+}

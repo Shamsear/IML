@@ -1,0 +1,142 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import DashboardNav from '@/components/DashboardNav';
+import GlobalSearch from '@/components/GlobalSearch';
+import PushSubscriptionBtn from '@/components/PushSubscriptionBtn';
+import { PanelLeftClose, PanelLeftOpen, LogOut, Menu, X } from 'lucide-react';
+
+export default function DashboardShell({ user, children }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  return (
+    <div className="min-h-screen flex bg-background text-text-primary">
+      {/* Mobile Drawer Overlay */}
+      {mobileOpen && (
+        <div 
+          onClick={() => setMobileOpen(false)} 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+        />
+      )}
+
+      {/* Sidebar aside */}
+      <aside 
+        className={`fixed inset-y-0 left-0 bg-surface border-r border-border z-50 flex flex-col transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen
+          ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
+          ${collapsed ? 'lg:w-20' : 'lg:w-64'}
+        `}
+      >
+        {/* Logo area */}
+        <div className="flex items-center justify-between px-4 py-5 border-b border-border">
+          <div className="flex items-center gap-3 overflow-hidden w-full">
+            {(!collapsed || mobileOpen) ? (
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/IML LOGO V-C.png" 
+                  alt="IML Group Logo" 
+                  className="h-8 w-auto object-contain block max-w-[140px]" 
+                />
+                <span className="text-[9px] font-bold tracking-wider text-secondary uppercase bg-secondary/10 px-1.5 py-0.5 rounded-md">Admin</span>
+              </div>
+            ) : (
+              <img 
+                src="/IML LOGO H-C.png" 
+                alt="IML Group Emblem" 
+                className="w-9 h-9 object-contain block mx-auto" 
+              />
+            )}
+          </div>
+          
+          {/* Collapse sidebar trigger */}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden lg:flex items-center justify-center p-1.5 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+          
+          {/* Close mobile drawer */}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="lg:hidden flex items-center justify-center p-1.5 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Navigation list */}
+        <div className="flex-1 overflow-y-auto py-4 px-3">
+          <DashboardNav collapsed={collapsed && !mobileOpen} />
+        </div>
+
+        {/* User Info footer inside sidebar */}
+        <div className="p-4 border-t border-border flex items-center justify-between gap-2 overflow-hidden bg-surface-elevated/30">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
+              {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+            </div>
+            {(!collapsed || mobileOpen) && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-semibold text-text-primary truncate">{user?.name}</span>
+                <span className="text-[10px] text-text-secondary truncate">Administrator</span>
+              </div>
+            )}
+          </div>
+          {(!collapsed || mobileOpen) && (
+            <Link 
+              href="/api/auth/signout" 
+              className="p-2 rounded-md hover:bg-danger/10 hover:text-danger text-text-secondary transition-colors"
+              title="Sign Out"
+            >
+              <LogOut size={15} />
+            </Link>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Workspace Frame */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        {/* Top Header */}
+        <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-6 bg-surface/85 backdrop-blur-md border-b border-border">
+          <div className="flex items-center gap-4 flex-1">
+            <button 
+              className="lg:hidden p-2 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors" 
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            <GlobalSearch />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <PushSubscriptionBtn />
+            <div className="hidden sm:block h-6 w-px bg-border" />
+            <div className="hidden sm:flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs">
+                {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+              </div>
+              <span className="text-sm font-medium text-text-primary">{user?.name}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Page children wrapped in standard container */}
+        <main className="flex-1 overflow-x-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
