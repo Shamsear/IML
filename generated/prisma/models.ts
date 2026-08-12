@@ -8,6 +8,7 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/User.ts'
 export type * from './models/Brand.ts'
 export type * from './models/Product.ts'
 export type * from './models/Supervisor.ts'
