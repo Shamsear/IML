@@ -33,31 +33,55 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5 animate-fade-in">
-      <div className="w-full max-w-[400px] flex flex-col gap-6">
-        
-        {/* Centered Brand Logo and Header */}
-        <div className="flex flex-col items-center text-center gap-2">
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+      {/* Left Branding Panel (visible only on desktop) */}
+      <div className="hidden md:flex w-full md:w-[40%] bg-gradient-to-br from-primary/10 via-background to-secondary/5 border-r border-border p-8 md:p-12 flex-col justify-between">
+        <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
           <img 
             src="/IML LOGO H-C.png" 
             alt="IML Group Logo" 
-            className="w-14 h-14 object-contain mb-1 block" 
+            className="w-16 h-16 object-contain mb-8 block" 
           />
-          <h1 className="text-xl font-display font-extrabold text-text-primary tracking-tight leading-tight">
-            The IML Group
+          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight leading-tight">
+            IML Group
           </h1>
-          <p className="text-[10px] font-bold tracking-widest text-secondary uppercase bg-secondary/10 px-2.5 py-0.5 rounded-full">
+          <p className="text-sm font-semibold text-text-secondary mt-1">
             Inventory Management Portal
           </p>
+          <div className="w-12 h-1 bg-primary/30 rounded-full my-6" />
+          <p className="text-sm text-text-secondary leading-relaxed">
+            Manage your marketing inventory, track stock movements, and coordinate
+            retail operations across the UAE.
+          </p>
         </div>
+        <div className="text-xs text-text-muted mt-8 text-center md:text-left">
+          <span>© 2026 The IML Group. All rights reserved.</span>
+        </div>
+      </div>
 
-        {/* Centered Glassmorphic Login Form Card */}
-        <div className="bg-surface/65 backdrop-blur-md border border-border/80 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-5">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-base font-display font-extrabold text-text-primary">
+      {/* Right Form Panel */}
+      <div className="flex-1 bg-surface flex flex-col items-center justify-center p-8 sm:p-12">
+        <div className="w-full max-w-[360px] flex flex-col gap-6">
+          {/* Mobile Header Branding (visible only on mobile) */}
+          <div className="md:hidden flex flex-col items-center mb-2">
+            <img 
+              src="/IML LOGO H-C.png" 
+              alt="IML Group Logo" 
+              className="w-14 h-14 object-contain mb-3" 
+            />
+            <h1 className="text-2xl font-display font-extrabold text-text-primary tracking-tight">
+              IML Group
+            </h1>
+            <span className="text-[10px] font-bold tracking-wider text-secondary uppercase bg-secondary/10 px-1.5 py-0.5 rounded mt-1.5">
+              Admin Portal
+            </span>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-display font-extrabold text-text-primary tracking-tight">
               Welcome back
             </h2>
-            <p className="text-xs text-text-secondary">
+            <p className="text-sm text-text-secondary mt-1">
               Sign in to your admin account
             </p>
           </div>
@@ -111,24 +135,20 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-[10px] text-text-muted text-center">
+          <p className="text-xs text-text-muted text-center mt-2">
             Authorized admin access only
           </p>
-        </div>
 
-        {/* Stacked Description & Copyright Notice Footer */}
-        <div className="flex flex-col items-center text-center gap-4 mt-2 px-2">
-          <p className="text-xs text-text-secondary leading-relaxed max-w-[320px]">
-            Manage your marketing inventory, track stock movements, and coordinate retail operations across the UAE.
-          </p>
-          
-          <div className="w-8 h-px bg-border/60" />
-          
-          <p className="text-[10px] text-text-muted">
-            © {new Date().getFullYear()} The IML Group. All rights reserved.
-          </p>
+          {/* Mobile Marketing & Copyright Info (visible only on mobile) */}
+          <div className="md:hidden flex flex-col gap-4 mt-6 pt-5 border-t border-border/60 text-center">
+            <p className="text-xs text-text-secondary leading-relaxed px-2">
+              Manage your marketing inventory, track stock movements, and coordinate retail operations across the UAE.
+            </p>
+            <span className="text-[10px] text-text-muted">
+              © 2026 The IML Group. All rights reserved.
+            </span>
+          </div>
         </div>
-
       </div>
     </div>
   );
