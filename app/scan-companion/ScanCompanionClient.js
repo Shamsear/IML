@@ -31,6 +31,10 @@ export default function ScanCompanionClient({ session }) {
   const [manualBarcode, setManualBarcode] = useState('');
   const lastScannedBarcodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
+  
+  const [cameras, setCameras] = useState([]);
+  const [currentCameraIdx, setCurrentCameraIdx] = useState(0);
+  const html5QrCodeRef = useRef(null);
 
   const handleManualSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -104,80 +108,123 @@ export default function ScanCompanionClient({ session }) {
     }
   }, [session, cameraPermissionStatus]);
 
+  const startScanning = async (scannerInstance, cameraId) => {
+    try {
+      await scannerInstance.start(
+        cameraId,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        },
+        async (decodedText) => {
+          const code = decodedText.trim();
+          const now = Date.now();
+
+          // Cooldown: prevent duplicate scans within 2 seconds
+          if (code.toLowerCase() === lastScannedBarcodeRef.current && (now - lastScannedTimeRef.current < 2000)) {
+            return;
+          }
+          lastScannedBarcodeRef.current = code.toLowerCase();
+          lastScannedTimeRef.current = now;
+
+          // Send scanned code to backend API endpoint
+          try {
+            const response = await fetch('/api/scan-companion', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId: session, barcode: code })
+            });
+
+            if (response.ok) {
+              playBeep();
+              triggerVibe();
+              setScannedItems(prev => [code, ...prev]);
+              
+              // Flash visual target overlay feedback
+              const flashOverlay = document.querySelector('.custom-scan-overlay > div');
+              if (flashOverlay) {
+                flashOverlay.style.borderColor = '#10b981';
+                flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
+                setTimeout(() => {
+                  if (flashOverlay) {
+                    flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                    flashOverlay.style.boxShadow = 'none';
+                  }
+                }, 400);
+              }
+            } else {
+              const data = await response.json();
+              setErrorMessage(data.error || 'Failed to submit barcode to PC.');
+              setTimeout(() => setErrorMessage(''), 3000);
+            }
+          } catch (err) {
+            setErrorMessage('Network connection lost.');
+            setTimeout(() => setErrorMessage(''), 3000);
+          }
+        },
+        (err) => {}
+      );
+    } catch (e) {
+      console.error("Failed to start scanning:", e);
+    }
+  };
+
   // html5-qrcode scanner lifecycle
   useEffect(() => {
-    let html5QrcodeScanner = null;
+    let html5Qrcode = null;
     if (session && cameraPermissionStatus === 'granted') {
       const initScanner = async () => {
         try {
-          const { Html5QrcodeScanner } = await import('html5-qrcode');
-          html5QrcodeScanner = new Html5QrcodeScanner(
-            "mobile-reader-element",
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            false
-          );
+          const { Html5Qrcode } = await import('html5-qrcode');
+          html5Qrcode = new Html5Qrcode("mobile-reader-element");
+          html5QrCodeRef.current = html5Qrcode;
 
-          html5QrcodeScanner.render(
-            async (decodedText) => {
-              const code = decodedText.trim();
-              const now = Date.now();
-
-              // Cooldown: prevent duplicate scans within 2 seconds
-              if (code.toLowerCase() === lastScannedBarcodeRef.current && (now - lastScannedTimeRef.current < 2000)) {
-                return;
-              }
-              lastScannedBarcodeRef.current = code.toLowerCase();
-              lastScannedTimeRef.current = now;
-
-              // Send scanned code to backend API endpoint
-              try {
-                const response = await fetch('/api/scan-companion', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ sessionId: session, barcode: code })
-                });
-
-                if (response.ok) {
-                  playBeep();
-                  triggerVibe();
-                  setScannedItems(prev => [code, ...prev]);
-                  
-                  // Flash visual target overlay feedback
-                  const flashOverlay = document.querySelector('.custom-scan-overlay > div');
-                  if (flashOverlay) {
-                    flashOverlay.style.borderColor = '#10b981';
-                    flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
-                    setTimeout(() => {
-                      if (flashOverlay) {
-                        flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                        flashOverlay.style.boxShadow = 'none';
-                      }
-                    }, 400);
-                  }
-                } else {
-                  const data = await response.json();
-                  setErrorMessage(data.error || 'Failed to submit barcode to PC.');
-                  setTimeout(() => setErrorMessage(''), 3000);
-                }
-              } catch (err) {
-                setErrorMessage('Network connection lost.');
-                setTimeout(() => setErrorMessage(''), 3000);
-              }
-            },
-            (err) => {}
-          );
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            setCameras(devices);
+            
+            // Auto select best back/environment camera
+            let defaultIdx = devices.findIndex(d => 
+              d.label.toLowerCase().includes('back') || 
+              d.label.toLowerCase().includes('rear') || 
+              d.label.toLowerCase().includes('environment')
+            );
+            if (defaultIdx === -1) defaultIdx = 0;
+            
+            setCurrentCameraIdx(defaultIdx);
+            await startScanning(html5Qrcode, devices[defaultIdx].id);
+          } else {
+            setErrorMessage("No cameras found on this device.");
+          }
         } catch (e) {
           console.error("Scanner init error:", e);
+          setErrorMessage("Failed to start camera feed.");
         }
       };
       initScanner();
     }
     return () => {
-      if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(e => console.error("Failed to clear scanner:", e));
+      if (html5Qrcode) {
+        html5Qrcode.stop().catch(e => console.error("Failed to stop scanner:", e));
       }
     };
   }, [session, cameraPermissionStatus]);
+
+  const handleCycleCamera = async () => {
+    if (cameras.length <= 1 || !html5QrCodeRef.current) return;
+    
+    try {
+      await html5QrCodeRef.current.stop();
+      const nextIdx = (currentCameraIdx + 1) % cameras.length;
+      setCurrentCameraIdx(nextIdx);
+      await startScanning(html5QrCodeRef.current, cameras[nextIdx].id);
+    } catch (e) {
+      console.error("Failed to switch camera:", e);
+      setErrorMessage("Error switching camera lens.");
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  };
 
   // Hook to dynamically inject scanning laser line & custom corners over the live HTML video container
   useEffect(() => {
@@ -400,6 +447,20 @@ export default function ScanCompanionClient({ session }) {
             <div className="relative w-full rounded-xl overflow-hidden border border-border bg-surface shadow-sm">
               <div id="mobile-reader-element" className="w-full"></div>
             </div>
+
+            {/* Dynamic Camera Cycle Switch Button */}
+            {cameras.length > 1 && (
+              <div className="flex justify-center flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCycleCamera}
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold shadow-sm transition-all"
+                >
+                  <Camera size={14} className="text-primary animate-pulse" />
+                  <span>Switch Camera ({currentCameraIdx + 1}/{cameras.length}: {cameras[currentCameraIdx]?.label || 'Lens'})</span>
+                </button>
+              </div>
+            )}
 
             {/* Manual scan form fallback */}
             <form onSubmit={handleManualSubmit} className="bg-surface border border-border p-3 rounded-lg flex flex-col gap-2 shadow-sm">
