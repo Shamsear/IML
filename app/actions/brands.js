@@ -287,3 +287,61 @@ export async function getBrandPortalDetails(secretKey) {
 
   return brand;
 }
+
+export async function createBulkBrands(formData) {
+  await checkAuth();
+
+  const count = parseInt(formData.get('count'), 10) || 0;
+  if (count === 0) {
+    throw new Error('No brands provided for creation');
+  }
+
+  // Parse details
+  const brandsList = [];
+  for (let i = 0; i < count; i++) {
+    const name = formData.get(`item_${i}_name`);
+    const description = formData.get(`item_${i}_description`);
+    const imageFile = formData.get(`item_${i}_imageFile`);
+    let imageUrl = formData.get(`item_${i}_imageUrl`) || null;
+
+    if (imageFile && imageFile.size > 0) {
+      const savedPath = await saveFile(imageFile);
+      if (savedPath) imageUrl = savedPath;
+    }
+
+    const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
+
+    if (!name) throw new Error('Brand name is required');
+    brandsList.push({ name, description, imageUrl, isPublic });
+  }
+
+  // Save all in a transaction
+  const results = await prisma.$transaction(async (tx) => {
+    const createdBrands = [];
+    for (let i = 0; i < brandsList.length; i++) {
+      const b = brandsList[i];
+      
+      const id = await generateId('brand', 'BRND', 3);
+      const cleanName = b.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const secretKey = `portal-${cleanName}-${crypto.randomBytes(16).toString('hex')}`;
+
+      const created = await tx.brand.create({
+        data: {
+          id,
+          name: b.name,
+          description: b.description,
+          imageUrl: b.imageUrl,
+          isPublic: b.isPublic,
+          secretKey,
+        }
+      });
+      createdBrands.push(created);
+    }
+    return createdBrands;
+  });
+
+  revalidatePath('/dashboard/brands');
+  revalidatePath('/');
+  return results;
+}
+

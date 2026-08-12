@@ -5,6 +5,7 @@ import { generateId } from '@/lib/idGenerator';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { uploadToImageKit } from '@/lib/imagekit';
 
 async function checkAuth() {
   const session = await getServerSession(authOptions);
@@ -814,9 +815,31 @@ export async function getRecentSuppliers() {
   return distinct;
 }
 
-export async function createBulkRebrandTransactions(payload) {
-  const { sourceProductId, targetProductId, remarks, mappings = [] } = payload;
-  
+export async function createBulkRebrandTransactions(formData) {
+  await checkAuth();
+
+  const sourceProductId = formData.get('sourceProductId');
+  const targetProductId = formData.get('targetProductId');
+  const remarks = formData.get('remarks');
+  const mappingsJson = formData.get('mappings');
+  const mappings = JSON.parse(mappingsJson || '[]');
+
+  const targetProductImage = formData.get('targetProductImage');
+  let newImageUrl = null;
+
+  if (targetProductImage && targetProductImage.size > 0) {
+    const savedPath = await uploadToImageKit(targetProductImage);
+    if (savedPath) newImageUrl = savedPath;
+  }
+
+  // If a new image was uploaded, update the target product's imageUrl in the database!
+  if (newImageUrl) {
+    await prisma.product.update({
+      where: { id: targetProductId },
+      data: { imageUrl: newImageUrl }
+    });
+  }
+
   // Format mappings to the format processRebrand expects
   const barcodes = mappings.map(m => ({
     oldBarcode: m.sourceBarcode,

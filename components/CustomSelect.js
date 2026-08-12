@@ -105,8 +105,15 @@ export default function CustomSelect({
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between bg-surface text-text-primary border border-border ${radius} ${py} ${text} text-left focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${disabled ? 'opacity-50 cursor-not-allowed bg-surface-elevated/40' : 'cursor-pointer hover:border-primary/50'}`}
       >
-        <span className="truncate">
-          {selectedOption ? selectedOption.label : placeholder}
+        <span className="truncate flex items-center gap-2">
+          {selectedOption?.imageUrl && (
+            <img 
+              src={selectedOption.imageUrl} 
+              alt="" 
+              className="w-5 h-5 rounded border border-border bg-white object-contain flex-shrink-0"
+            />
+          )}
+          <span>{selectedOption ? selectedOption.label : placeholder}</span>
         </span>
         <ChevronDown size={size === 'sm' ? 14 : 16} className={`text-text-secondary transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -168,7 +175,16 @@ export default function CustomSelect({
                     onClick={() => handleSelect(opt.value)}
                     className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:bg-surface-elevated ${isSelected ? 'bg-primary/5 text-primary font-bold' : 'text-text-secondary'}`}
                   >
-                    <span className="truncate">{opt.label}</span>
+                    <span className="truncate flex items-center gap-2">
+                      {opt.imageUrl && (
+                        <img 
+                          src={opt.imageUrl} 
+                          alt="" 
+                          className="w-5 h-5 rounded border border-border bg-white object-contain flex-shrink-0"
+                        />
+                      )}
+                      <span>{opt.label}</span>
+                    </span>
                     {isSelected && <Check size={12} className="text-primary flex-shrink-0" />}
                   </button>
                 );

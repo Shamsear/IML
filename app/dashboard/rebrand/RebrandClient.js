@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkRebrandTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
@@ -41,6 +41,10 @@ export default function RebrandClient({ products }) {
   const [targetProductId, setTargetProductId] = useState(products[0]?.id || '');
   const [remarks, setRemarks] = useState('');
 
+  // Target product replacement image state
+  const [targetProductImage, setTargetProductImage] = useState(null);
+  const [targetProductImagePreview, setTargetProductImagePreview] = useState('');
+
   // Available barcodes in warehouse for selected source product
   const [availableBarcodes, setAvailableBarcodes] = useState([]);
   
@@ -59,7 +63,7 @@ export default function RebrandClient({ products }) {
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
 
-  // Sync isBulkScan to Ref to prevent stale closures without re-triggering camera instantiations
+  // Sync isBulkScan to Ref
   const isBulkScanRef = useRef(isBulkScan);
   useEffect(() => {
     isBulkScanRef.current = isBulkScan;
@@ -68,6 +72,29 @@ export default function RebrandClient({ products }) {
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
+
+  // Load saved mobile session on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('iml_mobile_scan_session');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          fetch(`/api/scan-companion?sessionId=${parsed.sessionId}`)
+            .then(res => {
+              if (res.ok) {
+                setMobileSession(parsed);
+              } else {
+                localStorage.removeItem('iml_mobile_scan_session');
+              }
+            })
+            .catch(() => {});
+        } catch (e) {
+          localStorage.removeItem('iml_mobile_scan_session');
+        }
+      }
+    }
+  }, []);
 
   // Fetch available warehouse barcodes for the selected source product
   useEffect(() => {
@@ -82,13 +109,28 @@ export default function RebrandClient({ products }) {
     }
   }, [sourceProductId]);
 
+  // Reset target product image on product change
+  useEffect(() => {
+    setTargetProductImage(null);
+    setTargetProductImagePreview('');
+  }, [targetProductId]);
+
+  const sourceSelectedProduct = products.find(p => p.id === sourceProductId);
+  const targetSelectedProduct = products.find(p => p.id === targetProductId);
+
   const handleAddMapping = (sourceBarcode = '', targetBarcode = '') => {
     let added = false;
     setMappings(prev => {
       const alreadyMapped = prev.some(m => m.sourceBarcode.toLowerCase() === sourceBarcode.toLowerCase());
       if (!alreadyMapped) {
         added = true;
-        return [...prev, { sourceBarcode, targetBarcode }];
+        // Expand the newly added row and collapse the rest
+        return prev.map(m => ({ ...m, isExpanded: false })).concat({ 
+          sourceBarcode, 
+          targetBarcode, 
+          isExpanded: true,
+          error: ''
+        });
       }
       return prev;
     });
@@ -96,11 +138,30 @@ export default function RebrandClient({ products }) {
   };
 
   const handleRemoveMapping = (index) => {
-    setMappings(prev => prev.filter((_, idx) => idx !== index));
+    setMappings(prev => {
+      const updated = prev.filter((_, idx) => idx !== index);
+      if (updated.length > 0 && !updated.some(m => m.isExpanded)) {
+        updated[updated.length - 1].isExpanded = true;
+      }
+      return updated;
+    });
   };
 
   const handleMappingFieldChange = (index, field, value) => {
     setMappings(prev => prev.map((item, idx) => idx === index ? { ...item, [field]: value } : item));
+  };
+
+  const handleExpandMapping = (index) => {
+    setMappings(prev => prev.map((item, idx) => ({ ...item, isExpanded: idx === index })));
+  };
+
+  const handleFinishMapping = (index) => {
+    const item = mappings[index];
+    if (!item.targetBarcode.trim()) {
+      handleMappingFieldChange(index, 'error', 'Target barcode is required');
+      return;
+    }
+    setMappings(prev => prev.map((it, i) => i === index ? { ...it, isExpanded: false, error: '' } : it));
   };
 
   // Keyboard barcode scan handler
@@ -238,10 +299,16 @@ export default function RebrandClient({ products }) {
   // Mobile pairing setup
   const handleOpenMobileScanner = async () => {
     try {
+      if (mobileSession?.sessionId) {
+        setIsMobileModalOpen(true);
+        return;
+      }
+      
       const res = await fetch('/api/scan-companion', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         setMobileSession(data);
+        localStorage.setItem('iml_mobile_scan_session', JSON.stringify(data));
         setIsMobileModalOpen(true);
       }
     } catch (e) {
@@ -293,13 +360,27 @@ export default function RebrandClient({ products }) {
     setError('');
     setSuccessMsg('');
 
+    // Validation Loop
+    for (let i = 0; i < mappings.length; i++) {
+      if (!mappings[i].targetBarcode.trim()) {
+        handleMappingFieldChange(i, 'error', 'Target barcode is required');
+        handleExpandMapping(i);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
-      await createBulkRebrandTransactions({
-        sourceProductId,
-        targetProductId,
-        remarks,
-        mappings
-      });
+      const formData = new FormData();
+      formData.append('sourceProductId', sourceProductId);
+      formData.append('targetProductId', targetProductId);
+      formData.append('remarks', remarks);
+      formData.append('mappings', JSON.stringify(mappings.map(m => ({ sourceBarcode: m.sourceBarcode, targetBarcode: m.targetBarcode }))));
+      if (targetProductImage) {
+        formData.append('targetProductImage', targetProductImage);
+      }
+
+      await createBulkRebrandTransactions(formData);
       setSuccessMsg('Logged rebranding mapping successfully!');
       setTimeout(() => {
         router.push('/dashboard/rebrand');
@@ -332,8 +413,10 @@ export default function RebrandClient({ products }) {
           <span>{error}</span>
         </div>
       )}
+      
       {successMsg && (
         <div className="bg-success/10 border border-success/20 text-success rounded-lg p-4 text-sm font-semibold flex items-center gap-2.5 animate-slide-down">
+          <CheckCircle size={16} className="text-success" />
           <span>{successMsg}</span>
         </div>
       )}
@@ -347,26 +430,88 @@ export default function RebrandClient({ products }) {
 
         {/* Direction Fields */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 relative">
             <label className="text-xs font-semibold text-text-secondary">Source Product (Convert From)</label>
             <CustomSelect
-              options={sourceProducts.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})` }))}
+              options={sourceProducts.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
               value={sourceProductId}
               onChange={(val) => setSourceProductId(val)}
               placeholder="Select Source Product..."
               required
             />
+            {sourceSelectedProduct?.imageUrl && (
+              <div className="mt-2 flex items-center gap-2 bg-surface-elevated/40 p-2 border border-border rounded-lg max-w-fit">
+                <img src={sourceSelectedProduct.imageUrl} alt="Source Preview" className="w-10 h-10 rounded border border-border bg-white object-contain flex-shrink-0" />
+                <span className="text-[10px] text-text-secondary font-medium">Source Product Picture</span>
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 relative">
             <label className="text-xs font-semibold text-text-secondary">Target Product (Convert To)</label>
             <CustomSelect
-              options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})` }))}
+              options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
               value={targetProductId}
               onChange={(val) => setTargetProductId(val)}
               placeholder="Select Target Product..."
               required
             />
+            {targetSelectedProduct?.imageUrl && (
+              <div className="mt-2 flex items-center gap-2 bg-surface-elevated/40 p-2 border border-border rounded-lg max-w-fit">
+                <img src={targetSelectedProduct.imageUrl} alt="Target Preview" className="w-10 h-10 rounded border border-border bg-white object-contain flex-shrink-0" />
+                <span className="text-[10px] text-text-secondary font-medium">Target Product Picture</span>
+              </div>
+            )}
+          </div>
+
+          {/* Replacement image configuration for target product */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2 bg-surface-elevated/10 p-4 border border-border border-dashed rounded-xl">
+            <label className="text-xs font-bold text-text-primary">Target Product Image Replacement (Optional)</label>
+            <div className="flex items-center gap-4">
+              {targetProductImagePreview || targetSelectedProduct?.imageUrl ? (
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <img src={targetProductImagePreview || targetSelectedProduct?.imageUrl} alt="Target Product Preview" className="w-full h-full object-contain" />
+                  {targetProductImagePreview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTargetProductImage(null);
+                        setTargetProductImagePreview('');
+                      }}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white p-1 rounded-full transition-colors flex items-center justify-center cursor-pointer"
+                    >
+                      <X size={10} />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="w-20 h-20 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                  <Camera size={24} />
+                </div>
+              )}
+              <div className="flex-1 flex flex-col gap-1.5">
+                <span className="text-xs text-text-secondary">Upload a new picture to replace target product's current catalog image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setTargetProductImage(file);
+                      setTargetProductImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="hidden"
+                  id="target-product-image"
+                />
+                <label
+                  htmlFor="target-product-image"
+                  className="px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 inline-flex items-center gap-1.5 w-fit border-dashed"
+                >
+                  <span>Replace Catalog Picture</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -379,7 +524,7 @@ export default function RebrandClient({ products }) {
           <div className="flex gap-2">
             <input
               type="text"
-              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
               value={scanInput}
               onChange={(e) => setScanInput(e.target.value)}
               onKeyDown={handleScanInputKeyDown}
@@ -388,7 +533,7 @@ export default function RebrandClient({ products }) {
             <div className="flex gap-1 flex-shrink-0">
               <button
                 type="button"
-                className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5"
+                className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 onClick={() => setIsCameraOpen(true)}
                 title="Scan via PC Webcam"
               >
@@ -397,7 +542,7 @@ export default function RebrandClient({ products }) {
               </button>
               <button
                 type="button"
-                className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5"
+                className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 onClick={handleOpenMobileScanner}
                 title="Pair Wireless Mobile phone camera"
               >
@@ -411,41 +556,120 @@ export default function RebrandClient({ products }) {
 
         {/* Ledger Header */}
         <h3 className="font-display font-bold text-lg text-text-primary pb-3 border-b border-border mt-2">
-          Barcodes Conversion Mapping Table
+          Barcodes Conversion Mapping Queue
         </h3>
 
-        {/* Mappings Table */}
+        {/* Mappings Accordion List */}
         {mappings.length === 0 ? (
           <div className="text-center py-8 text-text-secondary text-xs border border-dashed border-border rounded-xl">
-            No barcodes selected. Scan source barcodes above to populate the mapping table.
+            No barcodes selected. Scan source barcodes above to populate the mapping queue.
           </div>
         ) : (
           <div className="flex flex-col gap-4">
             {mappings.map((m, index) => (
-              <div key={index} className="flex items-center gap-4 bg-surface-elevated/20 p-3 border border-border rounded-lg">
-                <div className="flex-1">
-                  <span className="text-[10px] uppercase font-bold text-text-secondary block">Source Barcode</span>
-                  <span className="text-xs font-mono font-bold text-text-primary">{m.sourceBarcode}</span>
-                </div>
-                <div className="flex-1">
-                  <span className="text-[10px] uppercase font-bold text-text-secondary block mb-1">New Target Barcode</span>
-                  <input
-                    type="text"
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded px-2.5 py-1 text-xs font-mono focus:outline-none focus:border-primary"
-                    value={m.targetBarcode}
-                    onChange={(e) => handleMappingFieldChange(index, 'targetBarcode', e.target.value)}
-                    placeholder="Enter new barcode..."
-                    required
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveMapping(index)}
-                  className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-colors mt-4"
-                  title="Remove barcode mapping"
-                >
-                  <Trash2 size={15} />
-                </button>
+              <div 
+                key={index} 
+                className={`bg-surface border rounded-xl shadow-sm transition-all duration-200 overflow-hidden
+                  ${m.isExpanded ? 'border-primary ring-2 ring-primary/5' : 'border-border hover:border-text-secondary/30'}
+                `}
+              >
+                {/* 1. COLLAPSED VIEW CARD */}
+                {!m.isExpanded && (
+                  <div 
+                    onClick={() => handleExpandMapping(index)}
+                    className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-mono font-bold text-text-primary">
+                          Source: {m.sourceBarcode}
+                        </span>
+                        <span className="text-[10px] text-text-secondary block mt-0.5">
+                          Target: {m.targetBarcode ? <strong className="text-primary font-mono">{m.targetBarcode}</strong> : <span className="text-text-muted italic">Not set</span>}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => handleExpandMapping(index)}
+                        className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
+                        title="Expand Entry"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMapping(index)}
+                        className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
+                        title="Remove Entry"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. EXPANDED VIEW CARD */}
+                {m.isExpanded && (
+                  <div className="p-5 flex flex-col gap-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-border">
+                      <span className="text-xs font-bold text-primary uppercase tracking-wider">Mapping Entry #{index + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMapping(index)}
+                        className="inline-flex items-center gap-1 text-xs text-danger hover:underline font-semibold"
+                      >
+                        <Trash2 size={12} />
+                        <span>Remove Mapping</span>
+                      </button>
+                    </div>
+
+                    {m.error && (
+                      <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-2.5 text-xs font-semibold">
+                        {m.error}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-text-secondary">Source Barcode (Original)</label>
+                        <input
+                          type="text"
+                          className="w-full bg-surface-elevated text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
+                          value={m.sourceBarcode}
+                          disabled
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-text-secondary">Target Barcode (New Rebranded)</label>
+                        <input
+                          type="text"
+                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono focus:border-primary"
+                          value={m.targetBarcode}
+                          onChange={(e) => handleMappingFieldChange(index, 'targetBarcode', e.target.value)}
+                          placeholder="Scan or enter new serial barcode..."
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-3 border-t border-border">
+                      <button
+                        type="button"
+                        onClick={() => handleFinishMapping(index)}
+                        className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow cursor-pointer"
+                      >
+                        Finish &amp; Collapse Mapping
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -469,7 +693,7 @@ export default function RebrandClient({ products }) {
           </Link>
           <button 
             type="submit" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-warning hover:bg-warning/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-warning hover:bg-warning/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
             disabled={loading || mappings.length === 0}
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
@@ -510,7 +734,6 @@ export default function RebrandClient({ products }) {
             </div>
             
             {cameraPermissionStatus !== 'granted' ? (
-              // Full-screen modal content for prompt/denied states
               <div className="flex flex-col items-center justify-center py-10 text-center gap-4 flex-1">
                 {cameraPermissionStatus === 'prompt' ? (
                   <>
@@ -523,9 +746,9 @@ export default function RebrandClient({ products }) {
                       <Camera size={32} />
                     </div>
                     <div className="flex flex-col gap-1.5 max-w-sm">
-                      <h4 className="font-display font-extrabold text-base text-text-primary">Camera Permissions Blocked</h4>
-                      <p className="text-xs text-text-secondary text-sm leading-relaxed">
-                        Camera permissions are required to scan barcodes. Please click the button below to request access or adjust your browser address bar settings.
+                      <h4 className="font-display font-extrabold text-base text-text-primary">Camera Access Blocked</h4>
+                      <p className="text-xs text-text-secondary leading-relaxed">
+                        Camera permissions are required to scan barcodes. Please enable it in browser settings.
                       </p>
                     </div>
                     <button
@@ -536,10 +759,10 @@ export default function RebrandClient({ products }) {
                           stream.getTracks().forEach(track => track.stop());
                           setCameraPermissionStatus('granted');
                         } catch (e) {
-                          alert("Camera access is still blocked. Please enable it in your browser address bar site settings.");
+                          alert("Camera access is still blocked. Please enable it in site settings.");
                         }
                       }}
-                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all"
+                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-all"
                     >
                       Enable Camera Access
                     </button>
@@ -547,76 +770,23 @@ export default function RebrandClient({ products }) {
                 )}
               </div>
             ) : (
-              // Responsive Split Grid when granted
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch overflow-y-auto sm:overflow-hidden flex-1 min-h-0">
-                
-                {/* Left Column: Camera Viewport */}
-                <div className="flex flex-col gap-2 min-h-[260px] sm:min-h-0 justify-center">
-                  <div className="relative w-full rounded-lg overflow-hidden border border-border bg-surface flex items-center justify-center">
-                    {/* The html5-qrcode element */}
-                    <div id="camera-reader-element" className="w-full"></div>
-                  </div>
-                </div>
-
-                {/* Right Column: Scanned list status logs */}
-                <div className="flex flex-col gap-3 min-h-[160px] sm:min-h-0 sm:overflow-hidden flex-1">
-                  {isBulkScan ? (
-                    <div className="flex-1 flex flex-col gap-2 p-3 bg-surface-elevated border border-border/65 rounded-lg overflow-hidden">
-                      <div className="flex justify-between items-center flex-shrink-0">
-                        <span className="text-[10px] font-bold text-text-secondary uppercase">
-                          Scanned Barcodes ({currentScannedCount})
-                        </span>
-                        {currentScannedCount > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setMappings([])}
-                            className="text-[10px] text-danger hover:underline font-semibold"
-                          >
-                            Clear All
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex-1 overflow-y-auto pr-1">
-                        {currentScannedCount === 0 ? (
-                          <span className="text-[11px] text-text-muted italic block py-4 text-center">
-                            Ready to scan... Position code in video container overlay.
-                          </span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1.5 p-1.5 bg-surface rounded border border-border/40">
-                            {scannedBarcodesList.map((code, idx) => (
-                              <span 
-                                key={idx} 
-                                className="inline-flex items-center gap-1 bg-warning/10 text-warning border border-warning/20 text-[10px] font-mono px-2 py-0.5 rounded font-semibold animate-pulse-once"
-                              >
-                                {code}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col gap-2 p-4 bg-surface-elevated rounded-lg border border-border text-center text-text-secondary justify-center">
-                      <QrCode className="mx-auto text-text-muted mb-2" size={32} />
-                      <span className="text-xs font-bold text-text-primary">Single Scan Mode</span>
-                      <p className="text-[11px] text-text-secondary leading-relaxed px-2">
-                        Align a barcode inside the target box. The scanner will register the code and close the window automatically.
-                      </p>
-                    </div>
-                  )}
-                </div>
+              <div className="relative overflow-hidden rounded-xl border border-border flex-1 bg-black flex items-center justify-center">
+                <div id="camera-reader-element" className="w-full h-full"></div>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Mobile Scanner Pairing Modal */}
+      {/* Wireless companion pairing modal */}
       {isMobileModalOpen && mobileSession && (
         <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down text-center">
-            <div className="flex justify-between items-center pb-2 border-b border-border">
-              <h3 className="font-display font-bold text-sm text-text-primary">Pair Mobile Barcode Scanner</h3>
+          <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-1.5">
+                <Smartphone size={16} className="text-primary" />
+                <span>Pair Wireless Companion Scanner</span>
+              </h3>
               <button 
                 type="button" 
                 className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
@@ -625,32 +795,16 @@ export default function RebrandClient({ products }) {
                 <X size={16} />
               </button>
             </div>
-
-            <div className="flex flex-col items-center gap-4 py-2">
-              {/* QR Code Container */}
-              <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`)}`}
-                  alt="Scan QR to pair phone"
-                  className="w-[200px] h-[200px] block"
-                />
+            
+            <div className="flex flex-col gap-4 text-center py-4 items-center">
+              <div className="p-3 bg-primary/5 rounded-full text-primary border border-primary/10">
+                <QrCode size={40} />
               </div>
-
-              <div className="flex flex-col gap-1.5 max-w-sm">
-                <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mx-auto">
-                  Pairing Code: {mobileSession.sessionId}
-                </span>
-                <p className="text-xs text-text-secondary leading-relaxed px-4 mt-2">
-                  1. Scan this QR code with your phone's camera.<br/>
-                  2. Keep both phone and PC on the same Wi-Fi.<br/>
-                  3. Scan barcodes with your phone to sync instantly!
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-extrabold text-text-primary font-mono font-semibold">Pair code: {mobileSession.sessionId}</span>
+                <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed mt-1">
+                  Open the Wireless Companion app on your phone, scan this pairing code or type it in, and scan serial numbers instantly.
                 </p>
-              </div>
-
-              {/* Loader indicator */}
-              <div className="flex items-center justify-center gap-2 mt-2 py-1.5 px-4 bg-surface-elevated rounded-lg border border-border">
-                <Loader2 size={14} className="animate-spin text-primary" />
-                <span className="text-[11px] font-bold text-text-secondary uppercase">Waiting for mobile scans...</span>
               </div>
             </div>
           </div>

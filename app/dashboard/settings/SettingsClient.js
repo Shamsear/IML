@@ -1,11 +1,40 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, ShieldCheck, Database, Image, Bell, Info, Trash2, CheckCircle2 } from 'lucide-react';
 
 export default function SettingsClient({ config, user }) {
   const [cacheStatus, setCacheStatus] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [pushStatus, setPushStatus] = useState('default');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPushStatus(Notification.permission);
+    } else {
+      setPushStatus('unsupported');
+    }
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      alert('This browser does not support desktop push notifications.');
+      return;
+    }
+    
+    try {
+      const permission = await Notification.requestPermission();
+      setPushStatus(permission);
+      if (permission === 'granted') {
+        setSuccessMsg('Push notifications have been enabled successfully!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else if (permission === 'denied') {
+        alert('Notification permission was denied. Please reset the site settings in your browser address bar to allow notifications.');
+      }
+    } catch (err) {
+      console.error('Error requesting notification permission:', err);
+    }
+  };
 
   const handleClearCache = async () => {
     setCacheStatus('Clearing...');
@@ -86,81 +115,46 @@ export default function SettingsClient({ config, user }) {
         {/* Right Side: Configuration Blocks */}
         <div className="md:col-span-2 flex flex-col gap-6">
           
-          {/* Cloud Database Integration */}
+          {/* Browser Push Notifications */}
           <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm flex flex-col gap-4">
             <h3 className="font-display font-bold text-base text-text-primary flex items-center gap-2 pb-2 border-b border-border">
-              <Database size={18} className="text-primary" />
-              <span>Neon Cloud Database</span>
+              <Bell size={18} className="text-primary animate-pulse" />
+              <span>Browser Push Notifications</span>
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Enable real-time push notifications in this browser to receive automatic alerts when items are inbound, outbound, or overdue.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-elevated/40 p-4 rounded-xl border border-border">
               <div>
-                <span className="text-[10px] uppercase font-bold text-text-secondary block">Connection Status</span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-success/10 text-success text-[10px] font-bold rounded-md mt-1 border border-success/20">
-                  Connected
+                <span className="text-[10px] uppercase font-bold text-text-secondary block">Notification Permission</span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-md mt-1 border
+                  ${pushStatus === 'granted' ? 'bg-success/10 text-success border-success/20' : 
+                    pushStatus === 'denied' ? 'bg-danger/10 text-danger border-danger/20' : 'bg-warning/10 text-warning border-warning/20'}
+                `}>
+                  {pushStatus === 'granted' ? 'Allowed & Active' : 
+                   pushStatus === 'denied' ? 'Blocked by Browser' : 'Not Configured (Default)'}
                 </span>
               </div>
               
               <div>
-                <span className="text-[10px] uppercase font-bold text-text-secondary block">Database Provider</span>
-                <span className="text-xs text-text-primary block font-semibold mt-1">Neon serverless PostgreSQL</span>
-              </div>
-
-              <div className="sm:col-span-2">
-                <span className="text-[10px] uppercase font-bold text-text-secondary block">Endpoint Host</span>
-                <span className="text-xs text-text-primary block font-mono bg-surface-elevated/40 p-2 border border-border rounded mt-1 truncate">
-                  {config.databaseHost}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* ImageKit Cloud Storage */}
-          <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm flex flex-col gap-4">
-            <h3 className="font-display font-bold text-base text-text-primary flex items-center gap-2 pb-2 border-b border-border">
-              <Image size={18} className="text-secondary" />
-              <span>ImageKit CDN Storage</span>
-            </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-text-secondary block">Integrations Status</span>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-md mt-1 border
-                  ${config.imageKitStatus === 'Configured' ? 'bg-success/10 text-success border-success/20' : 'bg-danger/10 text-danger border-danger/20'}
-                `}>
-                  {config.imageKitStatus === 'Configured' ? 'Active' : 'Missing Credentials'}
-                </span>
-              </div>
-
-              <div className="sm:col-span-2">
-                <span className="text-[10px] uppercase font-bold text-text-secondary block">URL CDN Endpoint</span>
-                <span className="text-xs text-text-primary block font-mono bg-surface-elevated/40 p-2 border border-border rounded mt-1 truncate">
-                  {config.imageKitEndpoint}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Web Push Notifications */}
-          <div className="bg-surface border border-border p-6 rounded-2xl shadow-sm flex flex-col gap-4">
-            <h3 className="font-display font-bold text-base text-text-primary flex items-center gap-2 pb-2 border-b border-border">
-              <Bell size={18} className="text-primary animate-pulse" />
-              <span>Web Push Notifications</span>
-            </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-text-secondary block">Credentials Status</span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-success/10 text-success text-[10px] font-bold rounded-md mt-1 border border-success/20">
-                  {config.vapidStatus}
-                </span>
-              </div>
-
-              <div className="sm:col-span-2">
-                <span className="text-[10px] uppercase font-bold text-text-secondary block">PWA VAPID Public Key</span>
-                <span className="text-[10px] text-text-primary block font-mono bg-surface-elevated/40 p-2 border border-border rounded mt-1 break-all">
-                  {config.vapidPublicKey}
-                </span>
+                {pushStatus !== 'granted' && (
+                  <button 
+                    type="button"
+                    onClick={handleEnableNotifications}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer shadow"
+                  >
+                    <Bell size={14} />
+                    <span>Enable Push Notifications</span>
+                  </button>
+                )}
+                {pushStatus === 'granted' && (
+                  <span className="text-xs font-semibold text-text-secondary flex items-center gap-1">
+                    <CheckCircle2 size={14} className="text-success" />
+                    <span>Configured in this browser</span>
+                  </span>
+                )}
               </div>
             </div>
           </div>

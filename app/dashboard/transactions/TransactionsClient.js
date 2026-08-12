@@ -90,7 +90,7 @@ export default function TransactionsClient({
             <Package size={16} className="text-text-secondary" />
             <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Product:</span>
             <CustomSelect
-              options={[{ value: 'ALL', label: 'All Products' }, ...products.map(p => ({ value: p.id, label: p.name }))]}
+              options={[{ value: 'ALL', label: 'All Products' }, ...products.map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl }))]}
               value={filterProduct}
               onChange={(val) => { setFilterProduct(val); setCurrentPage(0); }}
               size="sm"

@@ -472,7 +472,7 @@ function DamageFormContent({ products }) {
                   <div className="flex flex-col gap-1.5 md:col-span-2">
                     <label className="text-xs font-semibold text-text-secondary">Product Item</label>
                     <CustomSelect
-                      options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})` }))}
+                      options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
                       value={item.productId}
                       onChange={(id) => handleProductChange(index, id)}
                       placeholder="Choose product..."

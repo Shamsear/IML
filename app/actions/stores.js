@@ -80,3 +80,47 @@ export async function deleteStore(id) {
   revalidatePath('/dashboard/stores');
   revalidatePath('/');
 }
+
+export async function createBulkStores(formData) {
+  await checkAuth();
+
+  const count = parseInt(formData.get('count'), 10) || 0;
+  if (count === 0) {
+    throw new Error('No stores provided for creation');
+  }
+
+  const storesList = [];
+  for (let i = 0; i < count; i++) {
+    const name = formData.get(`item_${i}_name`);
+    const region = formData.get(`item_${i}_region`);
+    const location = formData.get(`item_${i}_location`);
+    const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
+
+    if (!name) throw new Error('Store name is required');
+    storesList.push({ name, region, location, isPublic });
+  }
+
+  const results = await prisma.$transaction(async (tx) => {
+    const createdStores = [];
+    for (let i = 0; i < storesList.length; i++) {
+      const s = storesList[i];
+      const id = await generateId('store', 'STOR', 3);
+      const created = await tx.store.create({
+        data: {
+          id,
+          name: s.name,
+          region: s.region,
+          location: s.location,
+          isPublic: s.isPublic,
+        }
+      });
+      createdStores.push(created);
+    }
+    return createdStores;
+  });
+
+  revalidatePath('/dashboard/stores');
+  revalidatePath('/');
+  return results;
+}
+

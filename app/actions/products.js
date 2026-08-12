@@ -494,3 +494,174 @@ export async function getProductById(id) {
     }
   });
 }
+
+export async function createBulkProducts(formData) {
+  await checkAuth();
+
+  const count = parseInt(formData.get('count'), 10) || 0;
+  if (count === 0) {
+    throw new Error('No products provided for creation');
+  }
+
+  // Parse list structures and handle files
+  const productsList = [];
+  for (let i = 0; i < count; i++) {
+    const name = formData.get(`item_${i}_name`);
+    const brandId = formData.get(`item_${i}_brandId`);
+    const itemCode = formData.get(`item_${i}_itemCode`) || null;
+    const category = formData.get(`item_${i}_category`) || 'Stands';
+    const productType = formData.get(`item_${i}_productType`) || 'NORMAL';
+    const stockCap = formData.get(`item_${i}_stockCap`);
+    const isReturnable = formData.get(`item_${i}_isReturnable`) === 'true';
+    const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
+    const initialQty = formData.get(`item_${i}_initialQty`) || '0';
+    const initialBarcodes = formData.get(`item_${i}_initialBarcodes`) || '';
+    const deliveryNote = formData.get(`item_${i}_deliveryNote`) || 'INITIAL_STOCK';
+    const notes = formData.get(`item_${i}_notes`) || 'Auto-received initial stock on bulk product registration';
+    const receivedBy = formData.get(`item_${i}_receivedBy`) || null;
+    const fromId = formData.get(`item_${i}_fromId`) || 'Initial Import';
+
+    const imageFile = formData.get(`item_${i}_imageFile`);
+    let imageUrl = formData.get(`item_${i}_imageUrl`) || null;
+
+    if (imageFile && imageFile.size > 0) {
+      const savedPath = await saveFile(imageFile);
+      if (savedPath) imageUrl = savedPath;
+    }
+
+    productsList.push({
+      name,
+      brandId,
+      itemCode,
+      category,
+      productType,
+      stockCap,
+      isReturnable,
+      isPublic,
+      initialQty,
+      initialBarcodes,
+      deliveryNote,
+      notes,
+      receivedBy,
+      fromId,
+      imageUrl
+    });
+  }
+
+  // Use a transaction to register all products and transactions sequentially
+  const results = await prisma.$transaction(async (tx) => {
+    const createdProducts = [];
+    let serialOffset = 0;
+
+    // Get last serial ID number in database to safely generate consecutive IDs
+    const lastSerial = await tx.productSerialNumber.findFirst({
+      where: { id: { startsWith: 'SERL' } },
+      orderBy: { id: 'desc' },
+      select: { id: true }
+    });
+    let nextSerNum = 1;
+    if (lastSerial) {
+      const parts = lastSerial.id.split('-');
+      const numPart = parts[parts.length - 1];
+      const parsed = parseInt(numPart, 10);
+      if (!isNaN(parsed)) nextSerNum = parsed + 1;
+    }
+
+    for (let i = 0; i < productsList.length; i++) {
+      const item = productsList[i];
+
+      // Get last product ID dynamically to prevent race conditions
+      const lastProduct = await tx.product.findFirst({
+        where: { id: { startsWith: 'PROD' } },
+        orderBy: { id: 'desc' },
+        select: { id: true },
+      });
+      let lastProdNum = 0;
+      if (lastProduct) {
+        const match = lastProduct.id.match(/\d+/);
+        if (match) lastProdNum = parseInt(match[0], 10);
+      }
+      const prodId = `PROD-${String(lastProdNum + 1).padStart(5, '0')}`;
+
+      // 1. Create Product
+      const isSerialized = item.productType !== 'NORMAL';
+      const prod = await tx.product.create({
+        data: {
+          id: prodId,
+          name: item.name.trim(),
+          brandId: item.brandId,
+          itemCode: item.itemCode ? item.itemCode.trim() : null,
+          category: item.category || 'Stands',
+          imageUrl: item.imageUrl || null,
+          isReturnable: !!item.isReturnable,
+          isPublic: item.isPublic !== false,
+          isSerialized,
+          stockCap: item.stockCap ? parseInt(item.stockCap, 10) : null,
+        }
+      });
+      createdProducts.push(prod);
+
+      // 2. Handle initial stock if any
+      const initialQty = parseInt(item.initialQty, 10) || 0;
+      if (initialQty > 0) {
+        // Get last transaction ID dynamically
+        const lastTx = await tx.inventoryTransaction.findFirst({
+          where: { id: { startsWith: 'TX' } },
+          orderBy: { id: 'desc' },
+          select: { id: true },
+        });
+        let lastTxNum = 0;
+        if (lastTx) {
+          const match = lastTx.id.match(/\d+/);
+          if (match) lastTxNum = parseInt(match[0], 10);
+        }
+        const txId = `TX-${String(lastTxNum + 1).padStart(5, '0')}`;
+        
+        // Log transaction
+        await tx.inventoryTransaction.create({
+          data: {
+            id: txId,
+            productId: prodId,
+            transactionType: 'RECEIVE',
+            fromEntityType: 'SUPPLIER',
+            fromEntityId: item.fromId || 'Initial Import',
+            toEntityType: 'WAREHOUSE',
+            toEntityId: 'MAIN',
+            quantity: initialQty,
+            deliveryNote: item.deliveryNote || 'INITIAL_STOCK',
+            notes: item.notes || 'Auto-received initial stock on bulk product registration',
+            receivedBy: item.receivedBy || null,
+          }
+        });
+
+        // 3. Create Serial Numbers if serialized
+        if (isSerialized && item.initialBarcodes) {
+          const barcodes = item.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+          if (barcodes.length > 0) {
+            const serialData = barcodes.map((barcode, idx) => {
+              const serialId = `SERL-${String(nextSerNum + serialOffset).padStart(5, '0')}`;
+              serialOffset++;
+              return {
+                id: serialId,
+                productId: prodId,
+                barcode,
+                status: 'AVAILABLE',
+                currentLocationType: 'WAREHOUSE',
+                currentLocationId: 'MAIN',
+              };
+            });
+
+            await tx.productSerialNumber.createMany({
+              data: serialData,
+            });
+          }
+        }
+      }
+    }
+    return createdProducts;
+  });
+
+  revalidatePath('/dashboard/products');
+  return results;
+}
+
