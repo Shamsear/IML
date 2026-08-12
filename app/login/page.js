@@ -17,18 +17,29 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    // Performance monitoring
+    const startTime = performance.now();
+
     const result = await signIn('credentials', {
       redirect: false,
       username,
       password,
     });
 
+    const endTime = performance.now();
+    const duration = Math.round(endTime - startTime);
+    
+    // Log performance for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔐 Login authentication took: ${duration}ms`);
+    }
+
     if (result?.error) {
       setError('Access Denied. Invalid credentials.');
       setLoading(false);
     } else {
       router.push('/dashboard');
-      router.refresh();
+      // router.refresh(); // Removed: causes extra server round-trip
     }
   };
 

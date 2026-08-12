@@ -8,6 +8,24 @@ datasource db {
 }
 
 // ------------------------------------------------------
+// AUTHENTICATION
+// ------------------------------------------------------
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // bcrypt hashed password
+  name      String
+  email     String?  @unique
+  role      String   @default("ADMIN") // ADMIN, MANAGER, etc.
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([username])
+}
+
+// ------------------------------------------------------
 // CORE ENTITIES
 // ------------------------------------------------------
 

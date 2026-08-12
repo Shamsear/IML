@@ -119,7 +119,7 @@ export default async function OutboundPage() {
                       <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
                         {dateStr}
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="py-3.5 px-5 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="font-semibold">{tx.product.name}</span>
                           <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
@@ -130,7 +130,7 @@ export default async function OutboundPage() {
                           {tx.toEntityType}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary">
+                      <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary whitespace-nowrap">
                         {destinationName}
                       </td>
                       <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-primary">

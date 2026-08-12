@@ -90,7 +90,7 @@ export default async function RebrandPage() {
                       <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
                         {dateStr}
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="py-3.5 px-5 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="font-semibold">{tx.product.name}</span>
                           <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>

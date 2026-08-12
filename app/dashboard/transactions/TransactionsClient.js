@@ -118,7 +118,7 @@ export default function TransactionsClient({
                   <tbody className="divide-y divide-border text-sm text-text-primary">
                     {filteredTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 pr-4">
+                        <td className="py-3.5 pr-4 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-semibold text-text-primary">{tx.product.name}</span>
                             {tx.notes && (

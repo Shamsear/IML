@@ -117,6 +117,7 @@ export async function getBrandWithDetails(id) {
           itemCode: true,
           category: true,
           isSerialized: true,
+          stockCap: true,
           _count: {
             select: { serialNumbers: true },
           },

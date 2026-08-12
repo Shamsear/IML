@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     storeCount,
     promoterCount,
     recentTransactions,
-    lowStockProducts,
+    cappedProducts,
   ] = await Promise.all([
     prisma.brand.count(),
     prisma.product.count(),
@@ -36,12 +36,70 @@ export default async function DashboardPage() {
     }),
     prisma.product.findMany({
       where: { stockCap: { not: null } },
-      select: { id: true, name: true, stockCap: true },
+      select: {
+        id: true,
+        name: true,
+        stockCap: true,
+        isSerialized: true,
+        serialNumbers: {
+          where: {
+            status: 'AVAILABLE',
+            OR: [
+              { currentLocationType: 'WAREHOUSE' },
+              { currentLocationType: null }
+            ]
+          },
+          select: { id: true }
+        },
+        transactions: {
+          where: {
+            OR: [
+              { fromEntityType: 'WAREHOUSE' },
+              { toEntityType: 'WAREHOUSE' }
+            ]
+          },
+          select: {
+            transactionType: true,
+            quantity: true,
+            fromEntityType: true,
+            toEntityType: true,
+          }
+        }
+      }
     }),
   ]);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  // Calculate actual warehouse stock and filter for products where currentStock < stockCap
+  const lowStockAlerts = cappedProducts.map(p => {
+    let currentStock = 0;
+    if (p.isSerialized) {
+      currentStock = p.serialNumbers.length;
+    } else {
+      p.transactions.forEach(t => {
+        const qty = t.quantity || 0;
+        if (t.toEntityType === 'WAREHOUSE') {
+          if (t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN') {
+            currentStock += qty;
+          }
+        }
+        if (t.fromEntityType === 'WAREHOUSE') {
+          if (t.transactionType === 'ISSUE' || t.transactionType === 'DAMAGE' || t.transactionType === 'LOST' || t.transactionType === 'REBRAND_OUT') {
+            currentStock -= qty;
+          }
+        }
+      });
+    }
+
+    return {
+      id: p.id,
+      name: p.name,
+      stockCap: p.stockCap,
+      currentStock,
+    };
+  }).filter(p => p.currentStock < p.stockCap);
 
   const stats = [
     { name: 'Brands', count: brandCount, icon: Tag, color: 'text-primary bg-primary/10 border-primary/20', href: '/dashboard/brands' },
@@ -196,17 +254,20 @@ export default async function DashboardPage() {
           </div>
 
           {/* Low Stock Alerts */}
-          {lowStockProducts.length > 0 && (
+          {lowStockAlerts.length > 0 && (
             <div className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-4">
               <div className="flex items-center gap-2 pb-3 border-b border-border">
-                <AlertTriangle size={18} className="text-warning" />
-                <span className="font-display font-bold text-base text-text-primary">Products with Stock Caps</span>
+                <AlertTriangle size={18} className="text-danger animate-pulse" />
+                <span className="font-display font-bold text-base text-text-primary">Low Stock Alerts</span>
               </div>
               <div className="flex flex-col gap-2">
-                {lowStockProducts.slice(0, 4).map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-3 bg-surface-elevated/40 border border-black/5 rounded-lg">
-                    <span className="text-xs font-semibold text-text-primary truncate max-w-[160px]">{p.name}</span>
-                    <span className="badge badge-warning text-[10px]">Cap: {p.stockCap}</span>
+                {lowStockAlerts.slice(0, 5).map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 bg-danger/5 border border-danger/10 rounded-lg">
+                    <span className="text-xs font-semibold text-text-primary truncate max-w-[150px]" title={p.name}>{p.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-2xs text-text-secondary font-mono">Stock: {p.currentStock}</span>
+                      <span className="badge bg-danger/10 text-danger border border-danger/20 text-[10px]">Cap: {p.stockCap}</span>
+                    </div>
                   </div>
                 ))}
               </div>

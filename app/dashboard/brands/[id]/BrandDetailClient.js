@@ -489,7 +489,25 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                             <span className="text-xs text-text-muted">Normal</span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap">{stock.warehouse}</td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          {product.stockCap ? (
+                            stock.warehouse <= 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
+                                0 / Out
+                              </span>
+                            ) : stock.warehouse < product.stockCap ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
+                                {stock.warehouse} / Low (Cap: {product.stockCap})
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
+                                {stock.warehouse} / Ok
+                              </span>
+                            )
+                          ) : (
+                            <span className="font-mono font-semibold text-text-primary">{stock.warehouse}</span>
+                          )}
+                        </td>
                         <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap">{stock.storesQty}</td>
                         <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap">{stock.supervisorsQty}</td>
                         <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.damagedLost}</td>

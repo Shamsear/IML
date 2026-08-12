@@ -846,6 +846,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                       <th className="py-3 px-5">Product Details</th>
                       <th className="py-3 px-5">Code (SKU)</th>
                       <th className="py-3 px-5">Brand</th>
+                      <th className="py-3 px-5 text-center">Warehouse Stock</th>
                       <th className="py-3 px-5">Type</th>
                       <th className="py-3 px-5">Category</th>
                       <th className="py-3 px-5">Returnable</th>
@@ -872,6 +873,27 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                           <span className="badge bg-secondary/15 text-secondary border border-secondary/10">
                             {product.brand.name}
                           </span>
+                        </td>
+                        <td className="py-3.5 px-5 whitespace-nowrap text-center">
+                          {product.stockCap ? (
+                            product.warehouseStock <= 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full">
+                                0 / Out of Stock
+                              </span>
+                            ) : product.warehouseStock < product.stockCap ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full animate-pulse">
+                                {product.warehouseStock} / Low (Cap: {product.stockCap})
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-success/10 text-success border border-success/20 rounded-full">
+                                {product.warehouseStock} / Ok
+                              </span>
+                            )
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-surface-elevated text-text-primary border border-border rounded-full font-mono">
+                              {product.warehouseStock}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3.5 px-5 whitespace-nowrap">
                           {product.isSerialized ? (
