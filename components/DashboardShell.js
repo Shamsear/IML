@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import DashboardNav from '@/components/DashboardNav';
 import GlobalSearch from '@/components/GlobalSearch';
 import PushSubscriptionBtn from '@/components/PushSubscriptionBtn';
@@ -11,6 +12,7 @@ import { PanelLeftClose, PanelLeftOpen, LogOut, Menu, X } from 'lucide-react';
 export default function DashboardShell({ user, children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const pathname = usePathname();
 
   // Close mobile drawer on route change
@@ -93,13 +95,14 @@ export default function DashboardShell({ user, children }) {
             )}
           </div>
           {(!collapsed || mobileOpen) && (
-            <Link 
-              href="/api/auth/signout" 
+            <button 
+              type="button" 
+              onClick={() => setShowLogoutModal(true)}
               className="p-2 rounded-md hover:bg-danger/10 hover:text-danger text-text-secondary transition-colors"
               title="Sign Out"
             >
               <LogOut size={15} />
-            </Link>
+            </button>
           )}
         </div>
       </aside>
@@ -137,6 +140,39 @@ export default function DashboardShell({ user, children }) {
           </div>
         </main>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[380px] shadow-2xl flex flex-col gap-4 animate-slide-down">
+            <div className="flex flex-col gap-1.5 text-center sm:text-left">
+              <h3 className="font-display font-extrabold text-base text-text-primary">
+                Confirm Sign Out
+              </h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Are you sure you want to sign out? You will need to enter your admin credentials again to access the portal.
+              </p>
+            </div>
+            
+            <div className="flex gap-2.5 mt-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 sm:flex-initial px-4 py-2 border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="flex-1 sm:flex-initial px-4 py-2 bg-danger hover:bg-danger-hover text-white rounded-lg text-xs font-bold shadow-md transition-all"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

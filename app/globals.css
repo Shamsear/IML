@@ -382,3 +382,30 @@ body {
   outline: none !important;
   margin: 4px !important;
 }
+
+/* Custom Loader Keyframes and Animation Utilities */
+@keyframes reverse-spin {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+@keyframes loader-slide {
+  0% {
+    left: -40%;
+  }
+  50% {
+    left: 100%;
+  }
+  100% {
+    left: -40%;
+  }
+}
+.animate-reverse-spin {
+  animation: reverse-spin 1.5s linear infinite;
+}
+.animate-loader-slide {
+  animation: loader-slide 2s ease-in-out infinite;
+}
