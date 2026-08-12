@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@/generated/prisma';
+import prisma from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
-
-const prisma = new PrismaClient();
 
 // GET /api/users - List all users (admin only)
 export async function GET(request) {
