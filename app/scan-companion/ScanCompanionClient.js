@@ -72,15 +72,29 @@ export default function ScanCompanionClient({ session }) {
   };
 
   // Check camera permissions
+  // Determine initial state: respect past permission approvals to prevent annoying duplicate browser prompts on scanning QR
   useEffect(() => {
     if (session) {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setCameraPermissionStatus('unsupported');
         return;
       }
+      const savedGrant = localStorage.getItem('camera_permission_granted');
+      if (savedGrant === 'true') {
+        setCameraPermissionStatus('prompt');
+      } else {
+        setCameraPermissionStatus('paused');
+      }
+    }
+  }, [session]);
+
+  // Request camera permissions only when state transitions to 'prompt'
+  useEffect(() => {
+    if (session && cameraPermissionStatus === 'prompt') {
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
           stream.getTracks().forEach(track => track.stop());
+          localStorage.setItem('camera_permission_granted', 'true');
           setCameraPermissionStatus('granted');
         })
         .catch(err => {
@@ -88,7 +102,7 @@ export default function ScanCompanionClient({ session }) {
           setCameraPermissionStatus('denied');
         });
     }
-  }, [session]);
+  }, [session, cameraPermissionStatus]);
 
   // html5-qrcode scanner lifecycle
   useEffect(() => {
@@ -252,6 +266,47 @@ export default function ScanCompanionClient({ session }) {
           <div className="flex-1 flex flex-col items-center justify-center py-12 gap-3 bg-surface border border-border rounded-xl">
             <Loader2 size={32} className="animate-spin text-primary" />
             <span className="text-xs text-text-secondary">Requesting camera permissions...</span>
+          </div>
+        )}
+
+        {cameraPermissionStatus === 'paused' && (
+          <div className="flex-1 flex flex-col items-center justify-center py-10 px-6 text-center gap-5 bg-surface border border-border rounded-xl shadow-sm animate-slide-down">
+            <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center animate-pulse">
+              <Smartphone size={32} />
+            </div>
+            <div className="flex flex-col gap-1.5 max-w-sm">
+              <h3 className="font-display font-extrabold text-base text-text-primary">Device Paired Successfully!</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Click the button below to start the webcam barcode scanner.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCameraPermissionStatus('prompt')}
+              className="w-full max-w-xs px-6 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all"
+            >
+              Start Camera Scanner
+            </button>
+
+            {/* Manual Fallback Input Form */}
+            <form onSubmit={handleManualSubmit} className="w-full flex flex-col gap-2 mt-4 pt-4 border-t border-border">
+              <label className="text-[10px] font-bold text-text-secondary text-left font-sans uppercase">Or Type Barcode Manually:</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Scan or type barcode here..."
+                  className="flex-1 bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg transition-colors"
+                >
+                  Send
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
