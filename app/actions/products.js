@@ -431,3 +431,14 @@ export async function findProductByBarcode(barcode) {
 
   return serial;
 }
+
+export async function getProductById(id) {
+  await checkAuth();
+  if (!id) return null;
+  return prisma.product.findUnique({
+    where: { id },
+    include: {
+      brand: { select: { id: true, name: true } }
+    }
+  });
+}

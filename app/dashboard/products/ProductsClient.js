@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   createProduct, updateProduct, deleteProduct, importBarcodes, getProductSerials,
@@ -17,6 +18,7 @@ import CustomSelect from '@/components/CustomSelect';
 const shirtSizes = ['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'];
 
 export default function ProductsClient({ initialProducts, brands, stores = [] }) {
+  const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
   const [activePanel, setActivePanel] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -158,21 +160,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   };
 
   const openEditModal = (product) => {
-    setEditingProduct(product);
-    setName(product.name); setBrandId(product.brandId); setItemCode(product.itemCode || '');
-    setCategory(product.category || ''); setImageUrl(product.imageUrl || '');
-    setProductFile(null);
-    setIsReturnable(product.isReturnable); setIsPublic(product.isPublic);
-    setIsSerialized(product.isSerialized); setStockCap(product.stockCap ? product.stockCap.toString() : '');
-    if (!product.isSerialized) {
-      setProductType('NORMAL');
-    } else if (product.category?.toUpperCase().includes('ROUTER')) {
-      setProductType('ROUTER');
-    } else {
-      setProductType('SIM');
-    }
-    setSimBrandId(product.brandId); setSimStoreId(stores[0]?.id || ''); setSimStoreCode(''); setAutoGenName(false);
-    setError(''); setActivePanel('form');
+    router.push(`/dashboard/products/new?editId=${product.id}`);
   };
 
   const openCSVModal = () => { setCsvInput(''); setCsvPreview([]); setCsvError(''); setError(''); setActivePanel('csv'); };
@@ -266,21 +254,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
     catch { alert('Failed to load serials.'); } finally { setLoading(false); }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault(); setLoading(true); setError('');
-    const formData = new FormData();
-    formData.append('name', name); formData.append('brandId', brandId); formData.append('itemCode', itemCode);
-    formData.append('category', category); formData.append('imageUrl', imageUrl);
-    if (productFile) {
-      formData.append('imageFile', productFile);
-    }
-    formData.append('isReturnable', isReturnable.toString()); formData.append('isPublic', isPublic.toString());
-    formData.append('isSerialized', isSerialized.toString()); formData.append('stockCap', stockCap);
-    try {
-      if (editingProduct) { await updateProduct(editingProduct.id, formData); } else { await createProduct(formData); }
-      window.location.reload();
-    } catch (err) { setError(err.message || 'Something went wrong.'); setLoading(false); }
-  };
+
 
   const handleAddQtySubmit = async (e) => {
     e.preventDefault();
@@ -428,152 +402,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
       </header>
 
       <div className="flex flex-col gap-6">
-        {/* Product Form Panel */}
-        {activePanel === 'form' && (
-          <div className="bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col gap-5 animate-slide-down">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h2 className="font-display font-bold text-lg text-text-primary">
-                {editingProduct ? 'Edit Product' : 'Add Item'}
-              </h2>
-              <button 
-                className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
-                onClick={() => setActivePanel(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            {error && (
-              <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold text-center animate-slide-down">
-                {error}
-              </div>
-            )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              {category.toUpperCase().includes('SIM') && (
-                <div className="p-3 bg-surface-elevated/50 border border-dashed border-border rounded-lg flex flex-col gap-3">
-                  <label className="flex items-center gap-2 text-xs font-bold text-text-primary cursor-pointer">
-                    <input type="checkbox" checked={autoGenName} onChange={(e) => setAutoGenName(e.target.checked)} className="custom-checkbox" />
-                    <span>Auto-generate Product Name from Brand &amp; Store</span>
-                  </label>
-                  
-                  {autoGenName && (
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-text-secondary uppercase">Select Brand</label>
-                        <CustomSelect
-                          options={brands.map(b => ({ value: b.id, label: b.name }))}
-                          value={simBrandId}
-                          onChange={(val) => setSimBrandId(val)}
-                          size="sm"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-text-secondary uppercase">Store Code</label>
-                        <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none" value={simStoreCode} onChange={(e) => setSimStoreCode(e.target.value)} placeholder="e.g. VMGS0023" />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-bold text-text-secondary uppercase">Select Store</label>
-                        <CustomSelect
-                          options={stores.map(s => ({ value: s.id, label: s.name }))}
-                          value={simStoreId}
-                          onChange={(val) => setSimStoreId(val)}
-                          size="sm"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Product Name</label>
-                  <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" value={name} onChange={(e) => setName(e.target.value)} placeholder={autoGenName && category.toUpperCase().includes('SIM') ? "Will be auto-generated..." : "e.g. Sadia T-Shirt (Large)"} required disabled={autoGenName && category.toUpperCase().includes('SIM')} />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Brand Owner</label>
-                  <CustomSelect
-                    options={brands.map(b => ({ value: b.id, label: b.name }))}
-                    value={brandId}
-                    onChange={(val) => setBrandId(val)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Item Code (SKU)</label>
-                  <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={itemCode} onChange={(e) => setItemCode(e.target.value)} placeholder="e.g. SAD-TS-L" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Category</label>
-                  <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. STANDS, UNIFORMS" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Upload Product Image</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  onChange={(e) => setProductFile(e.target.files[0] || null)}
-                />
-                {imageUrl && (
-                  <div className="text-[10px] text-text-muted truncate mt-0.5">
-                    Current: <code>{imageUrl}</code>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Stock Cap Limit (Optional)</label>
-                  <input type="number" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={stockCap} onChange={(e) => setStockCap(e.target.value)} placeholder="Max quantity threshold" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Product Type / Serialization</label>
-                  <div className="flex gap-4 mt-2">
-                    <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-                      <input type="radio" name="productType" value="NORMAL" checked={productType === 'NORMAL'} onChange={() => setProductType('NORMAL')} className="text-primary focus:ring-primary/20" />
-                      <span>Normal</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-                      <input type="radio" name="productType" value="SIM" checked={productType === 'SIM'} onChange={() => setProductType('SIM')} className="text-primary focus:ring-primary/20" />
-                      <span>SIM Card</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-                      <input type="radio" name="productType" value="ROUTER" checked={productType === 'ROUTER'} onChange={() => setProductType('ROUTER')} className="text-primary focus:ring-primary/20" />
-                      <span>Router</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center mt-2">
-                <label className="flex items-center gap-2.5 p-3 border border-border rounded-lg cursor-pointer text-xs font-semibold text-text-primary hover:bg-surface-elevated/40 transition-colors w-full sm:w-auto">
-                  <input type="checkbox" checked={isReturnable} onChange={(e) => setIsReturnable(e.target.checked)} className="custom-checkbox" />
-                  <div>
-                    <span className="block font-bold">Returnable Item</span>
-                    <span className="block text-[10px] text-text-secondary mt-0.5">For promotional uniforms or stands.</span>
-                  </div>
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border">
-                <button type="button" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" onClick={() => setActivePanel(null)} disabled={loading}>
-                  Cancel
-                </button>
-                <button type="submit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" disabled={loading}>
-                  {loading && <Loader2 size={16} className="animate-spin" />}
-                  <span>{editingProduct ? 'Save Details' : 'Create Item'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
         {/* CSV Panel */}
         {activePanel === 'csv' && (

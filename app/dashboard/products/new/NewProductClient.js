@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Loader2, AlertCircle, Camera, QrCode, X, ArrowDownLeft, Smartphone } from 'lucide-react';
 import Link from 'next/link';
-import { createProduct } from '@/app/actions/products';
+import { createProduct, updateProduct } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
@@ -30,9 +30,46 @@ const playBeep = () => {
 export default function NewProductClient({ brands, recentReceivers = [], recentSuppliers = [] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const editId = searchParams.get('editId');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (editId) {
+      const loadProduct = async () => {
+        setLoading(true);
+        try {
+          const { getProductById } = await import('@/app/actions/products');
+          const product = await getProductById(editId);
+          if (product) {
+            setName(product.name);
+            setBrandId(product.brandId);
+            setItemCode(product.itemCode || '');
+            setCategory(product.category || 'Stands');
+            setStockCap(product.stockCap ? product.stockCap.toString() : '');
+            setIsReturnable(product.isReturnable);
+            setIsPublic(product.isPublic);
+            setIsSerialized(product.isSerialized);
+            if (!product.isSerialized) {
+              setProductType('NORMAL');
+            } else if (product.category?.toUpperCase().includes('ROUTER')) {
+              setProductType('ROUTER');
+            } else {
+              setProductType('SIM');
+            }
+          } else {
+            setError('Product not found.');
+          }
+        } catch (err) {
+          setError('Failed to load product details: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadProduct();
+    }
+  }, [editId]);
 
   // Form states
   const [name, setName] = useState('');
@@ -284,7 +321,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
       ? (parseInt(initialQty, 10) > 0)
       : (initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean).length > 0);
 
-    if (hasInboundStock) {
+    if (!editId && hasInboundStock) {
       if (!fromId.trim()) {
         setError('Please enter a valid source supplier name for initial stock');
         setLoading(false);
@@ -312,15 +349,22 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
     formData.append('notes', notes || 'Auto-received initial stock on product registration');
     formData.append('receivedBy', receivedBy || '');
 
-    // Supplier / Receiver parameters - Locked to SUPPLIER / WAREHOUSE
-    formData.append('fromEntityType', 'SUPPLIER');
-    formData.append('fromEntityId', fromId.trim());
-    formData.append('toEntityType', 'WAREHOUSE');
-    formData.append('toEntityId', '');
+    // Supplier / Receiver parameters - Locked to SUPPLIER / WAREHOUSE (only for new products)
+    if (!editId) {
+      formData.append('fromEntityType', 'SUPPLIER');
+      formData.append('fromEntityId', fromId.trim());
+      formData.append('toEntityType', 'WAREHOUSE');
+      formData.append('toEntityId', '');
+    }
 
     try {
-      await createProduct(formData);
-      setSuccess(`Product "${name}" registered successfully with initial stock!`);
+      if (editId) {
+        await updateProduct(editId, formData);
+        setSuccess(`Product "${name}" updated successfully!`);
+      } else {
+        await createProduct(formData);
+        setSuccess(`Product "${name}" registered successfully with initial stock!`);
+      }
       setTimeout(() => {
         const redirectBrandId = searchParams.get('brandId');
         if (redirectBrandId) {
@@ -330,7 +374,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
         }
       }, 1500);
     } catch (err) {
-      setError(err.message || 'Failed to create product.');
+      setError(err.message || 'Failed to submit product.');
       setLoading(false);
     }
   };
@@ -362,10 +406,10 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
         </button>
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
-            Register New Product
+            {editId ? 'Edit Product' : 'Register New Product'}
           </h1>
           <p className="text-text-secondary text-sm mt-1">
-            Add a new item to the catalogue and optionally receive initial stock.
+            {editId ? 'Modify product catalog details.' : 'Add a new item to the catalogue and optionally receive initial stock.'}
           </p>
         </div>
       </header>
@@ -502,22 +546,27 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-border/60">
               {/* FROM SECTION (Supplier) */}
               <div className="flex flex-col gap-3 p-3 bg-surface border border-border rounded-lg relative">
-                <label className="text-[11px] font-bold text-text-primary uppercase flex items-center gap-1">
-                  <ArrowDownLeft size={13} className="text-success" />
-                  <span>Initial Stock Source (From Supplier)</span>
-                </label>
-                
-                <div className="flex flex-col gap-1.5 relative">
-                  <label className="text-[10px] font-bold text-text-secondary uppercase">Supplier Name</label>
+        {!editId && (
+          <div>
+            <h3 className="font-display font-bold text-base text-text-primary pb-2 border-b border-border">
+              3. Initial Inbound Warehouse Stock (Optional)
+            </h3>
+            
+            <div className="flex flex-col gap-6 mt-4 bg-surface-elevated/40 border border-black/5 p-5 rounded-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5 sm:col-span-1">
+                  <label className="text-xs font-bold text-text-secondary">Inbound Supplier / Source</label>
                   <div className="relative">
                     <input
                       type="text"
-                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
+                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
                       value={fromId}
-                      onChange={(e) => { setFromId(e.target.value); setShowSupplierSuggestions(true); }}
+                      onChange={(e) => {
+                        setFromId(e.target.value);
+                        setShowSupplierSuggestions(true);
+                      }}
                       onFocus={() => setShowSupplierSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowSupplierSuggestions(false), 250)}
-                      placeholder="e.g. Initial Import"
+                      placeholder="e.g. Supplier Name"
                     />
                     {showSupplierSuggestions && filteredSupplierSuggestions.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded mt-1 shadow-lg max-h-32 overflow-y-auto z-[100] animate-fade-in">
@@ -538,35 +587,19 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                     )}
                   </div>
                 </div>
-              </div>
 
-              {/* TO SECTION */}
-              <div className="flex flex-col gap-3 p-3 bg-surface border border-border rounded-lg relative">
-                <label className="text-[11px] font-bold text-text-primary uppercase">
-                  <span>Initial Stock Receiver (To Warehouse)</span>
-                </label>
-                
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-text-secondary uppercase">Receiver Location</label>
-                  <input
-                    type="text"
-                    className="w-full bg-surface-elevated text-text-secondary border border-border rounded px-2 py-1.5 text-xs font-semibold"
-                    value="Main Warehouse"
-                    disabled
-                  />
-                </div>
-
-                {/* Received By Field (Smart Assist) */}
-                <div className="flex flex-col gap-1 mt-1 relative">
-                  <label className="text-[10px] font-bold text-text-secondary uppercase">Received By (Person Name)</label>
+                <div className="flex flex-col gap-1.5 sm:col-span-1">
+                  <label className="text-xs font-bold text-text-secondary">Received By (Staff)</label>
                   <div className="relative">
                     <input
                       type="text"
-                      className="w-full bg-surface text-text-primary border border-border rounded px-2 py-1.5 text-xs focus:outline-none focus:border-primary"
+                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
                       value={receivedBy}
-                      onChange={(e) => { setReceivedBy(e.target.value); setShowSuggestions(true); }}
+                      onChange={(e) => {
+                        setReceivedBy(e.target.value);
+                        setShowSuggestions(true);
+                      }}
                       onFocus={() => setShowSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
                       placeholder="e.g. John Doe"
                     />
                     {showSuggestions && filteredSuggestions.length > 0 && (
@@ -589,99 +622,99 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {productType === 'NORMAL' ? (
-                <div className="flex flex-col gap-1.5 sm:col-span-1">
-                  <label className="text-xs font-bold text-text-secondary">Quantity to Receive</label>
-                  <input
-                    type="number"
-                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    value={initialQty}
-                    onChange={(e) => setInitialQty(e.target.value)}
-                    placeholder="e.g. 100"
-                    min={1}
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3 sm:col-span-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-text-secondary flex items-center gap-1.5">
-                      <QrCode size={15} className="text-primary" />
-                      <span>Scan / Enter Barcode to Add</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                        value={scanInput}
-                        onChange={(e) => setScanInput(e.target.value)}
-                        onKeyDown={handleScanInputKeyDown}
-                        placeholder="Type barcode or scan, then press Enter..."
-                      />
-                      <div className="flex gap-1 flex-shrink-0">
-                        <button
-                          type="button"
-                          className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5"
-                          onClick={() => setIsCameraOpen(true)}
-                          title="Scan via PC Webcam"
-                        >
-                          <Camera size={16} />
-                          <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5"
-                          onClick={handleOpenMobileScanner}
-                          title="Pair Wireless Mobile phone camera"
-                        >
-                          <Smartphone size={16} className="text-primary" />
-                          <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-text-secondary">
-                      Initial Serial Barcodes List (one per line)
-                    </label>
-                    <textarea
-                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                      rows={4}
-                      value={initialBarcodes}
-                      onChange={(e) => setInitialBarcodes(e.target.value)}
-                      placeholder="e.g. SN-98127391&#10;SN-98127392"
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {productType === 'NORMAL' ? (
+                  <div className="flex flex-col gap-1.5 sm:col-span-1">
+                    <label className="text-xs font-bold text-text-secondary">Quantity to Receive</label>
+                    <input
+                      type="number"
+                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      value={initialQty}
+                      onChange={(e) => setInitialQty(e.target.value)}
+                      placeholder="e.g. 100"
+                      min={1}
                     />
                   </div>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:col-span-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-text-secondary flex items-center gap-1.5">
+                        <QrCode size={15} className="text-primary" />
+                        <span>Scan / Enter Barcode to Add</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                          value={scanInput}
+                          onChange={(e) => setScanInput(e.target.value)}
+                          onKeyDown={handleScanInputKeyDown}
+                          placeholder="Type barcode or scan, then press Enter..."
+                        />
+                        <div className="flex gap-1 flex-shrink-0">
+                          <button
+                            type="button"
+                            className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5"
+                            onClick={() => setIsCameraOpen(true)}
+                            title="Scan via PC Webcam"
+                          >
+                            <Camera size={16} />
+                            <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5"
+                            onClick={handleOpenMobileScanner}
+                            title="Pair Wireless Mobile phone camera"
+                          >
+                            <Smartphone size={16} className="text-primary" />
+                            <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-text-secondary">
+                        Initial Serial Barcodes List (one per line)
+                      </label>
+                      <textarea
+                        className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        rows={4}
+                        value={initialBarcodes}
+                        onChange={(e) => setInitialBarcodes(e.target.value)}
+                        placeholder="e.g. SN-98127391&#10;SN-98127392"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1.5 sm:col-span-1">
+                  <label className="text-xs font-bold text-text-secondary">Inbound Delivery Note #</label>
+                  <input
+                    type="text"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+                    value={deliveryNote}
+                    onChange={(e) => setDeliveryNote(e.target.value)}
+                    placeholder="e.g. DN-90172"
+                  />
                 </div>
-              )}
 
-              <div className="flex flex-col gap-1.5 sm:col-span-1">
-                <label className="text-xs font-bold text-text-secondary">Inbound Delivery Note #</label>
-                <input
-                  type="text"
-                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  value={deliveryNote}
-                  onChange={(e) => setDeliveryNote(e.target.value)}
-                  placeholder="e.g. DN-90172"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <label className="text-xs font-bold text-text-secondary">Remarks / Transaction Notes</label>
-                <input
-                  type="text"
-                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Initial import of SIM lot from supplier"
-                />
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label className="text-xs font-bold text-text-secondary">Remarks / Transaction Notes</label>
+                  <input
+                    type="text"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="e.g. Initial import of SIM lot from supplier"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Buttons */}
         <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-border">
@@ -699,7 +732,7 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
             disabled={loading}
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
-            <span>Create &amp; Receive Product</span>
+            <span>{editId ? 'Save Product Details' : 'Create & Receive Product'}</span>
           </button>
         </div>
       </form>
