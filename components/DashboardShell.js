@@ -7,18 +7,28 @@ import { signOut } from 'next-auth/react';
 import DashboardNav from '@/components/DashboardNav';
 import GlobalSearch from '@/components/GlobalSearch';
 import PushSubscriptionBtn from '@/components/PushSubscriptionBtn';
-import { PanelLeftClose, PanelLeftOpen, LogOut, Menu, X } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, LogOut, Menu, X, Loader2 } from 'lucide-react';
 
 export default function DashboardShell({ user, children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const pathname = usePathname();
 
   // Close mobile drawer on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    
+    // Show a brief message before redirecting
+    setTimeout(() => {
+      signOut({ callbackUrl: '/login' });
+    }, 800); // Give user time to see the "Signing out..." message
+  };
 
   return (
     <div className="min-h-screen flex bg-background text-text-primary">
@@ -147,29 +157,42 @@ export default function DashboardShell({ user, children }) {
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[380px] shadow-2xl flex flex-col gap-4 animate-slide-down">
             <div className="flex flex-col gap-1.5 text-center sm:text-left">
               <h3 className="font-display font-extrabold text-base text-text-primary">
-                Confirm Sign Out
+                {isSigningOut ? 'Signing Out...' : 'Confirm Sign Out'}
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
-                Are you sure you want to sign out? You will need to enter your admin credentials again to access the portal.
+                {isSigningOut 
+                  ? 'Please wait while we securely sign you out...' 
+                  : 'Are you sure you want to sign out? You will need to enter your admin credentials again to access the portal.'
+                }
               </p>
             </div>
             
-            <div className="flex gap-2.5 mt-2 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowLogoutModal(false)}
-                className="flex-1 sm:flex-initial px-4 py-2 border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="flex-1 sm:flex-initial px-4 py-2 bg-danger hover:bg-danger-hover text-white rounded-lg text-xs font-bold shadow-md transition-all"
-              >
-                Sign Out
-              </button>
-            </div>
+            {!isSigningOut && (
+              <div className="flex gap-2.5 mt-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 sm:flex-initial px-4 py-2 border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="flex-1 sm:flex-initial px-4 py-2 bg-danger hover:bg-danger-hover text-white rounded-lg text-xs font-bold shadow-md transition-all inline-flex items-center justify-center gap-2"
+                >
+                  <LogOut size={14} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+
+            {isSigningOut && (
+              <div className="flex items-center justify-center gap-2 mt-2 text-primary">
+                <Loader2 size={18} className="animate-spin" />
+                <span className="text-xs font-semibold">Signing out...</span>
+              </div>
+            )}
           </div>
         </div>
       )}
