@@ -50,7 +50,6 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
             setStockCap(product.stockCap ? product.stockCap.toString() : '');
             setIsReturnable(product.isReturnable);
             setIsPublic(product.isPublic);
-            setIsSerialized(product.isSerialized);
             if (!product.isSerialized) {
               setProductType('NORMAL');
             } else if (product.category?.toUpperCase().includes('ROUTER')) {
