@@ -536,16 +536,6 @@ export default function NewProductClient({ brands, recentReceivers = [], recentS
         </div>
 
         {/* Section 3: Initial Inbound Stock */}
-        <div>
-          <h3 className="font-display font-bold text-base text-text-primary pb-2 border-b border-border">
-            3. Initial Inbound Warehouse Stock (Optional)
-          </h3>
-          
-          <div className="flex flex-col gap-6 mt-4 bg-surface-elevated/40 border border-black/5 p-5 rounded-xl">
-            {/* Source and Target Selection Fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-border/60">
-              {/* FROM SECTION (Supplier) */}
-              <div className="flex flex-col gap-3 p-3 bg-surface border border-border rounded-lg relative">
         {!editId && (
           <div>
             <h3 className="font-display font-bold text-base text-text-primary pb-2 border-b border-border">
