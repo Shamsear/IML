@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import os from 'os';
-
-if (!global.scanSessions) {
-  global.scanSessions = {};
-}
-const sessions = global.scanSessions;
+import { prisma } from '@/lib/prisma';
 
 // Helper to get local IP address of the server host PC
 function getLocalIpAddress() {
@@ -22,12 +18,26 @@ function getLocalIpAddress() {
 }
 
 export async function POST() {
+  // Clear old sessions older than 2 hours to avoid db clutter
+  try {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    await prisma.scanSession.deleteMany({
+      where: {
+        createdAt: { lt: twoHoursAgo }
+      }
+    });
+  } catch (e) {
+    console.error("Cleanup scan sessions failed:", e);
+  }
+
   const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase(); // e.g. "K7A9X2"
-  sessions[sessionId] = {
-    barcodes: [],
-    createdAt: Date.now(),
-    lastPolledAt: Date.now()
-  };
+  
+  await prisma.scanSession.create({
+    data: {
+      id: sessionId,
+      barcodes: []
+    }
+  });
 
   const localIp = getLocalIpAddress();
   
@@ -43,16 +53,25 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('sessionId')?.toUpperCase();
 
-  if (!sessionId || !sessions[sessionId]) {
+  if (!sessionId) {
+    return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+  }
+
+  const session = await prisma.scanSession.findUnique({
+    where: { id: sessionId }
+  });
+
+  if (!session) {
     return NextResponse.json({ error: 'Session not found or expired' }, { status: 404 });
   }
 
-  const session = sessions[sessionId];
-  session.lastPolledAt = Date.now();
+  const barcodes = session.barcodes || [];
   
-  // Get and clear barcodes from queue
-  const barcodes = [...session.barcodes];
-  session.barcodes = [];
+  // Atomically clear barcodes queue
+  await prisma.scanSession.update({
+    where: { id: sessionId },
+    data: { barcodes: [] }
+  });
 
   return NextResponse.json({ barcodes });
 }
@@ -63,7 +82,15 @@ export async function PUT(request) {
     const { sessionId, barcode } = body;
     const cleanSessionId = sessionId?.toUpperCase();
 
-    if (!cleanSessionId || !sessions[cleanSessionId]) {
+    if (!cleanSessionId) {
+      return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+    }
+
+    const session = await prisma.scanSession.findUnique({
+      where: { id: cleanSessionId }
+    });
+
+    if (!session) {
       return NextResponse.json({ error: 'Session not found or expired' }, { status: 404 });
     }
 
@@ -71,7 +98,16 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Invalid barcode value' }, { status: 400 });
     }
 
-    sessions[cleanSessionId].barcodes.push(barcode.trim());
+    // Append barcode to the session's barcodes array
+    await prisma.scanSession.update({
+      where: { id: cleanSessionId },
+      data: {
+        barcodes: {
+          push: barcode.trim()
+        }
+      }
+    });
+
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
