@@ -7,36 +7,51 @@ export const metadata = {
   description: 'Review and log stock damages or losses',
 };
 
-export default async function DamagePage() {
-  // Query all DAMAGE or LOST transactions
-  const transactions = await prisma.inventoryTransaction.findMany({
-    where: {
-      transactionType: { in: ['DAMAGE', 'LOST'] },
-    },
-    select: {
-      id: true,
-      transactionType: true,
-      quantity: true,
-      fromEntityType: true,
-      fromEntityId: true,
-      timestamp: true,
-      notes: true,
-      product: {
-        select: {
-          id: true,
-          name: true,
-          brand: {
-            select: {
-              name: true
+export default async function DamagePage({ searchParams }) {
+  const params = await searchParams;
+  const page = parseInt(params?.page || '1', 10);
+  const pageSize = 25;
+
+  // Query all DAMAGE or LOST transactions with skip and take
+  const [transactions, totalCount] = await Promise.all([
+    prisma.inventoryTransaction.findMany({
+      where: {
+        transactionType: { in: ['DAMAGE', 'LOST'] },
+      },
+      select: {
+        id: true,
+        transactionType: true,
+        quantity: true,
+        fromEntityType: true,
+        fromEntityId: true,
+        timestamp: true,
+        notes: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+            brand: {
+              select: {
+                name: true
+              }
             }
           }
         }
+      },
+      orderBy: {
+        timestamp: 'desc',
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.inventoryTransaction.count({
+      where: {
+        transactionType: { in: ['DAMAGE', 'LOST'] },
       }
-    },
-    orderBy: {
-      timestamp: 'desc',
-    }
-  });
+    })
+  ]);
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Resolve location entity names in memory
   const [stores, supervisors, staffList] = await Promise.all([
@@ -81,7 +96,8 @@ export default async function DamagePage() {
             <p className="text-sm max-w-xs">Click &quot;Report Damage / Loss&quot; to register wastage logs.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border text-sm">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
@@ -144,6 +160,38 @@ export default async function DamagePage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
+              <span className="text-text-muted">
+                Showing <strong className="text-text-primary">{(page - 1) * pageSize + 1}</strong> to{" "}
+                <strong className="text-text-primary">
+                  {Math.min(page * pageSize, totalCount)}
+                </strong> of{" "}
+                <strong className="text-text-primary">{totalCount}</strong> reports
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href={`/dashboard/damage?page=${Math.max(1, page - 1)}`}
+                  className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
+                    page === 1 ? 'pointer-events-none opacity-50' : ''
+                  }`}
+                >
+                  Previous
+                </Link>
+                <Link
+                  href={`/dashboard/damage?page=${Math.min(totalPages, page + 1)}`}
+                  className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
+                    page === totalPages ? 'pointer-events-none opacity-50' : ''
+                  }`}
+                >
+                  Next
+                </Link>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

@@ -143,6 +143,10 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [brandFilter, setBrandFilter] = useState('ALL');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 25;
+
   const openAddModal = () => {
     setEditingProduct(null);
     setName(''); setBrandId(brands[0]?.id || ''); setItemCode(''); setCategory('STANDS');
@@ -379,6 +383,14 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   };
 
   const filteredProducts = products.filter(p => brandFilter === 'ALL' || p.brandId === brandFilter);
+
+  // Reset pagination on brand filter change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [brandFilter]);
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
   const filteredSerials = serialsList.filter(s =>
     s.barcode.toLowerCase().includes(serialSearch.toLowerCase()) ||
     (s.secondaryBarcode && s.secondaryBarcode.toLowerCase().includes(serialSearch.toLowerCase())) ||
@@ -835,130 +847,163 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 <p className="text-sm max-w-xs">Define your products to start tracking stock levels.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-border text-sm">
-                  <thead>
-                    <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                      <th className="py-3 px-5 w-10 text-center">
-                        <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
-                          onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
-                      </th>
-                      <th className="py-3 px-5">Product Details</th>
-                      <th className="py-3 px-5">Code (SKU)</th>
-                      <th className="py-3 px-5">Brand</th>
-                      <th className="py-3 px-5 text-center">Warehouse Stock</th>
-                      <th className="py-3 px-5">Type</th>
-                      <th className="py-3 px-5">Category</th>
-                      <th className="py-3 px-5">Returnable</th>
-                      <th className="py-3 px-5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border text-text-primary">
-                    {filteredProducts.map(product => (
-                      <tr key={product.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 px-5 text-center">
-                          <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" checked={selectedProductIds.includes(product.id)}
-                            onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
-                        </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                              <Package size={15} />
-                            </div>
-                            <span className="font-semibold">{product.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">{product.itemCode || '---'}</td>
-                        <td className="py-3.5 px-5 whitespace-nowrap">
-                          <span className="badge bg-secondary/15 text-secondary border border-secondary/10">
-                            {product.brand.name}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap text-center">
-                          {product.stockCap ? (
-                            product.warehouseStock <= 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full">
-                                0 / Out of Stock
-                              </span>
-                            ) : product.warehouseStock < product.stockCap ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full animate-pulse">
-                                {product.warehouseStock} / Low (Cap: {product.stockCap})
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-success/10 text-success border border-success/20 rounded-full">
-                                {product.warehouseStock} / Ok
-                              </span>
-                            )
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-surface-elevated text-text-primary border border-border rounded-full font-mono">
-                              {product.warehouseStock}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap">
-                          {product.isSerialized ? (
-                            <button 
-                              className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${
-                                product.category?.toUpperCase().includes('ROUTER') ? 'text-secondary' : 'text-primary'
-                              }`} 
-                              onClick={() => openSerialModal(product)}
-                            >
-                              <QrCode size={13} />
-                              <span>{product.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({product._count.serialNumbers})</span>
-                            </button>
-                          ) : (
-                            <span className="text-xs text-text-muted">Normal</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap">
-                          <span className="badge bg-surface-elevated text-text-secondary border border-border">
-                            {product.category || 'STANDS'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap">
-                          {product.isReturnable ? (
-                            <span className="badge badge-warning text-[10px]"><ShieldAlert size={10} /> Yes</span>
-                          ) : (
-                            <span className="badge badge-success text-[10px]"><CheckCircle size={10} /> No</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {!product.isSerialized && (
-                              <button 
-                                className="inline-flex items-center gap-0.5 px-2 py-1 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded text-xs font-semibold transition-colors"
-                                onClick={() => {
-                                  setAddQtyProduct(product);
-                                  setAddQtyValue('');
-                                  setAddQtyDN('');
-                                  setAddQtyDeliveryFrom('');
-                                  setAddQtyNotes('');
-                                  setAddQtyError('');
-                                }}
-                                title="Quick Add Stock"
-                              >
-                                <Plus size={11} /> 
-                                <span>Stock</span>
-                              </button>
-                            )}
-                            <button className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
-                              <Edit2 size={13} />
-                            </button>
-                            <button className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" onClick={() => handleDelete(product.id)}>
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </td>
+              <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-border text-sm">
+                    <thead>
+                      <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                        <th className="py-3 px-5 w-10 text-center">
+                          <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
+                            onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
+                        </th>
+                        <th className="py-3 px-5">Product Details</th>
+                        <th className="py-3 px-5">Code (SKU)</th>
+                        <th className="py-3 px-5">Brand</th>
+                        <th className="py-3 px-5 text-center">Warehouse Stock</th>
+                        <th className="py-3 px-5">Type</th>
+                        <th className="py-3 px-5">Category</th>
+                        <th className="py-3 px-5">Returnable</th>
+                        <th className="py-3 px-5 text-right">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-border text-text-primary">
+                      {paginatedProducts.map(product => (
+                        <tr key={product.id} className="hover:bg-surface-elevated/20 transition-colors">
+                          <td className="py-3.5 px-5 text-center">
+                            <input type="checkbox" className="rounded border-border text-primary focus:ring-primary/20" checked={selectedProductIds.includes(product.id)}
+                              onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
+                          </td>
+                          <td className="py-3.5 px-5 whitespace-nowrap">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                                <Package size={15} />
+                              </div>
+                              <span className="font-semibold">{product.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">{product.itemCode || '---'}</td>
+                          <td className="py-3.5 px-5 whitespace-nowrap">
+                            <span className="badge bg-secondary/15 text-secondary border border-secondary/10">
+                              {product.brand.name}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-5 whitespace-nowrap text-center">
+                            {product.stockCap ? (
+                              product.warehouseStock <= 0 ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full">
+                                  0 / Out of Stock
+                                </span>
+                              ) : product.warehouseStock < product.stockCap ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full animate-pulse">
+                                  {product.warehouseStock} / Low (Cap: {product.stockCap})
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-success/10 text-success border border-success/20 rounded-full">
+                                  {product.warehouseStock} / Ok
+                                </span>
+                              )
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-surface-elevated text-text-primary border border-border rounded-full font-mono">
+                                {product.warehouseStock}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-5 whitespace-nowrap">
+                            {product.isSerialized ? (
+                              <button 
+                                className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${
+                                  product.category?.toUpperCase().includes('ROUTER') ? 'text-secondary' : 'text-primary'
+                                }`} 
+                                onClick={() => openSerialModal(product)}
+                                type="button"
+                              >
+                                <QrCode size={13} />
+                                <span>{product.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({product._count.serialNumbers})</span>
+                              </button>
+                            ) : (
+                              <span className="text-xs text-text-muted">Normal</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-5 whitespace-nowrap">
+                            <span className="badge bg-surface-elevated text-text-secondary border border-border">
+                              {product.category || 'STANDS'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-5 whitespace-nowrap">
+                            {product.isReturnable ? (
+                              <span className="badge badge-warning text-[10px]"><ShieldAlert size={10} /> Yes</span>
+                            ) : (
+                              <span className="badge badge-success text-[10px]"><CheckCircle size={10} /> No</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-5 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {!product.isSerialized && (
+                                <button 
+                                  className="inline-flex items-center gap-0.5 px-2 py-1 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded text-xs font-semibold transition-colors"
+                                  onClick={() => {
+                                    setAddQtyProduct(product);
+                                    setAddQtyValue('');
+                                    setAddQtyDN('');
+                                    setAddQtyDeliveryFrom('');
+                                    setAddQtyNotes('');
+                                    setAddQtyError('');
+                                  }}
+                                  title="Quick Add Stock"
+                                  type="button"
+                                >
+                                  <Plus size={11} /> 
+                                  <span>Stock</span>
+                                </button>
+                              )}
+                              <button type="button" className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
+                                <Edit2 size={13} />
+                              </button>
+                              <button type="button" className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" onClick={() => handleDelete(product.id)}>
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
+                    <span className="text-text-muted">
+                      Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{" "}
+                      <strong className="text-text-primary">
+                        {Math.min((currentPage + 1) * itemsPerPage, filteredProducts.length)}
+                      </strong> of{" "}
+                      <strong className="text-text-primary">{filteredProducts.length}</strong> products
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={currentPage === 0}
+                        onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                        className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={currentPage === totalPages - 1}
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                        className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
 
-        {/* Quick Add Stock Modal */}
         {addQtyProduct && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
             <form onSubmit={handleAddQtySubmit} className="bg-surface border border-border rounded-xl p-6 w-full max-w-[420px] shadow-lg flex flex-col gap-4 animate-slide-down">
@@ -1037,5 +1082,6 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
         )}
       </div>
     </div>
+  </div>
   );
 }

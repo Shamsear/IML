@@ -6,9 +6,14 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function StoreDetailPage({ params }) {
-  // Await the params object in Next.js App Router
+export default async function StoreDetailPage({ params, searchParams }) {
+  // Await the params and searchParams objects in Next.js App Router
   const { id } = await params;
+  const sParams = await searchParams;
+
+  const invPage = parseInt(sParams?.invPage || '1', 10);
+  const dispPage = parseInt(sParams?.dispPage || '1', 10);
+  const pageSize = 15;
 
   // Fetch Store info, staff, and dispatches
   const [store, staff, inventory, dispatches] = await Promise.all([
@@ -82,6 +87,13 @@ export default async function StoreDetailPage({ params }) {
 
   const groupedDispatches = Object.values(groupedDispatchesMap).sort((a, b) => b.date.localeCompare(a.date));
 
+  // Pagination lists and totals
+  const totalInvPages = Math.ceil(inventory.length / pageSize);
+  const paginatedInventory = inventory.slice((invPage - 1) * pageSize, invPage * pageSize);
+
+  const totalDispPages = Math.ceil(groupedDispatches.length / pageSize);
+  const paginatedDispatches = groupedDispatches.slice((dispPage - 1) * pageSize, dispPage * pageSize);
+
   return (
     <div className="flex flex-col gap-6">
       {/* Back & Print Row */}
@@ -142,43 +154,76 @@ export default async function StoreDetailPage({ params }) {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-5">
-              <div className="inline-block min-w-full align-middle px-5">
-                <table className="min-w-full divide-y divide-border text-sm">
-                  <thead>
-                    <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
-                      <th className="pb-3 pr-4">Product Name</th>
-                      <th className="pb-3 px-4">Brand</th>
-                      <th className="pb-3 px-4 text-center">Quantity</th>
-                      <th className="pb-3 pl-4">Tracking Type</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border text-text-primary">
-                    {inventory.map((item) => (
-                      <tr key={item.productId} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3 pr-4 font-semibold">{item.name}</td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="badge badge-info">{item.brandName}</span>
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap text-center font-mono font-bold text-base">{item.quantity}</td>
-                        <td className="py-3 pl-4 whitespace-nowrap">
-                          {item.isSerialized ? (
-                            <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                              <QrCode size={13} className="text-success" />
-                              <span className="max-w-[240px] truncate font-mono bg-surface-elevated px-1.5 py-0.5 rounded text-[10px]" title={item.serials.map(s => s.barcode).join(', ')}>
-                                {item.serials.map(s => s.barcode).join(', ')}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-text-muted">Bulk Goods</span>
-                          )}
-                        </td>
+            <>
+              <div className="overflow-x-auto -mx-5">
+                <div className="inline-block min-w-full align-middle px-5">
+                  <table className="min-w-full divide-y divide-border text-sm">
+                    <thead>
+                      <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
+                        <th className="pb-3 pr-4">Product Name</th>
+                        <th className="pb-3 px-4">Brand</th>
+                        <th className="pb-3 px-4 text-center">Quantity</th>
+                        <th className="pb-3 pl-4">Tracking Type</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-border text-text-primary">
+                      {paginatedInventory.map((item) => (
+                        <tr key={item.productId} className="hover:bg-surface-elevated/20 transition-colors">
+                          <td className="py-3 pr-4 font-semibold">{item.name}</td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span className="badge badge-info">{item.brandName}</span>
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap text-center font-mono font-bold text-base">{item.quantity}</td>
+                          <td className="py-3 pl-4 whitespace-nowrap">
+                            {item.isSerialized ? (
+                              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                                <QrCode size={13} className="text-success" />
+                                <span className="max-w-[240px] truncate font-mono bg-surface-elevated px-1.5 py-0.5 rounded text-[10px]" title={item.serials.map(s => s.barcode).join(', ')}>
+                                  {item.serials.map(s => s.barcode).join(', ')}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-text-muted">Bulk Goods</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {/* Inventory Pagination Controls */}
+              {totalInvPages > 1 && (
+                <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs mt-2 rounded-lg">
+                  <span className="text-text-muted">
+                    Showing <strong className="text-text-primary">{(invPage - 1) * pageSize + 1}</strong> to{" "}
+                    <strong className="text-text-primary">
+                      {Math.min(invPage * pageSize, inventory.length)}
+                    </strong> of{" "}
+                    <strong className="text-text-primary">{inventory.length}</strong> items
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Link
+                      href={`/dashboard/stores/${id}?invPage=${Math.max(1, invPage - 1)}&dispPage=${dispPage}`}
+                      className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
+                        invPage === 1 ? 'pointer-events-none opacity-50' : ''
+                      }`}
+                    >
+                      Previous
+                    </Link>
+                    <Link
+                      href={`/dashboard/stores/${id}?invPage=${Math.min(totalInvPages, invPage + 1)}&dispPage=${dispPage}`}
+                      className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
+                        invPage === totalInvPages ? 'pointer-events-none opacity-50' : ''
+                      }`}
+                    >
+                      Next
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -218,24 +263,59 @@ export default async function StoreDetailPage({ params }) {
             {groupedDispatches.length === 0 ? (
               <div className="py-6 text-center text-xs text-text-muted">No dispatches recorded.</div>
             ) : (
-              groupedDispatches.map(disp => (
-                <div key={`${disp.date}_${disp.brandId}_${disp.deliveryNote}`} className="p-3 bg-surface-elevated/40 border border-black/5 rounded-lg flex justify-between items-center text-xs">
-                  <div className="min-w-0 flex-1 pr-2">
-                    <strong className="text-text-primary block truncate font-mono">{disp.deliveryNote}</strong>
-                    <span className="text-text-secondary block mt-0.5 text-[10px]">
-                      {disp.date} — {disp.brandName}
-                    </span>
-                  </div>
-                  <Link
-                    href={`/api/dashboard/stores/${id}/delivery-note?date=${disp.date}&brandId=${disp.brandId}&dn=${disp.deliveryNote}`}
-                    target="_blank"
-                    className="p-1.5 hover:bg-success/10 text-success rounded-md transition-colors flex-shrink-0"
-                    title="Print Delivery Note"
-                  >
-                    <Printer size={13} />
-                  </Link>
+              <>
+                <div className="flex flex-col gap-2.5">
+                  {paginatedDispatches.map(disp => (
+                    <div key={`${disp.date}_${disp.brandId}_${disp.deliveryNote}`} className="p-3 bg-surface-elevated/40 border border-black/5 rounded-lg flex justify-between items-center text-xs">
+                      <div className="min-w-0 flex-1 pr-2">
+                        <strong className="text-text-primary block truncate font-mono">{disp.deliveryNote}</strong>
+                        <span className="text-text-secondary block mt-0.5 text-[10px]">
+                          {disp.date} — {disp.brandName}
+                        </span>
+                      </div>
+                      <Link
+                        href={`/api/dashboard/stores/${id}/delivery-note?date=${disp.date}&brandId=${disp.brandId}&dn=${disp.deliveryNote}`}
+                        target="_blank"
+                        className="p-1.5 hover:bg-success/10 text-success rounded-md transition-colors flex-shrink-0"
+                        title="Print Delivery Note"
+                      >
+                        <Printer size={13} />
+                      </Link>
+                    </div>
+                  ))}
                 </div>
-              ))
+
+                {/* Dispatches Pagination Controls */}
+                {totalDispPages > 1 && (
+                  <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-surface-elevated/20 text-[10px] mt-2 rounded-lg">
+                    <span className="text-text-muted">
+                      Showing <strong className="text-text-primary">{(dispPage - 1) * pageSize + 1}</strong> to{" "}
+                      <strong className="text-text-primary">
+                        {Math.min(dispPage * pageSize, groupedDispatches.length)}
+                      </strong> of{" "}
+                      <strong className="text-text-primary">{groupedDispatches.length}</strong> notes
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.max(1, dispPage - 1)}`}
+                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-all duration-150 ${
+                          dispPage === 1 ? 'pointer-events-none opacity-50' : ''
+                        }`}
+                      >
+                        Prev
+                      </Link>
+                      <Link
+                        href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.min(totalDispPages, dispPage + 1)}`}
+                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-all duration-150 ${
+                          dispPage === totalDispPages ? 'pointer-events-none opacity-50' : ''
+                        }`}
+                      >
+                        Next
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

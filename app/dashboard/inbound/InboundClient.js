@@ -62,6 +62,29 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
 
+  // Load saved mobile session on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('iml_mobile_scan_session');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          fetch(`/api/scan-companion?sessionId=${parsed.sessionId}`)
+            .then(res => {
+              if (res.ok) {
+                setMobileSession(parsed);
+              } else {
+                localStorage.removeItem('iml_mobile_scan_session');
+              }
+            })
+            .catch(() => {});
+        } catch (e) {
+          localStorage.removeItem('iml_mobile_scan_session');
+        }
+      }
+    }
+  }, []);
+
   // Sync isBulkScan to Ref to prevent stale closures without re-triggering camera instantiations
   const isBulkScanRef = useRef(isBulkScan);
   useEffect(() => {
@@ -371,10 +394,17 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
   const handleOpenMobileScanner = async (rowIndex) => {
     try {
       setActiveCameraRow(rowIndex);
+      
+      if (mobileSession?.sessionId) {
+        setIsMobileModalOpen(true);
+        return;
+      }
+      
       const res = await fetch('/api/scan-companion', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         setMobileSession(data);
+        localStorage.setItem('iml_mobile_scan_session', JSON.stringify(data));
         setIsMobileModalOpen(true);
       }
     } catch (e) {
@@ -385,7 +415,7 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
   // Poll for mobile scanned items
   useEffect(() => {
     let interval = null;
-    if (isMobileModalOpen && mobileSession?.sessionId && activeCameraRow !== null) {
+    if (mobileSession?.sessionId && activeCameraRow !== null) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -698,13 +728,45 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
                             
                             <button
                               type="button"
-                              className="px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-all flex items-center justify-center gap-1"
-                              onClick={() => handleOpenMobileScanner(index)}
-                              title="Pair Wireless Mobile phone camera"
+                              className={`px-2.5 py-1 border rounded-lg transition-all flex items-center justify-center gap-1 ${
+                                mobileSession?.sessionId && activeCameraRow === index
+                                  ? 'bg-success/15 border-success text-success font-semibold'
+                                  : 'bg-surface border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
+                              }`}
+                              onClick={() => {
+                                if (mobileSession?.sessionId) {
+                                  if (activeCameraRow === index) {
+                                    setIsMobileModalOpen(true);
+                                  } else {
+                                    setActiveCameraRow(index);
+                                  }
+                                } else {
+                                  handleOpenMobileScanner(index);
+                                }
+                              }}
+                              title={mobileSession?.sessionId && activeCameraRow === index ? "Mobile scanner active. Click to re-open QR code pairing screen." : "Pair Wireless Mobile phone camera"}
                             >
-                              <Smartphone size={13} className="text-primary animate-pulse" />
-                              <span className="text-[10px] font-bold uppercase">Mobile</span>
+                              <Smartphone size={13} className={mobileSession?.sessionId && activeCameraRow === index ? "text-success animate-pulse" : "text-primary"} />
+                              <span className="text-[10px] font-bold uppercase">
+                                {mobileSession?.sessionId && activeCameraRow === index ? 'Mobile Paired' : 'Mobile'}
+                              </span>
                             </button>
+
+                            {mobileSession?.sessionId && activeCameraRow === index && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  localStorage.removeItem('iml_mobile_scan_session');
+                                  setMobileSession(null);
+                                  setActiveCameraRow(null);
+                                }}
+                                className="px-2 py-1 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 rounded-lg transition-colors flex items-center justify-center"
+                                title="Disconnect Mobile Scanner"
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -970,13 +1032,26 @@ function InboundFormContent({ products, recentReceivers = [], recentSuppliers = 
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down text-center">
             <div className="flex justify-between items-center pb-2 border-b border-border">
               <h3 className="font-display font-bold text-sm text-text-primary">Pair Mobile Barcode Scanner</h3>
-              <button 
-                type="button" 
-                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
-                onClick={() => { setIsMobileModalOpen(false); setActiveCameraRow(null); }}
-              >
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  className="px-2 py-1 bg-danger/10 hover:bg-danger/20 text-danger text-[10px] font-bold rounded-lg transition-colors"
+                  onClick={() => {
+                    setMobileSession(null);
+                    setActiveCameraRow(null);
+                    setIsMobileModalOpen(false);
+                  }}
+                >
+                  Disconnect
+                </button>
+                <button 
+                  type="button" 
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                  onClick={() => { setIsMobileModalOpen(false); }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-col items-center gap-4 py-2">

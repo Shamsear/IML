@@ -8,6 +8,20 @@ export default function BrandPortalClient({ brand }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('ALL'); // 'ALL', 'RECEIVE', 'ISSUE', 'DAMAGE'
 
+  // Pagination States
+  const [productPage, setProductPage] = useState(0);
+  const [logPage, setLogPage] = useState(0);
+  const itemsPerPage = 25;
+
+  // Reset pages on search/filter changes
+  React.useEffect(() => {
+    setProductPage(0);
+  }, [searchQuery]);
+
+  React.useEffect(() => {
+    setLogPage(0);
+  }, [activeTab]);
+
   // Helper to compute individual product stock metrics from transactions
   const getProductStock = (transactions) => {
     let warehouse = 0;
@@ -83,6 +97,12 @@ export default function BrandPortalClient({ brand }) {
     if (activeTab === 'DAMAGE') return t.transactionType === 'DAMAGE' || t.transactionType === 'LOST';
     return true;
   });
+
+  const totalProductPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(productPage * itemsPerPage, (productPage + 1) * itemsPerPage);
+
+  const totalLogPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const paginatedTransactions = filteredTransactions.slice(logPage * itemsPerPage, (logPage + 1) * itemsPerPage);
 
   return (
     <div className="min-h-screen bg-[#fcfbfa] text-text-primary py-8 px-4 sm:px-6 lg:px-8 font-sans">
@@ -209,7 +229,8 @@ export default function BrandPortalClient({ brand }) {
                 No catalog items found matching your query.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+                <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-border">
                   <thead>
                     <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider">
@@ -221,7 +242,7 @@ export default function BrandPortalClient({ brand }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-xs text-text-primary">
-                    {filteredProducts.map(p => {
+                    {paginatedProducts.map(p => {
                       const stock = getProductStock(p.transactions);
                       return (
                         <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
@@ -249,6 +270,38 @@ export default function BrandPortalClient({ brand }) {
                   </tbody>
                 </table>
               </div>
+
+              {/* Product Pagination Controls */}
+              {totalProductPages > 1 && (
+                <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-surface-elevated/20 text-[10px] mt-2 rounded-lg">
+                  <span className="text-text-muted">
+                    Showing <strong className="text-text-primary">{productPage * itemsPerPage + 1}</strong> to{" "}
+                    <strong className="text-text-primary">
+                      {Math.min((productPage + 1) * itemsPerPage, filteredProducts.length)}
+                    </strong> of{" "}
+                    <strong className="text-text-primary">{filteredProducts.length}</strong> items
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={productPage === 0}
+                      onClick={() => setProductPage(prev => Math.max(0, prev - 1))}
+                      className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-all duration-150"
+                    >
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      disabled={productPage === totalProductPages - 1}
+                      onClick={() => setProductPage(prev => Math.min(totalProductPages - 1, prev + 1))}
+                      className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-all duration-150"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+                )}
+              </>
             )}
           </div>
 
@@ -285,7 +338,7 @@ export default function BrandPortalClient({ brand }) {
                   No transaction log entries found in this category.
                 </div>
               ) : (
-                filteredTransactions.map(t => {
+                paginatedTransactions.map(t => {
                   const isReceive = t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN';
                   const isDamage = t.transactionType === 'DAMAGE' || t.transactionType === 'LOST';
                   
@@ -318,6 +371,37 @@ export default function BrandPortalClient({ brand }) {
                 })
               )}
             </div>
+
+            {/* Logs Pagination Controls */}
+            {totalLogPages > 1 && (
+              <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-surface-elevated/20 text-[10px] flex-shrink-0 mt-auto rounded-lg">
+                <span className="text-text-muted">
+                  Showing <strong className="text-text-primary">{logPage * itemsPerPage + 1}</strong> to{" "}
+                  <strong className="text-text-primary">
+                    {Math.min((logPage + 1) * itemsPerPage, filteredTransactions.length)}
+                  </strong> of{" "}
+                  <strong className="text-text-primary">{filteredTransactions.length}</strong> logs
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={logPage === 0}
+                    onClick={() => setLogPage(prev => Math.max(0, prev - 1))}
+                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-all duration-150"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    disabled={logPage === totalLogPages - 1}
+                    onClick={() => setLogPage(prev => Math.min(totalLogPages - 1, prev + 1))}
+                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-all duration-150"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>

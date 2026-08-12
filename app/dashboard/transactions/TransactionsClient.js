@@ -15,12 +15,19 @@ export default function TransactionsClient({
   const [filterType, setFilterType] = useState('ALL');
   const [filterProduct, setFilterProduct] = useState('ALL');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 50;
+
   // Filtered transactions for view table
   const filteredTransactions = transactions.filter(tx => {
     const matchesType = filterType === 'ALL' || tx.transactionType === filterType;
     const matchesProduct = filterProduct === 'ALL' || tx.productId === filterProduct;
     return matchesType && matchesProduct;
   });
+
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const paginatedTransactions = filteredTransactions.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,7 +71,7 @@ export default function TransactionsClient({
             <select 
               className="bg-surface-elevated text-text-primary border border-border rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary transition-colors" 
               value={filterType} 
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={(e) => { setFilterType(e.target.value); setCurrentPage(0); }}
             >
               <option value="ALL">All Transactions</option>
               <option value="RECEIVE">Inbound (Receive)</option>
@@ -82,7 +89,7 @@ export default function TransactionsClient({
             <select 
               className="bg-surface-elevated text-text-primary border border-border rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary transition-colors" 
               value={filterProduct} 
-              onChange={(e) => setFilterProduct(e.target.value)}
+              onChange={(e) => { setFilterProduct(e.target.value); setCurrentPage(0); }}
             >
               <option value="ALL">All Products</option>
               {products.map(p => (
@@ -101,7 +108,8 @@ export default function TransactionsClient({
               <p className="text-sm max-w-xs">Select a movement action above to log stock operations.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-5">
+            <>
+              <div className="overflow-x-auto -mx-5">
               <div className="inline-block min-w-full align-middle px-5">
                 <table className="min-w-full divide-y divide-border">
                   <thead>
@@ -116,7 +124,7 @@ export default function TransactionsClient({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-sm text-text-primary">
-                    {filteredTransactions.map((tx) => (
+                    {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
                         <td className="py-3.5 pr-4 whitespace-nowrap">
                           <div className="flex flex-col">
@@ -192,6 +200,38 @@ export default function TransactionsClient({
                 </table>
               </div>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
+                <span className="text-text-muted">
+                  Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{" "}
+                  <strong className="text-text-primary">
+                    {Math.min((currentPage + 1) * itemsPerPage, filteredTransactions.length)}
+                  </strong> of{" "}
+                  <strong className="text-text-primary">{filteredTransactions.length}</strong> movements
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={currentPage === 0}
+                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages - 1}
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -66,6 +66,19 @@ export default function ScanCompanionClient({ session }) {
     }
   };
 
+  const handleDisconnect = async () => {
+    if (window.confirm("Disconnect this scanner session?")) {
+      try {
+        await fetch(`/api/scan-companion?sessionId=${session}`, {
+          method: 'DELETE'
+        });
+      } catch (e) {
+        console.error(e);
+      }
+      window.location.href = '/scan-companion';
+    }
+  };
+
   // Trigger brief mobile vibration feedback on successful scans
   const triggerVibe = () => {
     try {
@@ -289,7 +302,13 @@ export default function ScanCompanionClient({ session }) {
           </div>
         </div>
         <div className="text-right">
-          <span className="text-[10px] font-bold text-text-muted uppercase">Wireless Sync</span>
+          <button
+            type="button"
+            onClick={handleDisconnect}
+            className="px-2.5 py-1 bg-danger/10 hover:bg-danger/20 text-danger text-[10px] font-bold rounded-lg transition-colors border border-danger/20"
+          >
+            Disconnect
+          </button>
         </div>
       </header>
 

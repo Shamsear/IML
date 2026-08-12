@@ -40,6 +40,9 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   // Bulk Issue States
   const [checkedProductIds, setCheckedProductIds] = useState([]);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(0);
+
   // Connect Store Form
   const [storeToConnect, setStoreToConnect] = useState('');
 
@@ -294,6 +297,10 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     return { warehouse, storesQty, supervisorsQty, damagedLost };
   };
 
+  const itemsPerPage = 25;
+  const totalPages = Math.ceil(brand.products.length / itemsPerPage);
+  const paginatedProducts = brand.products.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -374,7 +381,167 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         </div>
       </div>
 
-      {/* 1. Connected Outlets Section */}
+      {/* 2. Catalog Products Section */}
+      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
+        <h3 className="font-display font-bold text-lg text-text-primary flex items-center gap-2 pb-3 border-b border-border">
+          <Package size={18} className="text-primary" />
+          <span>Catalog Products ({brand.products.length})</span>
+        </h3>
+        {brand.products.length === 0 ? (
+          <div className="py-12 text-center text-sm text-text-muted">
+            No products registered for this brand. Click &quot;Add Product&quot; to define catalog items.
+          </div>
+        ) : (
+          <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                    <th className="py-3 px-5 w-10 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-border text-primary focus:ring-primary/20"
+                        checked={checkedProductIds.length === brand.products.length && brand.products.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCheckedProductIds(brand.products.map(p => p.id));
+                          } else {
+                            setCheckedProductIds([]);
+                          }
+                        }}
+                      />
+                    </th>
+                    <th className="py-3 px-5">Product Details</th>
+                    <th className="py-3 px-5">Category</th>
+                    <th className="py-3 px-5">Type</th>
+                    <th className="py-3 px-5 text-center">Warehouse</th>
+                    <th className="py-3 px-5 text-center">Stores</th>
+                    <th className="py-3 px-5 text-center">Supervisors</th>
+                    <th className="py-3 px-5 text-center text-danger">Damaged / Lost</th>
+                    <th className="py-3 px-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border text-text-primary">
+                  {paginatedProducts.map(product => {
+                    const stock = calculateStock(product.transactions);
+                    return (
+                      <tr key={product.id} className="hover:bg-surface-elevated/20 transition-colors">
+                        <td className="py-3.5 px-5 text-center">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-border text-primary focus:ring-primary/20"
+                            checked={checkedProductIds.includes(product.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCheckedProductIds(prev => [...prev, product.id]);
+                              } else {
+                                setCheckedProductIds(prev => prev.filter(id => id !== product.id));
+                              }
+                            }}
+                          />
+                        </td>
+                        <td className="py-3.5 px-5 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-text-primary">{product.name}</span>
+                            <span className="text-xs text-text-muted mt-0.5">SKU: <code>{product.itemCode || '---'}</code></span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-5 whitespace-nowrap">
+                          <span className="badge bg-surface-elevated text-text-secondary border border-border">
+                            {product.category || '---'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-5 whitespace-nowrap">
+                          {product.isSerialized ? (
+                            <button 
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" 
+                              onClick={() => openSerialsModal(product)}
+                            >
+                              <QrCode size={13} />
+                              <span>{product.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({product._count.serialNumbers})</span>
+                            </button>
+                          ) : (
+                            <span className="text-xs text-text-muted">Normal</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-5 text-center whitespace-nowrap">
+                          {product.stockCap ? (
+                            stock.warehouse <= 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
+                                0 / Out
+                              </span>
+                            ) : stock.warehouse < product.stockCap ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
+                                {stock.warehouse} / Low (Cap: {product.stockCap})
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
+                                {stock.warehouse} / Ok
+                              </span>
+                            )
+                          ) : (
+                            <span className="font-mono font-semibold text-text-primary">{stock.warehouse}</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap">{stock.storesQty}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap">{stock.supervisorsQty}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.damagedLost}</td>
+                        <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2.5">
+                            <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-xs font-semibold text-success hover:underline inline-flex items-center gap-0.5">
+                              <ArrowDownLeft size={12} />
+                              <span>Recv</span>
+                            </Link>
+                            {brand.stores.length > 0 && (
+                              <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
+                                <ArrowUpRight size={12} />
+                                <span>Issue</span>
+                              </Link>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
+                <span className="text-text-muted">
+                  Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{" "}
+                  <strong className="text-text-primary">
+                    {Math.min((currentPage + 1) * itemsPerPage, brand.products.length)}
+                  </strong> of{" "}
+                  <strong className="text-text-primary">{brand.products.length}</strong> products
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={currentPage === 0}
+                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages - 1}
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 1. Connected Outlets Section (moved to bottom) */}
       <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
         <h3 className="font-display font-bold text-lg text-text-primary flex items-center gap-2 pb-3 border-b border-border">
           <Store size={18} className="text-secondary" />
@@ -402,135 +569,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                 </button>
               </div>
             ))}
-          </div>
-        )}
-      </div>
-
-      {/* 2. Catalog Products Section */}
-      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
-        <h3 className="font-display font-bold text-lg text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-          <Package size={18} className="text-primary" />
-          <span>Catalog Products ({brand.products.length})</span>
-        </h3>
-        {brand.products.length === 0 ? (
-          <div className="py-12 text-center text-sm text-text-muted">
-            No products registered for this brand. Click &quot;Add Product&quot; to define catalog items.
-          </div>
-        ) : (
-          <div className="overflow-x-auto -mx-5">
-            <div className="inline-block min-w-full align-middle px-5">
-              <table className="min-w-full divide-y divide-border">
-                <thead>
-                  <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
-                    <th className="pb-3 w-10 text-center">
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-border text-primary focus:ring-primary/20"
-                        checked={checkedProductIds.length === brand.products.length && brand.products.length > 0}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCheckedProductIds(brand.products.map(p => p.id));
-                          } else {
-                            setCheckedProductIds([]);
-                          }
-                        }}
-                      />
-                    </th>
-                    <th className="pb-3 pr-4">Product Details</th>
-                    <th className="pb-3 px-4">Category</th>
-                    <th className="pb-3 px-4">Type</th>
-                    <th className="pb-3 px-4 text-center">Warehouse</th>
-                    <th className="pb-3 px-4 text-center">Stores</th>
-                    <th className="pb-3 px-4 text-center">Supervisors</th>
-                    <th className="pb-3 px-4 text-center text-danger">Damaged / Lost</th>
-                    <th className="pb-3 pl-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border text-sm text-text-primary">
-                  {brand.products.map(product => {
-                    const stock = calculateStock(product.transactions);
-                    return (
-                      <tr key={product.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 text-center">
-                          <input 
-                            type="checkbox" 
-                            className="rounded border-border text-primary focus:ring-primary/20"
-                            checked={checkedProductIds.includes(product.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setCheckedProductIds(prev => [...prev, product.id]);
-                              } else {
-                                setCheckedProductIds(prev => prev.filter(id => id !== product.id));
-                              }
-                            }}
-                          />
-                        </td>
-                        <td className="py-3.5 pr-4">
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-text-primary">{product.name}</span>
-                            <span className="text-xs text-text-muted mt-0.5">SKU: <code>{product.itemCode || '---'}</code></span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="badge bg-surface-elevated text-text-secondary border border-border">
-                            {product.category || '---'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          {product.isSerialized ? (
-                            <button 
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" 
-                              onClick={() => openSerialsModal(product)}
-                            >
-                              <QrCode size={13} />
-                              <span>{product.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({product._count.serialNumbers})</span>
-                            </button>
-                          ) : (
-                            <span className="text-xs text-text-muted">Normal</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                          {product.stockCap ? (
-                            stock.warehouse <= 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
-                                0 / Out
-                              </span>
-                            ) : stock.warehouse < product.stockCap ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
-                                {stock.warehouse} / Low (Cap: {product.stockCap})
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
-                                {stock.warehouse} / Ok
-                              </span>
-                            )
-                          ) : (
-                            <span className="font-mono font-semibold text-text-primary">{stock.warehouse}</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap">{stock.storesQty}</td>
-                        <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap">{stock.supervisorsQty}</td>
-                        <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.damagedLost}</td>
-                        <td className="py-3.5 pl-4 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-2.5">
-                            <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-xs font-semibold text-success hover:underline inline-flex items-center gap-0.5">
-                              <ArrowDownLeft size={12} />
-                              <span>Recv</span>
-                            </Link>
-                            {brand.stores.length > 0 && (
-                              <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
-                                <ArrowUpRight size={12} />
-                                <span>Issue</span>
-                              </Link>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
           </div>
         )}
       </div>

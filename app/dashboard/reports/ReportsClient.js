@@ -8,6 +8,15 @@ export default function ReportsClient({ initialProducts, brands }) {
   const [selectedBrand, setSelectedBrand] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 25;
+
+  // Reset pagination page on filter/search updates
+  React.useEffect(() => {
+    setCurrentPage(0);
+  }, [searchQuery, selectedBrand, selectedCategory]);
+
   // Compute stock levels for a product from its transactions
   const getProductStock = (transactions) => {
     let warehouse = 0;
@@ -72,6 +81,9 @@ export default function ReportsClient({ initialProducts, brands }) {
     acc.total += p.stock.total;
     return acc;
   }, { warehouse: 0, outlets: 0, staff: 0, damaged: 0, total: 0 });
+
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   const handlePrint = () => {
     window.print();
@@ -204,7 +216,8 @@ export default function ReportsClient({ initialProducts, brands }) {
             No products match the selected filters.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border print:divide-y-2 print:divide-black">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider print:text-[9px] print:text-black">
@@ -219,7 +232,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-sm text-text-primary print:divide-y print:divide-gray-400 print:text-[10px]">
-                {filteredProducts.map(p => (
+                {paginatedProducts.map(p => (
                   <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors print:hover:bg-transparent">
                     <td className="py-3.5 pr-4">
                       <div className="flex flex-col">
@@ -245,6 +258,38 @@ export default function ReportsClient({ initialProducts, brands }) {
               </tbody>
             </table>
           </div>
+
+          {/* Reports Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs mt-4 rounded-lg print:hidden">
+              <span className="text-text-muted">
+                Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{" "}
+                <strong className="text-text-primary">
+                  {Math.min((currentPage + 1) * itemsPerPage, filteredProducts.length)}
+                </strong> of{" "}
+                <strong className="text-text-primary">{filteredProducts.length}</strong> products
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={currentPage === 0}
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages - 1}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+            )}
+          </>
         )}
       </div>
 
