@@ -1114,14 +1114,26 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
             </div>
             
             <div className="flex flex-col gap-4 text-center py-4 items-center">
-              <div className="p-3 bg-primary/5 rounded-full text-primary border border-primary/10">
-                <QrCode size={40} />
+              <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`)}`}
+                  alt="Scan QR to pair phone"
+                  className="w-[200px] h-[200px] block"
+                />
               </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-extrabold text-text-primary font-mono font-semibold">Pair code: {mobileSession.sessionId}</span>
-                <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed mt-1">
-                  Open the Wireless Companion app on your phone, scan this pairing code or type it in, and scan serial numbers instantly.
+              <div className="flex flex-col gap-1.5 max-w-sm">
+                <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mx-auto font-mono">
+                  Pairing Code: {mobileSession.sessionId}
+                </span>
+                <p className="text-xs text-text-secondary leading-relaxed px-4 mt-2">
+                  1. Scan this QR code with your phone's camera.<br />
+                  2. Keep both phone and PC on the same Wi-Fi.<br />
+                  3. Scan barcodes with your phone to sync instantly!
                 </p>
+              </div>
+              <div className="flex items-center justify-center gap-2 mt-2 py-1.5 px-4 bg-surface-elevated rounded-lg border border-border">
+                <Loader2 size={14} className="animate-spin text-primary" />
+                <span className="text-[11px] font-bold text-text-secondary uppercase">Waiting for mobile scans...</span>
               </div>
             </div>
           </div>

@@ -248,7 +248,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
     let added = false;
     setItems(prev => {
       if (!activeScanTarget) return prev;
-      const { itemIdx, inboundIdx } = activeScanTarget;
+      const { itemIdx, inboundIdx, field } = activeScanTarget;
 
       const targetItem = prev[itemIdx];
       if (!targetItem) return prev;
@@ -256,25 +256,20 @@ export default function NewProductClient({ brands, stores = [], editId = null })
       const targetInbound = targetItem.inbounds[inboundIdx];
       if (!targetInbound) return prev;
 
-      if (targetInbound.rangeMode && targetItem.productType === 'SIM') {
-        const start = targetInbound.rangeStart.trim();
-        const end = targetInbound.rangeEnd.trim();
-        if (!start) {
-          added = true;
-          const updatedInbounds = targetItem.inbounds.map((inb, j) => {
-            if (j !== inboundIdx) return inb;
-            return { ...inb, rangeStart: cleanCode };
-          });
-          return prev.map((item, i) => i === itemIdx ? { ...item, inbounds: updatedInbounds } : item);
-        } else if (!end) {
-          added = true;
-          const updatedInbounds = targetItem.inbounds.map((inb, j) => {
-            if (j !== inboundIdx) return inb;
-            return { ...inb, rangeEnd: cleanCode };
-          });
-          return prev.map((item, i) => i === itemIdx ? { ...item, inbounds: updatedInbounds } : item);
-        }
-        return prev;
+      if (field === 'rangeStart') {
+        added = true;
+        const updatedInbounds = targetItem.inbounds.map((inb, j) => {
+          if (j !== inboundIdx) return inb;
+          return { ...inb, rangeStart: cleanCode };
+        });
+        return prev.map((item, i) => i === itemIdx ? { ...item, inbounds: updatedInbounds } : item);
+      } else if (field === 'rangeEnd') {
+        added = true;
+        const updatedInbounds = targetItem.inbounds.map((inb, j) => {
+          if (j !== inboundIdx) return inb;
+          return { ...inb, rangeEnd: cleanCode };
+        });
+        return prev.map((item, i) => i === itemIdx ? { ...item, inbounds: updatedInbounds } : item);
       } else {
         const currentList = targetInbound.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
         if (!currentList.includes(cleanCode)) {
@@ -380,6 +375,16 @@ export default function NewProductClient({ brands, stores = [], editId = null })
     let html5QrcodeScanner = null;
     if (isCameraOpen && cameraPermissionStatus === 'granted') {
       const initScanner = async () => {
+        let attempts = 0;
+        while (!document.getElementById('camera-reader-element') && attempts < 10) {
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
+        }
+        if (!document.getElementById('camera-reader-element')) {
+          console.warn("Camera reader element target is not mounted yet.");
+          return;
+        }
+
         try {
           const { Html5QrcodeScanner } = await import('html5-qrcode');
           html5QrcodeScanner = new Html5QrcodeScanner(
@@ -415,7 +420,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
                 }
               }
 
-              if (!isBulkScanRef.current) {
+              if (!isBulkScanRef.current || activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
                 setIsCameraOpen(false);
               }
             },
@@ -432,7 +437,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
         html5QrcodeScanner.clear().catch(e => console.error(e));
       }
     };
-  }, [isCameraOpen, cameraPermissionStatus]);
+  }, [isCameraOpen, cameraPermissionStatus, activeScanTarget]);
 
   // Inject scan laser UI
   useEffect(() => {
@@ -491,7 +496,12 @@ export default function NewProductClient({ brands, stores = [], editId = null })
             if (data.barcodes && data.barcodes.length > 0) {
               data.barcodes.forEach(code => {
                 const added = addBarcodeToActiveItem(code);
-                if (added) playBeep();
+                if (added) {
+                  playBeep();
+                  if (activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
+                    setIsMobileModalOpen(false);
+                  }
+                }
               });
             }
           }
@@ -503,7 +513,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMobileModalOpen, mobileSession]);
+  }, [isMobileModalOpen, mobileSession, activeScanTarget]);
 
   // Add brand-new empty product configuration to queue
   const handleAddNewItem = () => {
@@ -1131,7 +1141,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
                                                 <button
                                                   type="button"
                                                   onClick={() => {
-                                                    setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                                    setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'list' });
                                                     handleOpenMobileScanner();
                                                   }}
                                                   className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
@@ -1141,7 +1151,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
                                                 <button
                                                   type="button"
                                                   onClick={() => {
-                                                    setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                                    setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'list' });
                                                     setIsCameraOpen(true);
                                                   }}
                                                   className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
@@ -1161,19 +1171,32 @@ export default function NewProductClient({ brands, stores = [], editId = null })
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                               <div className="flex flex-col gap-1.5">
-                                                <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
-                                                  <span>Range Start Barcode</span>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
-                                                      setIsCameraOpen(true);
-                                                    }}
-                                                    className="text-[10px] text-primary hover:underline font-bold"
-                                                  >
-                                                    Scan Start
-                                                  </button>
-                                                </label>
+                                                <div className="flex items-center justify-between">
+                                                  <label className="text-xs font-semibold text-text-secondary">Range Start Barcode</label>
+                                                  <div className="flex items-center gap-2">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'rangeStart' });
+                                                        handleOpenMobileScanner();
+                                                      }}
+                                                      className="text-[10px] text-text-secondary hover:text-text-primary font-semibold inline-flex items-center gap-0.5 cursor-pointer"
+                                                      title="Sync via companion scanner"
+                                                    >
+                                                      <Smartphone size={10} /> <span>Sync</span>
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'rangeStart' });
+                                                        setIsCameraOpen(true);
+                                                      }}
+                                                      className="text-[10px] text-primary hover:underline font-bold inline-flex items-center gap-0.5 cursor-pointer"
+                                                    >
+                                                      <Camera size={10} /> <span>Scan</span>
+                                                    </button>
+                                                  </div>
+                                                </div>
                                                 <input
                                                   type="text"
                                                   className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
@@ -1183,19 +1206,32 @@ export default function NewProductClient({ brands, stores = [], editId = null })
                                                 />
                                               </div>
                                               <div className="flex flex-col gap-1.5">
-                                                <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
-                                                  <span>Range End Barcode</span>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
-                                                      setIsCameraOpen(true);
-                                                    }}
-                                                    className="text-[10px] text-primary hover:underline font-bold"
-                                                  >
-                                                    Scan End
-                                                  </button>
-                                                </label>
+                                                <div className="flex items-center justify-between">
+                                                  <label className="text-xs font-semibold text-text-secondary">Range End Barcode</label>
+                                                  <div className="flex items-center gap-2">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'rangeEnd' });
+                                                        handleOpenMobileScanner();
+                                                      }}
+                                                      className="text-[10px] text-text-secondary hover:text-text-primary font-semibold inline-flex items-center gap-0.5 cursor-pointer"
+                                                      title="Sync via companion scanner"
+                                                    >
+                                                      <Smartphone size={10} /> <span>Sync</span>
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'rangeEnd' });
+                                                        setIsCameraOpen(true);
+                                                      }}
+                                                      className="text-[10px] text-primary hover:underline font-bold inline-flex items-center gap-0.5 cursor-pointer"
+                                                    >
+                                                      <Camera size={10} /> <span>Scan</span>
+                                                    </button>
+                                                  </div>
+                                                </div>
                                                 <input
                                                   type="text"
                                                   className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
@@ -1395,14 +1431,26 @@ export default function NewProductClient({ brands, stores = [], editId = null })
             </div>
             
             <div className="flex flex-col gap-4 text-center py-4 items-center">
-              <div className="p-3 bg-primary/5 rounded-full text-primary border border-primary/10">
-                <QrCode size={40} />
+              <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`)}`}
+                  alt="Scan QR to pair phone"
+                  className="w-[200px] h-[200px] block"
+                />
               </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-extrabold text-text-primary font-mono">Pair code: {mobileSession.sessionId}</span>
-                <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed mt-1">
-                  Open the Wireless Companion app on your phone, scan this pairing code or type it in, and scan serial numbers instantly.
+              <div className="flex flex-col gap-1.5 max-w-sm">
+                <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mx-auto font-mono">
+                  Pairing Code: {mobileSession.sessionId}
+                </span>
+                <p className="text-xs text-text-secondary leading-relaxed px-4 mt-2">
+                  1. Scan this QR code with your phone's camera.<br />
+                  2. Keep both phone and PC on the same Wi-Fi.<br />
+                  3. Scan barcodes with your phone to sync instantly!
                 </p>
+              </div>
+              <div className="flex items-center justify-center gap-2 mt-2 py-1.5 px-4 bg-surface-elevated rounded-lg border border-border">
+                <Loader2 size={14} className="animate-spin text-primary" />
+                <span className="text-[11px] font-bold text-text-secondary uppercase">Waiting for mobile scans...</span>
               </div>
             </div>
           </div>
