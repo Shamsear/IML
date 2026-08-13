@@ -10,6 +10,7 @@ import path from 'path';
 import { uploadToImageKit } from '@/lib/imagekit';
 
 import { generateId } from '@/lib/idGenerator';
+import { generateBrandJWT, verifyBrandJWT } from '@/lib/jwt';
 import crypto from 'crypto';
 
 async function saveFile(file) {
@@ -49,8 +50,7 @@ export async function createBrand(formData) {
   if (!name) throw new Error('Brand name is required');
 
   const id = await generateId('brand', 'BRND', 3);
-  const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const secretKey = `portal-${cleanName}-${crypto.randomBytes(16).toString('hex')}`;
+  const secretKey = generateBrandJWT(id, name);
 
   await prisma.brand.create({
     data: {
@@ -211,9 +211,16 @@ export async function getBrandPortalDetails(secretKey) {
     throw new Error('Brand Portal Secret Key is required');
   }
 
+  // Verify that the secretKey is a valid signed JWT token for the brand
+  const payload = verifyBrandJWT(secretKey);
+  if (!payload || !payload.brandId) {
+    console.warn("Unauthorized access attempt with invalid Brand JWT secretKey.");
+    return null;
+  }
+
   // Fetch the brand and all associated product structures & transaction logs
   const brand = await prisma.brand.findUnique({
-    where: { secretKey },
+    where: { id: payload.brandId, secretKey },
     include: {
       stores: {
         select: {
@@ -322,8 +329,7 @@ export async function createBulkBrands(formData) {
       const b = brandsList[i];
       
       const id = await generateId('brand', 'BRND', 3);
-      const cleanName = b.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const secretKey = `portal-${cleanName}-${crypto.randomBytes(16).toString('hex')}`;
+      const secretKey = generateBrandJWT(id, b.name);
 
       const created = await tx.brand.create({
         data: {
