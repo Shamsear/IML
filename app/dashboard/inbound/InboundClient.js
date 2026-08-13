@@ -27,7 +27,7 @@ const playBeep = () => {
   }
 };
 
-function InboundFormContent({ products, brands = [], recentReceivers = [], recentSuppliers = [] }) {
+function InboundFormContent({ products, brands = [], stores = [], recentReceivers = [], recentSuppliers = [] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -107,6 +107,9 @@ function InboundFormContent({ products, brands = [], recentReceivers = [], recen
     prodIsReturnable: false,
     prodImageFile: null,
     prodImagePreview: '',
+    prodSimStoreId: stores[0]?.id || '',
+    prodSimStoreCode: '',
+    prodAutoGenName: true,
   });
 
   // State array for receipt items queue
@@ -177,6 +180,17 @@ function InboundFormContent({ products, brands = [], recentReceivers = [], recen
         updated.rangeEnd = '';
       }
       
+      // SIM Name Auto-Generation logic
+      if (updated.prodType === 'SIM' && updated.prodAutoGenName) {
+        const bObj = brands.find(b => b.id === updated.prodBrandId);
+        const sObj = stores.find(s => s.id === updated.prodSimStoreId);
+        if (bObj && sObj && updated.prodSimStoreCode.trim()) {
+          updated.prodName = `${bObj.name} ${updated.prodSimStoreCode.trim()} ${sObj.name}`;
+        } else {
+          updated.prodName = '';
+        }
+      }
+
       // Auto-update quantity if barcodesInput changes on serialized products
       if (field === 'barcodesInput') {
         const isSerialized = item.isNewProduct
@@ -742,6 +756,10 @@ function InboundFormContent({ products, brands = [], recentReceivers = [], recen
               ? (item.prodType === 'SIM' || item.prodType === 'ROUTER')
               : (selectedProd?.isSerialized || false);
 
+            const isSim = item.isNewProduct
+              ? (item.prodType === 'SIM')
+              : (selectedProd?.category?.toUpperCase().includes('SIM') || selectedProd?.name?.toUpperCase().includes('SIM') || false);
+
             const displayTitle = item.isNewProduct
               ? (item.prodName || `New Product Entry #${idx + 1}`)
               : (selectedProd ? `${selectedProd.brand.name} - ${selectedProd.name}` : `Receipt Entry #${idx + 1}`);
@@ -941,14 +959,60 @@ function InboundFormContent({ products, brands = [], recentReceivers = [], recen
                         <div className="flex flex-col gap-4">
                           <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider pb-1 border-b border-border/60">2. New Product Details</h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {item.prodType === 'SIM' && (
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2 bg-primary/5 p-4 rounded-xl border border-primary/10 animate-slide-down">
+                                <div className="flex flex-col gap-1.5 sm:col-span-3">
+                                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                    <input 
+                                      type="checkbox" 
+                                      className="custom-checkbox"
+                                      checked={item.prodAutoGenName}
+                                      onChange={(e) => {
+                                        updateItemField(idx, 'prodAutoGenName', e.target.checked);
+                                      }}
+                                    />
+                                    <span className="text-primary font-bold">Auto-Generate SIM Card Display Name</span>
+                                  </label>
+                                  <span className="text-[10px] text-text-secondary">Generates name layout: [Brand Name] [Store Code] [Store Name]</span>
+                                </div>
+
+                                {item.prodAutoGenName && (
+                                  <>
+                                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                      <label className="text-xs font-semibold text-text-secondary">Target Store</label>
+                                      <CustomSelect
+                                        options={stores.map(s => ({ value: s.id, label: s.name }))}
+                                        value={item.prodSimStoreId}
+                                        onChange={(val) => updateItemField(idx, 'prodSimStoreId', val)}
+                                        placeholder="-- Select Store --"
+                                      />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-xs font-semibold text-text-secondary">Store Code</label>
+                                      <input
+                                        type="text"
+                                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                        value={item.prodSimStoreCode}
+                                        onChange={(e) => updateItemField(idx, 'prodSimStoreCode', e.target.value)}
+                                        placeholder="e.g. 4001"
+                                      />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
                             <div className="flex flex-col gap-1.5 sm:col-span-2">
-                              <label className="text-xs font-semibold text-text-secondary">Display Name</label>
+                              <label className="text-xs font-semibold text-text-secondary">
+                                Display Name {item.prodType === 'SIM' && item.prodAutoGenName && <span className="text-[10px] text-primary italic">(Auto-Generated)</span>}
+                              </label>
                               <input
                                 type="text"
-                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-elevated/40"
                                 value={item.prodName}
                                 onChange={(e) => updateItemField(idx, 'prodName', e.target.value)}
-                                placeholder="e.g. Ooredoo Promo Stand"
+                                disabled={item.prodType === 'SIM' && item.prodAutoGenName}
+                                placeholder={item.prodType === 'SIM' && item.prodAutoGenName ? "Complete store fields above to generate name..." : "e.g. Ooredoo Promo Stand"}
                                 required
                               />
                             </div>
@@ -1078,16 +1142,18 @@ function InboundFormContent({ products, brands = [], recentReceivers = [], recen
                           </label>
                           
                           {/* Range input builder mode toggle */}
-                          <button
-                            type="button"
-                            onClick={() => updateItemField(idx, 'rangeMode', !item.rangeMode)}
-                            className="text-xs text-primary font-bold hover:underline"
-                          >
-                            {item.rangeMode ? "Switch to Manual Scan List" : "Switch to Serial Range Builder"}
-                          </button>
+                          {isSim && (
+                            <button
+                              type="button"
+                              onClick={() => updateItemField(idx, 'rangeMode', !item.rangeMode)}
+                              className="text-xs text-primary font-bold hover:underline"
+                            >
+                              {item.rangeMode ? "Switch to Manual Scan List" : "Switch to Serial Range Builder"}
+                            </button>
+                          )}
                         </div>
 
-                        {item.rangeMode ? (
+                        {item.rangeMode && isSim ? (
                           /* RANGE BUILDER CONTAINER */
                           <div className="p-4 bg-surface-elevated/20 border border-border border-dashed rounded-xl flex flex-col gap-3.5 animate-slide-down">
                             <div className="flex items-center gap-2 text-text-secondary text-[11px] font-medium leading-relaxed">
@@ -1306,7 +1372,7 @@ function InboundFormContent({ products, brands = [], recentReceivers = [], recen
   );
 }
 
-export default function InboundClient({ products, recentReceivers, recentSuppliers, brands }) {
+export default function InboundClient({ products, recentReceivers, recentSuppliers, brands, stores }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -1318,6 +1384,7 @@ export default function InboundClient({ products, recentReceivers, recentSupplie
         recentReceivers={recentReceivers}
         recentSuppliers={recentSuppliers}
         brands={brands}
+        stores={stores}
       />
     </Suspense>
   );

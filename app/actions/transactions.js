@@ -859,11 +859,11 @@ export async function createBulkRebrandTransactions(formData) {
   await checkAuth();
 
   const sourceProductId = formData.get('sourceProductId');
-  const targetProductId = formData.get('targetProductId');
   const remarks = formData.get('remarks');
   const mappingsJson = formData.get('mappings');
   const mappings = JSON.parse(mappingsJson || '[]');
 
+  const isNewProduct = formData.get('isNewProduct') === 'true';
   const targetProductImage = formData.get('targetProductImage');
   let newImageUrl = null;
 
@@ -872,12 +872,56 @@ export async function createBulkRebrandTransactions(formData) {
     if (savedPath) newImageUrl = savedPath;
   }
 
-  // If a new image was uploaded, update the target product's imageUrl in the database!
-  if (newImageUrl) {
-    await prisma.product.update({
-      where: { id: targetProductId },
-      data: { imageUrl: newImageUrl }
+  let finalTargetProductId = formData.get('targetProductId');
+
+  if (isNewProduct) {
+    const prodName = formData.get('prodName');
+    const prodBrandId = formData.get('prodBrandId');
+    const prodItemCode = formData.get('prodItemCode') || null;
+    const prodCategory = formData.get('prodCategory') || 'SIM';
+    const prodLowStockAlert = formData.get('prodLowStockAlert') || '10';
+    const prodIsReturnable = formData.get('prodIsReturnable') === 'true';
+
+    // Get last product ID dynamically to prevent race conditions
+    const lastProduct = await prisma.product.findFirst({
+      where: { id: { startsWith: 'PROD' } },
+      orderBy: { id: 'desc' },
+      select: { id: true },
     });
+    let lastProdNum = 0;
+    if (lastProduct) {
+      const match = lastProduct.id.match(/\d+/);
+      if (match) lastProdNum = parseInt(match[0], 10);
+    }
+    const newProdId = `PROD-${String(lastProdNum + 1).padStart(5, '0')}`;
+
+    // Create the brand-new target catalog product
+    const newProduct = await prisma.product.create({
+      data: {
+        id: newProdId,
+        name: prodName.trim(),
+        brandId: prodBrandId,
+        itemCode: prodItemCode ? prodItemCode.trim() : null,
+        category: prodCategory,
+        imageUrl: newImageUrl,
+        isReturnable: prodIsReturnable,
+        isPublic: true,
+        isSerialized: true,
+        stockCap: parseInt(prodLowStockAlert, 10) || 10,
+      }
+    });
+
+    finalTargetProductId = newProduct.id;
+    revalidatePath('/dashboard/products');
+  } else {
+    // If a new image was uploaded for an existing product, update its imageUrl
+    if (newImageUrl) {
+      await prisma.product.update({
+        where: { id: finalTargetProductId },
+        data: { imageUrl: newImageUrl }
+      });
+      revalidatePath('/dashboard/products');
+    }
   }
 
   // Format mappings to the format processRebrand expects
@@ -889,7 +933,7 @@ export async function createBulkRebrandTransactions(formData) {
 
   return processRebrand({
     oldProductId: sourceProductId,
-    newProductId: targetProductId,
+    newProductId: finalTargetProductId,
     quantity: mappings.length,
     notes: remarks,
     barcodes

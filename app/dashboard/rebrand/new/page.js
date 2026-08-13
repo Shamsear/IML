@@ -1,4 +1,6 @@
 import { getProductsSlim } from '@/app/actions/products';
+import { getBrands } from '@/app/actions/brands';
+import { getStores } from '@/app/actions/stores';
 import RebrandClient from '../RebrandClient';
 
 export const metadata = {
@@ -7,9 +9,13 @@ export const metadata = {
 };
 
 export default async function NewRebrandPage() {
-  const products = await getProductsSlim();
+  const [products, brands, stores] = await Promise.all([
+    getProductsSlim(),
+    getBrands(),
+    getStores()
+  ]);
 
   return (
-    <RebrandClient products={products} />
+    <RebrandClient products={products} brands={brands} stores={stores} />
   );
 }

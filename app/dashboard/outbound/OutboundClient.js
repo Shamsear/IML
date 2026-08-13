@@ -138,6 +138,16 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
             error: '',
           };
         });
+
+        // Auto-select store if the first product is a SIM matching a store name
+        const firstProd = products.find(p => p.id === urlIds[0]);
+        if (firstProd && (firstProd.category?.toUpperCase().includes('SIM') || firstProd.name?.toUpperCase().includes('SIM'))) {
+          const matchedStore = stores.find(s => firstProd.name.toLowerCase().includes(s.name.toLowerCase()));
+          if (matchedStore) {
+            setToType('STORE');
+            setToId(matchedStore.id);
+          }
+        }
       } else {
         initialItems = [createEmptyOutboundItem(0)];
       }
@@ -159,7 +169,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
     };
 
     initRows();
-  }, [searchParams, products]);
+  }, [searchParams, products, stores]);
 
   // Helper to update specific fields on item
   const updateItemField = (idx, field, value) => {
@@ -169,10 +179,18 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
     }));
   };
 
-  // Helper to handle product selection and load available barcodes
   const handleProductChange = async (idx, val) => {
     const prod = products.find(p => p.id === val);
     
+    // Auto-select store if this is a SIM product matching a store name
+    if (prod && (prod.category?.toUpperCase().includes('SIM') || prod.name?.toUpperCase().includes('SIM'))) {
+      const matchedStore = stores.find(s => prod.name.toLowerCase().includes(s.name.toLowerCase()));
+      if (matchedStore) {
+        setToType('STORE');
+        setToId(matchedStore.id);
+      }
+    }
+
     setItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       return {
@@ -251,6 +269,15 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
         if (serial.status !== 'AVAILABLE') {
           alert(`Serial "${cleanCode}" is registered but currently has status "${serial.status}". It cannot be issued.`);
           return;
+        }
+
+        // Auto-select store if this is a SIM product matching a store name
+        if (serial.product && (serial.product.category?.toUpperCase().includes('SIM') || serial.product.name?.toUpperCase().includes('SIM'))) {
+          const matchedStore = stores.find(s => serial.product.name.toLowerCase().includes(s.name.toLowerCase()));
+          if (matchedStore) {
+            setToType('STORE');
+            setToId(matchedStore.id);
+          }
         }
 
         // Find if this product is already in our list

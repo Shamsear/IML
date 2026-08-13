@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkRebrandTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
@@ -28,7 +28,7 @@ const playBeep = () => {
   }
 };
 
-export default function RebrandClient({ products }) {
+export default function RebrandClient({ products, brands = [], stores = [] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +41,20 @@ export default function RebrandClient({ products }) {
   const [targetProductId, setTargetProductId] = useState(products[0]?.id || '');
   const [remarks, setRemarks] = useState('');
 
-  // Target product replacement image state
+  // Inline product registration states for rebranding target product
+  const [isNewProduct, setIsNewProduct] = useState(false);
+  const [prodName, setProdName] = useState('');
+  const [prodBrandId, setProdBrandId] = useState(brands[0]?.id || '');
+  const [prodItemCode, setProdItemCode] = useState('');
+  const [prodLowStockAlert, setProdLowStockAlert] = useState('10');
+  const [prodIsReturnable, setProdIsReturnable] = useState(false);
+  const [prodImageFile, setProdImageFile] = useState(null);
+  const [prodImagePreview, setProdImagePreview] = useState('');
+  const [prodSimStoreId, setProdSimStoreId] = useState(stores[0]?.id || '');
+  const [prodSimStoreCode, setProdSimStoreCode] = useState('');
+  const [prodAutoGenName, setProdAutoGenName] = useState(true);
+
+  // Target product replacement image state for existing catalog product
   const [targetProductImage, setTargetProductImage] = useState(null);
   const [targetProductImagePreview, setTargetProductImagePreview] = useState('');
 
@@ -50,6 +63,13 @@ export default function RebrandClient({ products }) {
   
   // Mappings of selected source barcodes to new target barcodes
   const [mappings, setMappings] = useState([]);
+
+  // Range Mapping states (for SIM items only)
+  const [rangeSrcStart, setRangeSrcStart] = useState('');
+  const [rangeSrcEnd, setRangeSrcEnd] = useState('');
+  const [rangeTgtStart, setRangeTgtStart] = useState('');
+  const [rebrandActiveScanTarget, setRebrandActiveScanTarget] = useState('queue'); // 'queue', 'srcStart', 'srcEnd', 'tgtStart'
+  const [useRangeRebrand, setUseRangeRebrand] = useState(false);
 
   // Scanning barcode input
   const [scanInput, setScanInput] = useState('');
@@ -101,6 +121,10 @@ export default function RebrandClient({ products }) {
     if (sourceProductId) {
       setAvailableBarcodes([]);
       setMappings([]);
+      setUseRangeRebrand(false);
+      setRangeSrcStart('');
+      setRangeSrcEnd('');
+      setRangeTgtStart('');
       getAvailableBarcodes(sourceProductId, 'WAREHOUSE', null)
         .then(res => {
           setAvailableBarcodes(res || []);
@@ -117,6 +141,27 @@ export default function RebrandClient({ products }) {
 
   const sourceSelectedProduct = products.find(p => p.id === sourceProductId);
   const targetSelectedProduct = products.find(p => p.id === targetProductId);
+
+  // Auto-set the inline target product's brand default matching the source product's brand
+  useEffect(() => {
+    if (sourceSelectedProduct?.brandId) {
+      setProdBrandId(sourceSelectedProduct.brandId);
+    }
+  }, [sourceProductId, sourceSelectedProduct]);
+
+  // Auto-generate name layout: [Brand Name] [Store Code] [Store Name] for SIM targets
+  useEffect(() => {
+    const isSim = sourceSelectedProduct?.category?.toUpperCase().includes('SIM');
+    if (isNewProduct && isSim && prodAutoGenName) {
+      const bObj = brands.find(b => b.id === prodBrandId);
+      const sObj = stores.find(s => s.id === prodSimStoreId);
+      if (bObj && sObj && prodSimStoreCode.trim()) {
+        setProdName(`${bObj.name} ${prodSimStoreCode.trim()} ${sObj.name}`);
+      } else {
+        setProdName('');
+      }
+    }
+  }, [isNewProduct, prodAutoGenName, prodBrandId, prodSimStoreId, prodSimStoreCode, sourceSelectedProduct, brands, stores]);
 
   const handleAddMapping = (sourceBarcode = '', targetBarcode = '') => {
     let added = false;
@@ -135,6 +180,94 @@ export default function RebrandClient({ products }) {
       return prev;
     });
     return added;
+  };
+
+  const generateSeries = (startCode, endCode) => {
+    const startNumMatch = startCode.match(/\d+$/);
+    const endNumMatch = endCode.match(/\d+$/);
+    if (!startNumMatch || !endNumMatch) throw new Error("Range boundary barcodes must end with numbers.");
+
+    const startNumStr = startNumMatch[0];
+    const endNumStr = endNumMatch[0];
+    const startNum = parseInt(startNumStr, 10);
+    const endNum = parseInt(endNumStr, 10);
+    
+    if (startNum > endNum) throw new Error("Starting serial number cannot be larger than ending serial number.");
+    if (endNum - startNum > 2000) throw new Error("Maximum range is limited to 2,000 serial mappings at a time.");
+
+    const prefix = startCode.substring(0, startCode.length - startNumStr.length);
+    const endPrefix = endCode.substring(0, endCode.length - endNumStr.length);
+    if (prefix !== endPrefix) throw new Error("Barcodes must share matching alphanumeric prefixes.");
+
+    const paddingLength = startNumStr.length;
+    const generated = [];
+    for (let val = startNum; val <= endNum; val++) {
+      const valStr = val.toString().padStart(paddingLength, '0');
+      generated.push(`${prefix}${valStr}`);
+    }
+    return generated;
+  };
+
+  const generateLengthSeries = (startCode, count) => {
+    const numMatch = startCode.match(/\d+$/);
+    if (!numMatch) throw new Error("Starting target barcode must end with a number.");
+    const numStr = numMatch[0];
+    const startNum = parseInt(numStr, 10);
+    const prefix = startCode.substring(0, startCode.length - numStr.length);
+    const paddingLength = numStr.length;
+    
+    const generated = [];
+    for (let i = 0; i < count; i++) {
+      const valStr = (startNum + i).toString().padStart(paddingLength, '0');
+      generated.push(`${prefix}${valStr}`);
+    }
+    return generated;
+  };
+
+  const handleApplyRangeMapping = () => {
+    const srcStart = rangeSrcStart.trim();
+    const srcEnd = rangeSrcEnd.trim();
+    const tgtStart = rangeTgtStart.trim();
+
+    if (!srcStart || !srcEnd || !tgtStart) {
+      alert("Please fill in all range boundaries (Source Start, Source End, and Target Start).");
+      return;
+    }
+
+    try {
+      const oldBarcodes = generateSeries(srcStart, srcEnd);
+      const newBarcodes = generateLengthSeries(tgtStart, oldBarcodes.length);
+
+      // Verify that all generated source barcodes are available in Warehouse stock
+      const unavailable = oldBarcodes.filter(
+        code => !availableBarcodes.some(b => b.barcode.toLowerCase() === code.toLowerCase())
+      );
+
+      if (unavailable.length > 0) {
+        alert(`Some barcodes in the source range are not available in the Warehouse (e.g. ${unavailable.slice(0, 3).join(', ')}).`);
+        return;
+      }
+
+      // Merge into mappings
+      const newMappings = oldBarcodes.map((oldCode, idx) => ({
+        sourceBarcode: oldCode,
+        targetBarcode: newBarcodes[idx],
+        isExpanded: false,
+        error: ''
+      }));
+
+      setMappings(prev => {
+        const filteredPrev = prev.filter(m => !oldBarcodes.includes(m.sourceBarcode));
+        return [...filteredPrev, ...newMappings];
+      });
+
+      setRangeSrcStart('');
+      setRangeSrcEnd('');
+      setRangeTgtStart('');
+      playBeep();
+    } catch (e) {
+      alert(e.message || "Failed to generate range mappings.");
+    }
   };
 
   const handleRemoveMapping = (index) => {
@@ -224,6 +357,25 @@ export default function RebrandClient({ products }) {
               }
               lastScannedBarcodeRef.current = lowercaseCode;
               lastScannedTimeRef.current = now;
+
+              if (rebrandActiveScanTarget === 'srcStart') {
+                setRangeSrcStart(code);
+                playBeep();
+                setIsCameraOpen(false);
+                return;
+              }
+              if (rebrandActiveScanTarget === 'srcEnd') {
+                setRangeSrcEnd(code);
+                playBeep();
+                setIsCameraOpen(false);
+                return;
+              }
+              if (rebrandActiveScanTarget === 'tgtStart') {
+                setRangeTgtStart(code);
+                playBeep();
+                setIsCameraOpen(false);
+                return;
+              }
 
               const matched = availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
               if (matched) {
@@ -328,8 +480,27 @@ export default function RebrandClient({ products }) {
             if (data.barcodes && data.barcodes.length > 0) {
               data.barcodes.forEach(code => {
                 const cleanCode = code.trim();
+
+                if (rebrandActiveScanTarget === 'srcStart') {
+                  setRangeSrcStart(cleanCode);
+                  playBeep();
+                  setIsMobileModalOpen(false);
+                  return;
+                }
+                if (rebrandActiveScanTarget === 'srcEnd') {
+                  setRangeSrcEnd(cleanCode);
+                  playBeep();
+                  setIsMobileModalOpen(false);
+                  return;
+                }
+                if (rebrandActiveScanTarget === 'tgtStart') {
+                  setRangeTgtStart(cleanCode);
+                  playBeep();
+                  setIsMobileModalOpen(false);
+                  return;
+                }
+
                 const lowercaseCode = cleanCode.toLowerCase();
-                
                 const matched = availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
                 if (matched) {
                   const added = handleAddMapping(matched.barcode, '');
@@ -361,6 +532,12 @@ export default function RebrandClient({ products }) {
     setSuccessMsg('');
 
     // Validation Loop
+    if (mappings.length === 0) {
+      setError('Please scan or select at least one barcode to rebrand');
+      setLoading(false);
+      return;
+    }
+
     for (let i = 0; i < mappings.length; i++) {
       if (!mappings[i].targetBarcode.trim()) {
         handleMappingFieldChange(i, 'error', 'Target barcode is required');
@@ -370,14 +547,47 @@ export default function RebrandClient({ products }) {
       }
     }
 
+    if (isNewProduct) {
+      if (!prodName.trim()) {
+        setError('Display name is required for target product registration');
+        setLoading(false);
+        return;
+      }
+      if (!prodBrandId) {
+        setError('Brand selection is required for target product registration');
+        setLoading(false);
+        return;
+      }
+    } else {
+      if (!targetProductId) {
+        setError('Target product selection is required');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const formData = new FormData();
       formData.append('sourceProductId', sourceProductId);
-      formData.append('targetProductId', targetProductId);
       formData.append('remarks', remarks);
       formData.append('mappings', JSON.stringify(mappings.map(m => ({ sourceBarcode: m.sourceBarcode, targetBarcode: m.targetBarcode }))));
-      if (targetProductImage) {
-        formData.append('targetProductImage', targetProductImage);
+      
+      formData.append('isNewProduct', isNewProduct.toString());
+      if (isNewProduct) {
+        formData.append('prodName', prodName);
+        formData.append('prodBrandId', prodBrandId);
+        formData.append('prodItemCode', prodItemCode || '');
+        formData.append('prodCategory', sourceSelectedProduct?.category || 'SIM');
+        formData.append('prodLowStockAlert', prodLowStockAlert);
+        formData.append('prodIsReturnable', prodIsReturnable ? 'true' : 'false');
+        if (prodImageFile) {
+          formData.append('targetProductImage', prodImageFile);
+        }
+      } else {
+        formData.append('targetProductId', targetProductId);
+        if (targetProductImage) {
+          formData.append('targetProductImage', targetProductImage);
+        }
       }
 
       await createBulkRebrandTransactions(formData);
@@ -440,279 +650,574 @@ export default function RebrandClient({ products }) {
               required
             />
             {sourceSelectedProduct?.imageUrl && (
-              <div className="mt-2 flex items-center gap-2 bg-surface-elevated/40 p-2 border border-border rounded-lg max-w-fit">
+              <div className="mt-2 flex items-center gap-2 bg-surface-elevated/40 p-2 border border-border rounded-lg max-w-fit animate-fade-in">
                 <img src={sourceSelectedProduct.imageUrl} alt="Source Preview" className="w-10 h-10 rounded border border-border bg-white object-contain flex-shrink-0" />
                 <span className="text-[10px] text-text-secondary font-medium">Source Product Picture</span>
               </div>
             )}
           </div>
 
-          <div className="flex flex-col gap-1.5 relative">
-            <label className="text-xs font-semibold text-text-secondary">Target Product (Convert To)</label>
-            <CustomSelect
-              options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
-              value={targetProductId}
-              onChange={(val) => setTargetProductId(val)}
-              placeholder="Select Target Product..."
-              required
-            />
-            {targetSelectedProduct?.imageUrl && (
-              <div className="mt-2 flex items-center gap-2 bg-surface-elevated/40 p-2 border border-border rounded-lg max-w-fit">
-                <img src={targetSelectedProduct.imageUrl} alt="Target Preview" className="w-10 h-10 rounded border border-border bg-white object-contain flex-shrink-0" />
-                <span className="text-[10px] text-text-secondary font-medium">Target Product Picture</span>
-              </div>
-            )}
+          <div className="flex flex-col gap-1.5 justify-end pb-3">
+            <span className="text-xs text-text-secondary leading-relaxed">
+              Source tracking type: <strong className="text-primary font-bold uppercase">{sourceSelectedProduct?.category || 'SIM'}</strong>
+            </span>
           </div>
+        </div>
 
-          {/* Replacement image configuration for target product */}
-          <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2 bg-surface-elevated/10 p-4 border border-border border-dashed rounded-xl">
-            <label className="text-xs font-bold text-text-primary">Target Product Image Replacement (Optional)</label>
-            <div className="flex items-center gap-4">
-              {targetProductImagePreview || targetSelectedProduct?.imageUrl ? (
-                <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                  <img src={targetProductImagePreview || targetSelectedProduct?.imageUrl} alt="Target Product Preview" className="w-full h-full object-contain" />
-                  {targetProductImagePreview && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTargetProductImage(null);
-                        setTargetProductImagePreview('');
-                      }}
-                      className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white p-1 rounded-full transition-colors flex items-center justify-center cursor-pointer"
-                    >
-                      <X size={10} />
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="w-20 h-20 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
-                  <Camera size={24} />
+        {/* Radio toggle for existing vs inline product creation */}
+        <div className="flex items-center gap-6 pb-4 border-b border-border/60">
+          <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+            <input
+              type="radio"
+              name="targetProductSource"
+              checked={!isNewProduct}
+              onChange={() => setIsNewProduct(false)}
+              className="accent-primary"
+            />
+            <span>Rebrand to Existing Catalog Product</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+            <input
+              type="radio"
+              name="targetProductSource"
+              checked={isNewProduct}
+              onChange={() => setIsNewProduct(true)}
+              className="accent-primary"
+            />
+            <span className="text-primary font-bold">Register &amp; Rebrand to New Product</span>
+          </label>
+        </div>
+
+        {!isNewProduct ? (
+          /* EXISTING PRODUCT dropdown & replacement image */
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slide-down">
+            <div className="flex flex-col gap-1.5 relative sm:col-span-2">
+              <label className="text-xs font-semibold text-text-secondary">Target Product (Convert To)</label>
+              <CustomSelect
+                options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
+                value={targetProductId}
+                onChange={(val) => setTargetProductId(val)}
+                placeholder="Select Target Product..."
+                required
+              />
+              {targetSelectedProduct?.imageUrl && (
+                <div className="mt-2 flex items-center gap-2 bg-surface-elevated/40 p-2 border border-border rounded-lg max-w-fit animate-fade-in">
+                  <img src={targetSelectedProduct.imageUrl} alt="Target Preview" className="w-10 h-10 rounded border border-border bg-white object-contain flex-shrink-0" />
+                  <span className="text-[10px] text-text-secondary font-medium">Target Product Picture</span>
                 </div>
               )}
-              <div className="flex-1 flex flex-col gap-1.5">
-                <span className="text-xs text-text-secondary">Upload a new picture to replace target product's current catalog image</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      setTargetProductImage(file);
-                      setTargetProductImagePreview(URL.createObjectURL(file));
-                    }
-                  }}
-                  className="hidden"
-                  id="target-product-image"
-                />
-                <label
-                  htmlFor="target-product-image"
-                  className="px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 inline-flex items-center gap-1.5 w-fit border-dashed"
-                >
-                  <span>Replace Catalog Picture</span>
-                </label>
+            </div>
+
+            {/* Replacement image configuration for target product */}
+            <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2 bg-surface-elevated/10 p-4 border border-border border-dashed rounded-xl">
+              <label className="text-xs font-bold text-text-primary">Target Product Image Replacement (Optional)</label>
+              <div className="flex items-center gap-4">
+                {targetProductImagePreview || targetSelectedProduct?.imageUrl ? (
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <img src={targetProductImagePreview || targetSelectedProduct?.imageUrl} alt="Target Product Preview" className="w-full h-full object-contain" />
+                    {targetProductImagePreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetProductImage(null);
+                          setTargetProductImagePreview('');
+                        }}
+                        className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white p-1 rounded-full transition-colors flex items-center justify-center cursor-pointer"
+                      >
+                        <X size={10} />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                    <Camera size={24} />
+                  </div>
+                )}
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <span className="text-xs text-text-secondary">Upload a new picture to replace target product's current catalog image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setTargetProductImage(file);
+                        setTargetProductImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="hidden"
+                    id="target-product-image"
+                  />
+                  <label
+                    htmlFor="target-product-image"
+                    className="px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 inline-flex items-center gap-1.5 w-fit border-dashed"
+                  >
+                    <span>Replace Catalog Picture</span>
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Scanner Barcode Section */}
-        <div className="flex flex-col gap-2 p-4 bg-surface-elevated/40 border border-border rounded-xl">
-          <label className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-            <QrCode size={15} className="text-primary" />
-            <span>Scan / Search Source Barcode</span>
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-              value={scanInput}
-              onChange={(e) => setScanInput(e.target.value)}
-              onKeyDown={handleScanInputKeyDown}
-              placeholder="Scan source barcode, then press Enter..."
-            />
-            <div className="flex gap-1 flex-shrink-0">
-              <button
-                type="button"
-                className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                onClick={() => setIsCameraOpen(true)}
-                title="Scan via PC Webcam"
-              >
-                <Camera size={16} />
-                <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
-              </button>
-              <button
-                type="button"
-                className="px-3 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                onClick={handleOpenMobileScanner}
-                title="Pair Wireless Mobile phone camera"
-              >
-                <Smartphone size={16} className="text-primary" />
-                <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
-              </button>
-            </div>
-          </div>
-          <span className="text-[10px] text-text-secondary">Available barcodes inside warehouse: {availableBarcodes.length}</span>
-        </div>
-
-        {/* Ledger Header */}
-        <h3 className="font-display font-bold text-lg text-text-primary pb-3 border-b border-border mt-2">
-          Barcodes Conversion Mapping Queue
-        </h3>
-
-        {/* Mappings Accordion List */}
-        {mappings.length === 0 ? (
-          <div className="text-center py-8 text-text-secondary text-xs border border-dashed border-border rounded-xl">
-            No barcodes selected. Scan source barcodes above to populate the mapping queue.
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
-            {mappings.map((m, index) => (
-              <div 
-                key={index} 
-                className={`bg-surface border rounded-xl shadow-sm transition-all duration-200 overflow-hidden
-                  ${m.isExpanded ? 'border-primary ring-2 ring-primary/5' : 'border-border hover:border-text-secondary/30'}
-                `}
-              >
-                {/* 1. COLLAPSED VIEW CARD */}
-                {!m.isExpanded && (
-                  <div 
-                    onClick={() => handleExpandMapping(index)}
-                    className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                        {index + 1}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-xs font-mono font-bold text-text-primary">
-                          Source: {m.sourceBarcode}
-                        </span>
-                        <span className="text-[10px] text-text-secondary block mt-0.5">
-                          Target: {m.targetBarcode ? <strong className="text-primary font-mono">{m.targetBarcode}</strong> : <span className="text-text-muted italic">Not set</span>}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => handleExpandMapping(index)}
-                        className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
-                        title="Expand Entry"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveMapping(index)}
-                        className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
-                        title="Remove Entry"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. EXPANDED VIEW CARD */}
-                {m.isExpanded && (
-                  <div className="p-5 flex flex-col gap-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-border">
-                      <span className="text-xs font-bold text-primary uppercase tracking-wider">Mapping Entry #{index + 1}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveMapping(index)}
-                        className="inline-flex items-center gap-1 text-xs text-danger hover:underline font-semibold"
-                      >
-                        <Trash2 size={12} />
-                        <span>Remove Mapping</span>
-                      </button>
-                    </div>
-
-                    {m.error && (
-                      <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-2.5 text-xs font-semibold">
-                        {m.error}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-text-secondary">Source Barcode (Original)</label>
-                        <input
-                          type="text"
-                          className="w-full bg-surface-elevated text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
-                          value={m.sourceBarcode}
-                          disabled
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-text-secondary">Target Barcode (New Rebranded)</label>
-                        <input
-                          type="text"
-                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono focus:border-primary"
-                          value={m.targetBarcode}
-                          onChange={(e) => handleMappingFieldChange(index, 'targetBarcode', e.target.value)}
-                          placeholder="Scan or enter new serial barcode..."
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-3 border-t border-border">
-                      <button
-                        type="button"
-                        onClick={() => handleFinishMapping(index)}
-                        className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow cursor-pointer"
-                      >
-                        Finish &amp; Collapse Mapping
-                      </button>
-                    </div>
-                  </div>
-                )}
+          /* NEW INLINE PRODUCT form details */
+          <div className="flex flex-col gap-4 animate-slide-down">
+            <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider pb-1 border-b border-border/60 flex items-center gap-1.5">
+              <Info size={13} className="text-primary" />
+              <span>Target Product Catalog Details</span>
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">Associated Brand</label>
+                <CustomSelect
+                  options={brands.map(b => ({ value: b.id, label: b.name }))}
+                  value={prodBrandId}
+                  onChange={(val) => setProdBrandId(val)}
+                  placeholder="Select Brand Owner..."
+                  required
+                />
               </div>
-            ))}
+
+              {sourceSelectedProduct?.category?.toUpperCase().includes('SIM') && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2 bg-primary/5 p-4 rounded-xl border border-primary/10 animate-slide-down">
+                  <div className="flex flex-col gap-1.5 sm:col-span-3">
+                    <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        className="custom-checkbox"
+                        checked={prodAutoGenName}
+                        onChange={(e) => {
+                          setProdAutoGenName(e.target.checked);
+                        }}
+                      />
+                      <span className="text-primary font-bold">Auto-Generate SIM Card Display Name</span>
+                    </label>
+                    <span className="text-[10px] text-text-secondary">Generates name layout: [Brand Name] [Store Code] [Store Name]</span>
+                  </div>
+
+                  {prodAutoGenName && (
+                    <>
+                      <div className="flex flex-col gap-1.5 sm:col-span-2">
+                        <label className="text-xs font-semibold text-text-secondary">Target Store</label>
+                        <CustomSelect
+                          options={stores.map(s => ({ value: s.id, label: s.name }))}
+                          value={prodSimStoreId}
+                          onChange={(val) => setProdSimStoreId(val)}
+                          placeholder="-- Select Store --"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-text-secondary">Store Code</label>
+                        <input
+                          type="text"
+                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                          value={prodSimStoreCode}
+                          onChange={(e) => setProdSimStoreCode(e.target.value)}
+                          placeholder="e.g. 4001"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
+                  Display Name {sourceSelectedProduct?.category?.toUpperCase().includes('SIM') && prodAutoGenName && <span className="text-[10px] text-primary italic">(Auto-Generated)</span>}
+                </label>
+                <input
+                  type="text"
+                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-elevated/40"
+                  value={prodName}
+                  onChange={(e) => setProdName(e.target.value)}
+                  disabled={sourceSelectedProduct?.category?.toUpperCase().includes('SIM') && prodAutoGenName}
+                  placeholder={sourceSelectedProduct?.category?.toUpperCase().includes('SIM') && prodAutoGenName ? "Complete store fields above to generate name..." : "e.g. Ooredoo Gold SIM 2026"}
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">SKU / Item Code</label>
+                <input
+                  type="text"
+                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary"
+                  value={prodItemCode}
+                  onChange={(e) => setProdItemCode(e.target.value)}
+                  placeholder="e.g. SKU-OOR-GOLD"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">Low Stock Threshold</label>
+                <input
+                  type="number"
+                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
+                  value={prodLowStockAlert}
+                  onChange={(e) => setProdLowStockAlert(e.target.value)}
+                  placeholder="e.g. 10"
+                />
+              </div>
+
+              <div className="flex items-center gap-6 mt-4">
+                <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    className="custom-checkbox"
+                    checked={prodIsReturnable}
+                    onChange={(e) => setProdIsReturnable(e.target.checked)}
+                  />
+                  <span>Returnable Item</span>
+                </label>
+              </div>
+
+              {/* Image Upload Area */}
+              <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2">
+                <label className="text-xs font-semibold text-text-secondary">Product Image</label>
+                <div className="flex items-center gap-4 border border-border border-dashed p-4 rounded-xl bg-surface-elevated/10">
+                  {prodImagePreview ? (
+                    <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <img src={prodImagePreview} alt="Preview" className="w-full h-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProdImageFile(null);
+                          setProdImagePreview('');
+                        }}
+                        className="absolute top-1 right-1 bg-black/60 hover:bg-black text-white p-1 rounded-full transition-colors flex items-center justify-center cursor-pointer"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                      <Camera size={24} />
+                    </div>
+                  )}
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <span className="text-xs text-text-secondary">Upload product picture for catalog preview</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setProdImageFile(file);
+                          setProdImagePreview(URL.createObjectURL(file));
+                        }
+                      }}
+                      className="hidden"
+                      id="inline-target-image"
+                    />
+                    <label
+                      htmlFor="inline-target-image"
+                      className="px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 inline-flex items-center gap-1.5 w-fit border-dashed"
+                    >
+                      <span>Browse Picture</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Remarks Section */}
-        <div className="flex flex-col gap-1.5 mt-2">
-          <label className="text-xs font-semibold text-text-secondary">Rebrand Operation Remarks / Notes</label>
-          <input 
-            type="text" 
-            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 duration-200" 
+        {/* Scanner Barcode Section */}
+        <div className="flex flex-col gap-2 p-4 bg-surface-elevated/40 border border-border rounded-xl">
+          <div className="flex items-center justify-between pb-1">
+            <label className="text-xs font-bold text-text-primary flex items-center gap-1.5">
+              <QrCode size={15} className="text-primary" />
+              <span>{useRangeRebrand ? "Rebrand Serial Range Builder" : "Scan / Search Source Barcode"}</span>
+            </label>
+            {isSourceSim && (
+              <button
+                type="button"
+                onClick={() => {
+                  setUseRangeRebrand(!useRangeRebrand);
+                  setRebrandActiveScanTarget('queue');
+                }}
+                className="text-[10px] text-primary font-bold hover:underline"
+              >
+                {useRangeRebrand ? "Switch to Manual Scan List" : "Switch to Serial Range Builder"}
+              </button>
+            )}
+          </div>
+
+          {useRangeRebrand && isSourceSim ? (
+            /* RANGE REBRAND BUILDER CONTAINER */
+            <div className="p-4 bg-surface-elevated/20 border border-border border-dashed rounded-xl flex flex-col gap-3.5 animate-slide-down">
+              <div className="flex items-center gap-2 text-text-secondary text-[11px] font-medium leading-relaxed">
+                <span>Enter source start/end range and the beginning target serial number to generate mapped pairs.</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                    <span>Source Start Barcode</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRebrandActiveScanTarget('srcStart');
+                        setIsCameraOpen(true);
+                      }}
+                      className="text-[10px] text-primary hover:underline font-bold"
+                    >
+                      Scan
+                    </button>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
+                    placeholder="e.g. SIM001"
+                    value={rangeSrcStart}
+                    onChange={(e) => setRangeSrcStart(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                    <span>Source End Barcode</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRebrandActiveScanTarget('srcEnd');
+                        setIsCameraOpen(true);
+                      }}
+                      className="text-[10px] text-primary hover:underline font-bold"
+                    >
+                      Scan
+                    </button>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
+                    placeholder="e.g. SIM100"
+                    value={rangeSrcEnd}
+                    onChange={(e) => setRangeSrcEnd(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                    <span>Target Start Barcode</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRebrandActiveScanTarget('tgtStart');
+                        setIsCameraOpen(true);
+                      }}
+                      className="text-[10px] text-primary hover:underline font-bold"
+                    >
+                      Scan
+                    </button>
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
+                    placeholder="e.g. NEW_SIM001"
+                    value={rangeTgtStart}
+                    onChange={(e) => setRangeTgtStart(e.target.value)}
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleApplyRangeMapping}
+                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer w-fit"
+              >
+                Generate Range Mappings
+              </button>
+            </div>
+          ) : (
+            /* STANDARD SINGLE BARCODE SCAN INPUT */
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                  value={scanInput}
+                  onChange={(e) => setScanInput(e.target.value)}
+                  onKeyDown={handleScanInputKeyDown}
+                  placeholder="Scan or type barcode, then press Enter..."
+                />
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRebrandActiveScanTarget('queue');
+                    handleOpenMobileScanner();
+                  }}
+                  className="px-4 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                  title="Pair companion scanner"
+                >
+                  <Smartphone size={16} />
+                  <span className="text-xs font-semibold hidden sm:inline">Mobile Companion</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRebrandActiveScanTarget('queue');
+                    setIsCameraOpen(true);
+                  }}
+                  className="px-4 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                  title="Webcam scan camera"
+                >
+                  <Camera size={16} />
+                  <span className="text-xs font-semibold hidden sm:inline">Webcam Scanner</span>
+                </button>
+              </div>
+              <div className="text-[10px] text-text-secondary">
+                Warehouse available stock serials: <strong className="text-primary">{availableBarcodes.length}</strong> items available.
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Mappings Queue Card List */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Serials to Rebrand ({currentScannedCount} items selected)</span>
+            {mappings.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setMappings([])}
+                className="text-xs text-danger font-bold hover:underline"
+              >
+                Clear All mappings
+              </button>
+            )}
+          </div>
+
+          {mappings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-border rounded-xl bg-surface-elevated/10">
+              <QrCode size={36} className="text-text-muted mb-2 animate-pulse" />
+              <span className="text-xs font-semibold text-text-secondary">No barcodes scanned yet</span>
+              <p className="text-[10px] text-text-muted max-w-[280px] leading-relaxed mt-1">
+                Scan source barcodes using the webcam, pair code sync, or search input above.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {mappings.map((item, idx) => (
+                <div 
+                  key={idx}
+                  className={`bg-surface border rounded-xl shadow-sm overflow-hidden transition-all duration-200
+                    ${item.isExpanded ? 'border-primary ring-2 ring-primary/5' : 'border-border'}
+                  `}
+                >
+                  {/* Collapsed state row */}
+                  {!item.isExpanded && (
+                    <div 
+                      onClick={() => handleExpandMapping(idx)}
+                      className="p-3.5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/20 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-xs font-mono font-bold text-text-primary block truncate">
+                          {item.sourceBarcode} ➔ <span className={item.targetBarcode ? 'text-primary' : 'text-text-muted font-normal italic'}>{item.targetBarcode || 'Needs mapping...'}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => handleExpandMapping(idx)}
+                          className="p-1 text-text-secondary hover:text-text-primary rounded hover:bg-surface-elevated transition-colors"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMapping(idx)}
+                          className="p-1 text-text-secondary hover:text-danger rounded hover:bg-surface-elevated transition-colors"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expanded state form block */}
+                  {item.isExpanded && (
+                    <div className="p-4 sm:p-5 flex flex-col gap-4 animate-slide-down">
+                      {item.error && (
+                        <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-2.5 text-xs font-semibold flex items-center gap-2">
+                          <AlertCircle size={14} />
+                          <span>{item.error}</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold text-text-secondary uppercase">Source Serial Barcode</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface-elevated/40 border border-border text-text-primary font-mono text-xs rounded-lg px-3 py-2"
+                            value={item.sourceBarcode}
+                            disabled
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold text-text-secondary uppercase">New Target Barcode (Rebranded ID)</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface border border-border text-text-primary font-mono text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            placeholder="Scan/Type target barcode mapping..."
+                            value={item.targetBarcode}
+                            onChange={(e) => handleMappingFieldChange(idx, 'targetBarcode', e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                        <button
+                          type="button"
+                          onClick={() => handleFinishMapping(idx)}
+                          className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer"
+                        >
+                          Save &amp; Collapse
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Global Remarks */}
+        <div className="flex flex-col gap-1.5 pt-4 border-t border-border">
+          <label className="text-xs font-semibold text-text-secondary">Rebranding Batch Remarks / Notes</label>
+          <input
+            type="text"
+            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
-            placeholder="e.g. Swapped batch SIM cards due to network carrier update..."
+            placeholder="e.g. Conversion of SIM batches to new brand campaign catalog..."
           />
         </div>
 
-        <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-border">
+        {/* Action Triggers */}
+        <div className="flex justify-end gap-3 pt-4">
           <Link href="/dashboard/rebrand" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
             Cancel
           </Link>
           <button 
             type="submit" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-warning hover:bg-warning/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
-            disabled={loading || mappings.length === 0}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-warning hover:bg-warning/90 text-text-primary font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            disabled={loading}
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
-            <span>Rebrand Stock</span>
+            <span>Log Rebranding Mapping</span>
           </button>
         </div>
       </form>
 
-      {/* Webcam Scanning Modal Overlay */}
+      {/* Webcam camera scanner overlay modal */}
       {isCameraOpen && (
         <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] sm:max-w-[850px] max-h-[90vh] shadow-lg flex flex-col gap-4 animate-slide-down overflow-hidden">
-            
-            {/* Modal Header */}
             <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
-              <h3 className="font-display font-bold text-sm text-text-primary">Scan Rebrand Source Barcode</h3>
-              
+              <h3 className="font-display font-bold text-sm text-text-primary">Camera Barcode Scanner</h3>
               <div className="flex items-center gap-3">
-                {/* Bulk Scan Toggle */}
                 <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                   <input 
                     type="checkbox" 
@@ -722,7 +1227,6 @@ export default function RebrandClient({ products }) {
                   />
                   <span className="text-[10px] font-bold text-text-secondary uppercase">Bulk Scan</span>
                 </label>
-
                 <button 
                   type="button" 
                   className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
@@ -732,7 +1236,6 @@ export default function RebrandClient({ products }) {
                 </button>
               </div>
             </div>
-            
             {cameraPermissionStatus !== 'granted' ? (
               <div className="flex flex-col items-center justify-center py-10 text-center gap-4 flex-1">
                 {cameraPermissionStatus === 'prompt' ? (
@@ -778,12 +1281,12 @@ export default function RebrandClient({ products }) {
         </div>
       )}
 
-      {/* Wireless companion pairing modal */}
+      {/* Wireless companion sync modal pairing */}
       {isMobileModalOpen && mobileSession && (
         <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down">
             <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="font-display font-extrabold text-sm text-text-primary flex items-center gap-1.5">
+              <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5">
                 <Smartphone size={16} className="text-primary" />
                 <span>Pair Wireless Companion Scanner</span>
               </h3>
@@ -795,13 +1298,12 @@ export default function RebrandClient({ products }) {
                 <X size={16} />
               </button>
             </div>
-            
             <div className="flex flex-col gap-4 text-center py-4 items-center">
               <div className="p-3 bg-primary/5 rounded-full text-primary border border-primary/10">
                 <QrCode size={40} />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-extrabold text-text-primary font-mono font-semibold">Pair code: {mobileSession.sessionId}</span>
+                <span className="text-xs font-extrabold text-text-primary font-mono">Pair code: {mobileSession.sessionId}</span>
                 <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed mt-1">
                   Open the Wireless Companion app on your phone, scan this pairing code or type it in, and scan serial numbers instantly.
                 </p>

@@ -28,7 +28,7 @@ const playBeep = () => {
   }
 };
 
-export default function NewProductClient({ brands, editId = null }) {
+export default function NewProductClient({ brands, stores = [], editId = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -89,6 +89,9 @@ export default function NewProductClient({ brands, editId = null }) {
     initialBarcodes: '',
     deliveryNote: '',
     notes: '',
+    rangeMode: false,
+    rangeStart: '',
+    rangeEnd: '',
   });
 
   // Helper to construct a blank product item configuration for bulk creation
@@ -109,6 +112,9 @@ export default function NewProductClient({ brands, editId = null }) {
     imageUrl: '',
     isExpanded: true,
     error: '',
+    simStoreId: stores[0]?.id || '',
+    simStoreCode: '',
+    autoGenName: true,
   });
 
   // State array for products queue
@@ -127,7 +133,7 @@ export default function NewProductClient({ brands, editId = null }) {
             if (product.isSerialized) {
               pType = product.category?.toUpperCase().includes('ROUTER') ? 'ROUTER' : 'SIM';
             }
-            setItems([{
+             setItems([{
               id: product.id,
               name: product.name,
               brandId: product.brandId,
@@ -144,6 +150,9 @@ export default function NewProductClient({ brands, editId = null }) {
               imageUrl: product.imageUrl || '',
               isExpanded: true,
               error: '',
+              simStoreId: stores[0]?.id || '',
+              simStoreCode: '',
+              autoGenName: false,
             }]);
           } else {
             setError('Product not found.');
@@ -156,7 +165,7 @@ export default function NewProductClient({ brands, editId = null }) {
       };
       loadProduct();
     }
-  }, [editId]);
+  }, [editId, stores]);
 
   // Handle single item field update
   const updateItemField = (idx, field, value) => {
@@ -173,7 +182,28 @@ export default function NewProductClient({ brands, editId = null }) {
         } else {
           updated.category = 'Stands';
         }
+        // Force rangeMode to false for Routers
+        updated.inbounds = updated.inbounds.map(inb => ({
+          ...inb,
+          rangeMode: false,
+          rangeStart: '',
+          rangeEnd: '',
+          initialBarcodes: '',
+          initialQty: ''
+        }));
       }
+
+      // SIM Name Auto-Generation logic
+      if (updated.productType === 'SIM' && updated.autoGenName) {
+        const bObj = brands.find(b => b.id === updated.brandId);
+        const sObj = stores.find(s => s.id === updated.simStoreId);
+        if (bObj && sObj && updated.simStoreCode.trim()) {
+          updated.name = `${bObj.name} ${updated.simStoreCode.trim()} ${sObj.name}`;
+        } else {
+          updated.name = '';
+        }
+      }
+
       return updated;
     }));
   };
@@ -226,26 +256,107 @@ export default function NewProductClient({ brands, editId = null }) {
       const targetInbound = targetItem.inbounds[inboundIdx];
       if (!targetInbound) return prev;
 
-      const currentList = targetInbound.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
-      if (!currentList.includes(cleanCode)) {
-        const newList = [...currentList, cleanCode];
-        added = true;
+      if (targetInbound.rangeMode && targetItem.productType === 'SIM') {
+        const start = targetInbound.rangeStart.trim();
+        const end = targetInbound.rangeEnd.trim();
+        if (!start) {
+          added = true;
+          const updatedInbounds = targetItem.inbounds.map((inb, j) => {
+            if (j !== inboundIdx) return inb;
+            return { ...inb, rangeStart: cleanCode };
+          });
+          return prev.map((item, i) => i === itemIdx ? { ...item, inbounds: updatedInbounds } : item);
+        } else if (!end) {
+          added = true;
+          const updatedInbounds = targetItem.inbounds.map((inb, j) => {
+            if (j !== inboundIdx) return inb;
+            return { ...inb, rangeEnd: cleanCode };
+          });
+          return prev.map((item, i) => i === itemIdx ? { ...item, inbounds: updatedInbounds } : item);
+        }
+        return prev;
+      } else {
+        const currentList = targetInbound.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+        if (!currentList.includes(cleanCode)) {
+          const newList = [...currentList, cleanCode];
+          added = true;
 
-        return prev.map((item, i) => {
-          if (i !== itemIdx) return item;
-          const updatedInbounds = item.inbounds.map((inb, j) => {
+          const updatedInbounds = targetItem.inbounds.map((inb, j) => {
             if (j !== inboundIdx) return inb;
             return {
               ...inb,
               initialBarcodes: newList.join('\n')
             };
           });
-          return { ...item, inbounds: updatedInbounds };
-        });
+          return prev.map((item, i) => i === itemIdx ? { ...item, inbounds: updatedInbounds } : item);
+        }
       }
       return prev;
     });
     return added;
+  };
+
+  const generateSeries = (startCode, endCode) => {
+    const startNumMatch = startCode.match(/\d+$/);
+    const endNumMatch = endCode.match(/\d+$/);
+    if (!startNumMatch || !endNumMatch) throw new Error("Range boundary barcodes must end with numbers.");
+
+    const startNumStr = startNumMatch[0];
+    const endNumStr = endNumMatch[0];
+    const startNum = parseInt(startNumStr, 10);
+    const endNum = parseInt(endNumStr, 10);
+    
+    if (startNum > endNum) throw new Error("Starting serial number cannot be larger than ending serial number.");
+    if (endNum - startNum > 2000) throw new Error("Maximum range is limited to 2,000 serial mappings at a time.");
+
+    const prefix = startCode.substring(0, startCode.length - startNumStr.length);
+    const endPrefix = endCode.substring(0, endCode.length - endNumStr.length);
+    if (prefix !== endPrefix) throw new Error("Barcodes must share matching alphanumeric prefixes.");
+
+    const paddingLength = startNumStr.length;
+    const generated = [];
+    for (let val = startNum; val <= endNum; val++) {
+      const valStr = val.toString().padStart(paddingLength, '0');
+      generated.push(`${prefix}${valStr}`);
+    }
+    return generated;
+  };
+
+  const handleApplyRange = (itemIdx, inboundIdx) => {
+    const targetItem = items[itemIdx];
+    if (!targetItem) return;
+    const targetInbound = targetItem.inbounds[inboundIdx];
+    if (!targetInbound) return;
+
+    const start = targetInbound.rangeStart.trim();
+    const end = targetInbound.rangeEnd.trim();
+    if (!start || !end) {
+      alert("Please enter both starting and ending barcodes.");
+      return;
+    }
+
+    try {
+      const generated = generateSeries(start, end);
+      const currentList = targetInbound.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+      const mergedList = Array.from(new Set([...currentList, ...generated]));
+
+      setItems(prev => prev.map((item, i) => {
+        if (i !== itemIdx) return item;
+        const updatedInbounds = item.inbounds.map((inb, j) => {
+          if (j !== inboundIdx) return inb;
+          return {
+            ...inb,
+            initialBarcodes: mergedList.join('\n'),
+            rangeStart: '',
+            rangeEnd: '',
+          };
+        });
+        return { ...item, inbounds: updatedInbounds };
+      }));
+      playBeep();
+    } catch (e) {
+      alert(e.message || "Failed to generate range.");
+    }
   };
 
   // Webcam scanning permissions
@@ -758,14 +869,60 @@ export default function NewProductClient({ brands, editId = null }) {
                     <div className="flex flex-col gap-4">
                       <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider pb-1 border-b border-border/60">2. Metadata</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {item.productType === 'SIM' && (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2 bg-primary/5 p-4 rounded-xl border border-primary/10 animate-slide-down">
+                            <div className="flex flex-col gap-1.5 sm:col-span-3">
+                              <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                <input 
+                                  type="checkbox" 
+                                  className="custom-checkbox"
+                                  checked={item.autoGenName}
+                                  onChange={(e) => {
+                                    updateItemField(idx, 'autoGenName', e.target.checked);
+                                  }}
+                                />
+                                <span className="text-primary font-bold">Auto-Generate SIM Card Display Name</span>
+                              </label>
+                              <span className="text-[10px] text-text-secondary">Generates name layout: [Brand Name] [Store Code] [Store Name]</span>
+                            </div>
+
+                            {item.autoGenName && (
+                              <>
+                                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                  <label className="text-xs font-semibold text-text-secondary">Target Store</label>
+                                  <CustomSelect
+                                    options={stores.map(s => ({ value: s.id, label: s.name }))}
+                                    value={item.simStoreId}
+                                    onChange={(val) => updateItemField(idx, 'simStoreId', val)}
+                                    placeholder="-- Select Store --"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-xs font-semibold text-text-secondary">Store Code</label>
+                                  <input
+                                    type="text"
+                                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                    value={item.simStoreCode}
+                                    onChange={(e) => updateItemField(idx, 'simStoreCode', e.target.value)}
+                                    placeholder="e.g. 4001"
+                                  />
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex flex-col gap-1.5 sm:col-span-2">
-                          <label className="text-xs font-semibold text-text-secondary">Display Name</label>
+                          <label className="text-xs font-semibold text-text-secondary">
+                            Display Name {item.productType === 'SIM' && item.autoGenName && <span className="text-[10px] text-primary italic">(Auto-Generated)</span>}
+                          </label>
                           <input
                             type="text"
-                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-elevated/40"
                             value={item.name}
                             onChange={(e) => updateItemField(idx, 'name', e.target.value)}
-                            placeholder="e.g. Sadia Promo Counter"
+                            disabled={item.productType === 'SIM' && item.autoGenName}
+                            placeholder={item.productType === 'SIM' && item.autoGenName ? "Complete store fields above to generate name..." : "e.g. Sadia Promo Counter"}
                             required
                           />
                         </div>
@@ -955,40 +1112,122 @@ export default function NewProductClient({ brands, editId = null }) {
                                     ) : (
                                       <div className="flex flex-col gap-1.5 sm:col-span-2">
                                         <div className="flex items-center justify-between pb-1">
-                                          <label className="text-xs font-bold text-text-secondary">Scan/Enter Serial Numbers (Barcodes)</label>
+                                          <label className="text-xs font-bold text-text-secondary flex items-center gap-1">
+                                            <QrCode size={13} className="text-primary" />
+                                            <span>Scan/Enter Serial Numbers (Barcodes)</span>
+                                          </label>
                                           <div className="flex items-center gap-2">
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
-                                                handleOpenMobileScanner();
-                                              }}
-                                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
-                                            >
-                                              <Smartphone size={11} /> <span>Companion Sync</span>
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
-                                                setIsCameraOpen(true);
-                                              }}
-                                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
-                                            >
-                                              <Camera size={11} /> <span>Webcam Scan</span>
-                                            </button>
+                                            {item.productType === 'SIM' && (
+                                              <button
+                                                type="button"
+                                                onClick={() => updateInboundField(idx, subIdx, 'rangeMode', !inb.rangeMode)}
+                                                className="text-[10px] text-primary font-bold hover:underline"
+                                              >
+                                                {inb.rangeMode ? "Switch to Manual Scan List" : "Switch to Serial Range Builder"}
+                                              </button>
+                                            )}
+                                            {!inb.rangeMode && (
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                                    handleOpenMobileScanner();
+                                                  }}
+                                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
+                                                >
+                                                  <Smartphone size={11} /> <span>Companion Sync</span>
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                                    setIsCameraOpen(true);
+                                                  }}
+                                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
+                                                >
+                                                  <Camera size={11} /> <span>Webcam Scan</span>
+                                                </button>
+                                              </>
+                                            )}
                                           </div>
                                         </div>
-                                        <textarea
-                                          rows={4}
-                                          className="w-full bg-surface text-text-primary font-mono placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs focus:outline-none resize-none leading-relaxed"
-                                          placeholder="Scan barcodes or type them (one per line)..."
-                                          value={inb.initialBarcodes}
-                                          onChange={(e) => updateInboundField(idx, subIdx, 'initialBarcodes', e.target.value)}
-                                        />
-                                        <div className="text-[10px] text-text-secondary mt-0.5">
-                                          Barcodes parsed: <strong className="text-primary">{parsedQty}</strong>
-                                        </div>
+
+                                        {inb.rangeMode && item.productType === 'SIM' ? (
+                                          /* RANGE BUILDER CONTAINER */
+                                          <div className="p-4 bg-surface-elevated/20 border border-border border-dashed rounded-xl flex flex-col gap-3.5 animate-slide-down">
+                                            <div className="flex items-center gap-2 text-text-secondary text-[11px] font-medium leading-relaxed">
+                                              <span>Enter starting and ending package serial numbers to auto-generate the list.</span>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                              <div className="flex flex-col gap-1.5">
+                                                <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                                                  <span>Range Start Barcode</span>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                                      setIsCameraOpen(true);
+                                                    }}
+                                                    className="text-[10px] text-primary hover:underline font-bold"
+                                                  >
+                                                    Scan Start
+                                                  </button>
+                                                </label>
+                                                <input
+                                                  type="text"
+                                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
+                                                  placeholder="e.g. SIM001"
+                                                  value={inb.rangeStart}
+                                                  onChange={(e) => updateInboundField(idx, subIdx, 'rangeStart', e.target.value)}
+                                                />
+                                              </div>
+                                              <div className="flex flex-col gap-1.5">
+                                                <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                                                  <span>Range End Barcode</span>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                                      setIsCameraOpen(true);
+                                                    }}
+                                                    className="text-[10px] text-primary hover:underline font-bold"
+                                                  >
+                                                    Scan End
+                                                  </button>
+                                                </label>
+                                                <input
+                                                  type="text"
+                                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
+                                                  placeholder="e.g. SIM100"
+                                                  value={inb.rangeEnd}
+                                                  onChange={(e) => updateInboundField(idx, subIdx, 'rangeEnd', e.target.value)}
+                                                />
+                                              </div>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleApplyRange(idx, subIdx)}
+                                              className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer w-fit"
+                                            >
+                                              Apply Range
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          /* STANDARD MANUAL SCAN INPUT */
+                                          <>
+                                            <textarea
+                                              rows={4}
+                                              className="w-full bg-surface text-text-primary font-mono placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs focus:outline-none resize-none leading-relaxed"
+                                              placeholder="Scan barcodes or type them (one per line)..."
+                                              value={inb.initialBarcodes}
+                                              onChange={(e) => updateInboundField(idx, subIdx, 'initialBarcodes', e.target.value)}
+                                            />
+                                            <div className="text-[10px] text-text-secondary mt-0.5">
+                                              Barcodes parsed: <strong className="text-primary">{parsedQty}</strong>
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
                                     )}
 
