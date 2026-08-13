@@ -35,7 +35,14 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Source product selection (only show serialized SIM / ROUTER)
-  const sourceProducts = products.filter(p => p.isSerialized);
+  const sourceProducts = products.filter(p => 
+    p.isSerialized && (
+      p.category?.toUpperCase().includes('SIM') ||
+      p.category?.toUpperCase().includes('ROUTER') ||
+      p.name?.toUpperCase().includes('SIM') ||
+      p.name?.toUpperCase().includes('ROUTER')
+    )
+  );
 
   const [sourceProductId, setSourceProductId] = useState(sourceProducts[0]?.id || '');
   const [targetProductId, setTargetProductId] = useState(products[0]?.id || '');
@@ -694,7 +701,14 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
             <div className="flex flex-col gap-1.5 relative sm:col-span-2">
               <label className="text-xs font-semibold text-text-secondary">Target Product (Convert To)</label>
               <CustomSelect
-                options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
+                options={products.filter(p => 
+                  p.isSerialized && (
+                    p.category?.toUpperCase().includes('SIM') ||
+                    p.category?.toUpperCase().includes('ROUTER') ||
+                    p.name?.toUpperCase().includes('SIM') ||
+                    p.name?.toUpperCase().includes('ROUTER')
+                  )
+                ).map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
                 value={targetProductId}
                 onChange={(val) => setTargetProductId(val)}
                 placeholder="Select Target Product..."

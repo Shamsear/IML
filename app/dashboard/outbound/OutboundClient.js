@@ -28,6 +28,13 @@ const playBeep = () => {
   }
 };
 
+const checkIsSerialized = (product) => {
+  if (!product) return false;
+  const category = (product.category || '').toUpperCase();
+  const name = (product.name || '').toUpperCase();
+  return category.includes('SIM') || category.includes('ROUTER') || name.includes('SIM') || name.includes('ROUTER');
+};
+
 function OutboundFormContent({ products, stores, supervisors, staff }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -102,7 +109,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
   const createEmptyOutboundItem = (index = 0) => ({
     id: `temp-${Date.now()}-${index}`,
     productId: products[0]?.id || '',
-    quantity: products[0]?.isSerialized ? 0 : 1,
+    quantity: checkIsSerialized(products[0]) ? 0 : 1,
     selectedBarcodes: [],
     availableBarcodes: [],
     notes: '',
@@ -127,7 +134,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
           return {
             id: `temp-${Date.now()}-${idx}`,
             productId: id,
-            quantity: prod?.isSerialized ? 0 : 1,
+            quantity: checkIsSerialized(prod) ? 0 : 1,
             selectedBarcodes: [],
             availableBarcodes: [],
             notes: '',
@@ -157,7 +164,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       for (let i = 0; i < initialItems.length; i++) {
         const item = initialItems[i];
         const prod = products.find(p => p.id === item.productId);
-        if (prod?.isSerialized) {
+        if (checkIsSerialized(prod)) {
           try {
             const available = await getAvailableBarcodes(item.productId, 'WAREHOUSE', null);
             setItems(prev => prev.map((x, idx) => idx === i ? { ...x, availableBarcodes: available || [] } : x));
@@ -196,7 +203,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       return {
         ...item,
         productId: val,
-        quantity: prod?.isSerialized ? 0 : 1,
+        quantity: checkIsSerialized(prod) ? 0 : 1,
         selectedBarcodes: [],
         availableBarcodes: [],
         rangeStart: '',
@@ -204,7 +211,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       };
     }));
 
-    if (prod?.isSerialized) {
+    if (checkIsSerialized(prod)) {
       try {
         const available = await getAvailableBarcodes(val, 'WAREHOUSE', null);
         setItems(prev => prev.map((item, i) => i === idx ? { ...item, availableBarcodes: available || [] } : item));
@@ -525,11 +532,11 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       return;
     }
     const prod = products.find(p => p.id === item.productId);
-    if (!prod?.isSerialized && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
+    if (!checkIsSerialized(prod) && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
       updateItemField(idx, 'error', 'Quantity must be greater than 0');
       return;
     }
-    if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
+    if (checkIsSerialized(prod) && item.selectedBarcodes.length === 0) {
       updateItemField(idx, 'error', 'Please select at least one barcode');
       return;
     }
@@ -572,13 +579,13 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
         setLoading(false);
         return;
       }
-      if (!prod?.isSerialized && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
+      if (!checkIsSerialized(prod) && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
         updateItemField(i, 'error', 'Quantity must be greater than 0');
         handleExpandItem(i);
         setLoading(false);
         return;
       }
-      if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
+      if (checkIsSerialized(prod) && item.selectedBarcodes.length === 0) {
         updateItemField(i, 'error', `Please select at least one barcode for ${prod.name}`);
         handleExpandItem(i);
         setLoading(false);
@@ -590,8 +597,8 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       const prod = products.find(p => p.id === item.productId);
       return {
         productId: item.productId,
-        quantity: prod?.isSerialized ? item.selectedBarcodes.length : parseInt(item.quantity, 10),
-        barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
+        quantity: checkIsSerialized(prod) ? item.selectedBarcodes.length : parseInt(item.quantity, 10),
+        barcodes: checkIsSerialized(prod) ? item.selectedBarcodes : [],
         notes: item.notes
       };
     });
@@ -783,7 +790,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                           {selectedProd ? `${selectedProd.brand.name} - ${selectedProd.name}` : <span className="text-text-muted italic">Select product...</span>}
                         </span>
                         <span className="text-[10px] text-text-secondary block mt-0.5">
-                          {selectedProd?.isSerialized ? 'Serialized Tracking' : 'Bulk/Normal Product'} {item.notes && `| Remarks: ${item.notes}`}
+                          {checkIsSerialized(selectedProd) ? 'Serialized Tracking' : 'Bulk/Normal Product'} {item.notes && `| Remarks: ${item.notes}`}
                         </span>
                       </div>
                     </div>
@@ -862,11 +869,11 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                           className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/40"
                           value={item.quantity}
                           onChange={(e) => updateItemField(idx, 'quantity', e.target.value)}
-                          disabled={selectedProd?.isSerialized}
-                          placeholder={selectedProd?.isSerialized ? 'Select serial numbers below' : 'e.g. 50'}
+                          disabled={checkIsSerialized(selectedProd)}
+                          placeholder={checkIsSerialized(selectedProd) ? 'Select serial numbers below' : 'e.g. 50'}
                           required
                         />
-                        {selectedProd?.isSerialized && (
+                        {checkIsSerialized(selectedProd) && (
                           <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected serial numbers.</span>
                         )}
                       </div>
@@ -884,7 +891,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                       </div>
 
                       {/* Serial selection section (only for serialized items) */}
-                      {selectedProd?.isSerialized && (
+                      {checkIsSerialized(selectedProd) && (
                         <div className="sm:col-span-2 flex flex-col gap-3 mt-2 bg-surface-elevated/20 p-4 border border-border rounded-xl">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Serial Barcodes ({item.selectedBarcodes.length} chosen)</span>

@@ -22,8 +22,8 @@ function base64UrlEncode(str) {
 }
 
 function generateBrandJWT(brandId, brandName) {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const payload = { brandId, brandName, iat: Math.floor(Date.now() / 1000) };
+  const header = { alg: 'HS256' };
+  const payload = { b: brandId };
   const encodedHeader = base64UrlEncode(JSON.stringify(header));
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
   const signatureInput = `${encodedHeader}.${encodedPayload}`;
@@ -43,19 +43,14 @@ async function run() {
   
   let migratedCount = 0;
   for (const brand of brands) {
-    const parts = brand.secretKey.split('.');
-    if (parts.length !== 3) {
-      console.log(`Brand "${brand.name}" has UUID/Legacy secretKey. Migrating to JWT...`);
-      const newJwt = generateBrandJWT(brand.id, brand.name);
-      await prisma.brand.update({
-        where: { id: brand.id },
-        data: { secretKey: newJwt }
-      });
-      migratedCount++;
-      console.log(`Migrated "${brand.name}" successfully.`);
-    } else {
-      console.log(`Brand "${brand.name}" already has a JWT key. Skipping.`);
-    }
+    // Force regeneration to upgrade keys to compact JWT standard
+    console.log(`Regenerating compact JWT secretKey for Brand "${brand.name}"...`);
+    const newJwt = generateBrandJWT(brand.id, brand.name);
+    await prisma.brand.update({
+      where: { id: brand.id },
+      data: { secretKey: newJwt }
+    });
+    migratedCount++;
   }
   
   console.log(`Migration complete! Successfully migrated ${migratedCount} brands.`);
