@@ -1233,6 +1233,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
             </div>
           )}
         </div>
+        )}
 
         {/* Global Remarks */}
         <div className="flex flex-col gap-1.5 pt-4 border-t border-border">
