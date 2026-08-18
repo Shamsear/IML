@@ -476,6 +476,13 @@ export default function StoresClient({ initialStores }) {
                   </div>
 
                   <div className="flex items-center justify-end gap-1.5 border-t border-border/60 pt-3">
+                    <Link
+                      href={`/dashboard/stores/${store.id}`}
+                      className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-md transition-colors cursor-pointer"
+                      title="View Store Details"
+                    >
+                      <Store size={13} />
+                    </Link>
                     <button 
                       className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer"
                       onClick={() => openEditModal(store)}

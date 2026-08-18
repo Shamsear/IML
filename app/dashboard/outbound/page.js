@@ -31,6 +31,7 @@ export default async function OutboundPage({ searchParams }) {
           select: {
             id: true,
             name: true,
+            brandId: true,
             brand: {
               select: {
                 name: true
@@ -153,7 +154,18 @@ export default async function OutboundPage({ searchParams }) {
                         -{tx.quantity}
                       </td>
                       <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
-                        {tx.deliveryNote || '---'}
+                        {tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId ? (
+                          <Link
+                            href={`/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${tx.timestamp.toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                            target="_blank"
+                            className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold"
+                            title="Download Delivery Note PDF"
+                          >
+                            {tx.deliveryNote}
+                          </Link>
+                        ) : (
+                          <span>{tx.deliveryNote || '---'}</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>
                         {tx.notes || '---'}

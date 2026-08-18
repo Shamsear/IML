@@ -183,10 +183,22 @@ export default function TransactionsClient({
                           {tx.quantity}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap text-xs text-text-secondary">
-                          <div className="flex items-center gap-1.5">
-                            <FileText size={13} className="text-text-muted" />
-                            <span>{tx.deliveryNote || 'N/A'}</span>
-                          </div>
+                          {tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId ? (
+                            <Link
+                              href={`/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                              target="_blank"
+                              className="flex items-center gap-1.5 text-primary hover:text-primary-hover hover:underline transition-colors"
+                              title="Download Delivery Note PDF"
+                            >
+                              <FileText size={13} />
+                              <span className="font-semibold">{tx.deliveryNote}</span>
+                            </Link>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <FileText size={13} className="text-text-muted" />
+                              <span>{tx.deliveryNote || 'N/A'}</span>
+                            </div>
+                          )}
                         </td>
                         <td className="py-3.5 pl-4 whitespace-nowrap text-xs text-text-secondary">
                           <div className="flex items-center gap-1.5">

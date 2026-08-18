@@ -55,6 +55,7 @@ export async function getTransactions() {
           id: true,
           name: true,
           isSerialized: true,
+          brandId: true,
           brand: { select: { name: true } },
         }
       }

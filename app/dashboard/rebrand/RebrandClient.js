@@ -149,6 +149,10 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   const sourceSelectedProduct = products.find(p => p.id === sourceProductId);
   const targetSelectedProduct = products.find(p => p.id === targetProductId);
 
+  // Check if source product is a SIM card
+  const isSourceSim = sourceSelectedProduct?.category?.toUpperCase().includes('SIM') || 
+                      sourceSelectedProduct?.name?.toUpperCase().includes('SIM');
+
   // Auto-set the inline target product's brand default matching the source product's brand
   useEffect(() => {
     if (sourceSelectedProduct?.brandId) {
