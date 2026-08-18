@@ -14,7 +14,10 @@ export async function generateMetadata({ searchParams }) {
   };
 }
 
-export default async function NewProductPage() {
+export default async function NewProductPage({ searchParams }) {
+  const params = await searchParams;
+  const editId = params?.editId || null;
+
   const [
     brands,
     stores,
@@ -42,6 +45,7 @@ export default async function NewProductPage() {
       staff={staff}
       recentReceivers={recentReceivers}
       recentSuppliers={recentSuppliers}
+      editId={editId}
     />
   );
 }

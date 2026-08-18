@@ -30,9 +30,10 @@ const playBeep = () => {
   }
 };
 
-export default function NewProductClient({ brands, stores = [], editId = null }) {
+export default function NewProductClient({ brands, stores = [], editId: propEditId = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const editId = searchParams.get('editId') || propEditId;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
