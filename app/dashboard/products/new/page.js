@@ -5,10 +5,14 @@ import { getStaff } from '@/app/actions/staff';
 import { getRecentReceivers, getRecentSuppliers } from '@/app/actions/transactions';
 import NewProductClient from './NewProductClient';
 
-export const metadata = {
-  title: 'Register New Product - Inventory System',
-  description: 'Add a new product to the catalog with initial stock',
-};
+export async function generateMetadata({ searchParams }) {
+  const params = await searchParams;
+  const isEdit = !!params.editId;
+  return {
+    title: isEdit ? 'Edit Product - Inventory System' : 'Register New Product - Inventory System',
+    description: isEdit ? 'Edit existing product in the catalog' : 'Add a new product to the catalog with initial stock',
+  };
+}
 
 export default async function NewProductPage() {
   const [

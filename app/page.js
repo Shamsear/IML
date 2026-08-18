@@ -1,7 +1,16 @@
 import Link from 'next/link';
 import { ShieldCheck, ArrowRight, Lock } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export default async function Home() {
+  const session = await getServerSession(authOptions);
+
+  if (session) {
+    redirect('/dashboard');
+  }
+
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-background p-6 overflow-hidden">
       {/* Decorative Warm Accent Ambient Glows */}

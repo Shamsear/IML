@@ -236,7 +236,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                   </table>
                 </div>
 
-                {totalPages > 1 && !productFilter && !storeFilter && (
+                {totalPages > 1 && !productFilter && !brandId && (
                   <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
                     <span className="text-text-muted">
                       Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{" "}
