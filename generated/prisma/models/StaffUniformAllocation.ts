@@ -78,6 +78,7 @@ export type StaffUniformAllocationCountAggregateOutputType = {
   capQty: number
   uniformReturned: number
   capReturned: number
+  allocatedItems: number
   workingPeriod: number
   supervisorId: number
   givenDate: number
@@ -141,6 +142,7 @@ export type StaffUniformAllocationCountAggregateInputType = {
   capQty?: true
   uniformReturned?: true
   capReturned?: true
+  allocatedItems?: true
   workingPeriod?: true
   supervisorId?: true
   givenDate?: true
@@ -245,6 +247,7 @@ export type StaffUniformAllocationGroupByOutputType = {
   capQty: number
   uniformReturned: boolean
   capReturned: boolean
+  allocatedItems: runtime.JsonValue
   workingPeriod: string | null
   supervisorId: string | null
   givenDate: Date
@@ -285,6 +288,7 @@ export type StaffUniformAllocationWhereInput = {
   capQty?: Prisma.IntFilter<"StaffUniformAllocation"> | number
   uniformReturned?: Prisma.BoolFilter<"StaffUniformAllocation"> | boolean
   capReturned?: Prisma.BoolFilter<"StaffUniformAllocation"> | boolean
+  allocatedItems?: Prisma.JsonFilter<"StaffUniformAllocation">
   workingPeriod?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   supervisorId?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   givenDate?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
@@ -305,6 +309,7 @@ export type StaffUniformAllocationOrderByWithRelationInput = {
   capQty?: Prisma.SortOrder
   uniformReturned?: Prisma.SortOrder
   capReturned?: Prisma.SortOrder
+  allocatedItems?: Prisma.SortOrder
   workingPeriod?: Prisma.SortOrderInput | Prisma.SortOrder
   supervisorId?: Prisma.SortOrderInput | Prisma.SortOrder
   givenDate?: Prisma.SortOrder
@@ -328,6 +333,7 @@ export type StaffUniformAllocationWhereUniqueInput = Prisma.AtLeast<{
   capQty?: Prisma.IntFilter<"StaffUniformAllocation"> | number
   uniformReturned?: Prisma.BoolFilter<"StaffUniformAllocation"> | boolean
   capReturned?: Prisma.BoolFilter<"StaffUniformAllocation"> | boolean
+  allocatedItems?: Prisma.JsonFilter<"StaffUniformAllocation">
   workingPeriod?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   supervisorId?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   givenDate?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
@@ -348,6 +354,7 @@ export type StaffUniformAllocationOrderByWithAggregationInput = {
   capQty?: Prisma.SortOrder
   uniformReturned?: Prisma.SortOrder
   capReturned?: Prisma.SortOrder
+  allocatedItems?: Prisma.SortOrder
   workingPeriod?: Prisma.SortOrderInput | Prisma.SortOrder
   supervisorId?: Prisma.SortOrderInput | Prisma.SortOrder
   givenDate?: Prisma.SortOrder
@@ -373,6 +380,7 @@ export type StaffUniformAllocationScalarWhereWithAggregatesInput = {
   capQty?: Prisma.IntWithAggregatesFilter<"StaffUniformAllocation"> | number
   uniformReturned?: Prisma.BoolWithAggregatesFilter<"StaffUniformAllocation"> | boolean
   capReturned?: Prisma.BoolWithAggregatesFilter<"StaffUniformAllocation"> | boolean
+  allocatedItems?: Prisma.JsonWithAggregatesFilter<"StaffUniformAllocation">
   workingPeriod?: Prisma.StringNullableWithAggregatesFilter<"StaffUniformAllocation"> | string | null
   supervisorId?: Prisma.StringNullableWithAggregatesFilter<"StaffUniformAllocation"> | string | null
   givenDate?: Prisma.DateTimeWithAggregatesFilter<"StaffUniformAllocation"> | Date | string
@@ -388,6 +396,7 @@ export type StaffUniformAllocationCreateInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   givenDate?: Date | string
   returnDate?: Date | string | null
@@ -407,6 +416,7 @@ export type StaffUniformAllocationUncheckedCreateInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   supervisorId?: string | null
   givenDate?: Date | string
@@ -422,6 +432,7 @@ export type StaffUniformAllocationUpdateInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -441,6 +452,7 @@ export type StaffUniformAllocationUncheckedUpdateInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   supervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -458,6 +470,7 @@ export type StaffUniformAllocationCreateManyInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   supervisorId?: string | null
   givenDate?: Date | string
@@ -473,6 +486,7 @@ export type StaffUniformAllocationUpdateManyMutationInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -489,6 +503,7 @@ export type StaffUniformAllocationUncheckedUpdateManyInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   supervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -516,6 +531,7 @@ export type StaffUniformAllocationCountOrderByAggregateInput = {
   capQty?: Prisma.SortOrder
   uniformReturned?: Prisma.SortOrder
   capReturned?: Prisma.SortOrder
+  allocatedItems?: Prisma.SortOrder
   workingPeriod?: Prisma.SortOrder
   supervisorId?: Prisma.SortOrder
   givenDate?: Prisma.SortOrder
@@ -713,6 +729,7 @@ export type StaffUniformAllocationCreateWithoutSupervisorInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   givenDate?: Date | string
   returnDate?: Date | string | null
@@ -731,6 +748,7 @@ export type StaffUniformAllocationUncheckedCreateWithoutSupervisorInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   givenDate?: Date | string
   returnDate?: Date | string | null
@@ -776,6 +794,7 @@ export type StaffUniformAllocationScalarWhereInput = {
   capQty?: Prisma.IntFilter<"StaffUniformAllocation"> | number
   uniformReturned?: Prisma.BoolFilter<"StaffUniformAllocation"> | boolean
   capReturned?: Prisma.BoolFilter<"StaffUniformAllocation"> | boolean
+  allocatedItems?: Prisma.JsonFilter<"StaffUniformAllocation">
   workingPeriod?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   supervisorId?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   givenDate?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
@@ -791,6 +810,7 @@ export type StaffUniformAllocationCreateWithoutStoreInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   givenDate?: Date | string
   returnDate?: Date | string | null
@@ -808,6 +828,7 @@ export type StaffUniformAllocationUncheckedCreateWithoutStoreInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   supervisorId?: string | null
   givenDate?: Date | string
@@ -849,6 +870,7 @@ export type StaffUniformAllocationCreateWithoutStaffInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   givenDate?: Date | string
   returnDate?: Date | string | null
@@ -866,6 +888,7 @@ export type StaffUniformAllocationUncheckedCreateWithoutStaffInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   supervisorId?: string | null
   givenDate?: Date | string
@@ -909,6 +932,7 @@ export type StaffUniformAllocationCreateManySupervisorInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   givenDate?: Date | string
   returnDate?: Date | string | null
@@ -923,6 +947,7 @@ export type StaffUniformAllocationUpdateWithoutSupervisorInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -941,6 +966,7 @@ export type StaffUniformAllocationUncheckedUpdateWithoutSupervisorInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -957,6 +983,7 @@ export type StaffUniformAllocationUncheckedUpdateManyWithoutSupervisorInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -972,6 +999,7 @@ export type StaffUniformAllocationCreateManyStoreInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   supervisorId?: string | null
   givenDate?: Date | string
@@ -987,6 +1015,7 @@ export type StaffUniformAllocationUpdateWithoutStoreInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1004,6 +1033,7 @@ export type StaffUniformAllocationUncheckedUpdateWithoutStoreInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   supervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1020,6 +1050,7 @@ export type StaffUniformAllocationUncheckedUpdateManyWithoutStoreInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   supervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1036,6 +1067,7 @@ export type StaffUniformAllocationCreateManyStaffInput = {
   capQty?: number
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: string | null
   supervisorId?: string | null
   givenDate?: Date | string
@@ -1051,6 +1083,7 @@ export type StaffUniformAllocationUpdateWithoutStaffInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1068,6 +1101,7 @@ export type StaffUniformAllocationUncheckedUpdateWithoutStaffInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   supervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1084,6 +1118,7 @@ export type StaffUniformAllocationUncheckedUpdateManyWithoutStaffInput = {
   capQty?: Prisma.IntFieldUpdateOperationsInput | number
   uniformReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capReturned?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allocatedItems?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   workingPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   supervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1103,6 +1138,7 @@ export type StaffUniformAllocationSelect<ExtArgs extends runtime.Types.Extension
   capQty?: boolean
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: boolean
   workingPeriod?: boolean
   supervisorId?: boolean
   givenDate?: boolean
@@ -1123,6 +1159,7 @@ export type StaffUniformAllocationSelectCreateManyAndReturn<ExtArgs extends runt
   capQty?: boolean
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: boolean
   workingPeriod?: boolean
   supervisorId?: boolean
   givenDate?: boolean
@@ -1143,6 +1180,7 @@ export type StaffUniformAllocationSelectUpdateManyAndReturn<ExtArgs extends runt
   capQty?: boolean
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: boolean
   workingPeriod?: boolean
   supervisorId?: boolean
   givenDate?: boolean
@@ -1163,6 +1201,7 @@ export type StaffUniformAllocationSelectScalar = {
   capQty?: boolean
   uniformReturned?: boolean
   capReturned?: boolean
+  allocatedItems?: boolean
   workingPeriod?: boolean
   supervisorId?: boolean
   givenDate?: boolean
@@ -1172,7 +1211,7 @@ export type StaffUniformAllocationSelectScalar = {
   updatedAt?: boolean
 }
 
-export type StaffUniformAllocationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "staffId" | "storeId" | "uniformQty" | "capQty" | "uniformReturned" | "capReturned" | "workingPeriod" | "supervisorId" | "givenDate" | "returnDate" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["staffUniformAllocation"]>
+export type StaffUniformAllocationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "staffId" | "storeId" | "uniformQty" | "capQty" | "uniformReturned" | "capReturned" | "allocatedItems" | "workingPeriod" | "supervisorId" | "givenDate" | "returnDate" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["staffUniformAllocation"]>
 export type StaffUniformAllocationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   staff?: boolean | Prisma.StaffDefaultArgs<ExtArgs>
   store?: boolean | Prisma.StoreDefaultArgs<ExtArgs>
@@ -1204,6 +1243,7 @@ export type $StaffUniformAllocationPayload<ExtArgs extends runtime.Types.Extensi
     capQty: number
     uniformReturned: boolean
     capReturned: boolean
+    allocatedItems: runtime.JsonValue
     workingPeriod: string | null
     supervisorId: string | null
     givenDate: Date
@@ -1644,6 +1684,7 @@ export interface StaffUniformAllocationFieldRefs {
   readonly capQty: Prisma.FieldRef<"StaffUniformAllocation", 'Int'>
   readonly uniformReturned: Prisma.FieldRef<"StaffUniformAllocation", 'Boolean'>
   readonly capReturned: Prisma.FieldRef<"StaffUniformAllocation", 'Boolean'>
+  readonly allocatedItems: Prisma.FieldRef<"StaffUniformAllocation", 'Json'>
   readonly workingPeriod: Prisma.FieldRef<"StaffUniformAllocation", 'String'>
   readonly supervisorId: Prisma.FieldRef<"StaffUniformAllocation", 'String'>
   readonly givenDate: Prisma.FieldRef<"StaffUniformAllocation", 'DateTime'>

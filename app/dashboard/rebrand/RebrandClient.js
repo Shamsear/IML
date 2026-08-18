@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createBulkRebrandTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
+import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -34,19 +35,15 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Source product selection (only show serialized SIM / ROUTER)
-  const sourceProducts = products.filter(p => 
-    p.isSerialized && (
-      p.category?.toUpperCase().includes('SIM') ||
-      p.category?.toUpperCase().includes('ROUTER') ||
-      p.name?.toUpperCase().includes('SIM') ||
-      p.name?.toUpperCase().includes('ROUTER')
-    )
-  );
+  // Source product selection (only allow non-serialized products per user request)
+  const sourceProducts = products.filter(p => !p.isSerialized);
 
   const [sourceProductId, setSourceProductId] = useState(sourceProducts[0]?.id || '');
   const [targetProductId, setTargetProductId] = useState(products[0]?.id || '');
   const [remarks, setRemarks] = useState('');
+
+  // Brand filter for source product selection
+  const [brandFilter, setBrandFilter] = useState('ALL');
 
   // Inline product registration states for rebranding target product
   const [isNewProduct, setIsNewProduct] = useState(false);
@@ -77,6 +74,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   const [rangeTgtStart, setRangeTgtStart] = useState('');
   const [rebrandActiveScanTarget, setRebrandActiveScanTarget] = useState('queue'); // 'queue', 'srcStart', 'srcEnd', 'tgtStart'
   const [useRangeRebrand, setUseRangeRebrand] = useState(false);
+  const [nonSerializedQty, setNonSerializedQty] = useState('1');
 
   // Scanning barcode input
   const [scanInput, setScanInput] = useState('');
@@ -482,7 +480,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   // Poll for mobile scanned items
   useEffect(() => {
     let interval = null;
-    if (isMobileModalOpen && mobileSession?.sessionId) {
+    if (mobileSession?.sessionId) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -530,7 +528,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMobileModalOpen, mobileSession, availableBarcodes]);
+  }, [mobileSession, availableBarcodes]);
 
   // Get current session barcodes for bulk list view
   const scannedBarcodesList = mappings.map(m => m.sourceBarcode).filter(Boolean);
@@ -543,16 +541,29 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     setSuccessMsg('');
 
     // Validation Loop
-    if (mappings.length === 0) {
-      setError('Please scan or select at least one barcode to rebrand');
-      setLoading(false);
-      return;
-    }
-
-    for (let i = 0; i < mappings.length; i++) {
-      if (!mappings[i].targetBarcode.trim()) {
-        handleMappingFieldChange(i, 'error', 'Target barcode is required');
-        handleExpandMapping(i);
+    if (sourceSelectedProduct?.isSerialized) {
+      if (mappings.length === 0) {
+        setError('Please scan or select at least one barcode to rebrand');
+        setLoading(false);
+        return;
+      }
+      for (let i = 0; i < mappings.length; i++) {
+        if (!mappings[i].targetBarcode.trim()) {
+          handleMappingFieldChange(i, 'error', 'Target barcode is required');
+          handleExpandMapping(i);
+          setLoading(false);
+          return;
+        }
+      }
+    } else {
+      const qty = parseInt(nonSerializedQty, 10);
+      if (!qty || qty <= 0) {
+        setError('Quantity must be greater than 0');
+        setLoading(false);
+        return;
+      }
+      if (qty > (sourceSelectedProduct?.warehouseStock || 0)) {
+        setError(Quantity exceeds available warehouse stock ());
         setLoading(false);
         return;
       }
@@ -582,6 +593,9 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
       formData.append('sourceProductId', sourceProductId);
       formData.append('remarks', remarks);
       formData.append('mappings', JSON.stringify(mappings.map(m => ({ sourceBarcode: m.sourceBarcode, targetBarcode: m.targetBarcode }))));
+      if (!sourceSelectedProduct?.isSerialized) {
+        formData.append('nonSerializedQty', nonSerializedQty);
+      }
       
       formData.append('isNewProduct', isNewProduct.toString());
       if (isNewProduct) {
@@ -653,8 +667,26 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5 relative">
             <label className="text-xs font-semibold text-text-secondary">Source Product (Convert From)</label>
+            {/* Brand filter pills */}
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setBrandFilter('ALL')}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+              >All Brands</button>
+              {brands.map(b => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setBrandFilter(b.id)}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                >{b.name}</button>
+              ))}
+            </div>
             <CustomSelect
-              options={sourceProducts.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
+              options={sourceProducts
+                .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
+                .map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
               value={sourceProductId}
               onChange={(val) => setSourceProductId(val)}
               placeholder="Select Source Product..."
@@ -1089,6 +1121,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         </div>
 
         {/* Mappings Queue Card List */}
+        {sourceSelectedProduct?.isSerialized && (
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between pb-2 border-b border-border">
             <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Serials to Rebrand ({currentScannedCount} items selected)</span>
@@ -1333,3 +1366,9 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     </div>
   );
 }
+
+
+
+
+
+

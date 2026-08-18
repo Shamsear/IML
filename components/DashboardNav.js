@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Tag, 
@@ -18,7 +18,9 @@ import {
   ArrowUpRight,
   RefreshCw,
   ShieldAlert,
+  AlertTriangle,
   Shirt,
+  Calendar,
 } from 'lucide-react';
 
 const navSections = [
@@ -35,8 +37,10 @@ const navSections = [
       { name: 'Products', href: '/dashboard/products', icon: Package },
       { name: 'Inbound (Receive)', href: '/dashboard/inbound', icon: ArrowDownLeft },
       { name: 'Outbound (Dispatch)', href: '/dashboard/outbound', icon: ArrowUpRight },
+      { name: 'Expiry Tracking', href: '/dashboard/expiry', icon: Calendar },
       { name: 'Rebrand Stock', href: '/dashboard/rebrand', icon: RefreshCw },
-      { name: 'Report Damage', href: '/dashboard/damage', icon: ShieldAlert },
+      { name: 'Report Damage', href: '/dashboard/damage?type=DAMAGE', icon: ShieldAlert, activePath: '/dashboard/damage', activeType: 'DAMAGE' },
+      { name: 'Report Loss', href: '/dashboard/damage?type=LOST', icon: AlertTriangle, activePath: '/dashboard/damage', activeType: 'LOST' },
       { name: 'Uniform Assigning', href: '/dashboard/staff', icon: Shirt },
       { name: 'Ledger Logs', href: '/dashboard/transactions', icon: History },
     ],
@@ -59,6 +63,7 @@ const navSections = [
 
 export default function DashboardNav({ collapsed }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   return (
     <nav className="flex flex-col gap-6">
@@ -75,9 +80,15 @@ export default function DashboardNav({ collapsed }) {
           <div className="flex flex-col gap-1">
             {section.items.map((item) => {
               const Icon = item.icon;
-              const isActive = item.href === '/dashboard' 
-                ? pathname === '/dashboard'
-                : pathname.startsWith(item.href);
+              let isActive;
+              if (item.activePath) {
+                // Items with a specific type query param (e.g. Report Damage / Report Loss)
+                isActive = pathname.startsWith(item.activePath) && searchParams.get('type') === item.activeType;
+              } else {
+                isActive = item.href === '/dashboard' 
+                  ? pathname === '/dashboard'
+                  : pathname.startsWith(item.href);
+              }
               
               return (
                 <Link 

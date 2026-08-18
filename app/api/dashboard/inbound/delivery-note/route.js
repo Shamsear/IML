@@ -214,8 +214,8 @@ const DeliveryNoteDocument = ({ store, brandName, inventory, dateStr, docNo, rec
                   <Text style={pdfStyles.metaVal}>{brandName || 'Sadia'}</Text>
                 </View>
                 <View style={pdfStyles.metaRow}>
-                  <Text style={pdfStyles.metaLabel}>Store Name :-</Text>
-                  <Text style={pdfStyles.metaVal}>{store.name}</Text>
+                  <Text style={pdfStyles.metaLabel}>Supplier Name :-</Text>
+                  <Text style={pdfStyles.metaVal}>{supplierName}</Text>
                 </View>
                 <View style={pdfStyles.metaRow}>
                   <Text style={pdfStyles.metaLabel}>Notes :-</Text>
@@ -298,168 +298,133 @@ const DeliveryNoteDocument = ({ store, brandName, inventory, dateStr, docNo, rec
   );
 };
 
-export async function GET(request, { params }) {
+export async function GET(request) {
   // 1. Authenticate user
   const session = await getServerSession(authOptions);
   if (!session) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  const { id } = await params;
-
   try {
-    // 2. Fetch Store Details
-    const store = await prisma.store.findUnique({
-      where: { id },
-    });
-
-    if (!store) {
-      return new NextResponse('Store not found', { status: 404 });
-    }
-
     const { searchParams } = new URL(request.url);
     const dateQuery = searchParams.get('date'); // YYYY-MM-DD
     const brandIdQuery = searchParams.get('brandId');
     const dnQuery = searchParams.get('dn');
 
+    if (!dateQuery || !brandIdQuery || !dnQuery) {
+      return new NextResponse('Missing required parameters: date, brandId, dn', { status: 400 });
+    }
+
     let inventory = [];
-    let docNo = '';
+    let docNo = dnQuery;
     let dateStr = '';
     let brandName = '';
-    let receiverName = '';
+    let receiverName = session.user.name || 'Warehouse Staff';
     let contactDetails = '';
     let notes = '';
+    let supplierName = '';
 
-    if (dateQuery && brandIdQuery && dnQuery) {
-      // Fetch Brand Info
-      const brandObj = await prisma.brand.findUnique({ where: { id: brandIdQuery } });
-      if (brandObj) {
-        brandName = brandObj.name;
-      }
+    // Fetch Brand Info
+    const brandObj = await prisma.brand.findUnique({ where: { id: brandIdQuery } });
+    if (brandObj) {
+      brandName = brandObj.name;
+    }
 
-      // Fetch Staff placed at store for receiver name & phone
-      const staffMember = await prisma.staff.findFirst({
-        where: { storeId: id },
-        select: { name: true, phone: true }
-      });
-      if (staffMember) {
-        receiverName = staffMember.name;
-        contactDetails = staffMember.phone || '';
-      }
+    // Query specific receive transactions
+    const dayStart = new Date(`${dateQuery}T00:00:00.000Z`);
+    const dayEnd = new Date(`${dateQuery}T23:59:59.999Z`);
 
-      // Query specific issue transactions
-      const dayStart = new Date(`${dateQuery}T00:00:00.000Z`);
-      const dayEnd = new Date(`${dateQuery}T23:59:59.999Z`);
-
-      const txs = await prisma.inventoryTransaction.findMany({
-        where: {
-          toEntityType: 'STORE',
-          toEntityId: id,
-          transactionType: 'ISSUE',
-          deliveryNote: dnQuery === 'UNASSIGNED' ? null : dnQuery,
-          timestamp: {
-            gte: dayStart,
-            lte: dayEnd,
-          },
-          product: {
-            brandId: brandIdQuery,
+    const txs = await prisma.inventoryTransaction.findMany({
+      where: {
+        transactionType: { in: ['RECEIVE', 'RETURN'] },
+        deliveryNote: dnQuery,
+        timestamp: {
+          gte: dayStart,
+          lte: dayEnd,
+        },
+        product: {
+          brandId: brandIdQuery,
+        }
+      },
+      select: {
+        id: true,
+        notes: true,
+        quantity: true,
+        fromEntityId: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+            itemCode: true,
+            category: true,
+            isSerialized: true,
           }
         },
-        select: {
-          id: true,
-          notes: true,
-          quantity: true,
-          product: {
-            select: {
-              id: true,
-              name: true,
-              itemCode: true,
-              category: true,
-              isSerialized: true,
-            }
-          },
-          serialNumbers: {
-            select: {
-              serialNumber: {
-                select: {
-                  barcode: true
-                }
+        serialNumbers: {
+          select: {
+            serialNumber: {
+              select: {
+                barcode: true
               }
             }
           }
         }
-      });
-
-      if (txs.length === 0) {
-        return new NextResponse('No matching dispatches found for specified filter.', { status: 404 });
       }
+    });
 
-      if (txs[0]?.notes) {
-        notes = txs[0].notes;
+    if (txs.length === 0) {
+      return new NextResponse('No matching inbound receipts found for specified filter.', { status: 404 });
+    }
+
+    if (txs[0]?.notes) {
+      notes = txs[0].notes;
+    }
+    if (txs[0]?.fromEntityId) {
+      supplierName = txs[0].fromEntityId;
+    }
+
+    // Group transactions by product ID to build consolidated list
+    const productGroups = {};
+    for (const tx of txs) {
+      const prod = tx.product;
+      if (!productGroups[prod.id]) {
+        productGroups[prod.id] = {
+          productId: prod.id,
+          name: prod.name,
+          itemCode: prod.itemCode,
+          category: prod.category,
+          isSerialized: prod.isSerialized,
+          quantity: 0,
+          serials: [],
+          notes: tx.notes || ''
+        };
       }
-
-      // Group transactions by product ID to build consolidated list
-      const productGroups = {};
-      for (const tx of txs) {
-        const prod = tx.product;
-        if (!productGroups[prod.id]) {
-          productGroups[prod.id] = {
-            productId: prod.id,
-            name: prod.name,
-            itemCode: prod.itemCode,
-            category: prod.category,
-            isSerialized: prod.isSerialized,
-            quantity: 0,
-            serials: [],
-            notes: tx.notes || ''
-          };
+      productGroups[prod.id].quantity += tx.quantity;
+      if (prod.isSerialized && tx.serialNumbers) {
+        for (const sNum of tx.serialNumbers) {
+          productGroups[prod.id].serials.push({
+            barcode: sNum.serialNumber.barcode
+          });
         }
-        productGroups[prod.id].quantity += tx.quantity;
-        if (prod.isSerialized && tx.serialNumbers) {
-          for (const sNum of tx.serialNumbers) {
-            productGroups[prod.id].serials.push({
-              barcode: sNum.serialNumber.barcode
-            });
-          }
-        }
       }
+    }
 
-      inventory = Object.values(productGroups);
-      docNo = dnQuery === 'UNASSIGNED' ? `IML-DISP-${dateQuery.replace(/-/g, '')}` : dnQuery;
+    inventory = Object.values(productGroups);
 
-      const parts = dateQuery.split('-');
-      dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    } else {
-      // Fallback: full placement summary
-      inventory = await getStoreInventory(id);
-      if (inventory.length === 0) {
-        return new NextResponse('No items present in store to generate a delivery note.', { status: 400 });
-      }
-      if (inventory[0]?.brandName) {
-        brandName = inventory[0].brandName;
-      }
-      const staffMember = await prisma.staff.findFirst({
-        where: { storeId: id },
-        select: { name: true, phone: true }
-      });
-      if (staffMember) {
-        receiverName = staffMember.name;
-        contactDetails = staffMember.phone || '';
-      }
+    const parts = dateQuery.split('-');
+    dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
 
-      const dateObj = new Date();
-      const dd = String(dateObj.getDate()).padStart(2, '0');
-      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const yyyy = dateObj.getFullYear();
-      dateStr = `${dd}-${mm}-${yyyy}`;
-      const timeHash = dateObj.getTime().toString().slice(-4);
-      docNo = `IML-${brandName || 'SADIA'}-DEL-${dateStr}-${timeHash}`;
+    // Fill to 28 rows
+    const maxRows = 28;
+    const rows = [...inventory];
+    while (rows.length < maxRows) {
+      rows.push(null);
     }
 
     // 5. Render react-pdf document to a stream
     const pdfStream = await renderToStream(
       <DeliveryNoteDocument 
-        store={store} 
+        supplierName={supplierName} 
         brandName={brandName}
         inventory={inventory} 
         dateStr={dateStr} 
@@ -474,7 +439,7 @@ export async function GET(request, { params }) {
     return new NextResponse(pdfStream, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="IML-DeliveryNote-${store.name.replace(/\s+/g, '_')}.pdf"`,
+        'Content-Disposition': `inline; filename="IML-Inbound-DeliveryNote-${dateStr}.pdf"`,
       },
     });
 

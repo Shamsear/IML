@@ -41,6 +41,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   const [addQtyNotes, setAddQtyNotes] = useState('');
   const [addQtyError, setAddQtyError] = useState('');
   const [isReturnable, setIsReturnable] = useState(false);
+  const [isDisposable, setIsDisposable] = useState(false);
+  const [trackExpiry, setTrackExpiry] = useState(false);
   const [isPublic, setIsPublic] = useState(true);
   const [isSerialized, setIsSerialized] = useState(false);
   const [productType, setProductType] = useState('NORMAL'); // 'NORMAL', 'SIM', 'ROUTER'
@@ -953,3 +955,5 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   </div>
   );
 }
+
+

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrand, updateBrand, deleteBrand, createBulkBrands } from '@/app/actions/brands';
-import { Tag, Plus, Edit2, Trash2, Globe, EyeOff, Loader2, X, Camera } from 'lucide-react';
+import { Tag, Plus, Edit2, Trash2, Loader2, X, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 
@@ -237,11 +237,6 @@ export default function BrandsClient({ initialBrands }) {
                         </div>
 
                         <div className="flex items-center gap-3 flex-shrink-0">
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border
-                            ${item.isPublic ? 'bg-success/15 border-success/20 text-success' : 'bg-surface-elevated border-border text-text-muted'}
-                          `}>
-                            {item.isPublic ? 'Public' : 'Hidden'}
-                          </span>
                           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
@@ -334,32 +329,6 @@ export default function BrandsClient({ initialBrands }) {
                           />
                         </div>
 
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-text-secondary">Public Visibility</label>
-                          <div className="flex gap-2">
-                            <label className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg cursor-pointer text-xs font-semibold transition-all
-                              ${item.isPublic 
-                                ? 'border-primary bg-primary/10 text-primary' 
-                                : 'border-border bg-surface-elevated text-text-secondary hover:bg-surface-hover'
-                              }`}
-                            >
-                              <input type="radio" checked={item.isPublic === true} onChange={() => updateItemField(idx, 'isPublic', true)} className="hidden" />
-                              <Globe size={13} />
-                              <span>Public</span>
-                            </label>
-                            <label className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg cursor-pointer text-xs font-semibold transition-all
-                              ${!item.isPublic 
-                                ? 'border-primary bg-primary/10 text-primary' 
-                                : 'border-border bg-surface-elevated text-text-secondary hover:bg-surface-hover'
-                              }`}
-                            >
-                              <input type="radio" checked={item.isPublic === false} onChange={() => updateItemField(idx, 'isPublic', false)} className="hidden" />
-                              <EyeOff size={13} />
-                              <span>Hidden</span>
-                            </label>
-                          </div>
-                        </div>
-
                         <div className="flex justify-end gap-3 pt-3 border-t border-border">
                           <button
                             type="button"
@@ -439,15 +408,6 @@ export default function BrandsClient({ initialBrands }) {
                         <span className="text-[10px] uppercase font-bold tracking-wider font-display">No Logo</span>
                       </div>
                     )}
-                    
-                    <span className={`absolute top-3 right-3 text-[9px] font-bold px-2 py-0.5 rounded-full border shadow-sm
-                      ${brand.isPublic 
-                        ? 'bg-success/15 border-success/20 text-success' 
-                        : 'bg-surface-elevated border-border text-text-muted'
-                      }`}
-                    >
-                      {brand.isPublic ? 'Public' : 'Hidden'}
-                    </span>
                   </div>
 
                   {/* Details */}

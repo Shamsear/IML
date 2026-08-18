@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createBulkDamageTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
+import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -28,12 +29,24 @@ const playBeep = () => {
   }
 };
 
-function DamageFormContent({ products }) {
+function DamageFormContent({ products, brands = [], initialItems = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Brand filter for product selection
+  const [brandFilter, setBrandFilter] = useState('ALL');
+
+  // Report type: DAMAGE or LOST — can be preset via ?type=LOST URL param
+  const [reportType, setReportType] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('type');
+      return p === 'LOST' ? 'LOST' : 'DAMAGE';
+    }
+    return 'DAMAGE';
+  });
 
   // State for bulk damage items
   const [items, setItems] = useState([]);
@@ -61,13 +74,24 @@ function DamageFormContent({ products }) {
   const lastScannedBarcodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
 
-  // Initialize selected products from URL search parameter "productIds"
+  // Initialize selected products from URL search parameter "productIds" or initialItems
   useEffect(() => {
+    if (initialItems) {
+      setItems(initialItems.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        selectedBarcodes: [],
+        availableBarcodes: [],
+        notes: item.notes || ''
+      })));
+      return;
+    }
+
     const urlIds = searchParams.get('productIds')?.split(',').filter(Boolean) || [];
     const initRows = async () => {
-      let initialItems = [];
+      let initialItemsList = [];
       if (urlIds.length > 0) {
-        initialItems = urlIds.map(id => {
+        initialItemsList = urlIds.map(id => {
           const prod = products.find(p => p.id === id);
           return {
             productId: id,
@@ -80,7 +104,7 @@ function DamageFormContent({ products }) {
       } else {
         const defaultId = products[0]?.id || '';
         const prod = products.find(p => p.id === defaultId);
-        initialItems = [{
+        initialItemsList = [{
           productId: defaultId,
           quantity: prod?.isSerialized ? 0 : 1,
           selectedBarcodes: [],
@@ -88,10 +112,10 @@ function DamageFormContent({ products }) {
           notes: ''
         }];
       }
-      setItems(initialItems);
+      setItems(initialItemsList);
 
-      for (let i = 0; i < initialItems.length; i++) {
-        const item = initialItems[i];
+      for (let i = 0; i < initialItemsList.length; i++) {
+        const item = initialItemsList[i];
         const prod = products.find(p => p.id === item.productId);
         if (prod?.isSerialized) {
           try {
@@ -332,7 +356,7 @@ function DamageFormContent({ products }) {
   // Poll for mobile scanned items
   useEffect(() => {
     let interval = null;
-    if (isMobileModalOpen && mobileSession?.sessionId && activeCameraRow !== null) {
+    if (mobileSession?.sessionId && activeCameraRow !== null) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -370,7 +394,7 @@ function DamageFormContent({ products }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMobileModalOpen, mobileSession, activeCameraRow]);
+  }, [mobileSession, activeCameraRow]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -384,6 +408,19 @@ function DamageFormContent({ products }) {
         setError(`Please select at least one barcode for ${prod.name}`);
         setLoading(false);
         return;
+      }
+      if (!prod?.isSerialized) {
+        const qty = parseInt(item.quantity, 10);
+        if (qty <= 0 || isNaN(qty)) {
+          setError(`Quantity for ${prod.name} must be greater than 0`);
+          setLoading(false);
+          return;
+        }
+        if (qty > (prod.warehouseStock || 0)) {
+          setError(`Quantity for ${prod.name} exceeds available warehouse stock (${prod.warehouseStock || 0})`);
+          setLoading(false);
+          return;
+        }
       }
     }
 
@@ -401,14 +438,16 @@ function DamageFormContent({ products }) {
       await createBulkDamageTransactions({
         fromEntityType: 'WAREHOUSE',
         fromEntityId: null,
+        transactionType: reportType,
         items: itemsPayload
       });
-      setSuccessMsg(`Logged damage & wastage of ${items.length} products successfully!`);
+      const label = reportType === 'LOST' ? 'loss' : 'damage';
+      setSuccessMsg(`Logged ${label} of ${items.length} product(s) successfully!`);
       setTimeout(() => {
         router.push('/dashboard/damage');
       }, 1500);
     } catch (err) {
-      setError(err.message || 'Failed to complete damage transaction.');
+      setError(err.message || 'Failed to complete transaction.');
       setLoading(false);
     }
   };
@@ -447,9 +486,45 @@ function DamageFormContent({ products }) {
       )}
 
       <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
+        {/* Report Type Toggle */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Report Type</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setReportType('DAMAGE')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-bold transition-all ${
+                reportType === 'DAMAGE'
+                  ? 'bg-danger text-white border-danger shadow-md'
+                  : 'bg-surface border-border text-text-secondary hover:border-danger/50 hover:text-danger'
+              }`}
+            >
+              <ShieldAlert size={15} />
+              Damage / Wastage
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportType('LOST')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-bold transition-all ${
+                reportType === 'LOST'
+                  ? 'bg-warning text-white border-warning shadow-md'
+                  : 'bg-surface border-border text-text-secondary hover:border-warning/50 hover:text-warning'
+              }`}
+            >
+              <AlertCircle size={15} />
+              Lost / Missing
+            </button>
+          </div>
+          <p className="text-[11px] text-text-muted">
+            {reportType === 'DAMAGE'
+              ? 'Use for physically damaged, broken, or wasted items that are being written off.'
+              : 'Use for items that are missing, stolen, or cannot be accounted for.'}
+          </p>
+        </div>
+
         {/* Destination Header */}
         <h3 className="font-display font-bold text-lg text-text-primary pb-3 border-b border-border font-semibold">
-          Damaged Products Ledger
+          {reportType === 'LOST' ? 'Lost / Missing Products' : 'Damaged Products Ledger'}
         </h3>
 
         {/* Dynamic products rows */}
@@ -471,8 +546,26 @@ function DamageFormContent({ products }) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mr-8">
                   <div className="flex flex-col gap-1.5 md:col-span-2">
                     <label className="text-xs font-semibold text-text-secondary">Product Item</label>
+                    {/* Brand filter pills */}
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setBrandFilter('ALL')}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                      >All Brands</button>
+                      {brands.map(b => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => setBrandFilter(b.id)}
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                        >{b.name}</button>
+                      ))}
+                    </div>
                     <CustomSelect
-                      options={products.map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
+                      options={products
+                        .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
+                        .map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
                       value={item.productId}
                       onChange={(id) => handleProductChange(index, id)}
                       placeholder="Choose product..."
@@ -481,14 +574,22 @@ function DamageFormContent({ products }) {
                   </div>
 
                   <div className="flex flex-col gap-1.5 md:col-span-1">
-                    <label className="text-xs font-semibold text-text-secondary">
-                      {!selectedProd?.isSerialized ? 'Quantity Damaged' : 'Quantity (Selected)'}
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-text-secondary">
+                        {!selectedProd?.isSerialized ? 'Quantity Damaged' : 'Quantity (Selected)'}
+                      </label>
+                      {selectedProd && !selectedProd.isSerialized && (
+                        <span className="text-[10px] font-mono text-text-muted">
+                          In Stock: <strong className="text-primary">{selectedProd.warehouseStock || 0}</strong>
+                        </span>
+                      )}
+                    </div>
                     {!selectedProd?.isSerialized ? (
                       <input 
                         type="number" 
                         className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
                         min={1} 
+                        max={selectedProd.warehouseStock || 0}
                         value={item.quantity}
                         onChange={(e) => handleFieldChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
                         required 
@@ -616,11 +717,13 @@ function DamageFormContent({ products }) {
             </Link>
             <button 
               type="submit" 
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-danger hover:bg-danger/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
+              className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ${
+                reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : 'bg-danger hover:bg-danger/90'
+              }`}
               disabled={loading || items.length === 0}
             >
               {loading && <Loader2 size={16} className="animate-spin" />}
-              <span>Submit Damage Logs</span>
+              <span>{reportType === 'LOST' ? 'Submit Loss Report' : 'Submit Damage Logs'}</span>
             </button>
           </div>
         </div>
@@ -778,7 +881,7 @@ function DamageFormContent({ products }) {
               {/* QR Code Container */}
               <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`}
                   alt="Scan QR to pair phone"
                   className="w-[200px] h-[200px] block"
                 />
@@ -808,14 +911,14 @@ function DamageFormContent({ products }) {
   );
 }
 
-export default function DamageClient({ products }) {
+export default function DamageClient({ products, brands = [] }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 size={36} className="animate-spin text-primary" />
       </div>
     }>
-      <DamageFormContent products={products} />
+      <DamageFormContent products={products} brands={brands} />
     </Suspense>
   );
 }

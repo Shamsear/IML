@@ -121,7 +121,7 @@ export async function allocateUniform(formData) {
   revalidatePath('/dashboard/staff');
 }
 
-export async function returnUniformItem(allocationId, itemType, notes = '') {
+export async function returnUniformItem(allocationId, payload, notes = '') {
   await checkAuth();
 
   const allocation = await prisma.staffUniformAllocation.findUnique({
@@ -130,19 +130,60 @@ export async function returnUniformItem(allocationId, itemType, notes = '') {
 
   if (!allocation) throw new Error('Allocation record not found');
 
-  const data = {};
-  if (itemType === 'uniform') {
-    data.uniformReturned = true;
-  } else if (itemType === 'cap') {
-    data.capReturned = true;
-  } else {
-    data.uniformReturned = true;
-    data.capReturned = true;
+  // Payload format: { legacyUniform: boolean, legacyCap: boolean, itemIds: string[] }
+  // Backwards compatibility with old 'both', 'uniform', 'cap' strings
+  let isLegacyUniform = false;
+  let isLegacyCap = false;
+  let itemIdsToReturn = [];
+
+  if (typeof payload === 'string') {
+    isLegacyUniform = payload === 'uniform' || payload === 'both';
+    isLegacyCap = payload === 'cap' || payload === 'both';
+  } else if (payload) {
+    isLegacyUniform = !!payload.legacyUniform;
+    isLegacyCap = !!payload.legacyCap;
+    itemIdsToReturn = payload.itemIds || [];
   }
 
-  const willBeUniformReturned = data.uniformReturned || allocation.uniformReturned;
-  const willBeCapReturned = data.capReturned || allocation.capReturned;
-  if (willBeUniformReturned && willBeCapReturned) {
+  const data = {};
+  if (isLegacyUniform) data.uniformReturned = true;
+  if (isLegacyCap) data.capReturned = true;
+
+  // Handle dynamic items
+  if (itemIdsToReturn.length > 0) {
+    let currentItems = [];
+    if (allocation.allocatedItems) {
+      if (typeof allocation.allocatedItems === 'string') {
+        try { currentItems = JSON.parse(allocation.allocatedItems); } catch(e){}
+      } else if (Array.isArray(allocation.allocatedItems)) {
+        currentItems = allocation.allocatedItems;
+      }
+    }
+    
+    const updatedItems = currentItems.map(item => {
+      if (itemIdsToReturn.includes(item.id)) {
+        return { ...item, returned: true, returnedAt: new Date().toISOString() };
+      }
+      return item;
+    });
+    data.allocatedItems = updatedItems;
+  }
+
+  // Calculate if fully returned
+  const willBeUniformReturned = data.uniformReturned ?? allocation.uniformReturned;
+  const willBeCapReturned = data.capReturned ?? allocation.capReturned;
+  
+  let allItemsReturned = true;
+  if (data.allocatedItems) {
+    allItemsReturned = data.allocatedItems.every(i => i.returned);
+  } else if (allocation.allocatedItems) {
+    let currentItems = typeof allocation.allocatedItems === 'string' ? JSON.parse(allocation.allocatedItems) : allocation.allocatedItems;
+    allItemsReturned = Array.isArray(currentItems) ? currentItems.every(i => i.returned) : true;
+  }
+
+  const legacyDone = (allocation.uniformQty === 0 || willBeUniformReturned) && (allocation.capQty === 0 || willBeCapReturned);
+
+  if (legacyDone && allItemsReturned) {
     data.returnDate = new Date();
   }
 
@@ -187,6 +228,9 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
   const uniformReturned = formData.get('uniformReturned') === 'true';
   const capReturned = formData.get('capReturned') === 'true';
 
+  const allocatedItemsStr = formData.get('allocatedItems');
+  const allocatedItems = allocatedItemsStr ? JSON.parse(allocatedItemsStr) : [];
+
   if (!storeId) {
     throw new Error('Store placement is required');
   }
@@ -213,7 +257,7 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
     });
 
     const wasFullyReturned = allocation.uniformReturned && allocation.capReturned;
-    const isNowFullyReturned = (uniformQty === 0 || uniformReturned) && (capQty === 0 || capReturned);
+    const isNowFullyReturned = (uniformQty === 0 || uniformReturned) && (capQty === 0 || capReturned) && allocatedItems.every(i => i.returned);
     
     await prisma.staffUniformAllocation.update({
       where: { id: allocationId },
@@ -225,6 +269,7 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
         capReturned,
         workingPeriod,
         notes,
+        allocatedItems,
         returnDate: isNowFullyReturned && !wasFullyReturned ? new Date() : (isNowFullyReturned ? allocation.returnDate : null),
       }
     });
@@ -264,6 +309,7 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
         capReturned,
         workingPeriod,
         notes,
+        allocatedItems,
       }
     });
   }
@@ -278,19 +324,32 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
     throw new Error('No allocations selected for return');
   }
 
-  // Use a transaction to update all allocation entries
+  // Find existing to mark dynamic items as returned too
+  const allocations = await prisma.staffUniformAllocation.findMany({
+    where: { id: { in: allocationIds } }
+  });
+
   await prisma.$transaction(
-    allocationIds.map(id => 
-      prisma.staffUniformAllocation.update({
-        where: { id },
+    allocations.map(alloc => {
+      let updatedItems = [];
+      if (alloc.allocatedItems) {
+        let currentItems = typeof alloc.allocatedItems === 'string' ? JSON.parse(alloc.allocatedItems) : alloc.allocatedItems;
+        if (Array.isArray(currentItems)) {
+          updatedItems = currentItems.map(item => ({ ...item, returned: true, returnedAt: item.returnedAt || new Date().toISOString() }));
+        }
+      }
+
+      return prisma.staffUniformAllocation.update({
+        where: { id: alloc.id },
         data: {
           uniformReturned: true,
           capReturned: true,
+          allocatedItems: updatedItems,
           returnDate: new Date(),
-          notes: notes ? `Bulk Return: ${notes}` : undefined
+          notes: notes ? (alloc.notes ? `${alloc.notes} | Bulk Return: ${notes}` : `Bulk Return: ${notes}`) : undefined
         }
-      })
-    )
+      });
+    })
   );
 
   revalidatePath('/dashboard/staff');
@@ -315,6 +374,7 @@ export async function saveBulkCombinedAllocations(payload) {
         storeId,
         uniformQty = 0,
         capQty = 0,
+        allocatedItems = [],
         workingPeriod = '',
         notes = ''
       } = item;
@@ -358,6 +418,7 @@ export async function saveBulkCombinedAllocations(payload) {
           capQty,
           uniformReturned: false,
           capReturned: false,
+          allocatedItems,
           workingPeriod,
           notes,
         }

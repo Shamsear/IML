@@ -6,6 +6,7 @@ import { ArrowLeft, Trash2, Plus, Loader2, ArrowDownLeft, AlertCircle, Camera, Q
 import Link from 'next/link';
 import { createBulkReceiveTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
+import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -27,15 +28,18 @@ const playBeep = () => {
   }
 };
 
-function InboundFormContent({ products, brands = [], stores = [], recentReceivers = [], recentSuppliers = [] }) {
+function InboundFormContent({ products, brands = [], stores = [], recentReceivers = [], recentSuppliers = [], initialItems = null, initialSupplier = '' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Brand filter for product selection
+  const [brandFilter, setBrandFilter] = useState('ALL');
+
   // Source (From) states - Locked to SUPPLIER
-  const [fromId, setFromId] = useState('');
+  const [fromId, setFromId] = useState(initialSupplier || '');
   const [showSupplierSuggestions, setShowSupplierSuggestions] = useState(false);
 
   // Received By details - Receiver is locked to WAREHOUSE
@@ -98,6 +102,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     rangeMode: false, // true = range builder, false = scan/text input
     isExpanded: true,
     error: '',
+    manufactureDate: '',
+    expiryDate: '',
     // Inline Product registration states
     prodName: '',
     prodType: 'NORMAL',
@@ -114,13 +120,13 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   });
 
   // State array for receipt items queue
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(initialItems || []);
 
   // Initialize selected products from URL search parameter "productIds"
   useEffect(() => {
     const urlIds = searchParams.get('productIds')?.split(',').filter(Boolean) || [];
     if (urlIds.length > 0) {
-      const initialItems = urlIds.map((id, idx) => {
+      const urlItems = urlIds.map((id, idx) => {
         const prod = products.find(p => p.id === id);
         return {
           id: `temp-${Date.now()}-${idx}`,
@@ -132,8 +138,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           rangeStart: '',
           rangeEnd: '',
           rangeMode: false,
-          isExpanded: idx === 0, // expand first item by default
+          isExpanded: idx === 0,
           error: '',
+          manufactureDate: '',
+          expiryDate: '',
           prodName: '',
           prodType: 'NORMAL',
           prodBrandId: brands[0]?.id || '',
@@ -145,10 +153,12 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           prodImagePreview: '',
         };
       });
-      setItems(initialItems);
-    } else {
+      setItems(urlItems);
+    } else if (!initialItems || initialItems.length === 0) {
+      // Only create a blank item if no pre-populated items exist (e.g. from copyDn)
       setItems([createEmptyInboundItem(0)]);
     }
+    // else: keep the initialItems already loaded from useState
   }, [searchParams, products, brands]);
 
   // Helper to update specific fields on item
@@ -411,7 +421,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   // Poll mobile companion scanned barcodes
   useEffect(() => {
     let interval = null;
-    if (isMobileModalOpen && mobileSession?.sessionId) {
+    if (mobileSession?.sessionId) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -437,7 +447,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMobileModalOpen, mobileSession, activeScanTarget]);
+  }, [mobileSession, activeScanTarget]);
 
   const handleExpandItem = (idx) => {
     setItems(prev => prev.map((item, i) => ({ ...item, isExpanded: i === idx })));
@@ -643,6 +653,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         quantity: parseInt(item.quantity, 10),
         barcodes,
         notes: item.notes,
+        manufactureDate: item.manufactureDate,
+        expiryDate: item.expiryDate,
         // Inline Product details
         prodName: item.prodName,
         prodType: item.prodType,
@@ -978,8 +990,26 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               </button>
                             </div>
                           </div>
+                          {/* Brand filter pills */}
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => setBrandFilter('ALL')}
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                            >All Brands</button>
+                            {brands.map(b => (
+                              <button
+                                key={b.id}
+                                type="button"
+                                onClick={() => setBrandFilter(b.id)}
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              >{b.name}</button>
+                            ))}
+                          </div>
                           <CustomSelect
-                            options={products.map(p => ({ value: p.id, label: `${p.brand.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl }))}
+                            options={products
+                              .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
+                              .map(p => ({ value: p.id, label: `${p.brand.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl }))}
                             value={item.productId}
                             onChange={(val) => updateItemField(idx, 'productId', val)}
                             placeholder="-- Select Product --"
@@ -1375,6 +1405,32 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                       </div>
                     )}
 
+                    {/* Expiry Tracking Inputs */}
+                    {(!item.isNewProduct && selectedProd?.trackExpiry) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border/60">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary">Manufacture Date</label>
+                          <input 
+                            type="date" 
+                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                            value={item.manufactureDate || ''}
+                            onChange={(e) => updateItemField(idx, 'manufactureDate', e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary">Expiry Date</label>
+                          <input 
+                            type="date" 
+                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                            value={item.expiryDate || ''}
+                            onChange={(e) => updateItemField(idx, 'expiryDate', e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {/* Notes field */}
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-text-secondary">Receipt Remarks / Notes</label>
@@ -1524,7 +1580,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             <div className="flex flex-col gap-4 text-center py-4 items-center">
               <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`}
                   alt="Scan QR to pair phone"
                   className="w-[200px] h-[200px] block"
                 />
@@ -1551,7 +1607,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   );
 }
 
-export default function InboundClient({ products, recentReceivers, recentSuppliers, brands, stores }) {
+export default function InboundClient({ products, recentReceivers, recentSuppliers, brands, stores, initialItems, initialSupplier }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -1564,7 +1620,10 @@ export default function InboundClient({ products, recentReceivers, recentSupplie
         recentSuppliers={recentSuppliers}
         brands={brands}
         stores={stores}
+        initialItems={initialItems}
+        initialSupplier={initialSupplier}
       />
     </Suspense>
   );
 }
+

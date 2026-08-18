@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createBulkProducts } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
+import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -487,7 +488,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
   // Poll mobile scans
   useEffect(() => {
     let interval = null;
-    if (isMobileModalOpen && mobileSession?.sessionId) {
+    if (mobileSession?.sessionId) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -513,7 +514,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMobileModalOpen, mobileSession, activeScanTarget]);
+  }, [mobileSession, activeScanTarget]);
 
   // Add brand-new empty product configuration to queue
   const handleAddNewItem = () => {
@@ -1433,7 +1434,7 @@ export default function NewProductClient({ brands, stores = [], editId = null })
             <div className="flex flex-col gap-4 text-center py-4 items-center">
               <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`}
                   alt="Scan QR to pair phone"
                   className="w-[200px] h-[200px] block"
                 />

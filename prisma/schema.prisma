@@ -51,6 +51,8 @@ model Product {
   category       String?   
   imageUrl       String?
   isReturnable   Boolean   @default(false) 
+  isDisposable   Boolean   @default(false)
+  trackExpiry    Boolean   @default(false)
   isPublic       Boolean   @default(true)
   isSerialized   Boolean   @default(false) 
   stockCap       Int?      
@@ -123,10 +125,14 @@ model StaffUniformAllocation {
   storeId         String
   store           Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   
+  // Legacy uniform fields (kept for backward compatibility)
   uniformQty      Int       @default(0)
   capQty          Int       @default(0)
   uniformReturned Boolean   @default(false)
   capReturned     Boolean   @default(false)
+  
+  // Dynamic Items JSON (e.g. [{ id, type, size, qty, returned, returnedAt }])
+  allocatedItems  Json      @default("[]")
   
   workingPeriod   String?   // e.g., "22th Apr - 4th May"
   
@@ -159,6 +165,8 @@ model ProductSerialNumber {
   currentLocationId   String?  
   
   status          String   @default("AVAILABLE") 
+  manufactureDate DateTime?
+  expiryDate      DateTime?
 
   replacesId      String?  @unique
   replaces        ProductSerialNumber? @relation("SerialReplacement", fields: [replacesId], references: [id])
@@ -193,6 +201,13 @@ model InventoryTransaction {
   deliveryStatus  String?  
   notes           String?
   receivedBy      String?  
+  
+  returnStatus    String?  // 'RETURNED', 'PARTIAL', 'USED'
+  returnedQty     Int      @default(0)
+  returnNotes     String?
+  
+  manufactureDate DateTime?
+  expiryDate      DateTime?
   timestamp       DateTime @default(now())
 
   product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -227,4 +242,6 @@ model ScanSession {
   barcodes  String[]
   createdAt DateTime @default(now())
 }
+
+
 

@@ -1,5 +1,5 @@
 import { getProductsSlim } from '@/app/actions/products';
-import { getRecentReceivers, getRecentSuppliers } from '@/app/actions/transactions';
+import { getRecentReceivers, getRecentSuppliers, getTransactionsByDeliveryNote, getTransactionById } from '@/app/actions/transactions';
 import { getBrands } from '@/app/actions/brands';
 import { getStores } from '@/app/actions/stores';
 import InboundClient from '../InboundClient';
@@ -9,20 +9,33 @@ export const metadata = {
   description: 'Log inbound supplier inventory receipts',
 };
 
-export default async function NewInboundPage() {
+export default async function NewInboundPage({ searchParams }) {
+  const params = await searchParams;
+  const copyDn = params?.copyDn;
+  const copyTxId = params?.copyTxId;
+
   const [
     products,
     recentReceivers,
     recentSuppliers,
     brands,
-    stores
+    stores,
+    initialItems
   ] = await Promise.all([
     getProductsSlim(),
     getRecentReceivers(),
     getRecentSuppliers(),
     getBrands(),
-    getStores()
+    getStores(),
+    copyDn
+      ? getTransactionsByDeliveryNote(copyDn)
+      : copyTxId
+        ? getTransactionById(copyTxId).then(tx => (tx ? [tx] : []))
+        : Promise.resolve([])
   ]);
+
+  // Try to find a supplier name from the first item to prefill
+  const initialSupplier = initialItems.length > 0 ? initialItems[0].fromEntityId : '';
 
   return (
     <InboundClient 
@@ -31,6 +44,8 @@ export default async function NewInboundPage() {
       recentSuppliers={recentSuppliers}
       brands={brands}
       stores={stores}
+      initialItems={initialItems.length > 0 ? initialItems : null}
+      initialSupplier={initialSupplier}
     />
   );
 }

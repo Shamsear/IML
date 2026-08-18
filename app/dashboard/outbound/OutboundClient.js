@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2 } from 'lucide-react';
 import Link from 'next/link';
-import { createBulkIssueTransactions } from '@/app/actions/transactions';
+import { createBulkDispatchTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
 import { getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 
@@ -28,14 +28,7 @@ const playBeep = () => {
   }
 };
 
-const checkIsSerialized = (product) => {
-  if (!product) return false;
-  const category = (product.category || '').toUpperCase();
-  const name = (product.name || '').toUpperCase();
-  return category.includes('SIM') || category.includes('ROUTER') || name.includes('SIM') || name.includes('ROUTER');
-};
-
-function OutboundFormContent({ products, stores, supervisors, staff }) {
+function OutboundFormContent({ products, stores, supervisors, staff, initialItems = null, initialDestinationType = 'STORE', initialDestinationId = '', brands = [] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -43,21 +36,25 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Destination states
-  const [toType, setToType] = useState('STORE');
-  const [toId, setToId] = useState('');
+  const [toType, setToType] = useState(initialDestinationType);
+  const [toId, setToId] = useState(initialDestinationId);
 
   // Default toType initial destination selection
   useEffect(() => {
-    if (toType === 'STORE') {
-      setToId(stores[0]?.id || '');
-    } else if (toType === 'STAFF') {
-      setToId(staff[0]?.id || '');
-    } else if (toType === 'SUPERVISOR') {
-      setToId(supervisors[0]?.id || '');
+    if (initialDestinationId && toType === initialDestinationType) {
+      setToId(initialDestinationId);
     } else {
-      setToId('');
+      if (toType === 'STORE') {
+        setToId(stores[0]?.id || '');
+      } else if (toType === 'STAFF') {
+        setToId(staff[0]?.id || '');
+      } else if (toType === 'SUPERVISOR') {
+        setToId(supervisors[0]?.id || '');
+      } else {
+        setToId('');
+      }
     }
-  }, [toType, stores, supervisors, staff]);
+  }, [toType, stores, supervisors, staff, initialDestinationId, initialDestinationType]);
 
   // Global Scan Input State (for fast scanning)
   const [globalScanInput, setGlobalScanInput] = useState('');
@@ -109,7 +106,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
   const createEmptyOutboundItem = (index = 0) => ({
     id: `temp-${Date.now()}-${index}`,
     productId: products[0]?.id || '',
-    quantity: checkIsSerialized(products[0]) ? 0 : 1,
+    quantity: products[0]?.isSerialized ? 0 : 1,
     selectedBarcodes: [],
     availableBarcodes: [],
     notes: '',
@@ -121,20 +118,29 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
   });
 
   // State array for outbound items queue
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => {
+    if (initialItems && initialItems.length > 0) {
+      return initialItems.map(item => ({
+        ...item,
+        selectedBarcodes: item.selectedBarcodes || [],
+        availableBarcodes: item.availableBarcodes || [],
+      }));
+    }
+    return [];
+  });
 
   // Initialize selected products from URL search parameter "productIds"
   useEffect(() => {
     const urlIds = searchParams.get('productIds')?.split(',').filter(Boolean) || [];
     const initRows = async () => {
-      let initialItems = [];
+      let activeItems = [];
       if (urlIds.length > 0) {
-        initialItems = urlIds.map((id, idx) => {
+        activeItems = urlIds.map((id, idx) => {
           const prod = products.find(p => p.id === id);
           return {
             id: `temp-${Date.now()}-${idx}`,
             productId: id,
-            quantity: checkIsSerialized(prod) ? 0 : 1,
+            quantity: prod?.isSerialized ? 0 : 1,
             selectedBarcodes: [],
             availableBarcodes: [],
             notes: '',
@@ -145,26 +151,19 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
             error: '',
           };
         });
-
-        // Auto-select store if the first product is a SIM matching a store name
-        const firstProd = products.find(p => p.id === urlIds[0]);
-        if (firstProd && (firstProd.category?.toUpperCase().includes('SIM') || firstProd.name?.toUpperCase().includes('SIM'))) {
-          const matchedStore = stores.find(s => firstProd.name.toLowerCase().includes(s.name.toLowerCase()));
-          if (matchedStore) {
-            setToType('STORE');
-            setToId(matchedStore.id);
-          }
-        }
+        setItems(activeItems);
+      } else if (!initialItems || initialItems.length === 0) {
+        activeItems = [createEmptyOutboundItem(0)];
+        setItems(activeItems);
       } else {
-        initialItems = [createEmptyOutboundItem(0)];
+        activeItems = items;
       }
-      setItems(initialItems);
 
       // Load available barcodes for serialized items on mount
-      for (let i = 0; i < initialItems.length; i++) {
-        const item = initialItems[i];
+      for (let i = 0; i < activeItems.length; i++) {
+        const item = activeItems[i];
         const prod = products.find(p => p.id === item.productId);
-        if (checkIsSerialized(prod)) {
+        if (prod?.isSerialized) {
           try {
             const available = await getAvailableBarcodes(item.productId, 'WAREHOUSE', null);
             setItems(prev => prev.map((x, idx) => idx === i ? { ...x, availableBarcodes: available || [] } : x));
@@ -176,7 +175,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
     };
 
     initRows();
-  }, [searchParams, products, stores]);
+  }, [searchParams, products, initialItems]);
 
   // Helper to update specific fields on item
   const updateItemField = (idx, field, value) => {
@@ -186,24 +185,16 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
     }));
   };
 
+  // Helper to handle product selection and load available barcodes
   const handleProductChange = async (idx, val) => {
     const prod = products.find(p => p.id === val);
     
-    // Auto-select store if this is a SIM product matching a store name
-    if (prod && (prod.category?.toUpperCase().includes('SIM') || prod.name?.toUpperCase().includes('SIM'))) {
-      const matchedStore = stores.find(s => prod.name.toLowerCase().includes(s.name.toLowerCase()));
-      if (matchedStore) {
-        setToType('STORE');
-        setToId(matchedStore.id);
-      }
-    }
-
     setItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       return {
         ...item,
         productId: val,
-        quantity: checkIsSerialized(prod) ? 0 : 1,
+        quantity: prod?.isSerialized ? 0 : 1,
         selectedBarcodes: [],
         availableBarcodes: [],
         rangeStart: '',
@@ -211,7 +202,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       };
     }));
 
-    if (checkIsSerialized(prod)) {
+    if (prod?.isSerialized) {
       try {
         const available = await getAvailableBarcodes(val, 'WAREHOUSE', null);
         setItems(prev => prev.map((item, i) => i === idx ? { ...item, availableBarcodes: available || [] } : item));
@@ -276,15 +267,6 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
         if (serial.status !== 'AVAILABLE') {
           alert(`Serial "${cleanCode}" is registered but currently has status "${serial.status}". It cannot be issued.`);
           return;
-        }
-
-        // Auto-select store if this is a SIM product matching a store name
-        if (serial.product && (serial.product.category?.toUpperCase().includes('SIM') || serial.product.name?.toUpperCase().includes('SIM'))) {
-          const matchedStore = stores.find(s => serial.product.name.toLowerCase().includes(s.name.toLowerCase()));
-          if (matchedStore) {
-            setToType('STORE');
-            setToId(matchedStore.id);
-          }
         }
 
         // Find if this product is already in our list
@@ -532,11 +514,11 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       return;
     }
     const prod = products.find(p => p.id === item.productId);
-    if (!checkIsSerialized(prod) && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
+    if (!prod?.isSerialized && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
       updateItemField(idx, 'error', 'Quantity must be greater than 0');
       return;
     }
-    if (checkIsSerialized(prod) && item.selectedBarcodes.length === 0) {
+    if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
       updateItemField(idx, 'error', 'Please select at least one barcode');
       return;
     }
@@ -579,13 +561,13 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
         setLoading(false);
         return;
       }
-      if (!checkIsSerialized(prod) && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
+      if (!prod?.isSerialized && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
         updateItemField(i, 'error', 'Quantity must be greater than 0');
         handleExpandItem(i);
         setLoading(false);
         return;
       }
-      if (checkIsSerialized(prod) && item.selectedBarcodes.length === 0) {
+      if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
         updateItemField(i, 'error', `Please select at least one barcode for ${prod.name}`);
         handleExpandItem(i);
         setLoading(false);
@@ -597,14 +579,14 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
       const prod = products.find(p => p.id === item.productId);
       return {
         productId: item.productId,
-        quantity: checkIsSerialized(prod) ? item.selectedBarcodes.length : parseInt(item.quantity, 10),
-        barcodes: checkIsSerialized(prod) ? item.selectedBarcodes : [],
+        quantity: prod?.isSerialized ? item.selectedBarcodes.length : parseInt(item.quantity, 10),
+        barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
         notes: item.notes
       };
     });
 
     try {
-      await createBulkIssueTransactions({
+      await createBulkDispatchTransactions({
         fromEntityType: 'WAREHOUSE',
         fromEntityId: null,
         toEntityType: toType,
@@ -790,7 +772,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                           {selectedProd ? `${selectedProd.brand.name} - ${selectedProd.name}` : <span className="text-text-muted italic">Select product...</span>}
                         </span>
                         <span className="text-[10px] text-text-secondary block mt-0.5">
-                          {checkIsSerialized(selectedProd) ? 'Serialized Tracking' : 'Bulk/Normal Product'} {item.notes && `| Remarks: ${item.notes}`}
+                          {selectedProd?.isSerialized ? 'Serialized Tracking' : 'Bulk/Normal Product'} {item.notes && `| Remarks: ${item.notes}`}
                         </span>
                       </div>
                     </div>
@@ -853,7 +835,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                       <div className="flex flex-col gap-1.5 sm:col-span-2">
                         <label className="text-xs font-semibold text-text-secondary">Product to Dispatch</label>
                         <CustomSelect
-                          options={products.map(p => ({ value: p.id, label: `${p.brand.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl }))}
+                          options={products.map(p => ({ value: p.id, label: `${p.brand.name} - ${p.name} (${p.category})` }))}
                           value={item.productId}
                           onChange={(val) => handleProductChange(idx, val)}
                           placeholder="-- Select Product --"
@@ -869,11 +851,11 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                           className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/40"
                           value={item.quantity}
                           onChange={(e) => updateItemField(idx, 'quantity', e.target.value)}
-                          disabled={checkIsSerialized(selectedProd)}
-                          placeholder={checkIsSerialized(selectedProd) ? 'Select serial numbers below' : 'e.g. 50'}
+                          disabled={selectedProd?.isSerialized}
+                          placeholder={selectedProd?.isSerialized ? 'Select serial numbers below' : 'e.g. 50'}
                           required
                         />
-                        {checkIsSerialized(selectedProd) && (
+                        {selectedProd?.isSerialized && (
                           <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected serial numbers.</span>
                         )}
                       </div>
@@ -891,7 +873,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
                       </div>
 
                       {/* Serial selection section (only for serialized items) */}
-                      {checkIsSerialized(selectedProd) && (
+                      {selectedProd?.isSerialized && (
                         <div className="sm:col-span-2 flex flex-col gap-3 mt-2 bg-surface-elevated/20 p-4 border border-border rounded-xl">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Serial Barcodes ({item.selectedBarcodes.length} chosen)</span>
@@ -1121,26 +1103,14 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
             </div>
             
             <div className="flex flex-col gap-4 text-center py-4 items-center">
-              <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?session=${mobileSession.sessionId}`)}`}
-                  alt="Scan QR to pair phone"
-                  className="w-[200px] h-[200px] block"
-                />
+              <div className="p-3 bg-primary/5 rounded-full text-primary border border-primary/10">
+                <QrCode size={40} />
               </div>
-              <div className="flex flex-col gap-1.5 max-w-sm">
-                <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mx-auto font-mono">
-                  Pairing Code: {mobileSession.sessionId}
-                </span>
-                <p className="text-xs text-text-secondary leading-relaxed px-4 mt-2">
-                  1. Scan this QR code with your phone's camera.<br />
-                  2. Keep both phone and PC on the same Wi-Fi.<br />
-                  3. Scan barcodes with your phone to sync instantly!
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-extrabold text-text-primary font-mono font-semibold">Pair code: {mobileSession.sessionId}</span>
+                <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed mt-1">
+                  Open the Wireless Companion app on your phone, scan this pairing code or type it in, and scan serial numbers instantly.
                 </p>
-              </div>
-              <div className="flex items-center justify-center gap-2 mt-2 py-1.5 px-4 bg-surface-elevated rounded-lg border border-border">
-                <Loader2 size={14} className="animate-spin text-primary" />
-                <span className="text-[11px] font-bold text-text-secondary uppercase">Waiting for mobile scans...</span>
               </div>
             </div>
           </div>
@@ -1150,7 +1120,7 @@ function OutboundFormContent({ products, stores, supervisors, staff }) {
   );
 }
 
-export default function OutboundClient({ products, stores, supervisors, staff }) {
+export default function OutboundClient({ products, stores, supervisors, staff, initialItems, initialDestinationType, initialDestinationId }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -1162,7 +1132,11 @@ export default function OutboundClient({ products, stores, supervisors, staff })
         stores={stores}
         supervisors={supervisors}
         staff={staff}
+        initialItems={initialItems}
+        initialDestinationType={initialDestinationType}
+        initialDestinationId={initialDestinationId}
       />
     </Suspense>
   );
 }
+

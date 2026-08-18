@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { RefreshCw, Plus } from 'lucide-react';
+import TransactionActions from '@/components/TransactionActions';
 
 export const metadata = {
   title: 'Stock Rebranding Ledger - Inventory System',
@@ -89,6 +90,7 @@ export default async function RebrandPage({ searchParams }) {
                   <th className="py-3 px-5 text-center">Quantity</th>
                   <th className="py-3 px-5">Associated Serials / Barcodes</th>
                   <th className="py-3 px-5">Remarks</th>
+                  <th className="py-3 px-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-text-primary">
@@ -137,6 +139,13 @@ export default async function RebrandPage({ searchParams }) {
                       </td>
                       <td className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>
                         {tx.notes || '---'}
+                      </td>
+                      <td className="py-3.5 px-5 text-right">
+                        <TransactionActions
+                          txId={tx.id}
+                          notes={tx.notes || ''}
+                          showDeliveryNote={false}
+                        />
                       </td>
                     </tr>
                   );

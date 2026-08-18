@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { saveCombinedAllocation, updateStaff, saveBulkCombinedAllocations } from '@/app/actions/staff';
 import { 
@@ -24,8 +24,9 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
   const [promoterShirtSize, setPromoterShirtSize] = useState('Medium');
   const [existingStaffId, setExistingStaffId] = useState('');
   const [storeId, setStoreId] = useState('');
-  const [uniformQty, setUniformQty] = useState('1');
-  const [capQty, setCapQty] = useState('1');
+  const [uniformQty, setUniformQty] = useState('0'); // Legacy
+  const [capQty, setCapQty] = useState('0'); // Legacy
+  const [allocatedItems, setAllocatedItems] = useState([]); // Dynamic items
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [uniformReturned, setUniformReturned] = useState(false);
@@ -41,8 +42,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
     promoterShirtSize: 'Medium',
     existingStaffId: '',
     storeId: '',
-    uniformQty: '1',
-    capQty: '1',
+    allocatedItems: [{ id: `init-${Date.now()}`, type: '', size: 'Medium', qty: '1', returned: false }],
     startDate: '',
     endDate: '',
     notes: '',
@@ -91,6 +91,17 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
       setStoreId(initialAllocation.storeId || '');
       setUniformQty(String(initialAllocation.uniformQty || 0));
       setCapQty(String(initialAllocation.capQty || 0));
+      
+      let parsedItems = [];
+      if (initialAllocation.allocatedItems) {
+        parsedItems = typeof initialAllocation.allocatedItems === 'string' 
+          ? JSON.parse(initialAllocation.allocatedItems) 
+          : initialAllocation.allocatedItems;
+      }
+      if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
+        parsedItems = [{ id: `init-${Date.now()}`, type: '', size: 'Medium', qty: '1', returned: false }];
+      }
+      setAllocatedItems(parsedItems);
 
       setUniformReturned(initialAllocation.uniformReturned || false);
       setCapReturned(initialAllocation.capReturned || false);
@@ -108,6 +119,20 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
       }
     }
   }, [initialAllocation]);
+
+  const handleAddAllocatedItem = () => {
+    setAllocatedItems(prev => [...prev, { id: `item-${Date.now()}`, type: '', size: 'Medium', qty: '1', returned: false }]);
+  };
+
+  const handleUpdateAllocatedItem = (idx, field, value) => {
+    const updated = [...allocatedItems];
+    updated[idx][field] = value;
+    setAllocatedItems(updated);
+  };
+
+  const handleRemoveAllocatedItem = (idx) => {
+    setAllocatedItems(prev => prev.filter((_, i) => i !== idx));
+  };
 
   // Single Item Submit Handler (Edit Modes)
   const handleSingleSubmit = async (e) => {
@@ -151,8 +176,11 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
       setError('Store placement is required.');
       return;
     }
-    if (parseInt(uniformQty, 10) === 0 && parseInt(capQty, 10) === 0) {
-      setError('Please specify quantity for at least one uniform or cap.');
+    
+    const validItems = allocatedItems.filter(item => item.type.trim() && parseInt(item.qty, 10) > 0);
+    const hasLegacy = parseInt(uniformQty, 10) > 0 || parseInt(capQty, 10) > 0;
+    if (validItems.length === 0 && !hasLegacy) {
+      setError('Please add at least one uniform item with a valid type and quantity.');
       return;
     }
 
@@ -168,6 +196,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
       formData.append('storeId', storeId);
       formData.append('uniformQty', uniformQty);
       formData.append('capQty', capQty);
+      formData.append('allocatedItems', JSON.stringify(validItems));
 
       let workingPeriodStr = '';
       if (startDate && endDate) {
@@ -260,8 +289,10 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
         setLoading(false);
         return;
       }
-      if (parseInt(item.uniformQty, 10) === 0 && parseInt(item.capQty, 10) === 0) {
-        updateItemField(i, 'error', 'Please specify quantity for at least one uniform or cap');
+      const validItems = (item.allocatedItems || []).filter(i => i.type.trim() && parseInt(i.qty, 10) > 0);
+      const hasLegacy = parseInt(item.uniformQty || 0, 10) > 0 || parseInt(item.capQty || 0, 10) > 0;
+      if (validItems.length === 0 && !hasLegacy) {
+        updateItemField(i, 'error', 'Please add at least one uniform item with a valid type and quantity');
         updateItemField(i, 'isExpanded', true);
         setLoading(false);
         return;
@@ -277,6 +308,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
           } else if (item.startDate) {
             workingPeriodStr = `From ${item.startDate}`;
           }
+          const validAllocated = (item.allocatedItems || []).filter(i => i.type.trim() && parseInt(i.qty, 10) > 0);
           return {
             isNewPromoter: item.isNewPromoter,
             promoterName: item.promoterName,
@@ -286,6 +318,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
             storeId: item.storeId,
             uniformQty: parseInt(item.uniformQty, 10) || 0,
             capQty: parseInt(item.capQty, 10) || 0,
+            allocatedItems: validAllocated,
             workingPeriod: workingPeriodStr,
             notes: item.notes,
           };
@@ -318,6 +351,12 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
           </h1>
         </div>
       </header>
+
+      <datalist id="uniform-types">
+        {uniqueItemTypes.map(type => (
+          <option key={type} value={type} />
+        ))}
+      </datalist>
 
       {error && (
         <div className="bg-danger/10 border border-danger/20 text-danger rounded-xl p-4 text-xs font-semibold text-center animate-slide-down">
@@ -401,30 +440,70 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Uniform Shirt Qty Given</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                    value={uniformQty}
-                    onChange={(e) => setUniformQty(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Cap Qty Given</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                    value={capQty}
-                    onChange={(e) => setCapQty(e.target.value)}
-                    required
-                  />
-                </div>
+              <div className="flex flex-col gap-3 mt-2">
+                <label className="text-xs font-semibold text-text-secondary">Assigned Uniform Items</label>
+                {allocatedItems.map((item, idx) => (
+                  <div key={item.id} className="grid grid-cols-12 gap-3 items-end">
+                    <div className="col-span-5 flex flex-col gap-1.5">
+                      <label className="text-[10px] text-text-muted">Item Type</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Chef Hat, Abaya, Frock"
+                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        value={item.type}
+                        onChange={(e) => handleUpdateAllocatedItem(idx, 'type', e.target.value)}
+                        list="uniform-types"
+                        required
+                      />
+                    </div>
+                    <div className="col-span-4 flex flex-col gap-1.5">
+                      <label className="text-[10px] text-text-muted">Size</label>
+                      <CustomSelect
+                        options={[...shirtSizes.map(s => ({ value: s, label: s })), { value: 'N/A', label: 'N/A' }]}
+                        value={item.size}
+                        onChange={(val) => handleUpdateAllocatedItem(idx, 'size', val)}
+                      />
+                    </div>
+                    <div className="col-span-2 flex flex-col gap-1.5">
+                      <label className="text-[10px] text-text-muted">Qty</label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                        value={item.qty}
+                        onChange={(e) => handleUpdateAllocatedItem(idx, 'qty', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="col-span-1 flex justify-center pb-1">
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveAllocatedItem(idx)}
+                        className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleAddAllocatedItem}
+                  className="w-fit mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border hover:border-primary hover:text-primary text-text-secondary rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <Plus size={14} /> Add Another Item
+                </button>
               </div>
+
+              {(parseInt(uniformQty, 10) > 0 || parseInt(capQty, 10) > 0) && (
+                <div className="mt-4 p-4 border border-warning/30 bg-warning/5 rounded-xl flex flex-col gap-3">
+                  <span className="text-xs font-bold text-warning flex items-center gap-1.5">Legacy Assignment (Read-only)</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-sm text-text-secondary">Uniform Qty: <strong className="text-text-primary">{uniformQty}</strong></div>
+                    <div className="text-sm text-text-secondary">Cap Qty: <strong className="text-text-primary">{capQty}</strong></div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -704,29 +783,77 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                           />
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-text-secondary">Uniform Shirt Qty Given</label>
-                            <input
-                              type="number"
-                              min="0"
-                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                              value={item.uniformQty}
-                              onChange={(e) => updateItemField(idx, 'uniformQty', e.target.value)}
-                              required
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-text-secondary">Cap Qty Given</label>
-                            <input
-                              type="number"
-                              min="0"
-                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                              value={item.capQty}
-                              onChange={(e) => updateItemField(idx, 'capQty', e.target.value)}
-                              required
-                            />
-                          </div>
+                        <div className="flex flex-col gap-3 mt-2">
+                          <label className="text-xs font-semibold text-text-secondary">Assigned Uniform Items</label>
+                          {(item.allocatedItems || []).map((allocItem, allocIdx) => (
+                            <div key={allocItem.id} className="grid grid-cols-12 gap-3 items-end">
+                              <div className="col-span-5 flex flex-col gap-1.5">
+                                <label className="text-[10px] text-text-muted">Item Type</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Chef Hat, Abaya"
+                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                  value={allocItem.type}
+                                  onChange={(e) => {
+                                    const updatedAllocItems = [...(item.allocatedItems || [])];
+                                    updatedAllocItems[allocIdx].type = e.target.value;
+                                    updateItemField(idx, 'allocatedItems', updatedAllocItems);
+                                  }}
+                                  list="uniform-types"
+                                  required
+                                />
+                              </div>
+                              <div className="col-span-4 flex flex-col gap-1.5">
+                                <label className="text-[10px] text-text-muted">Size</label>
+                                <CustomSelect
+                                  options={[...shirtSizes.map(s => ({ value: s, label: s })), { value: 'N/A', label: 'N/A' }]}
+                                  value={allocItem.size}
+                                  onChange={(val) => {
+                                    const updatedAllocItems = [...(item.allocatedItems || [])];
+                                    updatedAllocItems[allocIdx].size = val;
+                                    updateItemField(idx, 'allocatedItems', updatedAllocItems);
+                                  }}
+                                />
+                              </div>
+                              <div className="col-span-2 flex flex-col gap-1.5">
+                                <label className="text-[10px] text-text-muted">Qty</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                                  value={allocItem.qty}
+                                  onChange={(e) => {
+                                    const updatedAllocItems = [...(item.allocatedItems || [])];
+                                    updatedAllocItems[allocIdx].qty = e.target.value;
+                                    updateItemField(idx, 'allocatedItems', updatedAllocItems);
+                                  }}
+                                  required
+                                />
+                              </div>
+                              <div className="col-span-1 flex justify-center pb-1">
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    const updatedAllocItems = (item.allocatedItems || []).filter((_, i) => i !== allocIdx);
+                                    updateItemField(idx, 'allocatedItems', updatedAllocItems);
+                                  }}
+                                  className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedAllocItems = [...(item.allocatedItems || []), { id: `item-${Date.now()}`, type: '', size: 'Medium', qty: '1', returned: false }];
+                              updateItemField(idx, 'allocatedItems', updatedAllocItems);
+                            }}
+                            className="w-fit mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border hover:border-primary hover:text-primary text-text-secondary rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            <Plus size={14} /> Add Another Item
+                          </button>
                         </div>
                       </div>
 
@@ -816,3 +943,4 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
     </div>
   );
 }
+

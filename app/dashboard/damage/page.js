@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { ShieldAlert, Plus } from 'lucide-react';
+import { ShieldAlert, Plus, AlertCircle } from 'lucide-react';
+import TransactionActions from '@/components/TransactionActions';
+import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 
 export const metadata = {
   title: 'Damage & Loss Ledger - Inventory System',
@@ -11,13 +13,18 @@ export default async function DamagePage({ searchParams }) {
   const params = await searchParams;
   const page = parseInt(params?.page || '1', 10);
   const pageSize = 25;
+  const typeFilter = params?.type || 'ALL'; // 'ALL', 'DAMAGE', 'LOST'
 
-  // Query all DAMAGE or LOST transactions with skip and take
+  const whereClause = {
+    transactionType: typeFilter === 'ALL'
+      ? { in: ['DAMAGE', 'LOST'] }
+      : typeFilter,
+  };
+
+  // Query transactions with skip and take
   const [transactions, totalCount] = await Promise.all([
     prisma.inventoryTransaction.findMany({
-      where: {
-        transactionType: { in: ['DAMAGE', 'LOST'] },
-      },
+      where: whereClause,
       select: {
         id: true,
         transactionType: true,
@@ -44,11 +51,7 @@ export default async function DamagePage({ searchParams }) {
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    prisma.inventoryTransaction.count({
-      where: {
-        transactionType: { in: ['DAMAGE', 'LOST'] },
-      }
-    })
+    prisma.inventoryTransaction.count({ where: whereClause })
   ]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -77,23 +80,58 @@ export default async function DamagePage({ searchParams }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link 
-            href="/dashboard/damage/new" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-danger hover:bg-danger-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+          <CopyDeliveryNoteButton type="damage" />
+          <Link
+            href="/dashboard/damage/new?type=DAMAGE"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
           >
-            <Plus size={16} />
-            <span>Report Damage / Loss</span>
+            <ShieldAlert size={15} />
+            <span>Report Damage</span>
+          </Link>
+          <Link
+            href="/dashboard/damage/new?type=LOST"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-warning hover:bg-warning/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            <AlertCircle size={15} />
+            <span>Report Loss</span>
           </Link>
         </div>
       </header>
+
+      {/* Type Filter Tabs */}
+      <div className="flex gap-2">
+        {[
+          { label: 'All', value: 'ALL' },
+          { label: 'Damage', value: 'DAMAGE' },
+          { label: 'Lost', value: 'LOST' },
+        ].map(tab => (
+          <Link
+            key={tab.value}
+            href={`/dashboard/damage?type=${tab.value}&page=1`}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+              typeFilter === tab.value
+                ? tab.value === 'LOST'
+                  ? 'bg-warning text-white border-warning'
+                  : tab.value === 'DAMAGE'
+                  ? 'bg-danger text-white border-danger'
+                  : 'bg-primary text-white border-primary'
+                : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
 
       {/* Transactions Table */}
       <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
         {transactions.length === 0 ? (
           <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted bg-surface">
             <ShieldAlert size={48} className="text-text-muted" />
-            <h3 className="font-display font-bold text-lg text-text-primary">No damage reports logged</h3>
-            <p className="text-sm max-w-xs">Click &quot;Report Damage / Loss&quot; to register wastage logs.</p>
+            <h3 className="font-display font-bold text-lg text-text-primary">
+              {typeFilter === 'LOST' ? 'No loss reports logged' : typeFilter === 'DAMAGE' ? 'No damage reports logged' : 'No reports logged'}
+            </h3>
+            <p className="text-sm max-w-xs">Use the buttons above to log a damage or loss report.</p>
           </div>
         ) : (
           <>
@@ -107,6 +145,7 @@ export default async function DamagePage({ searchParams }) {
                   <th className="py-3 px-5">Lost From</th>
                   <th className="py-3 px-5 text-center">Quantity</th>
                   <th className="py-3 px-5">Remarks</th>
+                  <th className="py-3 px-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-text-primary">
@@ -142,17 +181,26 @@ export default async function DamagePage({ searchParams }) {
                             ? 'bg-danger/10 border-danger/20 text-danger' 
                             : 'bg-warning/10 border-warning/20 text-warning'
                         }`}>
-                          {tx.transactionType}
+                          {tx.transactionType === 'DAMAGE' ? 'DAMAGE' : 'LOST'}
                         </span>
                       </td>
                       <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary">
                         {sourceName}
                       </td>
-                      <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-danger">
+                      <td className={`py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap ${
+                        tx.transactionType === 'LOST' ? 'text-warning' : 'text-danger'
+                      }`}>
                         -{tx.quantity}
                       </td>
                       <td className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>
                         {tx.notes || '---'}
+                      </td>
+                      <td className="py-3.5 px-5 text-right">
+                        <TransactionActions
+                          txId={tx.id}
+                          notes={tx.notes || ''}
+                          showDeliveryNote={false}
+                        />
                       </td>
                     </tr>
                   );
@@ -173,7 +221,7 @@ export default async function DamagePage({ searchParams }) {
               </span>
               <div className="flex items-center gap-1.5">
                 <Link
-                  href={`/dashboard/damage?page=${Math.max(1, page - 1)}`}
+                  href={`/dashboard/damage?type=${typeFilter}&page=${Math.max(1, page - 1)}`}
                   className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
                     page === 1 ? 'pointer-events-none opacity-50' : ''
                   }`}
@@ -181,7 +229,7 @@ export default async function DamagePage({ searchParams }) {
                   Previous
                 </Link>
                 <Link
-                  href={`/dashboard/damage?page=${Math.min(totalPages, page + 1)}`}
+                  href={`/dashboard/damage?type=${typeFilter}&page=${Math.min(totalPages, page + 1)}`}
                   className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
                     page === totalPages ? 'pointer-events-none opacity-50' : ''
                   }`}

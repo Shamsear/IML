@@ -41,33 +41,49 @@ export default function StaffClient({ initialStaff, stores }) {
     }))
   ).sort((a, b) => new Date(b.givenDate) - new Date(a.givenDate));
 
-  // Compute summary stats
-  const totalAllocationsCount = allAllocations.length;
-  
-  const activeAllocationsCount = allAllocations.filter(a => {
-    const needUniformReturn = a.uniformQty > 0 && !a.uniformReturned;
-    const needCapReturn = a.capQty > 0 && !a.capReturned;
-    return needUniformReturn || needCapReturn;
-  }).length;
+  // Helper to parse allocated items safely
+  const getAllocatedItems = (a) => {
+    if (!a.allocatedItems) return [];
+    if (typeof a.allocatedItems === 'string') {
+      try { return JSON.parse(a.allocatedItems); } catch(e) { return []; }
+    }
+    return Array.isArray(a.allocatedItems) ? a.allocatedItems : [];
+  };
 
-  const returnedAllocationsCount = allAllocations.filter(a => {
+  const isAllocationFullyReturned = (a) => {
     const hasUniform = a.uniformQty > 0;
     const hasCap = a.capQty > 0;
     const uniformReturnedOk = !hasUniform || a.uniformReturned;
     const capReturnedOk = !hasCap || a.capReturned;
-    return uniformReturnedOk && capReturnedOk && (hasUniform || hasCap);
+    
+    const items = getAllocatedItems(a);
+    const itemsReturnedOk = items.every(i => i.returned);
+    
+    return uniformReturnedOk && capReturnedOk && itemsReturnedOk && (hasUniform || hasCap || items.length > 0);
+  };
+
+  // Compute summary stats
+  const totalAllocationsCount = allAllocations.length;
+  
+  const activeAllocationsCount = allAllocations.filter(a => {
+    const hasItems = a.uniformQty > 0 || a.capQty > 0 || getAllocatedItems(a).length > 0;
+    return hasItems && !isAllocationFullyReturned(a);
   }).length;
+
+  const returnedAllocationsCount = allAllocations.filter(a => isAllocationFullyReturned(a)).length;
 
   const totalActiveQty = allAllocations.reduce((acc, a) => {
     const activeUniform = (a.uniformQty > 0 && !a.uniformReturned) ? a.uniformQty : 0;
     const activeCap = (a.capQty > 0 && !a.capReturned) ? a.capQty : 0;
-    return acc + activeUniform + activeCap;
+    
+    const items = getAllocatedItems(a);
+    const activeItemsQty = items.filter(i => !i.returned).reduce((sum, i) => sum + parseInt(i.qty || 0, 10), 0);
+
+    return acc + activeUniform + activeCap + activeItemsQty;
   }, 0);
 
   const getOverdueStatus = (alloc) => {
-    const isFullyReturned = (alloc.uniformQty === 0 || alloc.uniformReturned) && 
-                            (alloc.capQty === 0 || alloc.capReturned);
-    if (isFullyReturned) return false;
+    if (isAllocationFullyReturned(alloc)) return false;
 
     const period = alloc.workingPeriod || '';
     if (period.includes(' to ')) {
@@ -96,12 +112,33 @@ export default function StaffClient({ initialStaff, stores }) {
       setLoading(false); 
     }
   };
+  const [returnItemsState, setReturnItemsState] = useState({ legacyUniform: false, legacyCap: false, itemIds: [] });
+  const [availableReturnItems, setAvailableReturnItems] = useState({ legacyUniform: false, legacyCap: false, items: [] });
 
   const openSingleReturnModal = (alloc) => {
     setReturnAllocIds([alloc.id]);
     setReturnPromoterNames([alloc.staffName]);
     setReturnNotes('');
     setReturnError('');
+    
+    // Determine what can be returned
+    const canReturnUniform = alloc.uniformQty > 0 && !alloc.uniformReturned;
+    const canReturnCap = alloc.capQty > 0 && !alloc.capReturned;
+    const dynamicItems = getAllocatedItems(alloc).filter(i => !i.returned);
+    
+    setAvailableReturnItems({
+      legacyUniform: canReturnUniform,
+      legacyCap: canReturnCap,
+      items: dynamicItems
+    });
+    
+    // Select all by default
+    setReturnItemsState({
+      legacyUniform: canReturnUniform,
+      legacyCap: canReturnCap,
+      itemIds: dynamicItems.map(i => i.id)
+    });
+
     setIsReturnModalOpen(true);
   };
 
@@ -112,6 +149,8 @@ export default function StaffClient({ initialStaff, stores }) {
     setReturnPromoterNames(names);
     setReturnNotes('');
     setReturnError('');
+    setAvailableReturnItems({ legacyUniform: false, legacyCap: false, items: [] });
+    setReturnItemsState({ legacyUniform: false, legacyCap: false, itemIds: [] });
     setIsReturnModalOpen(true);
   };
 
@@ -121,11 +160,19 @@ export default function StaffClient({ initialStaff, stores }) {
       setReturnError('Return remarks are required.');
       return;
     }
+    
+    if (returnAllocIds.length === 1) {
+      if (!returnItemsState.legacyUniform && !returnItemsState.legacyCap && returnItemsState.itemIds.length === 0) {
+        setReturnError('Please select at least one item to return.');
+        return;
+      }
+    }
+
     setIsSubmittingReturn(true);
     setReturnError('');
     try {
       if (returnAllocIds.length === 1) {
-        await returnUniformItem(returnAllocIds[0], 'both', returnNotes);
+        await returnUniformItem(returnAllocIds[0], returnItemsState, returnNotes);
       } else {
         await bulkReturnUniformItems(returnAllocIds, returnNotes);
       }
@@ -152,8 +199,7 @@ export default function StaffClient({ initialStaff, stores }) {
       (alloc.workingPeriod || '').toLowerCase().includes(ledgerSearch.toLowerCase()) ||
       (alloc.notes || '').toLowerCase().includes(ledgerSearch.toLowerCase());
 
-    const isFullyReturned = (alloc.uniformQty === 0 || alloc.uniformReturned) && 
-                            (alloc.capQty === 0 || alloc.capReturned);
+    const isFullyReturned = isAllocationFullyReturned(alloc);
 
     const matchesStatus = 
       ledgerFilter === 'all' ||
@@ -164,11 +210,7 @@ export default function StaffClient({ initialStaff, stores }) {
   });
 
   // Calculate bulk selection helper sets
-  const activeFilteredAllocations = filteredAllocations.filter(a => {
-    const isFullyReturned = (a.uniformQty === 0 || a.uniformReturned) && 
-                            (a.capQty === 0 || a.capReturned);
-    return !isFullyReturned;
-  });
+  const activeFilteredAllocations = filteredAllocations.filter(a => !isAllocationFullyReturned(a));
 
   const isAllSelected = activeFilteredAllocations.length > 0 && 
                         activeFilteredAllocations.every(a => selectedAllocIds.includes(a.id));
@@ -369,8 +411,7 @@ export default function StaffClient({ initialStaff, stores }) {
                         </th>
                         <th className="py-3 px-5">Promoter</th>
                         <th className="py-3 px-5">Store Location</th>
-                        <th className="py-3 px-5">Uniform Qty</th>
-                        <th className="py-3 px-5">Cap Qty</th>
+                        <th className="py-3 px-5">Allocated Items</th>
                         <th className="py-3 px-5">Working Period</th>
                         <th className="py-3 px-5">Issued Date</th>
                         <th className="py-3 px-5 text-right">Actions</th>
@@ -378,9 +419,9 @@ export default function StaffClient({ initialStaff, stores }) {
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
                       {filteredAllocations.map((alloc) => {
-                        const showUniformAction = alloc.uniformQty > 0 && !alloc.uniformReturned;
-                        const showCapAction = alloc.capQty > 0 && !alloc.capReturned;
-                        const isFullyReturned = !showUniformAction && !showCapAction;
+                        const isFullyReturned = isAllocationFullyReturned(alloc);
+                        const items = getAllocatedItems(alloc);
+                        
                         return (
                           <tr key={alloc.id} className="hover:bg-surface-elevated/20 transition-colors">
                             <td className="py-3.5 px-5 w-12">
@@ -420,33 +461,44 @@ export default function StaffClient({ initialStaff, stores }) {
                                 <span className="truncate max-w-[160px] font-semibold text-text-primary">{alloc.store?.name || 'Unknown Store'}</span>
                               </div>
                             </td>
-                            <td className="py-3.5 px-5 whitespace-nowrap">
-                              {alloc.uniformQty > 0 ? (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-xs font-mono">{alloc.uniformQty}</span>
-                                  {alloc.uniformReturned ? (
-                                    <span className="px-1.5 py-0.5 bg-success/15 text-success text-[9px] font-bold rounded">Returned</span>
-                                  ) : (
-                                    <span className="px-1.5 py-0.5 bg-warning/15 text-warning text-[9px] font-bold rounded">Active</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-text-muted text-xs">---</span>
-                              )}
-                            </td>
-                            <td className="py-3.5 px-5 whitespace-nowrap">
-                              {alloc.capQty > 0 ? (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-xs font-mono">{alloc.capQty}</span>
-                                  {alloc.capReturned ? (
-                                    <span className="px-1.5 py-0.5 bg-success/15 text-success text-[9px] font-bold rounded">Returned</span>
-                                  ) : (
-                                    <span className="px-1.5 py-0.5 bg-warning/15 text-warning text-[9px] font-bold rounded">Active</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-text-muted text-xs">---</span>
-                              )}
+                            <td className="py-3.5 px-5 whitespace-nowrap min-w-[200px]">
+                              <div className="flex flex-col gap-2 max-h-[80px] overflow-y-auto pr-2">
+                                {alloc.uniformQty > 0 && (
+                                  <div className="flex items-center justify-between gap-3 text-xs">
+                                    <span className="font-semibold text-text-primary">{alloc.uniformQty}x Shirt (Legacy)</span>
+                                    {alloc.uniformReturned ? (
+                                      <span className="px-1.5 py-0.5 bg-success/15 text-success text-[9px] font-bold rounded">Returned</span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 bg-warning/15 text-warning text-[9px] font-bold rounded">Active</span>
+                                    )}
+                                  </div>
+                                )}
+                                {alloc.capQty > 0 && (
+                                  <div className="flex items-center justify-between gap-3 text-xs">
+                                    <span className="font-semibold text-text-primary">{alloc.capQty}x Cap (Legacy)</span>
+                                    {alloc.capReturned ? (
+                                      <span className="px-1.5 py-0.5 bg-success/15 text-success text-[9px] font-bold rounded">Returned</span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 bg-warning/15 text-warning text-[9px] font-bold rounded">Active</span>
+                                    )}
+                                  </div>
+                                )}
+                                {items.map((item, idx) => (
+                                  <div key={item.id || idx} className="flex items-center justify-between gap-3 text-xs border-t border-border/30 pt-1.5 first:border-0 first:pt-0">
+                                    <span className="font-semibold text-text-primary">{item.qty}x {item.type} <span className="text-text-muted">({item.size})</span></span>
+                                    {item.returned ? (
+                                      <span className="px-1.5 py-0.5 bg-success/15 text-success text-[9px] font-bold rounded">
+                                        {item.type?.toLowerCase().includes('disposable') ? 'Used' : 'Returned'}
+                                      </span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 bg-warning/15 text-warning text-[9px] font-bold rounded">Active</span>
+                                    )}
+                                  </div>
+                                ))}
+                                {alloc.uniformQty === 0 && alloc.capQty === 0 && items.length === 0 && (
+                                  <span className="text-text-muted text-xs">No items allocated</span>
+                                )}
+                              </div>
                             </td>
                             <td className="py-3.5 px-5 text-xs font-medium text-text-primary whitespace-nowrap">
                               <div className="flex flex-col gap-1">
@@ -470,13 +522,13 @@ export default function StaffClient({ initialStaff, stores }) {
                                 >
                                   <Edit2 size={10} /> <span>Edit</span>
                                 </button>
-                                {(showUniformAction || showCapAction) ? (
+                                {( !isFullyReturned ) ? (
                                   <button
                                     onClick={() => openSingleReturnModal(alloc)}
                                     className="px-2 py-1 bg-success hover:bg-success-hover text-white rounded text-[10px] font-bold transition-all cursor-pointer"
-                                    title="Mark both uniform and cap as returned"
+                                    title="Mark items as returned or used"
                                   >
-                                    Return Items
+                                    Return / Mark Used
                                   </button>
                                 ) : (
                                   <span className="text-[10px] font-bold text-success uppercase tracking-wider block pr-2">
@@ -623,7 +675,7 @@ export default function StaffClient({ initialStaff, stores }) {
             <div className="p-5 border-b border-border flex items-center justify-between bg-surface-elevated/20">
               <h3 className="font-display font-extrabold text-base text-text-primary flex items-center gap-2">
                 <CheckCircle className="text-success" size={18} />
-                <span>Process Uniform Return</span>
+                <span>Process Return / Mark Used</span>
               </h3>
               <button 
                 onClick={() => setIsReturnModalOpen(false)}
@@ -656,12 +708,59 @@ export default function StaffClient({ initialStaff, stores }) {
                 <label className="text-xs font-semibold text-text-secondary">Return Remarks / Condition (Required)</label>
                 <textarea
                   className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-24 resize-none"
-                  placeholder="e.g. Returned both yellow shirt and cap in perfect, clean condition."
+                  placeholder="e.g. Returned both yellow shirt and cap in perfect condition, disposable items used."
                   value={returnNotes}
                   onChange={(e) => setReturnNotes(e.target.value)}
                   required
                 />
               </div>
+
+              {returnAllocIds.length === 1 && (
+                <div className="flex flex-col gap-2 mt-2 bg-surface-elevated/10 p-3 rounded-lg border border-border/50">
+                  <span className="text-xs font-semibold text-text-secondary">Select Items Returning / Used:</span>
+                  <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto">
+                    {availableReturnItems.legacyUniform && (
+                      <label className="flex items-center gap-2 text-sm text-text-primary cursor-pointer hover:bg-surface-elevated p-1.5 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
+                          checked={returnItemsState.legacyUniform}
+                          onChange={(e) => setReturnItemsState(prev => ({ ...prev, legacyUniform: e.target.checked }))}
+                        />
+                        <span>Legacy Uniform</span>
+                      </label>
+                    )}
+                    {availableReturnItems.legacyCap && (
+                      <label className="flex items-center gap-2 text-sm text-text-primary cursor-pointer hover:bg-surface-elevated p-1.5 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
+                          checked={returnItemsState.legacyCap}
+                          onChange={(e) => setReturnItemsState(prev => ({ ...prev, legacyCap: e.target.checked }))}
+                        />
+                        <span>Legacy Cap</span>
+                      </label>
+                    )}
+                    {availableReturnItems.items.map(item => (
+                      <label key={item.id} className="flex items-center gap-2 text-sm text-text-primary cursor-pointer hover:bg-surface-elevated p-1.5 rounded transition-colors">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
+                          checked={returnItemsState.itemIds.includes(item.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setReturnItemsState(prev => ({ ...prev, itemIds: [...prev.itemIds, item.id] }));
+                            } else {
+                              setReturnItemsState(prev => ({ ...prev, itemIds: prev.itemIds.filter(id => id !== item.id) }));
+                            }
+                          }}
+                        />
+                        <span>{item.qty}x {item.type} (Size: {item.size})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border">
@@ -678,7 +777,7 @@ export default function StaffClient({ initialStaff, stores }) {
                   className="px-4 py-2 bg-success hover:bg-success-hover disabled:bg-success/50 text-white font-semibold text-xs rounded-lg shadow-sm transition-all duration-200 flex items-center gap-1.5 cursor-pointer"
                 >
                   {isSubmittingReturn && <Loader2 size={12} className="animate-spin" />}
-                  <span>Confirm Return</span>
+                  <span>Confirm Return / Mark Used</span>
                 </button>
               </div>
             </form>
@@ -688,3 +787,4 @@ export default function StaffClient({ initialStaff, stores }) {
     </div>
   );
 }
+

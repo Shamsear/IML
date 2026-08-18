@@ -30,38 +30,54 @@ export default function BrandPortalClient({ brand }) {
     setMounted(true);
   }, []);
 
-  // Helper to compute individual product stock metrics from transactions
   const getProductStock = (transactions) => {
+    let purchased = 0;
     let warehouse = 0;
-    let dispatched = 0;
-    let damaged = 0;
+    let issued = 0;
+    let used = 0;
+    let withClient = 0;
+    let damage = 0;
+    let lost = 0;
+    let reBrand = 0;
 
     transactions.forEach(t => {
       const qty = t.quantity || 0;
       if (t.transactionType === 'RECEIVE') {
+        purchased += qty;
         warehouse += qty;
       } else if (t.transactionType === 'ISSUE') {
         warehouse -= qty;
-        if (t.toEntityType === 'STORE' || t.toEntityType === 'STAFF' || t.toEntityType === 'SUPERVISOR' || t.toEntityType === 'CLIENT') {
-          dispatched += qty;
-        }
+        if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
+        else if (t.toEntityType === 'STAFF') used += qty;
+        else if (t.toEntityType === 'CLIENT') withClient += qty;
       } else if (t.transactionType === 'RETURN') {
         warehouse += qty;
-        if (t.fromEntityType === 'STORE' || t.fromEntityType === 'STAFF' || t.fromEntityType === 'SUPERVISOR' || t.fromEntityType === 'CLIENT') {
-          dispatched -= qty;
-        }
-      } else if (t.transactionType === 'DAMAGE' || t.transactionType === 'LOST') {
+        if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+      } else if (t.transactionType === 'DAMAGE') {
         if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') dispatched -= qty;
-        damaged += qty;
+        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        damage += qty;
+      } else if (t.transactionType === 'LOST') {
+        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
+        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        lost += qty;
       } else if (t.transactionType === 'REBRAND_OUT') {
         warehouse -= qty;
+        reBrand += qty;
       } else if (t.transactionType === 'REBRAND_IN') {
         warehouse += qty;
       }
     });
 
-    return { warehouse, dispatched, damaged };
+    const total = warehouse + issued + used + damage + lost + withClient + reBrand;
+
+    return { purchased, warehouse, issued, used, damage, lost, withClient, reBrand, total };
   };
 
   // Compute aggregated totals for header overview metrics
@@ -73,8 +89,8 @@ export default function BrandPortalClient({ brand }) {
     brand.products.forEach(p => {
       const metrics = getProductStock(p.transactions);
       warehouse += metrics.warehouse;
-      dispatched += metrics.dispatched;
-      damaged += metrics.damaged;
+      dispatched += metrics.issued + metrics.used + metrics.withClient;
+      damaged += metrics.damage + metrics.lost;
     });
 
     return { warehouse, dispatched, damaged };
@@ -325,11 +341,19 @@ export default function BrandPortalClient({ brand }) {
                   <table className="min-w-full divide-y divide-border">
                     <thead>
                       <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                        <th className="pb-2.5">Product</th>
-                        <th className="pb-2.5 px-3">Type</th>
-                        <th className="pb-2.5 px-3 text-center">Warehouse</th>
-                        <th className="pb-2.5 px-3 text-center">Dispatched</th>
-                        <th className="pb-2.5 pl-3 text-center text-danger">Damaged</th>
+                        <th className="pb-2.5 px-3 whitespace-nowrap">Item Description</th>
+                        <th className="pb-2.5 px-3 whitespace-nowrap">Item Code</th>
+                        <th className="pb-2.5 px-3 whitespace-nowrap">Item category</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Purchased / Received</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Available In Warehouse</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Issued</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Used</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap text-danger">Damage</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap text-danger">Lost / Not Found</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap text-primary">With Client</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap text-secondary">Re Brand</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap font-bold">Total</th>
+                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Stock Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-xs text-text-primary">
@@ -337,7 +361,7 @@ export default function BrandPortalClient({ brand }) {
                         const stock = getProductStock(p.transactions);
                         return (
                           <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
-                            <td className="py-3">
+                            <td className="py-3 px-3 whitespace-nowrap">
                               <div className="flex items-center gap-3">
                                 {p.imageUrl ? (
                                   <img 
@@ -357,22 +381,53 @@ export default function BrandPortalClient({ brand }) {
                                 )}
                                 <div className="flex flex-col min-w-0">
                                   <span className="font-semibold text-text-primary truncate">{p.name}</span>
-                                  <span className="text-[10px] text-text-secondary mt-0.5 font-mono">
-                                    SKU: {p.itemCode || '---'}
-                                  </span>
+                                  {p.isSerialized && (
+                                    <span className="text-[10px] font-semibold text-primary mt-0.5">
+                                      <QrCode size={10} className="inline mr-1"/>
+                                      {p.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({p._count?.serialNumbers || 0})
+                                    </span>
+                                  )}
                                 </div>
                               </div>
+                            </td>
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <code className="text-[10px] bg-surface-elevated px-1.5 py-0.5 rounded border border-border">{p.itemCode || '---'}</code>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap">
                               <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase
                                 ${p.isSerialized ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface-elevated text-text-secondary border border-border'}
                               `}>
-                                {p.isSerialized ? (p.category?.toUpperCase() || 'Serialized') : 'Bulk'}
+                                {p.category || 'Bulk'}
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-center font-mono font-bold">{stock.warehouse}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold text-text-secondary">{stock.dispatched}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold text-danger/80">{stock.damaged}</td>
+                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.purchased}</td>
+                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.warehouse}</td>
+                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.issued}</td>
+                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.used}</td>
+                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.damage}</td>
+                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.lost}</td>
+                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-primary">{stock.withClient}</td>
+                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-secondary">{stock.reBrand}</td>
+                            <td className="py-3 px-3 text-center font-mono font-bold whitespace-nowrap">{stock.total}</td>
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
+                              {p.stockCap ? (
+                                stock.warehouse <= 0 ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
+                                    Out
+                                  </span>
+                                ) : stock.warehouse < p.stockCap ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
+                                    Low
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
+                                    Ok
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-text-muted text-[10px]">---</span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}

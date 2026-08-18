@@ -227,6 +227,21 @@ export async function processRebrand(data) {
 
   if (!oldProduct || !newProduct) throw new Error('Products not found');
 
+  if (!oldProduct.isSerialized) {
+    const inbound = await prisma.inventoryTransaction.aggregate({
+      where: { productId: oldProductId, toEntityType: 'WAREHOUSE' },
+      _sum: { quantity: true },
+    });
+    const outbound = await prisma.inventoryTransaction.aggregate({
+      where: { productId: oldProductId, fromEntityType: 'WAREHOUSE' },
+      _sum: { quantity: true },
+    });
+    const currentStock = (inbound._sum.quantity || 0) - (outbound._sum.quantity || 0);
+    if (currentStock < quantity) {
+      throw new Error(`Insufficient stock for rebranding. Current warehouse stock is ${currentStock}, requested ${quantity}.`);
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     // 1. Log subtraction of old product (from Warehouse)
     await tx.inventoryTransaction.create({
@@ -571,7 +586,7 @@ export async function createBulkReceiveTransactions(formData) {
 
     for (let idx = 0; idx < items.length; idx++) {
       const item = items[idx];
-      let { productId, quantity, barcodes = [], notes, isNewProduct } = item;
+      let { productId, quantity, barcodes = [], notes, manufactureDate, expiryDate, isNewProduct } = item;
 
       if (isNewProduct) {
         // Register the product inline!
@@ -634,6 +649,8 @@ export async function createBulkReceiveTransactions(formData) {
           quantity,
           deliveryNote: autoDeliveryNote,
           notes: notes || `Bulk receive from ${fromEntityType}`,
+          manufactureDate: manufactureDate ? new Date(manufactureDate) : null,
+          expiryDate: expiryDate ? new Date(expiryDate) : null,
           deliveryStatus: 'Delivered',
           receivedBy,
         },
@@ -704,8 +721,12 @@ export async function createBulkDamageTransactions(payload) {
   const {
     fromEntityType,
     fromEntityId,
+    transactionType = 'DAMAGE', // 'DAMAGE' or 'LOST'
     items = [], // Array of { productId, quantity, barcodes, notes }
   } = payload;
+
+  const resolvedType = transactionType === 'LOST' ? 'LOST' : 'DAMAGE';
+  const serialStatus = resolvedType === 'LOST' ? 'LOST' : 'DAMAGED';
 
   if (items.length === 0) throw new Error('At least one product item is required for damage logging');
 
@@ -757,13 +778,13 @@ export async function createBulkDamageTransactions(payload) {
       const invTx = await tx.inventoryTransaction.create({
         data: {
           productId,
-          transactionType: 'DAMAGE',
+          transactionType: resolvedType,
           fromEntityType,
           fromEntityId: fromEntityId || null,
           toEntityType: null,
           toEntityId: null,
           quantity,
-          notes: notes || `Bulk damage logged`,
+          notes: notes || `Bulk ${resolvedType.toLowerCase()} logged`,
           deliveryStatus: 'Delivered',
         },
       });
@@ -790,13 +811,13 @@ export async function createBulkDamageTransactions(payload) {
           }
         }
 
-        // Bulk mark serial records as DAMAGED (1 write)
+        // Bulk mark serial records as DAMAGED or LOST (1 write)
         await tx.productSerialNumber.updateMany({
           where: {
             id: { in: dbSerials.map(s => s.id) }
           },
           data: {
-            status: 'DAMAGED',
+            status: serialStatus,
             currentLocationType: null,
             currentLocationId: null,
           }
@@ -932,12 +953,481 @@ export async function createBulkRebrandTransactions(formData) {
     newSecondary: ''
   }));
 
+  const nonSerializedQty = parseInt(formData.get('nonSerializedQty') || '0', 10);
+  const qty = barcodes.length > 0 ? barcodes.length : nonSerializedQty;
+
   return processRebrand({
     oldProductId: sourceProductId,
     newProductId: finalTargetProductId,
-    quantity: mappings.length,
+    quantity: qty,
     notes: remarks,
     barcodes
   });
 }
 
+// Update only the notes and/or deliveryNote of an existing transaction
+export async function updateTransactionNotes(id, { notes, deliveryNote }) {
+  await checkAuth();
+
+  if (!id) throw new Error('Transaction ID is required');
+
+  await prisma.inventoryTransaction.update({
+    where: { id },
+    data: {
+      ...(notes !== undefined ? { notes: notes || null } : {}),
+      ...(deliveryNote !== undefined ? { deliveryNote: deliveryNote || null } : {}),
+    },
+  });
+
+  revalidatePath('/dashboard/inbound');
+  revalidatePath('/dashboard/outbound');
+  revalidatePath('/dashboard/damage');
+  revalidatePath('/dashboard/rebrand');
+
+  return { success: true };
+}
+
+// Hard-delete a transaction — stock recalculates automatically from remaining rows
+export async function deleteTransaction(id) {
+  await checkAuth();
+
+  if (!id) throw new Error('Transaction ID is required');
+
+  // TransactionSerialNumber rows cascade-delete via schema onDelete: Cascade
+  await prisma.inventoryTransaction.delete({ where: { id } });
+
+  revalidatePath('/dashboard/inbound');
+  revalidatePath('/dashboard/outbound');
+  revalidatePath('/dashboard/damage');
+  revalidatePath('/dashboard/rebrand');
+
+  return { success: true };
+}
+// Full Edit for Transactions
+export async function updateFullTransaction(id, payload) {
+  await checkAuth();
+
+  const {
+    timestamp,
+    transactionType,
+    productId,
+    quantity,
+    fromEntityType,
+    fromEntityId,
+    toEntityType,
+    toEntityId,
+    notes,
+    deliveryNote,
+    barcodes = [],
+  } = payload;
+
+  const txRecord = await prisma.inventoryTransaction.findUnique({
+    where: { id },
+    include: {
+      serialNumbers: {
+        include: { serialNumber: true }
+      }
+    }
+  });
+
+  if (!txRecord) throw new Error('Transaction not found');
+
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) throw new Error('Product not found');
+
+  if (txRecord.transactionType === 'RECEIVE') {
+    const subsequentOutbound = await prisma.inventoryTransaction.findFirst({
+      where: {
+        productId: txRecord.productId,
+        transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] },
+        timestamp: { gt: txRecord.timestamp }
+      }
+    });
+
+    if (subsequentOutbound) {
+      throw new Error('1st delete the outbound transactions, then only inbound can be edited.');
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (product.isSerialized && txRecord.serialNumbers.length > 0) {
+      const oldSerials = txRecord.serialNumbers.map(s => s.serialNumber);
+      
+      if (txRecord.transactionType === 'RECEIVE' || txRecord.transactionType === 'REBRAND_IN' || txRecord.transactionType === 'RETURN') {
+        await tx.productSerialNumber.deleteMany({
+          where: { id: { in: oldSerials.map(s => s.id) } }
+        });
+      } else {
+        await tx.productSerialNumber.updateMany({
+          where: { id: { in: oldSerials.map(s => s.id) } },
+          data: {
+            currentLocationType: txRecord.fromEntityType || 'WAREHOUSE',
+            currentLocationId: txRecord.fromEntityId || null,
+            status: 'AVAILABLE'
+          }
+        });
+      }
+    }
+
+    await tx.inventoryTransaction.delete({ where: { id } });
+
+    const invTx = await tx.inventoryTransaction.create({
+      data: {
+        id,
+        productId,
+        transactionType,
+        fromEntityType,
+        fromEntityId,
+        toEntityType,
+        toEntityId,
+        quantity,
+        notes,
+        deliveryNote,
+        timestamp: new Date(timestamp),
+      }
+    });
+
+    if (product.isSerialized && barcodes.length > 0) {
+      if (transactionType === 'RECEIVE' || transactionType === 'REBRAND_IN' || transactionType === 'RETURN') {
+        await tx.productSerialNumber.createMany({
+          data: barcodes.map(barcode => ({
+            productId,
+            barcode: barcode.trim(),
+            currentLocationType: toEntityType || 'WAREHOUSE',
+            currentLocationId: toEntityId || null,
+            status: 'AVAILABLE',
+          })),
+          skipDuplicates: true
+        });
+      } else {
+        let nextStatus = 'AVAILABLE';
+        if (toEntityType === 'CLIENT' || toEntityType === 'STAFF') nextStatus = 'USED';
+        if (transactionType === 'DAMAGE') nextStatus = 'DAMAGED';
+        if (transactionType === 'LOST') nextStatus = 'LOST';
+        
+        await tx.productSerialNumber.updateMany({
+          where: {
+            productId,
+            barcode: { in: barcodes }
+          },
+          data: {
+            currentLocationType: toEntityType || null,
+            currentLocationId: toEntityId || null,
+            status: nextStatus
+          }
+        });
+      }
+
+      const updatedSerials = await tx.productSerialNumber.findMany({
+        where: { productId, barcode: { in: barcodes } },
+        select: { id: true }
+      });
+
+      await tx.transactionSerialNumber.createMany({
+        data: updatedSerials.map(serial => ({
+          transactionId: invTx.id,
+          serialNumberId: serial.id
+        }))
+      });
+    }
+  });
+
+  revalidatePath('/dashboard/transactions');
+  revalidatePath('/dashboard/inbound');
+  revalidatePath('/dashboard/outbound');
+  revalidatePath('/dashboard/damage');
+  revalidatePath('/dashboard/rebrand');
+  revalidatePath('/dashboard/brands/[id]');
+  revalidatePath('/portal/brand/[secretKey]');
+  return { success: true };
+}// Create a single duplicate transaction
+export async function createSingleTransaction(payload) {
+  await checkAuth();
+
+  const {
+    timestamp,
+    transactionType,
+    productId,
+    quantity,
+    fromEntityType,
+    fromEntityId,
+    toEntityType,
+    toEntityId,
+    notes,
+    deliveryNote,
+    barcodes = [],
+  } = payload;
+
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) throw new Error('Product not found');
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Create transaction record
+    const invTx = await tx.inventoryTransaction.create({
+      data: {
+        productId,
+        transactionType,
+        fromEntityType,
+        fromEntityId,
+        toEntityType,
+        toEntityId,
+        quantity,
+        notes,
+        deliveryNote,
+        timestamp: new Date(timestamp),
+        deliveryStatus: 'Delivered', // Assume delivered if copied
+      }
+    });
+
+    // 2. Handle serial numbers if serialized
+    if (product.isSerialized && barcodes.length > 0) {
+      if (transactionType === 'RECEIVE' || transactionType === 'REBRAND_IN' || transactionType === 'RETURN') {
+        const existingSerials = await tx.productSerialNumber.findMany({
+          where: { barcode: { in: barcodes } },
+          include: { product: { select: { name: true } } }
+        });
+        if (existingSerials.length > 0) {
+          const dupes = existingSerials.map(s => `"${s.barcode}" (linked to "${s.product.name}")`).join(', ');
+          throw new Error(`Some barcodes already exist: ${dupes}`);
+        }
+
+        await tx.productSerialNumber.createMany({
+          data: barcodes.map(barcode => ({
+            productId,
+            barcode: barcode.trim(),
+            currentLocationType: toEntityType || 'WAREHOUSE',
+            currentLocationId: toEntityId || null,
+            status: 'AVAILABLE',
+          })),
+          skipDuplicates: true
+        });
+      } else {
+        const dbSerials = await tx.productSerialNumber.findMany({
+          where: { barcode: { in: barcodes } }
+        });
+        const invalidSerials = dbSerials.filter(s => s.productId !== productId || s.currentLocationType !== fromEntityType);
+        if (invalidSerials.length > 0) {
+          throw new Error(`Some barcodes are not available at the source location.`);
+        }
+
+        let nextStatus = 'AVAILABLE';
+        if (toEntityType === 'CLIENT' || toEntityType === 'STAFF') nextStatus = 'USED';
+        if (transactionType === 'DAMAGE') nextStatus = 'DAMAGED';
+        if (transactionType === 'LOST') nextStatus = 'LOST';
+        
+        await tx.productSerialNumber.updateMany({
+          where: { productId, barcode: { in: barcodes } },
+          data: {
+            currentLocationType: toEntityType || null,
+            currentLocationId: toEntityId || null,
+            status: nextStatus
+          }
+        });
+      }
+
+      const newSerials = await tx.productSerialNumber.findMany({
+        where: { productId, barcode: { in: barcodes } },
+        select: { id: true }
+      });
+
+      await tx.transactionSerialNumber.createMany({
+        data: newSerials.map(serial => ({
+          transactionId: invTx.id,
+          serialNumberId: serial.id
+        }))
+      });
+    }
+  });
+
+  revalidatePath('/dashboard/transactions');
+  revalidatePath('/dashboard/inbound');
+  revalidatePath('/dashboard/outbound');
+  revalidatePath('/dashboard/damage');
+  revalidatePath('/dashboard/rebrand');
+  revalidatePath('/dashboard/brands/[id]');
+  revalidatePath('/portal/brand/[secretKey]');
+  return { success: true };
+}
+
+// Fetch a single transaction by ID and format it for copy-prefill
+export async function getTransactionById(txId) {
+  await checkAuth();
+
+  if (!txId) return null;
+
+  const tx = await prisma.inventoryTransaction.findUnique({
+    where: { id: txId },
+    include: {
+      product: {
+        select: { id: true, isSerialized: true }
+      }
+    }
+  });
+
+  if (!tx) return null;
+
+  return {
+    id: `temp-${Date.now()}-0`,
+    productId: tx.productId,
+    quantity: tx.product.isSerialized ? 0 : tx.quantity,
+    barcodesInput: '',
+    barcodes: [],
+    notes: tx.notes || '',
+    isNewProduct: false,
+    isExpanded: true,
+    error: '',
+    rangeStart: '',
+    rangeEnd: '',
+    rangeMode: false,
+    manufactureDate: '',
+    expiryDate: '',
+    fromEntityType: tx.fromEntityType,
+    fromEntityId: tx.fromEntityId,
+    toEntityType: tx.toEntityType,
+    toEntityId: tx.toEntityId,
+    prodName: '',
+    prodType: 'NORMAL',
+    prodBrandId: '',
+    prodCategory: 'General',
+    prodItemCode: '',
+    prodLowStockAlert: '10',
+    prodIsReturnable: false,
+    prodImageFile: null,
+    prodImagePreview: '',
+  };
+}
+
+// Fetch all transactions associated with a Delivery Note and format them for copy
+export async function getTransactionsByDeliveryNote(deliveryNote) {
+  await checkAuth();
+
+  if (!deliveryNote) return [];
+
+  const transactions = await prisma.inventoryTransaction.findMany({
+    where: { deliveryNote },
+    include: {
+      product: {
+        select: {
+          id: true,
+          isSerialized: true
+        }
+      }
+    },
+    orderBy: { timestamp: 'asc' }
+  });
+
+  return transactions.map((tx, idx) => ({
+    id: `temp-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 9)}`,
+    productId: tx.productId,
+    quantity: tx.product.isSerialized ? 0 : tx.quantity, // Serialized products need new barcodes, so start at 0
+    barcodesInput: '',
+    barcodes: [],
+    notes: tx.notes || '',
+    isNewProduct: false,
+    isExpanded: idx === 0, // expand first item by default
+    error: '',
+    rangeStart: '',
+    rangeEnd: '',
+    rangeMode: false,
+    manufactureDate: '',
+    expiryDate: '',
+    fromEntityType: tx.fromEntityType,
+    fromEntityId: tx.fromEntityId,
+    toEntityType: tx.toEntityType,
+    toEntityId: tx.toEntityId,
+    // Inline product registration fields (unused for existing products)
+    prodName: '',
+    prodType: 'NORMAL',
+    prodBrandId: '',
+    prodCategory: 'General',
+    prodItemCode: '',
+    prodLowStockAlert: '10',
+    prodIsReturnable: false,
+    prodImageFile: null,
+    prodImagePreview: '',
+  }));
+}
+
+
+
+
+// Process Outbound Returns & Usage
+export async function processOutboundReturns(returnsPayload) {
+  await checkAuth();
+
+  if (!Array.isArray(returnsPayload) || returnsPayload.length === 0) {
+    throw new Error('No items provided for processing');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of returnsPayload) {
+      const { transactionId, actionType, qty, notes } = item;
+
+      if (!transactionId || !actionType) throw new Error('Missing required fields');
+
+      const originalTx = await tx.inventoryTransaction.findUnique({
+        where: { id: transactionId },
+      });
+
+      if (!originalTx) throw new Error(`Transaction not found: ${transactionId}`);
+      if (originalTx.transactionType !== 'ISSUE') throw new Error(`Cannot process return for non-outbound transaction: ${transactionId}`);
+
+      const processQty = parseInt(qty || '0', 10);
+      const remainingQty = originalTx.quantity - (originalTx.returnedQty || 0);
+
+      if (actionType === 'RETURN') {
+        if (processQty <= 0) throw new Error('Return quantity must be greater than 0');
+        if (processQty > remainingQty) throw new Error(`Cannot return ${processQty}. Only ${remainingQty} unreturned items remaining.`);
+
+        const newReturnedQty = (originalTx.returnedQty || 0) + processQty;
+        const newStatus = newReturnedQty >= originalTx.quantity ? 'RETURNED' : 'PARTIAL';
+        const newNotes = originalTx.returnNotes ? `${originalTx.returnNotes} | ${notes || 'Returned'}` : (notes || 'Returned');
+
+        // 1. Update original Outbound transaction
+        await tx.inventoryTransaction.update({
+          where: { id: transactionId },
+          data: {
+            returnedQty: newReturnedQty,
+            returnStatus: newStatus,
+            returnNotes: newNotes,
+          }
+        });
+
+        // 2. Create INBOUND transaction to return stock to Warehouse
+        await tx.inventoryTransaction.create({
+          data: {
+            productId: originalTx.productId,
+            transactionType: 'INBOUND',
+            fromEntityType: originalTx.toEntityType,
+            fromEntityId: originalTx.toEntityId,
+            toEntityType: 'WAREHOUSE',
+            toEntityId: null,
+            quantity: processQty,
+            notes: `Auto-generated Return from Outbound ${transactionId}. ${notes || ''}`,
+            deliveryStatus: 'Delivered',
+          }
+        });
+
+      } else if (actionType === 'USED') {
+        // Just mark the entire remaining quantity as used
+        const newNotes = originalTx.returnNotes ? `${originalTx.returnNotes} | ${notes || 'Marked Used'}` : (notes || 'Marked Used');
+        
+        await tx.inventoryTransaction.update({
+          where: { id: transactionId },
+          data: {
+            returnStatus: 'USED',
+            returnNotes: newNotes,
+            returnedQty: originalTx.quantity, // Set to max so it's fully processed
+          }
+        });
+      } else {
+        throw new Error(`Unknown action type: ${actionType}`);
+      }
+    }
+  });
+
+  revalidatePath('/dashboard/outbound');
+  revalidatePath('/dashboard/returns');
+  revalidatePath('/dashboard/products');
+  return { success: true };
+}

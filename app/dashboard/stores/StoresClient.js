@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createStore, updateStore, deleteStore, createBulkStores } from '@/app/actions/stores';
-import { Store, Plus, Edit2, Trash2, Globe, EyeOff, MapPin, Search, Loader2, X } from 'lucide-react';
+import { Store, Plus, Edit2, Trash2, MapPin, Search, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 
@@ -230,11 +230,6 @@ export default function StoresClient({ initialStores }) {
                         </div>
 
                         <div className="flex items-center gap-3 flex-shrink-0">
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border
-                            ${item.isPublic ? 'bg-success/15 border-success/20 text-success' : 'bg-surface-elevated border-border text-text-muted'}
-                          `}>
-                            {item.isPublic ? 'Public' : 'Hidden'}
-                          </span>
                           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
@@ -312,32 +307,6 @@ export default function StoresClient({ initialStores }) {
                             onChange={(e) => updateItemField(idx, 'location', e.target.value)}
                             placeholder="e.g. Sheikh Zayed Rd, Al Barsha 1, Dubai"
                           />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-text-secondary">Public Visibility</label>
-                          <div className="flex gap-2">
-                            <label className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg cursor-pointer text-xs font-semibold transition-all
-                              ${item.isPublic 
-                                ? 'border-primary bg-primary/10 text-primary' 
-                                : 'border-border bg-surface-elevated text-text-secondary hover:bg-surface-hover'
-                              }`}
-                            >
-                              <input type="radio" checked={item.isPublic === true} onChange={() => updateItemField(idx, 'isPublic', true)} className="hidden" />
-                              <Globe size={13} />
-                              <span>Public</span>
-                            </label>
-                            <label className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg cursor-pointer text-xs font-semibold transition-all
-                              ${!item.isPublic 
-                                ? 'border-primary bg-primary/10 text-primary' 
-                                : 'border-border bg-surface-elevated text-text-secondary hover:bg-surface-hover'
-                              }`}
-                            >
-                              <input type="radio" checked={item.isPublic === false} onChange={() => updateItemField(idx, 'isPublic', false)} className="hidden" />
-                              <EyeOff size={13} />
-                              <span>Hidden</span>
-                            </label>
-                          </div>
                         </div>
 
                         <div className="flex justify-end pt-3 border-t border-border">
@@ -459,15 +428,6 @@ export default function StoresClient({ initialStores }) {
                         <span className="text-[10px] text-text-secondary uppercase tracking-wider font-bold">{store.region} Region</span>
                       </div>
                     </div>
-                    
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border
-                      ${store.isPublic 
-                        ? 'bg-success/15 border-success/20 text-success' 
-                        : 'bg-surface-elevated border-border text-text-muted'
-                      }`}
-                    >
-                      {store.isPublic ? 'Public' : 'Hidden'}
-                    </span>
                   </div>
 
                   <div className="flex items-start gap-1.5 text-xs text-text-secondary border-t border-border pt-4 mt-auto">

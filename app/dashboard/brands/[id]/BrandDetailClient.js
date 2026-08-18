@@ -268,36 +268,53 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   };
 
   const calculateStock = (transactions) => {
+    let purchased = 0;
     let warehouse = 0;
-    let storesQty = 0;
-    let supervisorsQty = 0;
-    let damagedLost = 0;
+    let issued = 0;
+    let used = 0;
+    let withClient = 0;
+    let damage = 0;
+    let lost = 0;
+    let reBrand = 0;
     
     transactions.forEach(t => {
       const qty = t.quantity || 0;
       if (t.transactionType === 'RECEIVE') {
+        purchased += qty;
         warehouse += qty;
       } else if (t.transactionType === 'ISSUE') {
         warehouse -= qty;
-        if (t.toEntityType === 'STORE') storesQty += qty;
-        else if (t.toEntityType === 'SUPERVISOR') supervisorsQty += qty;
+        if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
+        else if (t.toEntityType === 'STAFF') used += qty;
+        else if (t.toEntityType === 'CLIENT') withClient += qty;
       } else if (t.transactionType === 'RETURN') {
         warehouse += qty;
-        if (t.fromEntityType === 'STORE') storesQty -= qty;
-        else if (t.fromEntityType === 'SUPERVISOR') supervisorsQty -= qty;
-      } else if (t.transactionType === 'DAMAGE' || t.transactionType === 'LOST') {
+        if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+      } else if (t.transactionType === 'DAMAGE') {
         if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE') storesQty -= qty;
-        else if (t.fromEntityType === 'SUPERVISOR') supervisorsQty -= qty;
-        damagedLost += qty;
+        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        damage += qty;
+      } else if (t.transactionType === 'LOST') {
+        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
+        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        lost += qty;
       } else if (t.transactionType === 'REBRAND_OUT') {
         warehouse -= qty;
+        reBrand += qty;
       } else if (t.transactionType === 'REBRAND_IN') {
         warehouse += qty;
       }
     });
 
-    return { warehouse, storesQty, supervisorsQty, damagedLost };
+    const total = warehouse + issued + used + damage + lost + withClient + reBrand;
+
+    return { purchased, warehouse, issued, used, damage, lost, withClient, reBrand, total };
   };
 
   const itemsPerPage = 25;
@@ -425,14 +442,20 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                         }}
                       />
                     </th>
-                    <th className="py-3 px-5">Product Details</th>
-                    <th className="py-3 px-5">Category</th>
-                    <th className="py-3 px-5">Type</th>
-                    <th className="py-3 px-5 text-center">Warehouse</th>
-                    <th className="py-3 px-5 text-center">Stores</th>
-                    <th className="py-3 px-5 text-center">Supervisors</th>
-                    <th className="py-3 px-5 text-center text-danger">Damaged / Lost</th>
-                    <th className="py-3 px-5 text-right">Actions</th>
+                    <th className="py-3 px-5 whitespace-nowrap">Item Description</th>
+                    <th className="py-3 px-5 whitespace-nowrap">Item Code</th>
+                    <th className="py-3 px-5 whitespace-nowrap">Item category</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap">Purchased / Received</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap">Available In Warehouse</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap">Issued</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap">Used</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap text-danger">Damage</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap text-danger">Lost / Not Found</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap text-primary">With Client</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap text-secondary">Re Brand</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap font-bold">Total</th>
+                    <th className="py-3 px-5 text-center whitespace-nowrap">Stock Status</th>
+                    <th className="py-3 px-5 text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-text-primary">
@@ -474,50 +497,54 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                             )}
                             <div className="flex flex-col min-w-0">
                               <span className="font-semibold text-text-primary truncate">{product.name}</span>
-                              <span className="text-xs text-text-muted mt-0.5">SKU: <code>{product.itemCode || '---'}</code></span>
+                              {product.isSerialized && (
+                                <button 
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline mt-0.5" 
+                                  onClick={() => openSerialsModal(product)}
+                                >
+                                  <QrCode size={11} />
+                                  <span>{product.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({product._count?.serialNumbers || 0})</span>
+                                </button>
+                              )}
                             </div>
                           </div>
+                        </td>
+                        <td className="py-3.5 px-5 whitespace-nowrap">
+                          <code className="text-xs bg-surface-elevated px-1.5 py-0.5 rounded border border-border">{product.itemCode || '---'}</code>
                         </td>
                         <td className="py-3.5 px-5 whitespace-nowrap">
                           <span className="badge bg-surface-elevated text-text-secondary border border-border">
                             {product.category || '---'}
                           </span>
                         </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap">
-                          {product.isSerialized ? (
-                            <button 
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline" 
-                              onClick={() => openSerialsModal(product)}
-                            >
-                              <QrCode size={13} />
-                              <span>{product.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({product._count.serialNumbers})</span>
-                            </button>
-                          ) : (
-                            <span className="text-xs text-text-muted">Normal</span>
-                          )}
-                        </td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap">{stock.purchased}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap">{stock.warehouse}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap">{stock.issued}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap">{stock.used}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.damage}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.lost}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap text-primary">{stock.withClient}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap text-secondary">{stock.reBrand}</td>
+                        <td className="py-3.5 px-5 text-center font-mono font-bold whitespace-nowrap">{stock.total}</td>
                         <td className="py-3.5 px-5 text-center whitespace-nowrap">
                           {product.stockCap ? (
                             stock.warehouse <= 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
-                                0 / Out
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
+                                Out
                               </span>
                             ) : stock.warehouse < product.stockCap ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
-                                {stock.warehouse} / Low (Cap: {product.stockCap})
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
+                                Low
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
-                                {stock.warehouse} / Ok
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
+                                Ok
                               </span>
                             )
                           ) : (
-                            <span className="font-mono font-semibold text-text-primary">{stock.warehouse}</span>
+                            <span className="text-text-muted text-xs">---</span>
                           )}
                         </td>
-                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap">{stock.storesQty}</td>
-                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap">{stock.supervisorsQty}</td>
-                        <td className="py-3.5 px-5 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.damagedLost}</td>
                         <td className="py-3.5 px-5 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2.5">
                             <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-xs font-semibold text-success hover:underline inline-flex items-center gap-0.5">

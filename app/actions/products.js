@@ -164,6 +164,8 @@ export async function createProduct(formData) {
   }
 
   const isReturnable = formData.get('isReturnable') === 'true';
+  const isDisposable = formData.get('isDisposable') === 'true';
+  const trackExpiry = formData.get('trackExpiry') === 'true';
   const isPublic = formData.get('isPublic') === 'true';
   const isSerialized = formData.get('isSerialized') === 'true';
   const stockCap = formData.get('stockCap') ? parseInt(formData.get('stockCap'), 10) : null;
@@ -183,6 +185,8 @@ export async function createProduct(formData) {
       category,
       imageUrl,
       isReturnable,
+      isDisposable,
+      trackExpiry,
       isPublic,
       isSerialized,
       stockCap,
@@ -302,6 +306,8 @@ export async function updateProduct(id, formData) {
   }
 
   const isReturnable = formData.get('isReturnable') === 'true';
+  const isDisposable = formData.get('isDisposable') === 'true';
+  const trackExpiry = formData.get('trackExpiry') === 'true';
   const isPublic = formData.get('isPublic') === 'true';
   const isSerialized = formData.get('isSerialized') === 'true';
   const stockCap = formData.get('stockCap') ? parseInt(formData.get('stockCap'), 10) : null;
@@ -318,6 +324,8 @@ export async function updateProduct(id, formData) {
       category,
       imageUrl,
       isReturnable,
+      isDisposable,
+      trackExpiry,
       isPublic,
       isSerialized,
       stockCap,
@@ -721,4 +729,5 @@ export async function createBulkProducts(formData) {
   revalidatePath('/dashboard/products');
   return results;
 }
+
 
