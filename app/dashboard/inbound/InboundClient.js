@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, ArrowDownLeft, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Tag } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, ArrowDownLeft, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Tag, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkReceiveTransactions, updateBulkReceiveTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
@@ -53,6 +53,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
   // Webcam scanning state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [sessionScans, setSessionScans] = useState([]);
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const [isBulkScan, setIsBulkScan] = useState(false);
   const [activeScanTarget, setActiveScanTarget] = useState(null); // { itemIdx, field: 'productId' | 'quantity' | 'rangeStart' | 'rangeEnd' | 'list' }
@@ -308,6 +309,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   useEffect(() => {
     let html5QrcodeScanner = null;
     if (isCameraOpen && cameraPermissionStatus === 'granted') {
+      setSessionScans([]);
       const initScanner = async () => {
         let attempts = 0;
         while (!document.getElementById('camera-reader-element') && attempts < 10) {
@@ -341,6 +343,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
               const added = addBarcodeToActiveItem(code);
               if (added) {
                 playBeep();
+                setSessionScans(prev => {
+                  if (!prev.includes(code)) return [...prev, code];
+                  return prev;
+                });
                 const flashOverlay = document.querySelector('.custom-scan-overlay > div');
                 if (flashOverlay) {
                   flashOverlay.style.borderColor = '#10b981';
@@ -1614,8 +1620,65 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 )}
               </div>
             ) : (
-              <div className="relative overflow-hidden rounded-xl border border-border flex-1 bg-black flex items-center justify-center">
-                <div id="camera-reader-element" className="w-full h-full"></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[300px]">
+                <div className="relative overflow-hidden rounded-xl border border-border bg-black flex items-center justify-center">
+                  <div id="camera-reader-element" className="w-full h-full"></div>
+                </div>
+                
+                {/* Live Session Scans list */}
+                <div className="flex flex-col border border-border rounded-xl bg-surface-elevated/40 p-4 overflow-hidden">
+                  <div className="flex justify-between items-center pb-2 border-b border-border mb-3 flex-shrink-0">
+                    <span className="text-xs font-bold text-text-primary uppercase">Scanned in this Session ({sessionScans.length})</span>
+                    {sessionScans.length > 0 && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setSessionScans([]);
+                          setItems(prev => {
+                            const activeIdx = prev.findIndex(item => item.isExpanded);
+                            if (activeIdx === -1) return prev;
+                            return prev.map((x, i) => i === activeIdx ? { ...x, barcodesInput: '', quantity: 0 } : x);
+                          });
+                        }}
+                        className="text-[10px] font-bold text-danger hover:underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 pr-1 font-mono text-xs max-h-[250px]">
+                    {sessionScans.length === 0 ? (
+                      <div className="flex-1 flex items-center justify-center text-text-muted text-[11px] font-sans">
+                        No barcodes scanned yet.
+                      </div>
+                    ) : (
+                      sessionScans.map((bc, sIdx) => (
+                        <div key={sIdx} className="flex justify-between items-center py-1.5 px-2 bg-surface border border-border rounded-lg shadow-sm">
+                          <code className="text-text-primary text-[11px]">{bc}</code>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSessionScans(prev => prev.filter((_, i) => i !== sIdx));
+                              setItems(prev => {
+                                const activeIdx = prev.findIndex(item => item.isExpanded);
+                                if (activeIdx === -1) return prev;
+                                const activeItem = prev[activeIdx];
+                                const updatedSelected = activeItem.barcodesInput
+                                  .split(/[\n,]/)
+                                  .map(b => b.trim())
+                                  .filter(b => b && b.toLowerCase() !== bc.toLowerCase());
+                                return prev.map((x, i) => i === activeIdx ? { ...x, barcodesInput: updatedSelected.join('\n'), quantity: updatedSelected.length } : x);
+                              });
+                            }}
+                            className="text-[10px] font-bold text-danger hover:underline px-1 cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

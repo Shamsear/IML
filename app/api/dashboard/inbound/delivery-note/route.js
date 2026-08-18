@@ -172,7 +172,7 @@ const pdfStyles = StyleSheet.create({
   },
 });
 
-const DeliveryNoteDocument = ({ store, brandName, inventory, dateStr, docNo, receiverName, contactDetails, notes }) => {
+const DeliveryNoteDocument = ({ supplierName, brandName, inventory, dateStr, docNo, receiverName, contactDetails, notes }) => {
   const totalTableRows = 28;
   const rows = Array.from({ length: totalTableRows }, (_, idx) => inventory[idx] || null);
 

@@ -22,6 +22,9 @@ export default function StaffClient({ initialStaff, stores }) {
   // Bulk selection state
   const [selectedAllocIds, setSelectedAllocIds] = useState([]);
 
+  // Promoter detail modal state
+  const [selectedPromoter, setSelectedPromoter] = useState(null);
+
   // Return Modal states
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [returnAllocIds, setReturnAllocIds] = useState([]);
@@ -618,7 +621,7 @@ export default function StaffClient({ initialStaff, stores }) {
                         <tr 
                           key={staff.id} 
                           className="hover:bg-surface-elevated/30 transition-all duration-150 cursor-pointer font-medium"
-                          onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)}
+                          onClick={() => setSelectedPromoter(staff)}
                         >
                           <td className="py-3.5 px-5">
                             <div className="flex items-center gap-2.5">
@@ -809,6 +812,188 @@ export default function StaffClient({ initialStaff, stores }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Promoter Detail Modal */}
+      {selectedPromoter && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface border border-border w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-scale-up">
+            {/* Header */}
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-elevated/20 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                  {selectedPromoter.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="font-display font-extrabold text-base text-text-primary">{selectedPromoter.name}</h3>
+                  <span className="text-[10px] text-text-secondary mt-0.5 block">
+                    Shirt Size: <strong>{selectedPromoter.shirtSize || 'M'}</strong> | Phone: <strong>{selectedPromoter.phone || 'No contact'}</strong>
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedPromoter(null)}
+                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 overflow-y-auto flex flex-col gap-5 flex-1">
+              {/* Placement Card */}
+              <div className="bg-surface-elevated/40 border border-border rounded-xl p-4 flex justify-between items-center text-xs">
+                <div>
+                  <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Current Store Placement</span>
+                  <strong className="text-text-primary text-sm mt-1 block">
+                    {selectedPromoter.store ? selectedPromoter.store.name : 'Unassigned / Not active'}
+                  </strong>
+                </div>
+                {selectedPromoter.store && (
+                  <span className="badge badge-success text-[10px] font-bold">Placed</span>
+                )}
+              </div>
+
+              {/* History Timeline */}
+              <div className="flex flex-col gap-3">
+                <h4 className="font-display font-bold text-xs text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                  <Inbox size={14} className="text-primary" />
+                  <span>Uniform Allocation History ({selectedPromoter.allocations?.length || 0})</span>
+                </h4>
+
+                <div className="flex flex-col gap-3">
+                  {!selectedPromoter.allocations || selectedPromoter.allocations.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-text-muted border border-dashed border-border rounded-xl font-sans">
+                      No uniform allocations ever issued to this promoter.
+                    </div>
+                  ) : (
+                    selectedPromoter.allocations.map((alloc) => {
+                      const isFullyReturned = isAllocationFullyReturned(alloc);
+                      const items = getAllocatedItems(alloc);
+                      return (
+                        <div key={alloc.id} className="border border-border rounded-xl p-4 bg-surface hover:border-text-secondary/20 transition-all flex flex-col gap-3 text-xs">
+                          <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-2">
+                            <span className="font-mono text-text-secondary font-semibold">DN: {alloc.id}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-text-muted">{new Date(alloc.givenDate).toLocaleDateString()}</span>
+                              {isFullyReturned ? (
+                                <span className="px-1.5 py-0.5 bg-success/10 text-success text-[9px] font-extrabold rounded-full uppercase">Closed</span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 bg-warning/10 text-warning text-[9px] font-extrabold rounded-full uppercase">Active</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <span className="text-[10px] font-bold text-text-muted uppercase block">Store Destination</span>
+                              <span className="font-semibold text-text-primary block mt-0.5">{alloc.store?.name || 'Unknown Store'}</span>
+                            </div>
+                            {alloc.supervisor && (
+                              <div>
+                                <span className="text-[10px] font-bold text-text-muted uppercase block">Supervisor</span>
+                                <span className="font-semibold text-text-primary block mt-0.5">{alloc.supervisor.name}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Items details inside the history row */}
+                          <div className="bg-surface-elevated/20 p-2.5 rounded-lg flex flex-col gap-1.5 border border-border/30">
+                            {alloc.uniformQty > 0 && (
+                              <div className="flex justify-between items-center text-[11px]">
+                                <span className="font-medium text-text-primary">{alloc.uniformQty}x Shirt (Legacy)</span>
+                                <span className={alloc.uniformReturned ? 'text-success font-bold' : 'text-warning font-bold'}>
+                                  {alloc.uniformReturned ? 'Returned' : 'Active'}
+                                </span>
+                              </div>
+                            )}
+                            {alloc.capQty > 0 && (
+                              <div className="flex justify-between items-center text-[11px]">
+                                <span className="font-medium text-text-primary">{alloc.capQty}x Cap (Legacy)</span>
+                                <span className={alloc.capReturned ? 'text-success font-bold' : 'text-warning font-bold'}>
+                                  {alloc.capReturned ? 'Returned' : 'Active'}
+                                </span>
+                              </div>
+                            )}
+                            {items.map((item, idx) => (
+                              <div key={item.id || idx} className="flex justify-between items-center text-[11px]">
+                                <span className="font-medium text-text-primary">{item.qty}x {item.type} (Size: {item.size})</span>
+                                <span className={item.returned ? 'text-success font-bold' : 'text-warning font-bold'}>
+                                  {item.returned ? (item.type?.toLowerCase().includes('disposable') ? 'Used' : 'Returned') : 'Active'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {alloc.notes && (
+                            <p className="text-[11px] text-text-secondary leading-relaxed bg-surface-elevated/30 p-2 rounded border border-border/20 italic">
+                              Remarks: {alloc.notes}
+                            </p>
+                          )}
+
+                          {/* Quick return button from timeline */}
+                          {!isFullyReturned && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPromoter(null);
+                                openSingleReturnModal({
+                                  ...alloc,
+                                  staffName: selectedPromoter.name,
+                                  staffShirtSize: selectedPromoter.shirtSize
+                                });
+                              }}
+                              className="self-end px-3 py-1.5 bg-success hover:bg-success-hover text-white rounded-lg text-[10px] font-bold transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+                            >
+                              <CheckCircle size={11} />
+                              <span>Process Returns for DN {alloc.id}</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-border bg-surface-elevated/20 flex justify-between items-center flex-shrink-0 font-sans">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPromoter(null);
+                  router.push(`/dashboard/staff/assign?editStaffId=${selectedPromoter.id}`);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 border border-border bg-surface hover:bg-surface-elevated text-text-primary rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                <Edit2 size={13} />
+                <span>Edit Profile</span>
+              </button>
+              
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPromoter(null)}
+                  className="px-4 py-2 border border-border bg-surface hover:bg-surface-elevated text-text-secondary rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPromoter(null);
+                    router.push(`/dashboard/staff/assign?staffId=${selectedPromoter.id}`);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                >
+                  <Shirt size={13} />
+                  <span>Issue New Uniform</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

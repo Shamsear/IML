@@ -12,7 +12,7 @@ import { createTransaction } from '@/app/actions/transactions';
 import { 
   Package, Plus, Edit2, Trash2, ShieldAlert, CheckCircle, 
   QrCode, Upload, Filter, Loader2, X,
-  Copy, Trash, Camera
+  Copy, Trash, Camera, ArrowDownLeft, ArrowUpRight
 } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
 
@@ -679,6 +679,22 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                   size="sm"
                   className="w-[140px]"
                 />
+                <button 
+                  type="button"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/15 hover:bg-success text-success hover:text-white border border-success/20 rounded-lg text-xs font-bold transition-all duration-200" 
+                  onClick={() => router.push(`/dashboard/inbound/new?productIds=${selectedProductIds.join(',')}`)}
+                >
+                  <ArrowDownLeft size={13} /> 
+                  <span>Bulk Receive</span>
+                </button>
+                <button 
+                  type="button"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/15 hover:bg-primary text-primary hover:text-white border border-primary/20 rounded-lg text-xs font-bold transition-all duration-200" 
+                  onClick={() => router.push(`/dashboard/outbound/new?productIds=${selectedProductIds.join(',')}`)}
+                >
+                  <ArrowUpRight size={13} /> 
+                  <span>Bulk Issue</span>
+                </button>
                 <button className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={handleBulkDuplicate}>
                   <Copy size={12} /> 
                   <span>Clone</span>

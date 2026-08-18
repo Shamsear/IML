@@ -56,6 +56,30 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Derive list of previously used item types for datalist autocomplete
+  const uniqueItemTypes = useMemo(() => {
+    const types = new Set();
+    if (Array.isArray(staffList)) {
+      staffList.forEach(s => {
+        (s.allocations || []).forEach(a => {
+          if (a.allocatedItems) {
+            const itemsList = typeof a.allocatedItems === 'string'
+              ? JSON.parse(a.allocatedItems)
+              : a.allocatedItems;
+            if (Array.isArray(itemsList)) {
+              itemsList.forEach(item => {
+                if (item.type) {
+                  types.add(item.type.trim());
+                }
+              });
+            }
+          }
+        });
+      });
+    }
+    return Array.from(types);
+  }, [staffList]);
+
   // Pre-fill states from editStaffObj (Edit promoter profile only)
   useEffect(() => {
     if (editStaffObj) {
