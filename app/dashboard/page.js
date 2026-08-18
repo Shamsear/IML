@@ -22,7 +22,6 @@ export default async function DashboardPage() {
     storeCount,
     promoterCount,
     brands,
-    cappedProducts,
   ] = await Promise.all([
     prisma.brand.count(),
     prisma.product.count(),
@@ -43,78 +42,10 @@ export default async function DashboardPage() {
         }
       }
     }),
-    prisma.product.findMany({
-      where: { stockCap: { not: null } },
-      select: {
-        id: true,
-        name: true,
-        stockCap: true,
-        isSerialized: true,
-        _count: {
-          select: {
-            serialNumbers: {
-              where: {
-                status: 'AVAILABLE',
-                OR: [
-                  { currentLocationType: 'WAREHOUSE' },
-                  { currentLocationType: null }
-                ]
-              }
-            }
-          }
-        }
-      }
-    }),
   ]);
-
-  const cappedProductIds = cappedProducts.map(p => p.id);
-
-  // Group aggregates at database level
-  const [toWarehouseAggs, fromWarehouseAggs] = await Promise.all([
-    prisma.inventoryTransaction.groupBy({
-      by: ['productId'],
-      where: {
-        productId: { in: cappedProductIds },
-        toEntityType: 'WAREHOUSE',
-        transactionType: { in: ['RECEIVE', 'RETURN', 'REBRAND_IN'] }
-      },
-      _sum: { quantity: true }
-    }),
-    prisma.inventoryTransaction.groupBy({
-      by: ['productId'],
-      where: {
-        productId: { in: cappedProductIds },
-        fromEntityType: 'WAREHOUSE',
-        transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] }
-      },
-      _sum: { quantity: true }
-    })
-  ]);
-
-  const toMap = new Map(toWarehouseAggs.map(a => [a.productId, a._sum.quantity || 0]));
-  const fromMap = new Map(fromWarehouseAggs.map(a => [a.productId, a._sum.quantity || 0]));
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
-  // Calculate actual warehouse stock and filter for products where currentStock < stockCap
-  const lowStockAlerts = cappedProducts.map(p => {
-    let currentStock = 0;
-    if (p.isSerialized) {
-      currentStock = p._count.serialNumbers;
-    } else {
-      const added = toMap.get(p.id) || 0;
-      const removed = fromMap.get(p.id) || 0;
-      currentStock = added - removed;
-    }
-
-    return {
-      id: p.id,
-      name: p.name,
-      stockCap: p.stockCap,
-      currentStock,
-    };
-  }).filter(p => p.currentStock < p.stockCap);
 
   const stats = [
     { name: 'Brands', count: brandCount, icon: Tag, color: 'text-primary bg-primary/10 border-primary/20', href: '/dashboard/brands' },
@@ -152,7 +83,7 @@ export default async function DashboardPage() {
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -271,32 +202,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Low Stock Alerts */}
-          {lowStockAlerts.length > 0 && (
-            <div className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-4">
-              <div className="flex items-center gap-2 pb-3 border-b border-border">
-                <AlertTriangle size={18} className="text-danger animate-pulse" />
-                <span className="font-display font-bold text-base text-text-primary">Low Stock Alerts</span>
-              </div>
-              <div className="flex flex-col gap-2.5">
-                {lowStockAlerts.slice(0, 5).map((p) => (
-                  <div key={p.id} className="flex flex-col gap-1.5 p-3.5 bg-danger/5 border border-danger/10 rounded-xl">
-                    <span className="text-xs font-bold text-text-primary leading-tight block" title={p.name}>
-                      {p.name}
-                    </span>
-                    <div className="flex items-center justify-between mt-0.5 pt-1.5 border-t border-danger/10">
-                      <span className="text-[10px] font-bold text-text-secondary uppercase">Warehouse Stock</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[11px] font-mono font-black text-danger">{p.currentStock}</span>
-                        <span className="text-[10px] text-text-muted">/</span>
-                        <span className="text-[10px] text-text-secondary font-mono">Cap: {p.stockCap}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </div>
