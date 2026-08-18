@@ -7,6 +7,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent layout shift when scrollbar appears/disappears (e.g. tab switching) */
+html {
+  scrollbar-gutter: stable;
+}
+
 /* ============================================================
    PREMIUM LIGHT MODE DESIGN VARIABLES
    ============================================================ */

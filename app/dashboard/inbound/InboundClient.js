@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, ArrowDownLeft, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, ArrowDownLeft, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Tag } from 'lucide-react';
 import Link from 'next/link';
-import { createBulkReceiveTransactions } from '@/app/actions/transactions';
+import { createBulkReceiveTransactions, updateBulkReceiveTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
@@ -28,7 +28,7 @@ const playBeep = () => {
   }
 };
 
-function InboundFormContent({ products, brands = [], stores = [], recentReceivers = [], recentSuppliers = [], initialItems = null, initialSupplier = '' }) {
+function InboundFormContent({ products, brands = [], stores = [], recentReceivers = [], recentSuppliers = [], initialItems = null, initialSupplier = '', editMode = false, existingDn = '' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -37,6 +37,11 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
   // Brand filter for product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
+
+  const handleGlobalBrandChange = (brandId) => {
+    setBrandFilter(brandId);
+    setItems(prev => prev.map(item => ({ ...item, brandFilter: brandId })));
+  };
 
   // Source (From) states - Locked to SUPPLIER
   const [fromId, setFromId] = useState(initialSupplier || '');
@@ -117,6 +122,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     prodSimStoreId: stores[0]?.id || '',
     prodSimStoreCode: '',
     prodAutoGenName: true,
+    brandFilter: 'ALL',
   });
 
   // State array for receipt items queue
@@ -669,11 +675,19 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     formData.append('items', JSON.stringify(itemsPayload));
 
     try {
-      await createBulkReceiveTransactions(formData);
-      setSuccessMsg(`Logged inbound receive of ${items.length} items successfully!`);
-      setTimeout(() => {
-        router.push('/dashboard/inbound');
-      }, 1500);
+      if (editMode && existingDn) {
+        await updateBulkReceiveTransactions(existingDn, formData);
+        setSuccessMsg(`Delivery note ${existingDn} updated successfully!`);
+        setTimeout(() => {
+          router.push('/dashboard/inbound');
+        }, 1500);
+      } else {
+        await createBulkReceiveTransactions(formData);
+        setSuccessMsg(`Logged inbound receive of ${items.length} items successfully!`);
+        setTimeout(() => {
+          router.push('/dashboard/inbound');
+        }, 1500);
+      }
     } catch (err) {
       setError(err.message || 'Failed to complete inbound transaction.');
       setLoading(false);
@@ -693,7 +707,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   );
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans">
+    <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <ArrowDownLeft size={250} />
+      </div>
       {/* Page Header */}
       <header className="flex items-center gap-4 pb-5 border-b border-border">
         <Link href="/dashboard/inbound" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
@@ -798,6 +815,49 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           </div>
         </div>
       </div>
+
+      {/* Global Brand Filter */}
+      {brands.length > 0 && (
+        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Tag size={15} className="text-primary" />
+            <span className="text-sm font-bold text-text-primary">Global Brand Filter</span>
+            <span className="text-xs text-text-muted">— sets all items at once, override per-item below</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleGlobalBrandChange('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                brandFilter === 'ALL'
+                  ? 'bg-primary text-white border-primary shadow-sm'
+                  : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+              }`}
+            >
+              All Brands
+            </button>
+            {brands.map(b => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => handleGlobalBrandChange(b.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                  brandFilter === b.id
+                    ? 'bg-primary text-white border-primary shadow-sm'
+                    : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                }`}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+          {brandFilter !== 'ALL' && (
+            <p className="text-[11px] text-primary font-semibold">
+              Showing only <strong>{brands.find(b => b.id === brandFilter)?.name}</strong> products · {products.filter(p => p.brand?.id === brandFilter).length} products available
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Accordion Form Cards Queue */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -990,29 +1050,33 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               </button>
                             </div>
                           </div>
-                          {/* Brand filter pills */}
+                          {/* Per-item brand override pills */}
                           <div className="flex flex-wrap gap-1.5 mt-1">
                             <button
                               type="button"
-                              onClick={() => setBrandFilter('ALL')}
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              onClick={() => updateItemField(idx, 'brandFilter', 'ALL')}
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${(item.brandFilter || 'ALL') === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
                             >All Brands</button>
                             {brands.map(b => (
                               <button
                                 key={b.id}
                                 type="button"
-                                onClick={() => setBrandFilter(b.id)}
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                                onClick={() => updateItemField(idx, 'brandFilter', b.id)}
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
                               >{b.name}</button>
                             ))}
                           </div>
                           <CustomSelect
                             options={products
-                              .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
-                              .map(p => ({ value: p.id, label: `${p.brand.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl }))}
+                              .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
+                              .map(p => ({ value: p.id, label: `${p.brand?.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl }))}
                             value={item.productId}
                             onChange={(val) => updateItemField(idx, 'productId', val)}
-                            placeholder="-- Select Product --"
+                            placeholder={
+                              (item.brandFilter || 'ALL') === 'ALL'
+                                ? '-- Select Product --'
+                                : `-- Select ${brands.find(b => b.id === item.brandFilter)?.name || ''} Product --`
+                            }
                             required
                           />
                         </div>
@@ -1468,7 +1532,6 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           <Plus size={16} />
           <span>Add Another Inbound Item</span>
         </button>
-
         {/* Action triggers */}
         <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-border">
           <Link href="/dashboard/inbound" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
@@ -1480,7 +1543,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             disabled={loading}
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
-            <span>Log Inbound Receive</span>
+            <span>{editMode ? 'Update Inbound Receive' : 'Log Inbound Receive'}</span>
           </button>
         </div>
       </form>
@@ -1607,7 +1670,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   );
 }
 
-export default function InboundClient({ products, recentReceivers, recentSuppliers, brands, stores, initialItems, initialSupplier }) {
+export default function InboundClient({ products, recentReceivers, recentSuppliers, brands, stores, initialItems, initialSupplier, editMode = false, existingDn = '' }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -1622,6 +1685,8 @@ export default function InboundClient({ products, recentReceivers, recentSupplie
         stores={stores}
         initialItems={initialItems}
         initialSupplier={initialSupplier}
+        editMode={editMode}
+        existingDn={existingDn}
       />
     </Suspense>
   );

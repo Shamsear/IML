@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createSupervisor, updateSupervisor, deleteSupervisor } from '@/app/actions/supervisors';
-import { UserCheck, Plus, Edit2, Trash2, Mail, Phone, Loader2, X } from 'lucide-react';
+import { UserCheck, Plus, Edit2, Trash2, Mail, Phone, Loader2, X, Search } from 'lucide-react';
 
 export default function SupervisorsClient({ initialSupervisors }) {
   const [supervisors, setSupervisors] = useState(initialSupervisors);
@@ -13,6 +13,13 @@ export default function SupervisorsClient({ initialSupervisors }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredSupervisors = supervisors.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.email && s.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (s.phone && s.phone.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const openAddModal = () => {
     setEditingSupervisor(null);
@@ -65,7 +72,10 @@ export default function SupervisorsClient({ initialSupervisors }) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <UserCheck size={250} />
+      </div>
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
@@ -155,16 +165,26 @@ export default function SupervisorsClient({ initialSupervisors }) {
           </div>
         )}
 
-        <div className="w-full">
-          {supervisors.length === 0 ? (
+        <div className="w-full flex flex-col gap-4">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search supervisors by name, email or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+            />
+          </div>
+          {filteredSupervisors.length === 0 ? (
             <div className="bg-surface border border-border rounded-xl p-16 text-center flex flex-col items-center gap-3 text-text-muted shadow-sm">
               <UserCheck size={48} />
-              <h3 className="font-display font-bold text-lg text-text-primary">No Supervisors Registered</h3>
-              <p className="text-sm max-w-xs">Click &quot;Add Supervisor&quot; to list your first team supervisor.</p>
+              <h3 className="font-display font-bold text-lg text-text-primary">{searchQuery ? 'No supervisors match your search' : 'No Supervisors Registered'}</h3>
+              <p className="text-sm max-w-xs">{searchQuery ? 'Try a different search term.' : 'Click "Add Supervisor" to list your first team supervisor.'}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {supervisors.map((supervisor) => (
+              {filteredSupervisors.map((supervisor) => (
                 <div 
                   className="bg-surface border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col gap-4 group cursor-pointer" 
                   key={supervisor.id}

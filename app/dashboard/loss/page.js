@@ -1,20 +1,19 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { ShieldAlert } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
-import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 
 export const metadata = {
-  title: 'Damage Ledger - Inventory System',
-  description: 'Review and log stock damages',
+  title: 'Loss Ledger - Inventory System',
+  description: 'Review and log stock losses and missing items',
 };
 
-export default async function DamagePage({ searchParams }) {
+export default async function LossPage({ searchParams }) {
   const params = await searchParams;
   const page = parseInt(params?.page || '1', 10);
   const pageSize = 25;
 
-  const whereClause = { transactionType: 'DAMAGE' };
+  const whereClause = { transactionType: 'LOST' };
 
   const [transactions, totalCount] = await Promise.all([
     prisma.inventoryTransaction.findMany({
@@ -60,20 +59,19 @@ export default async function DamagePage({ searchParams }) {
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
-            Damage Ledger
+            Loss Ledger
           </h1>
           <p className="text-text-secondary text-sm mt-1">
-            Logs of stock marked as physically damaged or written off.
+            Logs of stock reported as missing, stolen, or unaccounted for.
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <CopyDeliveryNoteButton type="damage" />
           <Link
-            href="/dashboard/damage/new"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            href="/dashboard/loss/new"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-warning hover:bg-warning/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
           >
-            <ShieldAlert size={15} />
-            <span>Report Damage</span>
+            <AlertCircle size={15} />
+            <span>Report Loss</span>
           </Link>
         </div>
       </header>
@@ -82,9 +80,9 @@ export default async function DamagePage({ searchParams }) {
       <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
         {transactions.length === 0 ? (
           <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted bg-surface">
-            <ShieldAlert size={48} className="text-text-muted" />
-            <h3 className="font-display font-bold text-lg text-text-primary">No damage reports logged</h3>
-            <p className="text-sm max-w-xs">Use the button above to report a damage.</p>
+            <AlertCircle size={48} className="text-text-muted" />
+            <h3 className="font-display font-bold text-lg text-text-primary">No loss reports logged</h3>
+            <p className="text-sm max-w-xs">Use the button above to report a missing or lost item.</p>
           </div>
         ) : (
           <>
@@ -120,7 +118,7 @@ export default async function DamagePage({ searchParams }) {
                         </div>
                       </td>
                       <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary">{sourceName}</td>
-                      <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-danger">
+                      <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-warning">
                         -{tx.quantity}
                       </td>
                       <td className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
@@ -143,11 +141,11 @@ export default async function DamagePage({ searchParams }) {
                 </span>
                 <div className="flex items-center gap-1.5">
                   <Link
-                    href={`/dashboard/damage?page=${Math.max(1, page - 1)}`}
+                    href={`/dashboard/loss?page=${Math.max(1, page - 1)}`}
                     className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}
                   >Previous</Link>
                   <Link
-                    href={`/dashboard/damage?page=${Math.min(totalPages, page + 1)}`}
+                    href={`/dashboard/loss?page=${Math.min(totalPages, page + 1)}`}
                     className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === totalPages ? 'pointer-events-none opacity-50' : ''}`}
                   >Next</Link>
                 </div>

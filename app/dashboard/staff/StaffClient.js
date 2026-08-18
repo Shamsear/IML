@@ -216,7 +216,10 @@ export default function StaffClient({ initialStaff, stores }) {
                         activeFilteredAllocations.every(a => selectedAllocIds.includes(a.id));
 
   return (
-    <div className="flex flex-col gap-6 font-sans">
+    <div className="flex flex-col gap-6 font-sans relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <Users size={250} />
+      </div>
       {/* Page Header */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
@@ -347,11 +350,11 @@ export default function StaffClient({ initialStaff, stores }) {
 
             {/* Filter Bar */}
             <div className="bg-surface border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-              <div className="flex items-center gap-2 bg-surface-elevated px-3 py-2 rounded-lg border border-border flex-1 max-w-sm">
-                <Search size={15} className="text-text-muted" />
+              <div className="relative flex-1 max-w-sm">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input 
                   type="text" 
-                  className="bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-muted w-full" 
+                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
                   placeholder="Search ledger by promoter, store, working period..." 
                   value={ledgerSearch} 
                   onChange={(e) => setLedgerSearch(e.target.value)} 
@@ -551,11 +554,11 @@ export default function StaffClient({ initialStaff, stores }) {
           <div className="flex flex-col gap-4">
             {/* Filter Bar */}
             <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-2 bg-surface-elevated px-3 py-2 rounded-lg border border-border flex-1 max-w-sm">
-                <Search size={15} className="text-text-muted" />
+              <div className="relative flex-1 max-w-sm">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input 
                   type="text" 
-                  className="bg-transparent border-none outline-none text-xs text-text-primary placeholder:text-text-muted w-full" 
+                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
                   placeholder="Search promoters by name, phone, store..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 

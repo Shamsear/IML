@@ -43,6 +43,7 @@ export type ProductMinAggregateOutputType = {
   imageUrl: string | null
   isReturnable: boolean | null
   isDisposable: boolean | null
+  trackExpiry: boolean | null
   isPublic: boolean | null
   isSerialized: boolean | null
   stockCap: number | null
@@ -59,6 +60,7 @@ export type ProductMaxAggregateOutputType = {
   imageUrl: string | null
   isReturnable: boolean | null
   isDisposable: boolean | null
+  trackExpiry: boolean | null
   isPublic: boolean | null
   isSerialized: boolean | null
   stockCap: number | null
@@ -75,6 +77,7 @@ export type ProductCountAggregateOutputType = {
   imageUrl: number
   isReturnable: number
   isDisposable: number
+  trackExpiry: number
   isPublic: number
   isSerialized: number
   stockCap: number
@@ -101,6 +104,7 @@ export type ProductMinAggregateInputType = {
   imageUrl?: true
   isReturnable?: true
   isDisposable?: true
+  trackExpiry?: true
   isPublic?: true
   isSerialized?: true
   stockCap?: true
@@ -117,6 +121,7 @@ export type ProductMaxAggregateInputType = {
   imageUrl?: true
   isReturnable?: true
   isDisposable?: true
+  trackExpiry?: true
   isPublic?: true
   isSerialized?: true
   stockCap?: true
@@ -133,6 +138,7 @@ export type ProductCountAggregateInputType = {
   imageUrl?: true
   isReturnable?: true
   isDisposable?: true
+  trackExpiry?: true
   isPublic?: true
   isSerialized?: true
   stockCap?: true
@@ -236,6 +242,7 @@ export type ProductGroupByOutputType = {
   imageUrl: string | null
   isReturnable: boolean
   isDisposable: boolean
+  trackExpiry: boolean
   isPublic: boolean
   isSerialized: boolean
   stockCap: number | null
@@ -275,6 +282,7 @@ export type ProductWhereInput = {
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   isReturnable?: Prisma.BoolFilter<"Product"> | boolean
   isDisposable?: Prisma.BoolFilter<"Product"> | boolean
+  trackExpiry?: Prisma.BoolFilter<"Product"> | boolean
   isPublic?: Prisma.BoolFilter<"Product"> | boolean
   isSerialized?: Prisma.BoolFilter<"Product"> | boolean
   stockCap?: Prisma.IntNullableFilter<"Product"> | number | null
@@ -294,6 +302,7 @@ export type ProductOrderByWithRelationInput = {
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
+  trackExpiry?: Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   isSerialized?: Prisma.SortOrder
   stockCap?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -316,6 +325,7 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   isReturnable?: Prisma.BoolFilter<"Product"> | boolean
   isDisposable?: Prisma.BoolFilter<"Product"> | boolean
+  trackExpiry?: Prisma.BoolFilter<"Product"> | boolean
   isPublic?: Prisma.BoolFilter<"Product"> | boolean
   isSerialized?: Prisma.BoolFilter<"Product"> | boolean
   stockCap?: Prisma.IntNullableFilter<"Product"> | number | null
@@ -335,6 +345,7 @@ export type ProductOrderByWithAggregationInput = {
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
+  trackExpiry?: Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   isSerialized?: Prisma.SortOrder
   stockCap?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -359,6 +370,7 @@ export type ProductScalarWhereWithAggregatesInput = {
   imageUrl?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   isReturnable?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   isDisposable?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
+  trackExpiry?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   isPublic?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   isSerialized?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   stockCap?: Prisma.IntNullableWithAggregatesFilter<"Product"> | number | null
@@ -374,6 +386,7 @@ export type ProductCreateInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -393,6 +406,7 @@ export type ProductUncheckedCreateInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -410,6 +424,7 @@ export type ProductUpdateInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -429,6 +444,7 @@ export type ProductUncheckedUpdateInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -447,6 +463,7 @@ export type ProductCreateManyInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -462,6 +479,7 @@ export type ProductUpdateManyMutationInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -478,6 +496,7 @@ export type ProductUncheckedUpdateManyInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -504,6 +523,7 @@ export type ProductCountOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
+  trackExpiry?: Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   isSerialized?: Prisma.SortOrder
   stockCap?: Prisma.SortOrder
@@ -524,6 +544,7 @@ export type ProductMaxOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
+  trackExpiry?: Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   isSerialized?: Prisma.SortOrder
   stockCap?: Prisma.SortOrder
@@ -540,6 +561,7 @@ export type ProductMinOrderByAggregateInput = {
   imageUrl?: Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
+  trackExpiry?: Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   isSerialized?: Prisma.SortOrder
   stockCap?: Prisma.SortOrder
@@ -642,6 +664,7 @@ export type ProductCreateWithoutBrandInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -659,6 +682,7 @@ export type ProductUncheckedCreateWithoutBrandInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -706,6 +730,7 @@ export type ProductScalarWhereInput = {
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   isReturnable?: Prisma.BoolFilter<"Product"> | boolean
   isDisposable?: Prisma.BoolFilter<"Product"> | boolean
+  trackExpiry?: Prisma.BoolFilter<"Product"> | boolean
   isPublic?: Prisma.BoolFilter<"Product"> | boolean
   isSerialized?: Prisma.BoolFilter<"Product"> | boolean
   stockCap?: Prisma.IntNullableFilter<"Product"> | number | null
@@ -721,6 +746,7 @@ export type ProductCreateWithoutSerialNumbersInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -739,6 +765,7 @@ export type ProductUncheckedCreateWithoutSerialNumbersInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -771,6 +798,7 @@ export type ProductUpdateWithoutSerialNumbersInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -789,6 +817,7 @@ export type ProductUncheckedUpdateWithoutSerialNumbersInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -805,6 +834,7 @@ export type ProductCreateWithoutTransactionsInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -823,6 +853,7 @@ export type ProductUncheckedCreateWithoutTransactionsInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -855,6 +886,7 @@ export type ProductUpdateWithoutTransactionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -873,6 +905,7 @@ export type ProductUncheckedUpdateWithoutTransactionsInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -889,6 +922,7 @@ export type ProductCreateManyBrandInput = {
   imageUrl?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: number | null
@@ -904,6 +938,7 @@ export type ProductUpdateWithoutBrandInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -921,6 +956,7 @@ export type ProductUncheckedUpdateWithoutBrandInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -938,6 +974,7 @@ export type ProductUncheckedUpdateManyWithoutBrandInput = {
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isSerialized?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stockCap?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -994,6 +1031,7 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   imageUrl?: boolean
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: boolean
@@ -1014,6 +1052,7 @@ export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   imageUrl?: boolean
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: boolean
@@ -1031,6 +1070,7 @@ export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   imageUrl?: boolean
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: boolean
@@ -1048,6 +1088,7 @@ export type ProductSelectScalar = {
   imageUrl?: boolean
   isReturnable?: boolean
   isDisposable?: boolean
+  trackExpiry?: boolean
   isPublic?: boolean
   isSerialized?: boolean
   stockCap?: boolean
@@ -1055,7 +1096,7 @@ export type ProductSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "itemCode" | "name" | "category" | "imageUrl" | "isReturnable" | "isDisposable" | "isPublic" | "isSerialized" | "stockCap" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "itemCode" | "name" | "category" | "imageUrl" | "isReturnable" | "isDisposable" | "trackExpiry" | "isPublic" | "isSerialized" | "stockCap" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
 export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   transactions?: boolean | Prisma.Product$transactionsArgs<ExtArgs>
@@ -1085,6 +1126,7 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     imageUrl: string | null
     isReturnable: boolean
     isDisposable: boolean
+    trackExpiry: boolean
     isPublic: boolean
     isSerialized: boolean
     stockCap: number | null
@@ -1524,6 +1566,7 @@ export interface ProductFieldRefs {
   readonly imageUrl: Prisma.FieldRef<"Product", 'String'>
   readonly isReturnable: Prisma.FieldRef<"Product", 'Boolean'>
   readonly isDisposable: Prisma.FieldRef<"Product", 'Boolean'>
+  readonly trackExpiry: Prisma.FieldRef<"Product", 'Boolean'>
   readonly isPublic: Prisma.FieldRef<"Product", 'Boolean'>
   readonly isSerialized: Prisma.FieldRef<"Product", 'Boolean'>
   readonly stockCap: Prisma.FieldRef<"Product", 'Int'>

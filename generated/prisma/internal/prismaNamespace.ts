@@ -1393,6 +1393,7 @@ export const ProductScalarFieldEnum = {
   imageUrl: 'imageUrl',
   isReturnable: 'isReturnable',
   isDisposable: 'isDisposable',
+  trackExpiry: 'trackExpiry',
   isPublic: 'isPublic',
   isSerialized: 'isSerialized',
   stockCap: 'stockCap',
@@ -1470,6 +1471,8 @@ export const ProductSerialNumberScalarFieldEnum = {
   currentLocationType: 'currentLocationType',
   currentLocationId: 'currentLocationId',
   status: 'status',
+  manufactureDate: 'manufactureDate',
+  expiryDate: 'expiryDate',
   replacesId: 'replacesId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1491,9 +1494,12 @@ export const InventoryTransactionScalarFieldEnum = {
   deliveryStatus: 'deliveryStatus',
   notes: 'notes',
   receivedBy: 'receivedBy',
+  deliverySupervisorId: 'deliverySupervisorId',
   returnStatus: 'returnStatus',
   returnedQty: 'returnedQty',
   returnNotes: 'returnNotes',
+  manufactureDate: 'manufactureDate',
+  expiryDate: 'expiryDate',
   timestamp: 'timestamp'
 } as const
 

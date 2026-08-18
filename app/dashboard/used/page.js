@@ -1,18 +1,18 @@
 import { prisma } from '@/lib/prisma';
-import ReturnsClient from './ReturnsClient';
+import UsedClient from './UsedClient';
 import { Suspense } from 'react';
 
 export const metadata = {
-  title: 'Returns Hub',
+  title: 'Mark as Used / Consumed',
 };
 
-export default async function ReturnsPage() {
+export default async function UsedPage() {
   const [rawTransactions, stores] = await Promise.all([
     prisma.inventoryTransaction.findMany({
       where: {
         transactionType: { in: ['ISSUE', 'OUTBOUND'] },
         returnStatus: { notIn: ['RETURNED', 'USED'] },
-        product: { isReturnable: true },
+        product: { isDisposable: true },
       },
       include: {
         product: { select: { id: true, name: true, isReturnable: true, isDisposable: true, isSerialized: true } }
@@ -25,9 +25,8 @@ export default async function ReturnsPage() {
   const transactions = rawTransactions.filter(t => (t.quantity - (t.returnedQty || 0)) > 0);
 
   return (
-    <Suspense fallback={<div>Loading Returns...</div>}>
-      <ReturnsClient transactions={transactions} stores={stores} />
+    <Suspense fallback={<div>Loading...</div>}>
+      <UsedClient transactions={transactions} stores={stores} />
     </Suspense>
   );
 }
-

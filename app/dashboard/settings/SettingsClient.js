@@ -70,7 +70,10 @@ export default function SettingsClient({ config, user }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans">
+    <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <Settings size={250} />
+      </div>
       <header className="pb-5 border-b border-border">
         <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
           System Control &amp; Settings

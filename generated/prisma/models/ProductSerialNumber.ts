@@ -32,6 +32,8 @@ export type ProductSerialNumberMinAggregateOutputType = {
   currentLocationType: string | null
   currentLocationId: string | null
   status: string | null
+  manufactureDate: Date | null
+  expiryDate: Date | null
   replacesId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -45,6 +47,8 @@ export type ProductSerialNumberMaxAggregateOutputType = {
   currentLocationType: string | null
   currentLocationId: string | null
   status: string | null
+  manufactureDate: Date | null
+  expiryDate: Date | null
   replacesId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -58,6 +62,8 @@ export type ProductSerialNumberCountAggregateOutputType = {
   currentLocationType: number
   currentLocationId: number
   status: number
+  manufactureDate: number
+  expiryDate: number
   replacesId: number
   createdAt: number
   updatedAt: number
@@ -73,6 +79,8 @@ export type ProductSerialNumberMinAggregateInputType = {
   currentLocationType?: true
   currentLocationId?: true
   status?: true
+  manufactureDate?: true
+  expiryDate?: true
   replacesId?: true
   createdAt?: true
   updatedAt?: true
@@ -86,6 +94,8 @@ export type ProductSerialNumberMaxAggregateInputType = {
   currentLocationType?: true
   currentLocationId?: true
   status?: true
+  manufactureDate?: true
+  expiryDate?: true
   replacesId?: true
   createdAt?: true
   updatedAt?: true
@@ -99,6 +109,8 @@ export type ProductSerialNumberCountAggregateInputType = {
   currentLocationType?: true
   currentLocationId?: true
   status?: true
+  manufactureDate?: true
+  expiryDate?: true
   replacesId?: true
   createdAt?: true
   updatedAt?: true
@@ -185,6 +197,8 @@ export type ProductSerialNumberGroupByOutputType = {
   currentLocationType: string | null
   currentLocationId: string | null
   status: string
+  manufactureDate: Date | null
+  expiryDate: Date | null
   replacesId: string | null
   createdAt: Date
   updatedAt: Date
@@ -219,6 +233,8 @@ export type ProductSerialNumberWhereInput = {
   currentLocationType?: Prisma.StringNullableFilter<"ProductSerialNumber"> | string | null
   currentLocationId?: Prisma.StringNullableFilter<"ProductSerialNumber"> | string | null
   status?: Prisma.StringFilter<"ProductSerialNumber"> | string
+  manufactureDate?: Prisma.DateTimeNullableFilter<"ProductSerialNumber"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableFilter<"ProductSerialNumber"> | Date | string | null
   replacesId?: Prisma.StringNullableFilter<"ProductSerialNumber"> | string | null
   createdAt?: Prisma.DateTimeFilter<"ProductSerialNumber"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProductSerialNumber"> | Date | string
@@ -236,6 +252,8 @@ export type ProductSerialNumberOrderByWithRelationInput = {
   currentLocationType?: Prisma.SortOrderInput | Prisma.SortOrder
   currentLocationId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  expiryDate?: Prisma.SortOrderInput | Prisma.SortOrder
   replacesId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -257,6 +275,8 @@ export type ProductSerialNumberWhereUniqueInput = Prisma.AtLeast<{
   currentLocationType?: Prisma.StringNullableFilter<"ProductSerialNumber"> | string | null
   currentLocationId?: Prisma.StringNullableFilter<"ProductSerialNumber"> | string | null
   status?: Prisma.StringFilter<"ProductSerialNumber"> | string
+  manufactureDate?: Prisma.DateTimeNullableFilter<"ProductSerialNumber"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableFilter<"ProductSerialNumber"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ProductSerialNumber"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProductSerialNumber"> | Date | string
   replaces?: Prisma.XOR<Prisma.ProductSerialNumberNullableScalarRelationFilter, Prisma.ProductSerialNumberWhereInput> | null
@@ -273,6 +293,8 @@ export type ProductSerialNumberOrderByWithAggregationInput = {
   currentLocationType?: Prisma.SortOrderInput | Prisma.SortOrder
   currentLocationId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  expiryDate?: Prisma.SortOrderInput | Prisma.SortOrder
   replacesId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -292,6 +314,8 @@ export type ProductSerialNumberScalarWhereWithAggregatesInput = {
   currentLocationType?: Prisma.StringNullableWithAggregatesFilter<"ProductSerialNumber"> | string | null
   currentLocationId?: Prisma.StringNullableWithAggregatesFilter<"ProductSerialNumber"> | string | null
   status?: Prisma.StringWithAggregatesFilter<"ProductSerialNumber"> | string
+  manufactureDate?: Prisma.DateTimeNullableWithAggregatesFilter<"ProductSerialNumber"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableWithAggregatesFilter<"ProductSerialNumber"> | Date | string | null
   replacesId?: Prisma.StringNullableWithAggregatesFilter<"ProductSerialNumber"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ProductSerialNumber"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ProductSerialNumber"> | Date | string
@@ -304,6 +328,8 @@ export type ProductSerialNumberCreateInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   replaces?: Prisma.ProductSerialNumberCreateNestedOneWithoutReplacedByInput
@@ -320,6 +346,8 @@ export type ProductSerialNumberUncheckedCreateInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   replacesId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -334,6 +362,8 @@ export type ProductSerialNumberUpdateInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   replaces?: Prisma.ProductSerialNumberUpdateOneWithoutReplacedByNestedInput
@@ -350,6 +380,8 @@ export type ProductSerialNumberUncheckedUpdateInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   replacesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -365,6 +397,8 @@ export type ProductSerialNumberCreateManyInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   replacesId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -377,6 +411,8 @@ export type ProductSerialNumberUpdateManyMutationInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -389,6 +425,8 @@ export type ProductSerialNumberUncheckedUpdateManyInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   replacesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -417,6 +455,8 @@ export type ProductSerialNumberCountOrderByAggregateInput = {
   currentLocationType?: Prisma.SortOrder
   currentLocationId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
   replacesId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -430,6 +470,8 @@ export type ProductSerialNumberMaxOrderByAggregateInput = {
   currentLocationType?: Prisma.SortOrder
   currentLocationId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
   replacesId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -443,6 +485,8 @@ export type ProductSerialNumberMinOrderByAggregateInput = {
   currentLocationType?: Prisma.SortOrder
   currentLocationId?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
   replacesId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -564,6 +608,8 @@ export type ProductSerialNumberCreateWithoutProductInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   replaces?: Prisma.ProductSerialNumberCreateNestedOneWithoutReplacedByInput
@@ -578,6 +624,8 @@ export type ProductSerialNumberUncheckedCreateWithoutProductInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   replacesId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -622,6 +670,8 @@ export type ProductSerialNumberScalarWhereInput = {
   currentLocationType?: Prisma.StringNullableFilter<"ProductSerialNumber"> | string | null
   currentLocationId?: Prisma.StringNullableFilter<"ProductSerialNumber"> | string | null
   status?: Prisma.StringFilter<"ProductSerialNumber"> | string
+  manufactureDate?: Prisma.DateTimeNullableFilter<"ProductSerialNumber"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableFilter<"ProductSerialNumber"> | Date | string | null
   replacesId?: Prisma.StringNullableFilter<"ProductSerialNumber"> | string | null
   createdAt?: Prisma.DateTimeFilter<"ProductSerialNumber"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ProductSerialNumber"> | Date | string
@@ -634,6 +684,8 @@ export type ProductSerialNumberCreateWithoutReplacedByInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   replaces?: Prisma.ProductSerialNumberCreateNestedOneWithoutReplacedByInput
@@ -649,6 +701,8 @@ export type ProductSerialNumberUncheckedCreateWithoutReplacedByInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   replacesId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -667,6 +721,8 @@ export type ProductSerialNumberCreateWithoutReplacesInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   replacedBy?: Prisma.ProductSerialNumberCreateNestedOneWithoutReplacesInput
@@ -682,6 +738,8 @@ export type ProductSerialNumberUncheckedCreateWithoutReplacesInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   replacedBy?: Prisma.ProductSerialNumberUncheckedCreateNestedOneWithoutReplacesInput
@@ -711,6 +769,8 @@ export type ProductSerialNumberUpdateWithoutReplacedByInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   replaces?: Prisma.ProductSerialNumberUpdateOneWithoutReplacedByNestedInput
@@ -726,6 +786,8 @@ export type ProductSerialNumberUncheckedUpdateWithoutReplacedByInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   replacesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -750,6 +812,8 @@ export type ProductSerialNumberUpdateWithoutReplacesInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   replacedBy?: Prisma.ProductSerialNumberUpdateOneWithoutReplacesNestedInput
@@ -765,6 +829,8 @@ export type ProductSerialNumberUncheckedUpdateWithoutReplacesInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   replacedBy?: Prisma.ProductSerialNumberUncheckedUpdateOneWithoutReplacesNestedInput
@@ -778,6 +844,8 @@ export type ProductSerialNumberCreateWithoutTransactionsInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   replaces?: Prisma.ProductSerialNumberCreateNestedOneWithoutReplacedByInput
@@ -793,6 +861,8 @@ export type ProductSerialNumberUncheckedCreateWithoutTransactionsInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   replacesId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -822,6 +892,8 @@ export type ProductSerialNumberUpdateWithoutTransactionsInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   replaces?: Prisma.ProductSerialNumberUpdateOneWithoutReplacedByNestedInput
@@ -837,6 +909,8 @@ export type ProductSerialNumberUncheckedUpdateWithoutTransactionsInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   replacesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -850,6 +924,8 @@ export type ProductSerialNumberCreateManyProductInput = {
   currentLocationType?: string | null
   currentLocationId?: string | null
   status?: string
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   replacesId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -862,6 +938,8 @@ export type ProductSerialNumberUpdateWithoutProductInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   replaces?: Prisma.ProductSerialNumberUpdateOneWithoutReplacedByNestedInput
@@ -876,6 +954,8 @@ export type ProductSerialNumberUncheckedUpdateWithoutProductInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   replacesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -890,6 +970,8 @@ export type ProductSerialNumberUncheckedUpdateManyWithoutProductInput = {
   currentLocationType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentLocationId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   replacesId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -934,6 +1016,8 @@ export type ProductSerialNumberSelect<ExtArgs extends runtime.Types.Extensions.I
   currentLocationType?: boolean
   currentLocationId?: boolean
   status?: boolean
+  manufactureDate?: boolean
+  expiryDate?: boolean
   replacesId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -952,6 +1036,8 @@ export type ProductSerialNumberSelectCreateManyAndReturn<ExtArgs extends runtime
   currentLocationType?: boolean
   currentLocationId?: boolean
   status?: boolean
+  manufactureDate?: boolean
+  expiryDate?: boolean
   replacesId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -967,6 +1053,8 @@ export type ProductSerialNumberSelectUpdateManyAndReturn<ExtArgs extends runtime
   currentLocationType?: boolean
   currentLocationId?: boolean
   status?: boolean
+  manufactureDate?: boolean
+  expiryDate?: boolean
   replacesId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -982,12 +1070,14 @@ export type ProductSerialNumberSelectScalar = {
   currentLocationType?: boolean
   currentLocationId?: boolean
   status?: boolean
+  manufactureDate?: boolean
+  expiryDate?: boolean
   replacesId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ProductSerialNumberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "barcode" | "secondaryBarcode" | "currentLocationType" | "currentLocationId" | "status" | "replacesId" | "createdAt" | "updatedAt", ExtArgs["result"]["productSerialNumber"]>
+export type ProductSerialNumberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "barcode" | "secondaryBarcode" | "currentLocationType" | "currentLocationId" | "status" | "manufactureDate" | "expiryDate" | "replacesId" | "createdAt" | "updatedAt", ExtArgs["result"]["productSerialNumber"]>
 export type ProductSerialNumberInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   replaces?: boolean | Prisma.ProductSerialNumber$replacesArgs<ExtArgs>
   replacedBy?: boolean | Prisma.ProductSerialNumber$replacedByArgs<ExtArgs>
@@ -1020,6 +1110,8 @@ export type $ProductSerialNumberPayload<ExtArgs extends runtime.Types.Extensions
     currentLocationType: string | null
     currentLocationId: string | null
     status: string
+    manufactureDate: Date | null
+    expiryDate: Date | null
     replacesId: string | null
     createdAt: Date
     updatedAt: Date
@@ -1457,6 +1549,8 @@ export interface ProductSerialNumberFieldRefs {
   readonly currentLocationType: Prisma.FieldRef<"ProductSerialNumber", 'String'>
   readonly currentLocationId: Prisma.FieldRef<"ProductSerialNumber", 'String'>
   readonly status: Prisma.FieldRef<"ProductSerialNumber", 'String'>
+  readonly manufactureDate: Prisma.FieldRef<"ProductSerialNumber", 'DateTime'>
+  readonly expiryDate: Prisma.FieldRef<"ProductSerialNumber", 'DateTime'>
   readonly replacesId: Prisma.FieldRef<"ProductSerialNumber", 'String'>
   readonly createdAt: Prisma.FieldRef<"ProductSerialNumber", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ProductSerialNumber", 'DateTime'>

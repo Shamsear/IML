@@ -376,7 +376,10 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <Package size={250} />
+      </div>
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">

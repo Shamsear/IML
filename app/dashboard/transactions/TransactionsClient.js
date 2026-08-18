@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { 
   History, ArrowDownLeft, ArrowUpRight, ShieldAlert, RefreshCw, 
-  ClipboardList, Calendar, FileText, User, Store, UserCheck, Package
+  ClipboardList, Calendar, FileText, User, Store, UserCheck, Package, Search
 } from 'lucide-react';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
@@ -15,6 +15,7 @@ export default function TransactionsClient({
   const [transactions] = useState(initialTransactions);
   const [filterType, setFilterType] = useState('ALL');
   const [filterProduct, setFilterProduct] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
@@ -24,14 +25,23 @@ export default function TransactionsClient({
   const filteredTransactions = transactions.filter(tx => {
     const matchesType = filterType === 'ALL' || tx.transactionType === filterType;
     const matchesProduct = filterProduct === 'ALL' || tx.productId === filterProduct;
-    return matchesType && matchesProduct;
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !q ||
+      tx.product?.name?.toLowerCase().includes(q) ||
+      (tx.deliveryNote && tx.deliveryNote.toLowerCase().includes(q)) ||
+      (tx.toEntityId && tx.toEntityId.toLowerCase().includes(q)) ||
+      (tx.fromEntityId && tx.fromEntityId.toLowerCase().includes(q));
+    return matchesType && matchesProduct && matchesSearch;
   });
 
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const paginatedTransactions = filteredTransactions.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <History size={250} />
+      </div>
       {/* Header */}
       <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 pb-5 border-b border-border">
         <div>
@@ -95,6 +105,17 @@ export default function TransactionsClient({
               onChange={(val) => { setFilterProduct(val); setCurrentPage(0); }}
               size="sm"
               className="w-[200px]"
+            />
+          </div>
+
+          <div className="relative flex-1 max-w-xs ml-auto">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search product, delivery note..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(0); }}
+              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
         </div>

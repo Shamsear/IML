@@ -2,14 +2,24 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowDownLeft, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPlus, Loader2 } from 'lucide-react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { ArrowDownLeft, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPlus, Loader2, Edit2 } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function InboundLedgerClient({ transactions, totalCount, totalPages, page, entityNames }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' | 'delivery_notes'
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'transactions');
+
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   const [pdfLoadingKey, setPdfLoadingKey] = useState(null);
 
   // Filters for Transactions Tab
@@ -30,14 +40,14 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
   };
 
   // Derive unique brands from transactions
-  const brands = useMemo(() => {
+  const brandOptions = useMemo(() => {
     const map = {};
     (transactions || []).forEach(tx => {
       if (tx.product?.brandId && tx.product?.brand?.name) {
         map[tx.product.brandId] = tx.product.brand.name;
       }
     });
-    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return [{ value: '', label: 'All Brands' }, ...Object.entries(map).map(([id, name]) => ({ value: id, label: name })).sort((a, b) => a.label.localeCompare(b.label))];
   }, [transactions]);
 
   // Group by Delivery Note + Source Entity ID
@@ -81,8 +91,11 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
   );
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
+    <div className="flex flex-col gap-6 relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <ArrowDownLeft size={250} />
+      </div>
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Inbound Stock Receipts
@@ -91,11 +104,11 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
             Audit logs of all incoming stock received at the warehouse.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <CopyDeliveryNoteButton type="inbound" />
           <Link 
             href="/dashboard/inbound/new" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
           >
             <Plus size={16} />
             <span>New Inbound Receipt</span>
@@ -107,13 +120,13 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
       <div className="flex items-center gap-2 border-b border-border">
         <button
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'transactions' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'}`}
-          onClick={() => setActiveTab('transactions')}
+          onClick={() => changeTab('transactions')}
         >
           Transactions Ledger
         </button>
         <button
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'delivery_notes' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'}`}
-          onClick={() => setActiveTab('delivery_notes')}
+          onClick={() => changeTab('delivery_notes')}
         >
           Grouped Delivery Notes
         </button>
@@ -122,28 +135,24 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
       {activeTab === 'transactions' && (
         <div className="flex flex-col gap-4 animate-fade-in">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 bg-surface p-4 rounded-xl border border-border shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-3 bg-surface p-4 rounded-xl border border-border shadow-sm">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input
                 type="text"
-                placeholder="Filter by Product Name..."
-                className="w-full pl-9 pr-4 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors"
+                placeholder="Search by product name..."
+                className="w-full pl-9 pr-4 py-2.5 bg-surface text-text-primary border border-border rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 value={productFilter}
                 onChange={e => setProductFilter(e.target.value)}
               />
             </div>
             <div className="flex-1">
-              <select
-                className="w-full px-3 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors text-text-primary"
+              <CustomSelect
+                options={brandOptions}
                 value={brandId}
-                onChange={e => setBrandId(e.target.value)}
-              >
-                <option value="">All Brands</option>
-                {brands.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
+                onChange={setBrandId}
+                placeholder="All Brands"
+              />
             </div>
           </div>
 
@@ -293,6 +302,16 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/inbound/${encodeURIComponent(group.deliveryNote)}/edit`);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors"
+                        >
+                          <Edit2 size={14} />
+                          <span>Edit</span>
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

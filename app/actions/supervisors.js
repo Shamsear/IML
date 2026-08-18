@@ -31,7 +31,7 @@ export async function createSupervisor(formData) {
 
   const id = await generateId('supervisor', 'SUPR', 3);
 
-  await prisma.supervisor.create({
+  const supervisor = await prisma.supervisor.create({
     data: {
       id,
       name,
@@ -41,6 +41,7 @@ export async function createSupervisor(formData) {
   });
 
   revalidatePath('/dashboard/supervisors');
+  return supervisor;
 }
 
 export async function updateSupervisor(id, formData) {

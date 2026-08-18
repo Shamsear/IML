@@ -23,6 +23,7 @@ export default async function NewDamagePage({ searchParams }) {
       products={products} 
       brands={brands} 
       initialItems={initialItems.length > 0 ? initialItems : null}
+      lockedType="DAMAGE"
     />
   );
 }

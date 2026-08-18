@@ -49,9 +49,12 @@ export type InventoryTransactionMinAggregateOutputType = {
   deliveryStatus: string | null
   notes: string | null
   receivedBy: string | null
+  deliverySupervisorId: string | null
   returnStatus: string | null
   returnedQty: number | null
   returnNotes: string | null
+  manufactureDate: Date | null
+  expiryDate: Date | null
   timestamp: Date | null
 }
 
@@ -68,9 +71,12 @@ export type InventoryTransactionMaxAggregateOutputType = {
   deliveryStatus: string | null
   notes: string | null
   receivedBy: string | null
+  deliverySupervisorId: string | null
   returnStatus: string | null
   returnedQty: number | null
   returnNotes: string | null
+  manufactureDate: Date | null
+  expiryDate: Date | null
   timestamp: Date | null
 }
 
@@ -87,9 +93,12 @@ export type InventoryTransactionCountAggregateOutputType = {
   deliveryStatus: number
   notes: number
   receivedBy: number
+  deliverySupervisorId: number
   returnStatus: number
   returnedQty: number
   returnNotes: number
+  manufactureDate: number
+  expiryDate: number
   timestamp: number
   _all: number
 }
@@ -118,9 +127,12 @@ export type InventoryTransactionMinAggregateInputType = {
   deliveryStatus?: true
   notes?: true
   receivedBy?: true
+  deliverySupervisorId?: true
   returnStatus?: true
   returnedQty?: true
   returnNotes?: true
+  manufactureDate?: true
+  expiryDate?: true
   timestamp?: true
 }
 
@@ -137,9 +149,12 @@ export type InventoryTransactionMaxAggregateInputType = {
   deliveryStatus?: true
   notes?: true
   receivedBy?: true
+  deliverySupervisorId?: true
   returnStatus?: true
   returnedQty?: true
   returnNotes?: true
+  manufactureDate?: true
+  expiryDate?: true
   timestamp?: true
 }
 
@@ -156,9 +171,12 @@ export type InventoryTransactionCountAggregateInputType = {
   deliveryStatus?: true
   notes?: true
   receivedBy?: true
+  deliverySupervisorId?: true
   returnStatus?: true
   returnedQty?: true
   returnNotes?: true
+  manufactureDate?: true
+  expiryDate?: true
   timestamp?: true
   _all?: true
 }
@@ -262,9 +280,12 @@ export type InventoryTransactionGroupByOutputType = {
   deliveryStatus: string | null
   notes: string | null
   receivedBy: string | null
+  deliverySupervisorId: string | null
   returnStatus: string | null
   returnedQty: number
   returnNotes: string | null
+  manufactureDate: Date | null
+  expiryDate: Date | null
   timestamp: Date
   _count: InventoryTransactionCountAggregateOutputType | null
   _avg: InventoryTransactionAvgAggregateOutputType | null
@@ -304,10 +325,14 @@ export type InventoryTransactionWhereInput = {
   deliveryStatus?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   notes?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   receivedBy?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
+  deliverySupervisorId?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   returnStatus?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   returnedQty?: Prisma.IntFilter<"InventoryTransaction"> | number
   returnNotes?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
+  manufactureDate?: Prisma.DateTimeNullableFilter<"InventoryTransaction"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableFilter<"InventoryTransaction"> | Date | string | null
   timestamp?: Prisma.DateTimeFilter<"InventoryTransaction"> | Date | string
+  deliverySupervisor?: Prisma.XOR<Prisma.SupervisorNullableScalarRelationFilter, Prisma.SupervisorWhereInput> | null
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
   serialNumbers?: Prisma.TransactionSerialNumberListRelationFilter
 }
@@ -325,10 +350,14 @@ export type InventoryTransactionOrderByWithRelationInput = {
   deliveryStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   receivedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  deliverySupervisorId?: Prisma.SortOrderInput | Prisma.SortOrder
   returnStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   returnedQty?: Prisma.SortOrder
   returnNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  expiryDate?: Prisma.SortOrderInput | Prisma.SortOrder
   timestamp?: Prisma.SortOrder
+  deliverySupervisor?: Prisma.SupervisorOrderByWithRelationInput
   product?: Prisma.ProductOrderByWithRelationInput
   serialNumbers?: Prisma.TransactionSerialNumberOrderByRelationAggregateInput
 }
@@ -349,10 +378,14 @@ export type InventoryTransactionWhereUniqueInput = Prisma.AtLeast<{
   deliveryStatus?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   notes?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   receivedBy?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
+  deliverySupervisorId?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   returnStatus?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   returnedQty?: Prisma.IntFilter<"InventoryTransaction"> | number
   returnNotes?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
+  manufactureDate?: Prisma.DateTimeNullableFilter<"InventoryTransaction"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableFilter<"InventoryTransaction"> | Date | string | null
   timestamp?: Prisma.DateTimeFilter<"InventoryTransaction"> | Date | string
+  deliverySupervisor?: Prisma.XOR<Prisma.SupervisorNullableScalarRelationFilter, Prisma.SupervisorWhereInput> | null
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
   serialNumbers?: Prisma.TransactionSerialNumberListRelationFilter
 }, "id">
@@ -370,9 +403,12 @@ export type InventoryTransactionOrderByWithAggregationInput = {
   deliveryStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   receivedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  deliverySupervisorId?: Prisma.SortOrderInput | Prisma.SortOrder
   returnStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   returnedQty?: Prisma.SortOrder
   returnNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  expiryDate?: Prisma.SortOrderInput | Prisma.SortOrder
   timestamp?: Prisma.SortOrder
   _count?: Prisma.InventoryTransactionCountOrderByAggregateInput
   _avg?: Prisma.InventoryTransactionAvgOrderByAggregateInput
@@ -397,9 +433,12 @@ export type InventoryTransactionScalarWhereWithAggregatesInput = {
   deliveryStatus?: Prisma.StringNullableWithAggregatesFilter<"InventoryTransaction"> | string | null
   notes?: Prisma.StringNullableWithAggregatesFilter<"InventoryTransaction"> | string | null
   receivedBy?: Prisma.StringNullableWithAggregatesFilter<"InventoryTransaction"> | string | null
+  deliverySupervisorId?: Prisma.StringNullableWithAggregatesFilter<"InventoryTransaction"> | string | null
   returnStatus?: Prisma.StringNullableWithAggregatesFilter<"InventoryTransaction"> | string | null
   returnedQty?: Prisma.IntWithAggregatesFilter<"InventoryTransaction"> | number
   returnNotes?: Prisma.StringNullableWithAggregatesFilter<"InventoryTransaction"> | string | null
+  manufactureDate?: Prisma.DateTimeNullableWithAggregatesFilter<"InventoryTransaction"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableWithAggregatesFilter<"InventoryTransaction"> | Date | string | null
   timestamp?: Prisma.DateTimeWithAggregatesFilter<"InventoryTransaction"> | Date | string
 }
 
@@ -418,7 +457,10 @@ export type InventoryTransactionCreateInput = {
   returnStatus?: string | null
   returnedQty?: number
   returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   timestamp?: Date | string
+  deliverySupervisor?: Prisma.SupervisorCreateNestedOneWithoutDeliveriesInput
   product: Prisma.ProductCreateNestedOneWithoutTransactionsInput
   serialNumbers?: Prisma.TransactionSerialNumberCreateNestedManyWithoutTransactionInput
 }
@@ -436,9 +478,12 @@ export type InventoryTransactionUncheckedCreateInput = {
   deliveryStatus?: string | null
   notes?: string | null
   receivedBy?: string | null
+  deliverySupervisorId?: string | null
   returnStatus?: string | null
   returnedQty?: number
   returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   timestamp?: Date | string
   serialNumbers?: Prisma.TransactionSerialNumberUncheckedCreateNestedManyWithoutTransactionInput
 }
@@ -458,7 +503,10 @@ export type InventoryTransactionUpdateInput = {
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliverySupervisor?: Prisma.SupervisorUpdateOneWithoutDeliveriesNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutTransactionsNestedInput
   serialNumbers?: Prisma.TransactionSerialNumberUpdateManyWithoutTransactionNestedInput
 }
@@ -476,9 +524,12 @@ export type InventoryTransactionUncheckedUpdateInput = {
   deliveryStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deliverySupervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   serialNumbers?: Prisma.TransactionSerialNumberUncheckedUpdateManyWithoutTransactionNestedInput
 }
@@ -496,9 +547,12 @@ export type InventoryTransactionCreateManyInput = {
   deliveryStatus?: string | null
   notes?: string | null
   receivedBy?: string | null
+  deliverySupervisorId?: string | null
   returnStatus?: string | null
   returnedQty?: number
   returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   timestamp?: Date | string
 }
 
@@ -517,6 +571,8 @@ export type InventoryTransactionUpdateManyMutationInput = {
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -533,9 +589,12 @@ export type InventoryTransactionUncheckedUpdateManyInput = {
   deliveryStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deliverySupervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -562,9 +621,12 @@ export type InventoryTransactionCountOrderByAggregateInput = {
   deliveryStatus?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   receivedBy?: Prisma.SortOrder
+  deliverySupervisorId?: Prisma.SortOrder
   returnStatus?: Prisma.SortOrder
   returnedQty?: Prisma.SortOrder
   returnNotes?: Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
   timestamp?: Prisma.SortOrder
 }
 
@@ -586,9 +648,12 @@ export type InventoryTransactionMaxOrderByAggregateInput = {
   deliveryStatus?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   receivedBy?: Prisma.SortOrder
+  deliverySupervisorId?: Prisma.SortOrder
   returnStatus?: Prisma.SortOrder
   returnedQty?: Prisma.SortOrder
   returnNotes?: Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
   timestamp?: Prisma.SortOrder
 }
 
@@ -605,9 +670,12 @@ export type InventoryTransactionMinOrderByAggregateInput = {
   deliveryStatus?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   receivedBy?: Prisma.SortOrder
+  deliverySupervisorId?: Prisma.SortOrder
   returnStatus?: Prisma.SortOrder
   returnedQty?: Prisma.SortOrder
   returnNotes?: Prisma.SortOrder
+  manufactureDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
   timestamp?: Prisma.SortOrder
 }
 
@@ -663,6 +731,48 @@ export type InventoryTransactionUncheckedUpdateManyWithoutProductNestedInput = {
   deleteMany?: Prisma.InventoryTransactionScalarWhereInput | Prisma.InventoryTransactionScalarWhereInput[]
 }
 
+export type InventoryTransactionCreateNestedManyWithoutDeliverySupervisorInput = {
+  create?: Prisma.XOR<Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput, Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput> | Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput[] | Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput[]
+  connectOrCreate?: Prisma.InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput | Prisma.InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput[]
+  createMany?: Prisma.InventoryTransactionCreateManyDeliverySupervisorInputEnvelope
+  connect?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+}
+
+export type InventoryTransactionUncheckedCreateNestedManyWithoutDeliverySupervisorInput = {
+  create?: Prisma.XOR<Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput, Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput> | Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput[] | Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput[]
+  connectOrCreate?: Prisma.InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput | Prisma.InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput[]
+  createMany?: Prisma.InventoryTransactionCreateManyDeliverySupervisorInputEnvelope
+  connect?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+}
+
+export type InventoryTransactionUpdateManyWithoutDeliverySupervisorNestedInput = {
+  create?: Prisma.XOR<Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput, Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput> | Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput[] | Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput[]
+  connectOrCreate?: Prisma.InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput | Prisma.InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput[]
+  upsert?: Prisma.InventoryTransactionUpsertWithWhereUniqueWithoutDeliverySupervisorInput | Prisma.InventoryTransactionUpsertWithWhereUniqueWithoutDeliverySupervisorInput[]
+  createMany?: Prisma.InventoryTransactionCreateManyDeliverySupervisorInputEnvelope
+  set?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+  disconnect?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+  delete?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+  connect?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+  update?: Prisma.InventoryTransactionUpdateWithWhereUniqueWithoutDeliverySupervisorInput | Prisma.InventoryTransactionUpdateWithWhereUniqueWithoutDeliverySupervisorInput[]
+  updateMany?: Prisma.InventoryTransactionUpdateManyWithWhereWithoutDeliverySupervisorInput | Prisma.InventoryTransactionUpdateManyWithWhereWithoutDeliverySupervisorInput[]
+  deleteMany?: Prisma.InventoryTransactionScalarWhereInput | Prisma.InventoryTransactionScalarWhereInput[]
+}
+
+export type InventoryTransactionUncheckedUpdateManyWithoutDeliverySupervisorNestedInput = {
+  create?: Prisma.XOR<Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput, Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput> | Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput[] | Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput[]
+  connectOrCreate?: Prisma.InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput | Prisma.InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput[]
+  upsert?: Prisma.InventoryTransactionUpsertWithWhereUniqueWithoutDeliverySupervisorInput | Prisma.InventoryTransactionUpsertWithWhereUniqueWithoutDeliverySupervisorInput[]
+  createMany?: Prisma.InventoryTransactionCreateManyDeliverySupervisorInputEnvelope
+  set?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+  disconnect?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+  delete?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+  connect?: Prisma.InventoryTransactionWhereUniqueInput | Prisma.InventoryTransactionWhereUniqueInput[]
+  update?: Prisma.InventoryTransactionUpdateWithWhereUniqueWithoutDeliverySupervisorInput | Prisma.InventoryTransactionUpdateWithWhereUniqueWithoutDeliverySupervisorInput[]
+  updateMany?: Prisma.InventoryTransactionUpdateManyWithWhereWithoutDeliverySupervisorInput | Prisma.InventoryTransactionUpdateManyWithWhereWithoutDeliverySupervisorInput[]
+  deleteMany?: Prisma.InventoryTransactionScalarWhereInput | Prisma.InventoryTransactionScalarWhereInput[]
+}
+
 export type InventoryTransactionCreateNestedOneWithoutSerialNumbersInput = {
   create?: Prisma.XOR<Prisma.InventoryTransactionCreateWithoutSerialNumbersInput, Prisma.InventoryTransactionUncheckedCreateWithoutSerialNumbersInput>
   connectOrCreate?: Prisma.InventoryTransactionCreateOrConnectWithoutSerialNumbersInput
@@ -692,7 +802,10 @@ export type InventoryTransactionCreateWithoutProductInput = {
   returnStatus?: string | null
   returnedQty?: number
   returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   timestamp?: Date | string
+  deliverySupervisor?: Prisma.SupervisorCreateNestedOneWithoutDeliveriesInput
   serialNumbers?: Prisma.TransactionSerialNumberCreateNestedManyWithoutTransactionInput
 }
 
@@ -708,9 +821,12 @@ export type InventoryTransactionUncheckedCreateWithoutProductInput = {
   deliveryStatus?: string | null
   notes?: string | null
   receivedBy?: string | null
+  deliverySupervisorId?: string | null
   returnStatus?: string | null
   returnedQty?: number
   returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   timestamp?: Date | string
   serialNumbers?: Prisma.TransactionSerialNumberUncheckedCreateNestedManyWithoutTransactionInput
 }
@@ -757,10 +873,83 @@ export type InventoryTransactionScalarWhereInput = {
   deliveryStatus?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   notes?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   receivedBy?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
+  deliverySupervisorId?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   returnStatus?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
   returnedQty?: Prisma.IntFilter<"InventoryTransaction"> | number
   returnNotes?: Prisma.StringNullableFilter<"InventoryTransaction"> | string | null
+  manufactureDate?: Prisma.DateTimeNullableFilter<"InventoryTransaction"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableFilter<"InventoryTransaction"> | Date | string | null
   timestamp?: Prisma.DateTimeFilter<"InventoryTransaction"> | Date | string
+}
+
+export type InventoryTransactionCreateWithoutDeliverySupervisorInput = {
+  id?: string
+  transactionType: string
+  fromEntityType?: string | null
+  fromEntityId?: string | null
+  toEntityType?: string | null
+  toEntityId?: string | null
+  quantity: number
+  deliveryNote?: string | null
+  deliveryStatus?: string | null
+  notes?: string | null
+  receivedBy?: string | null
+  returnStatus?: string | null
+  returnedQty?: number
+  returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
+  timestamp?: Date | string
+  product: Prisma.ProductCreateNestedOneWithoutTransactionsInput
+  serialNumbers?: Prisma.TransactionSerialNumberCreateNestedManyWithoutTransactionInput
+}
+
+export type InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput = {
+  id?: string
+  productId: string
+  transactionType: string
+  fromEntityType?: string | null
+  fromEntityId?: string | null
+  toEntityType?: string | null
+  toEntityId?: string | null
+  quantity: number
+  deliveryNote?: string | null
+  deliveryStatus?: string | null
+  notes?: string | null
+  receivedBy?: string | null
+  returnStatus?: string | null
+  returnedQty?: number
+  returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
+  timestamp?: Date | string
+  serialNumbers?: Prisma.TransactionSerialNumberUncheckedCreateNestedManyWithoutTransactionInput
+}
+
+export type InventoryTransactionCreateOrConnectWithoutDeliverySupervisorInput = {
+  where: Prisma.InventoryTransactionWhereUniqueInput
+  create: Prisma.XOR<Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput, Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput>
+}
+
+export type InventoryTransactionCreateManyDeliverySupervisorInputEnvelope = {
+  data: Prisma.InventoryTransactionCreateManyDeliverySupervisorInput | Prisma.InventoryTransactionCreateManyDeliverySupervisorInput[]
+  skipDuplicates?: boolean
+}
+
+export type InventoryTransactionUpsertWithWhereUniqueWithoutDeliverySupervisorInput = {
+  where: Prisma.InventoryTransactionWhereUniqueInput
+  update: Prisma.XOR<Prisma.InventoryTransactionUpdateWithoutDeliverySupervisorInput, Prisma.InventoryTransactionUncheckedUpdateWithoutDeliverySupervisorInput>
+  create: Prisma.XOR<Prisma.InventoryTransactionCreateWithoutDeliverySupervisorInput, Prisma.InventoryTransactionUncheckedCreateWithoutDeliverySupervisorInput>
+}
+
+export type InventoryTransactionUpdateWithWhereUniqueWithoutDeliverySupervisorInput = {
+  where: Prisma.InventoryTransactionWhereUniqueInput
+  data: Prisma.XOR<Prisma.InventoryTransactionUpdateWithoutDeliverySupervisorInput, Prisma.InventoryTransactionUncheckedUpdateWithoutDeliverySupervisorInput>
+}
+
+export type InventoryTransactionUpdateManyWithWhereWithoutDeliverySupervisorInput = {
+  where: Prisma.InventoryTransactionScalarWhereInput
+  data: Prisma.XOR<Prisma.InventoryTransactionUpdateManyMutationInput, Prisma.InventoryTransactionUncheckedUpdateManyWithoutDeliverySupervisorInput>
 }
 
 export type InventoryTransactionCreateWithoutSerialNumbersInput = {
@@ -778,7 +967,10 @@ export type InventoryTransactionCreateWithoutSerialNumbersInput = {
   returnStatus?: string | null
   returnedQty?: number
   returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   timestamp?: Date | string
+  deliverySupervisor?: Prisma.SupervisorCreateNestedOneWithoutDeliveriesInput
   product: Prisma.ProductCreateNestedOneWithoutTransactionsInput
 }
 
@@ -795,9 +987,12 @@ export type InventoryTransactionUncheckedCreateWithoutSerialNumbersInput = {
   deliveryStatus?: string | null
   notes?: string | null
   receivedBy?: string | null
+  deliverySupervisorId?: string | null
   returnStatus?: string | null
   returnedQty?: number
   returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   timestamp?: Date | string
 }
 
@@ -832,7 +1027,10 @@ export type InventoryTransactionUpdateWithoutSerialNumbersInput = {
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliverySupervisor?: Prisma.SupervisorUpdateOneWithoutDeliveriesNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutTransactionsNestedInput
 }
 
@@ -849,9 +1047,12 @@ export type InventoryTransactionUncheckedUpdateWithoutSerialNumbersInput = {
   deliveryStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deliverySupervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -867,9 +1068,12 @@ export type InventoryTransactionCreateManyProductInput = {
   deliveryStatus?: string | null
   notes?: string | null
   receivedBy?: string | null
+  deliverySupervisorId?: string | null
   returnStatus?: string | null
   returnedQty?: number
   returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
   timestamp?: Date | string
 }
 
@@ -888,7 +1092,10 @@ export type InventoryTransactionUpdateWithoutProductInput = {
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliverySupervisor?: Prisma.SupervisorUpdateOneWithoutDeliveriesNestedInput
   serialNumbers?: Prisma.TransactionSerialNumberUpdateManyWithoutTransactionNestedInput
 }
 
@@ -904,9 +1111,12 @@ export type InventoryTransactionUncheckedUpdateWithoutProductInput = {
   deliveryStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deliverySupervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   serialNumbers?: Prisma.TransactionSerialNumberUncheckedUpdateManyWithoutTransactionNestedInput
 }
@@ -923,9 +1133,98 @@ export type InventoryTransactionUncheckedUpdateManyWithoutProductInput = {
   deliveryStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deliverySupervisorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
   returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type InventoryTransactionCreateManyDeliverySupervisorInput = {
+  id?: string
+  productId: string
+  transactionType: string
+  fromEntityType?: string | null
+  fromEntityId?: string | null
+  toEntityType?: string | null
+  toEntityId?: string | null
+  quantity: number
+  deliveryNote?: string | null
+  deliveryStatus?: string | null
+  notes?: string | null
+  receivedBy?: string | null
+  returnStatus?: string | null
+  returnedQty?: number
+  returnNotes?: string | null
+  manufactureDate?: Date | string | null
+  expiryDate?: Date | string | null
+  timestamp?: Date | string
+}
+
+export type InventoryTransactionUpdateWithoutDeliverySupervisorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  transactionType?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEntityType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fromEntityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEntityType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEntityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  deliveryNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deliveryStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
+  returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  product?: Prisma.ProductUpdateOneRequiredWithoutTransactionsNestedInput
+  serialNumbers?: Prisma.TransactionSerialNumberUpdateManyWithoutTransactionNestedInput
+}
+
+export type InventoryTransactionUncheckedUpdateWithoutDeliverySupervisorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  transactionType?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEntityType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fromEntityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEntityType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEntityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  deliveryNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deliveryStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
+  returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  serialNumbers?: Prisma.TransactionSerialNumberUncheckedUpdateManyWithoutTransactionNestedInput
+}
+
+export type InventoryTransactionUncheckedUpdateManyWithoutDeliverySupervisorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  transactionType?: Prisma.StringFieldUpdateOperationsInput | string
+  fromEntityType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fromEntityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEntityType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  toEntityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  quantity?: Prisma.IntFieldUpdateOperationsInput | number
+  deliveryNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deliveryStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  receivedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  returnStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  returnedQty?: Prisma.IntFieldUpdateOperationsInput | number
+  returnNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufactureDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   timestamp?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -973,10 +1272,14 @@ export type InventoryTransactionSelect<ExtArgs extends runtime.Types.Extensions.
   deliveryStatus?: boolean
   notes?: boolean
   receivedBy?: boolean
+  deliverySupervisorId?: boolean
   returnStatus?: boolean
   returnedQty?: boolean
   returnNotes?: boolean
+  manufactureDate?: boolean
+  expiryDate?: boolean
   timestamp?: boolean
+  deliverySupervisor?: boolean | Prisma.InventoryTransaction$deliverySupervisorArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   serialNumbers?: boolean | Prisma.InventoryTransaction$serialNumbersArgs<ExtArgs>
   _count?: boolean | Prisma.InventoryTransactionCountOutputTypeDefaultArgs<ExtArgs>
@@ -995,10 +1298,14 @@ export type InventoryTransactionSelectCreateManyAndReturn<ExtArgs extends runtim
   deliveryStatus?: boolean
   notes?: boolean
   receivedBy?: boolean
+  deliverySupervisorId?: boolean
   returnStatus?: boolean
   returnedQty?: boolean
   returnNotes?: boolean
+  manufactureDate?: boolean
+  expiryDate?: boolean
   timestamp?: boolean
+  deliverySupervisor?: boolean | Prisma.InventoryTransaction$deliverySupervisorArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["inventoryTransaction"]>
 
@@ -1015,10 +1322,14 @@ export type InventoryTransactionSelectUpdateManyAndReturn<ExtArgs extends runtim
   deliveryStatus?: boolean
   notes?: boolean
   receivedBy?: boolean
+  deliverySupervisorId?: boolean
   returnStatus?: boolean
   returnedQty?: boolean
   returnNotes?: boolean
+  manufactureDate?: boolean
+  expiryDate?: boolean
   timestamp?: boolean
+  deliverySupervisor?: boolean | Prisma.InventoryTransaction$deliverySupervisorArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["inventoryTransaction"]>
 
@@ -1035,28 +1346,35 @@ export type InventoryTransactionSelectScalar = {
   deliveryStatus?: boolean
   notes?: boolean
   receivedBy?: boolean
+  deliverySupervisorId?: boolean
   returnStatus?: boolean
   returnedQty?: boolean
   returnNotes?: boolean
+  manufactureDate?: boolean
+  expiryDate?: boolean
   timestamp?: boolean
 }
 
-export type InventoryTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "transactionType" | "fromEntityType" | "fromEntityId" | "toEntityType" | "toEntityId" | "quantity" | "deliveryNote" | "deliveryStatus" | "notes" | "receivedBy" | "returnStatus" | "returnedQty" | "returnNotes" | "timestamp", ExtArgs["result"]["inventoryTransaction"]>
+export type InventoryTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "transactionType" | "fromEntityType" | "fromEntityId" | "toEntityType" | "toEntityId" | "quantity" | "deliveryNote" | "deliveryStatus" | "notes" | "receivedBy" | "deliverySupervisorId" | "returnStatus" | "returnedQty" | "returnNotes" | "manufactureDate" | "expiryDate" | "timestamp", ExtArgs["result"]["inventoryTransaction"]>
 export type InventoryTransactionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  deliverySupervisor?: boolean | Prisma.InventoryTransaction$deliverySupervisorArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   serialNumbers?: boolean | Prisma.InventoryTransaction$serialNumbersArgs<ExtArgs>
   _count?: boolean | Prisma.InventoryTransactionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type InventoryTransactionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  deliverySupervisor?: boolean | Prisma.InventoryTransaction$deliverySupervisorArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
 }
 export type InventoryTransactionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  deliverySupervisor?: boolean | Prisma.InventoryTransaction$deliverySupervisorArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
 }
 
 export type $InventoryTransactionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "InventoryTransaction"
   objects: {
+    deliverySupervisor: Prisma.$SupervisorPayload<ExtArgs> | null
     product: Prisma.$ProductPayload<ExtArgs>
     serialNumbers: Prisma.$TransactionSerialNumberPayload<ExtArgs>[]
   }
@@ -1073,9 +1391,12 @@ export type $InventoryTransactionPayload<ExtArgs extends runtime.Types.Extension
     deliveryStatus: string | null
     notes: string | null
     receivedBy: string | null
+    deliverySupervisorId: string | null
     returnStatus: string | null
     returnedQty: number
     returnNotes: string | null
+    manufactureDate: Date | null
+    expiryDate: Date | null
     timestamp: Date
   }, ExtArgs["result"]["inventoryTransaction"]>
   composites: {}
@@ -1471,6 +1792,7 @@ readonly fields: InventoryTransactionFieldRefs;
  */
 export interface Prisma__InventoryTransactionClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  deliverySupervisor<T extends Prisma.InventoryTransaction$deliverySupervisorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.InventoryTransaction$deliverySupervisorArgs<ExtArgs>>): Prisma.Prisma__SupervisorClient<runtime.Types.Result.GetResult<Prisma.$SupervisorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   product<T extends Prisma.ProductDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductClient<runtime.Types.Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   serialNumbers<T extends Prisma.InventoryTransaction$serialNumbersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.InventoryTransaction$serialNumbersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TransactionSerialNumberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1514,9 +1836,12 @@ export interface InventoryTransactionFieldRefs {
   readonly deliveryStatus: Prisma.FieldRef<"InventoryTransaction", 'String'>
   readonly notes: Prisma.FieldRef<"InventoryTransaction", 'String'>
   readonly receivedBy: Prisma.FieldRef<"InventoryTransaction", 'String'>
+  readonly deliverySupervisorId: Prisma.FieldRef<"InventoryTransaction", 'String'>
   readonly returnStatus: Prisma.FieldRef<"InventoryTransaction", 'String'>
   readonly returnedQty: Prisma.FieldRef<"InventoryTransaction", 'Int'>
   readonly returnNotes: Prisma.FieldRef<"InventoryTransaction", 'String'>
+  readonly manufactureDate: Prisma.FieldRef<"InventoryTransaction", 'DateTime'>
+  readonly expiryDate: Prisma.FieldRef<"InventoryTransaction", 'DateTime'>
   readonly timestamp: Prisma.FieldRef<"InventoryTransaction", 'DateTime'>
 }
     
@@ -1916,6 +2241,25 @@ export type InventoryTransactionDeleteManyArgs<ExtArgs extends runtime.Types.Ext
    * Limit how many InventoryTransactions to delete.
    */
   limit?: number
+}
+
+/**
+ * InventoryTransaction.deliverySupervisor
+ */
+export type InventoryTransaction$deliverySupervisorArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Supervisor
+   */
+  select?: Prisma.SupervisorSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Supervisor
+   */
+  omit?: Prisma.SupervisorOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SupervisorInclude<ExtArgs> | null
+  where?: Prisma.SupervisorWhereInput
 }
 
 /**

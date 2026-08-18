@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrand, updateBrand, deleteBrand, createBulkBrands } from '@/app/actions/brands';
-import { Tag, Plus, Edit2, Trash2, Loader2, X, Camera } from 'lucide-react';
+import { Tag, Plus, Edit2, Trash2, Loader2, X, Camera, Search } from 'lucide-react';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 
@@ -14,7 +14,12 @@ export default function BrandsClient({ initialBrands }) {
   const [editingBrand, setEditingBrand] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
+  const filteredBrands = brands.filter(b =>
+    b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (b.description && b.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
   // Queue item creator helper
   const createEmptyBrandItem = (index = 0) => ({
     id: `temp-${Date.now()}-${index}`,
@@ -157,7 +162,10 @@ export default function BrandsClient({ initialBrands }) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <Tag size={250} />
+      </div>
       {/* Page Header */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
@@ -382,16 +390,26 @@ export default function BrandsClient({ initialBrands }) {
         )}
 
         {/* Brands Cards Grid */}
-        <div className="w-full">
-          {brands.length === 0 ? (
+        <div className="w-full flex flex-col gap-4">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search brands by name or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+            />
+          </div>
+          {filteredBrands.length === 0 ? (
             <div className="bg-surface border border-border rounded-xl p-16 text-center flex flex-col items-center gap-3 text-text-muted shadow-sm">
               <Tag size={48} />
-              <h3 className="font-display font-bold text-lg text-text-primary">No Brands Registered</h3>
-              <p className="text-sm max-w-xs">Click &quot;Add Brand&quot; to create your first client operation.</p>
+              <h3 className="font-display font-bold text-lg text-text-primary">{searchQuery ? 'No brands match your search' : 'No Brands Registered'}</h3>
+              <p className="text-sm max-w-xs">{searchQuery ? 'Try a different search term.' : 'Click "Add Brand" to create your first client operation.'}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {brands.map((brand) => (
+              {filteredBrands.map((brand) => (
                 <div key={brand.id} className="bg-surface border border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col group">
                   {/* Brand Image Container */}
                   <div className="h-32 bg-surface-elevated border-b border-border flex items-center justify-center p-6 relative">

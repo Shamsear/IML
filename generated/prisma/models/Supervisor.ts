@@ -191,6 +191,7 @@ export type SupervisorWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Supervisor"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Supervisor"> | Date | string
   allocations?: Prisma.StaffUniformAllocationListRelationFilter
+  deliveries?: Prisma.InventoryTransactionListRelationFilter
 }
 
 export type SupervisorOrderByWithRelationInput = {
@@ -201,6 +202,7 @@ export type SupervisorOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   allocations?: Prisma.StaffUniformAllocationOrderByRelationAggregateInput
+  deliveries?: Prisma.InventoryTransactionOrderByRelationAggregateInput
 }
 
 export type SupervisorWhereUniqueInput = Prisma.AtLeast<{
@@ -214,6 +216,7 @@ export type SupervisorWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Supervisor"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Supervisor"> | Date | string
   allocations?: Prisma.StaffUniformAllocationListRelationFilter
+  deliveries?: Prisma.InventoryTransactionListRelationFilter
 }, "id">
 
 export type SupervisorOrderByWithAggregationInput = {
@@ -248,6 +251,7 @@ export type SupervisorCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   allocations?: Prisma.StaffUniformAllocationCreateNestedManyWithoutSupervisorInput
+  deliveries?: Prisma.InventoryTransactionCreateNestedManyWithoutDeliverySupervisorInput
 }
 
 export type SupervisorUncheckedCreateInput = {
@@ -258,6 +262,7 @@ export type SupervisorUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   allocations?: Prisma.StaffUniformAllocationUncheckedCreateNestedManyWithoutSupervisorInput
+  deliveries?: Prisma.InventoryTransactionUncheckedCreateNestedManyWithoutDeliverySupervisorInput
 }
 
 export type SupervisorUpdateInput = {
@@ -268,6 +273,7 @@ export type SupervisorUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   allocations?: Prisma.StaffUniformAllocationUpdateManyWithoutSupervisorNestedInput
+  deliveries?: Prisma.InventoryTransactionUpdateManyWithoutDeliverySupervisorNestedInput
 }
 
 export type SupervisorUncheckedUpdateInput = {
@@ -278,6 +284,7 @@ export type SupervisorUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   allocations?: Prisma.StaffUniformAllocationUncheckedUpdateManyWithoutSupervisorNestedInput
+  deliveries?: Prisma.InventoryTransactionUncheckedUpdateManyWithoutDeliverySupervisorNestedInput
 }
 
 export type SupervisorCreateManyInput = {
@@ -355,6 +362,22 @@ export type SupervisorUpdateOneWithoutAllocationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.SupervisorUpdateToOneWithWhereWithoutAllocationsInput, Prisma.SupervisorUpdateWithoutAllocationsInput>, Prisma.SupervisorUncheckedUpdateWithoutAllocationsInput>
 }
 
+export type SupervisorCreateNestedOneWithoutDeliveriesInput = {
+  create?: Prisma.XOR<Prisma.SupervisorCreateWithoutDeliveriesInput, Prisma.SupervisorUncheckedCreateWithoutDeliveriesInput>
+  connectOrCreate?: Prisma.SupervisorCreateOrConnectWithoutDeliveriesInput
+  connect?: Prisma.SupervisorWhereUniqueInput
+}
+
+export type SupervisorUpdateOneWithoutDeliveriesNestedInput = {
+  create?: Prisma.XOR<Prisma.SupervisorCreateWithoutDeliveriesInput, Prisma.SupervisorUncheckedCreateWithoutDeliveriesInput>
+  connectOrCreate?: Prisma.SupervisorCreateOrConnectWithoutDeliveriesInput
+  upsert?: Prisma.SupervisorUpsertWithoutDeliveriesInput
+  disconnect?: Prisma.SupervisorWhereInput | boolean
+  delete?: Prisma.SupervisorWhereInput | boolean
+  connect?: Prisma.SupervisorWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SupervisorUpdateToOneWithWhereWithoutDeliveriesInput, Prisma.SupervisorUpdateWithoutDeliveriesInput>, Prisma.SupervisorUncheckedUpdateWithoutDeliveriesInput>
+}
+
 export type SupervisorCreateWithoutAllocationsInput = {
   id?: string
   name: string
@@ -362,6 +385,7 @@ export type SupervisorCreateWithoutAllocationsInput = {
   phone?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deliveries?: Prisma.InventoryTransactionCreateNestedManyWithoutDeliverySupervisorInput
 }
 
 export type SupervisorUncheckedCreateWithoutAllocationsInput = {
@@ -371,6 +395,7 @@ export type SupervisorUncheckedCreateWithoutAllocationsInput = {
   phone?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deliveries?: Prisma.InventoryTransactionUncheckedCreateNestedManyWithoutDeliverySupervisorInput
 }
 
 export type SupervisorCreateOrConnectWithoutAllocationsInput = {
@@ -396,6 +421,7 @@ export type SupervisorUpdateWithoutAllocationsInput = {
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliveries?: Prisma.InventoryTransactionUpdateManyWithoutDeliverySupervisorNestedInput
 }
 
 export type SupervisorUncheckedUpdateWithoutAllocationsInput = {
@@ -405,6 +431,63 @@ export type SupervisorUncheckedUpdateWithoutAllocationsInput = {
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliveries?: Prisma.InventoryTransactionUncheckedUpdateManyWithoutDeliverySupervisorNestedInput
+}
+
+export type SupervisorCreateWithoutDeliveriesInput = {
+  id?: string
+  name: string
+  email?: string | null
+  phone?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  allocations?: Prisma.StaffUniformAllocationCreateNestedManyWithoutSupervisorInput
+}
+
+export type SupervisorUncheckedCreateWithoutDeliveriesInput = {
+  id?: string
+  name: string
+  email?: string | null
+  phone?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  allocations?: Prisma.StaffUniformAllocationUncheckedCreateNestedManyWithoutSupervisorInput
+}
+
+export type SupervisorCreateOrConnectWithoutDeliveriesInput = {
+  where: Prisma.SupervisorWhereUniqueInput
+  create: Prisma.XOR<Prisma.SupervisorCreateWithoutDeliveriesInput, Prisma.SupervisorUncheckedCreateWithoutDeliveriesInput>
+}
+
+export type SupervisorUpsertWithoutDeliveriesInput = {
+  update: Prisma.XOR<Prisma.SupervisorUpdateWithoutDeliveriesInput, Prisma.SupervisorUncheckedUpdateWithoutDeliveriesInput>
+  create: Prisma.XOR<Prisma.SupervisorCreateWithoutDeliveriesInput, Prisma.SupervisorUncheckedCreateWithoutDeliveriesInput>
+  where?: Prisma.SupervisorWhereInput
+}
+
+export type SupervisorUpdateToOneWithWhereWithoutDeliveriesInput = {
+  where?: Prisma.SupervisorWhereInput
+  data: Prisma.XOR<Prisma.SupervisorUpdateWithoutDeliveriesInput, Prisma.SupervisorUncheckedUpdateWithoutDeliveriesInput>
+}
+
+export type SupervisorUpdateWithoutDeliveriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allocations?: Prisma.StaffUniformAllocationUpdateManyWithoutSupervisorNestedInput
+}
+
+export type SupervisorUncheckedUpdateWithoutDeliveriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allocations?: Prisma.StaffUniformAllocationUncheckedUpdateManyWithoutSupervisorNestedInput
 }
 
 
@@ -414,10 +497,12 @@ export type SupervisorUncheckedUpdateWithoutAllocationsInput = {
 
 export type SupervisorCountOutputType = {
   allocations: number
+  deliveries: number
 }
 
 export type SupervisorCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   allocations?: boolean | SupervisorCountOutputTypeCountAllocationsArgs
+  deliveries?: boolean | SupervisorCountOutputTypeCountDeliveriesArgs
 }
 
 /**
@@ -437,6 +522,13 @@ export type SupervisorCountOutputTypeCountAllocationsArgs<ExtArgs extends runtim
   where?: Prisma.StaffUniformAllocationWhereInput
 }
 
+/**
+ * SupervisorCountOutputType without action
+ */
+export type SupervisorCountOutputTypeCountDeliveriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.InventoryTransactionWhereInput
+}
+
 
 export type SupervisorSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -446,6 +538,7 @@ export type SupervisorSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   createdAt?: boolean
   updatedAt?: boolean
   allocations?: boolean | Prisma.Supervisor$allocationsArgs<ExtArgs>
+  deliveries?: boolean | Prisma.Supervisor$deliveriesArgs<ExtArgs>
   _count?: boolean | Prisma.SupervisorCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["supervisor"]>
 
@@ -479,6 +572,7 @@ export type SupervisorSelectScalar = {
 export type SupervisorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "phone" | "createdAt" | "updatedAt", ExtArgs["result"]["supervisor"]>
 export type SupervisorInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   allocations?: boolean | Prisma.Supervisor$allocationsArgs<ExtArgs>
+  deliveries?: boolean | Prisma.Supervisor$deliveriesArgs<ExtArgs>
   _count?: boolean | Prisma.SupervisorCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SupervisorIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -488,6 +582,7 @@ export type $SupervisorPayload<ExtArgs extends runtime.Types.Extensions.Internal
   name: "Supervisor"
   objects: {
     allocations: Prisma.$StaffUniformAllocationPayload<ExtArgs>[]
+    deliveries: Prisma.$InventoryTransactionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -891,6 +986,7 @@ readonly fields: SupervisorFieldRefs;
 export interface Prisma__SupervisorClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   allocations<T extends Prisma.Supervisor$allocationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Supervisor$allocationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StaffUniformAllocationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  deliveries<T extends Prisma.Supervisor$deliveriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Supervisor$deliveriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InventoryTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1340,6 +1436,30 @@ export type Supervisor$allocationsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.StaffUniformAllocationScalarFieldEnum | Prisma.StaffUniformAllocationScalarFieldEnum[]
+}
+
+/**
+ * Supervisor.deliveries
+ */
+export type Supervisor$deliveriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the InventoryTransaction
+   */
+  select?: Prisma.InventoryTransactionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the InventoryTransaction
+   */
+  omit?: Prisma.InventoryTransactionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InventoryTransactionInclude<ExtArgs> | null
+  where?: Prisma.InventoryTransactionWhereInput
+  orderBy?: Prisma.InventoryTransactionOrderByWithRelationInput | Prisma.InventoryTransactionOrderByWithRelationInput[]
+  cursor?: Prisma.InventoryTransactionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.InventoryTransactionScalarFieldEnum | Prisma.InventoryTransactionScalarFieldEnum[]
 }
 
 /**

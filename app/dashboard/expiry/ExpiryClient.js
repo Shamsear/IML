@@ -72,7 +72,10 @@ export default function ExpiryClient({ initialBatches }) {
   }, [batchesWithStatus, searchTerm, statusFilter]);
 
   return (
-    <div className="flex flex-col gap-6 font-sans">
+    <div className="flex flex-col gap-6 font-sans relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <AlertTriangle size={250} />
+      </div>
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
@@ -134,7 +137,7 @@ export default function ExpiryClient({ initialBatches }) {
           <input
             type="text"
             placeholder="Search by Product name, Supplier, Batch..."
-            className="w-full pl-9 pr-4 py-2.5 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />

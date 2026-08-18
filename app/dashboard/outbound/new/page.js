@@ -2,8 +2,7 @@ import { getProductsSlim } from '@/app/actions/products';
 import { getStores } from '@/app/actions/stores';
 import { getBrands } from '@/app/actions/brands';
 import { getSupervisors } from '@/app/actions/supervisors';
-import { getStaff } from '@/app/actions/staff';
-import { getTransactionsByDeliveryNote, getTransactionById } from '@/app/actions/transactions';
+import { getTransactionsByDeliveryNote, getTransactionById, getRecentDirectSellers } from '@/app/actions/transactions';
 import OutboundClient from '../OutboundClient';
 
 export const metadata = {
@@ -20,15 +19,15 @@ export default async function NewOutboundPage({ searchParams }) {
     products, 
     stores, 
     brands,
-    staff,
     supervisors,
+    directSellers,
     initialItems
   ] = await Promise.all([
     getProductsSlim(),
     getStores(),
     getBrands(),
-    getStaff(),
     getSupervisors(),
+    getRecentDirectSellers(),
     copyDn
       ? getTransactionsByDeliveryNote(copyDn)
       : copyTxId
@@ -44,7 +43,7 @@ export default async function NewOutboundPage({ searchParams }) {
       products={products} 
       stores={stores} 
       brands={brands}
-      staff={staff}
+      directSellers={directSellers}
       supervisors={supervisors}
       initialItems={initialItems.length > 0 ? initialItems : null}
       initialDestinationType={initialDestinationType}

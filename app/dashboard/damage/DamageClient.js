@@ -29,7 +29,7 @@ const playBeep = () => {
   }
 };
 
-function DamageFormContent({ products, brands = [], initialItems = null }) {
+function DamageFormContent({ products, brands = [], initialItems = null, lockedType = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -39,8 +39,9 @@ function DamageFormContent({ products, brands = [], initialItems = null }) {
   // Brand filter for product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
 
-  // Report type: DAMAGE or LOST — can be preset via ?type=LOST URL param
+  // Report type: locked by prop, or preset via ?type= URL param
   const [reportType, setReportType] = useState(() => {
+    if (lockedType) return lockedType;
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('type');
       return p === 'LOST' ? 'LOST' : 'DAMAGE';
@@ -458,17 +459,25 @@ function DamageFormContent({ products, brands = [], initialItems = null }) {
   const currentScannedCount = scannedBarcodesList.length;
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans">
+    <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <AlertCircle size={250} />
+      </div>
       <header className="flex items-center gap-4 pb-5 border-b border-border">
-        <Link href="/dashboard/damage" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
+        <Link
+          href={lockedType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+        >
           <ArrowLeft size={16} />
         </Link>
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
-            Report Damage &amp; Wastage
+            {lockedType === 'LOST' ? 'Report Loss / Missing' : 'Report Damage & Wastage'}
           </h1>
           <p className="text-text-secondary text-sm mt-1">
-            Log damaged items or serial numbers to discard them from Central Warehouse stock
+            {lockedType === 'LOST'
+              ? 'Log items that are missing, stolen, or cannot be accounted for.'
+              : 'Log damaged items or serial numbers to discard them from Central Warehouse stock.'}
           </p>
         </div>
       </header>
@@ -486,7 +495,8 @@ function DamageFormContent({ products, brands = [], initialItems = null }) {
       )}
 
       <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
-        {/* Report Type Toggle */}
+        {/* Report Type Toggle — hidden when type is locked by page */}
+        {!lockedType && (
         <div className="flex flex-col gap-2">
           <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Report Type</label>
           <div className="flex gap-2">
@@ -521,6 +531,7 @@ function DamageFormContent({ products, brands = [], initialItems = null }) {
               : 'Use for items that are missing, stolen, or cannot be accounted for.'}
           </p>
         </div>
+        )}
 
         {/* Destination Header */}
         <h3 className="font-display font-bold text-lg text-text-primary pb-3 border-b border-border font-semibold">
@@ -911,14 +922,14 @@ function DamageFormContent({ products, brands = [], initialItems = null }) {
   );
 }
 
-export default function DamageClient({ products, brands = [] }) {
+export default function DamageClient({ products, brands = [], initialItems = null, lockedType = null }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 size={36} className="animate-spin text-primary" />
       </div>
     }>
-      <DamageFormContent products={products} brands={brands} />
+      <DamageFormContent products={products} brands={brands} initialItems={initialItems} lockedType={lockedType} />
     </Suspense>
   );
 }

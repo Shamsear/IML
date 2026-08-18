@@ -2,14 +2,24 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowUpRight, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPlus, Loader2 } from 'lucide-react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { ArrowUpRight, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPlus, Loader2, RotateCcw, Trash2, UserCheck, Edit2 } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
+import CustomSelect from '@/components/CustomSelect';
 
-export default function OutboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {}, stores = [] }) {
+export default function OutboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {}, stores = [], supervisorNames = {} }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' | 'delivery_notes'
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'transactions');
+
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   const [pdfLoadingKey, setPdfLoadingKey] = useState(null); // tracks which group's PDF button is loading
   
   // Filters for Transactions Tab
@@ -50,6 +60,11 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
     return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [transactions, entityNames]);
 
+  const storeOptions = useMemo(() => [
+    { value: '', label: 'All Stores' },
+    ...stores.map(s => ({ value: s.id, label: s.name }))
+  ], [stores]);
+
   // Filtered transactions for the Ledger tab
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
@@ -67,8 +82,11 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
   );
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
+    <div className="flex flex-col gap-6 relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <ArrowUpRight size={250} />
+      </div>
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Outbound Dispatches
@@ -77,11 +95,11 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
             Audit logs of all stock allocations, promoter issues, and store shipments.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <CopyDeliveryNoteButton type="outbound" />
           <Link 
             href="/dashboard/outbound/new" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
           >
             <Plus size={16} />
             <span>New Outbound Dispatch</span>
@@ -93,13 +111,13 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
       <div className="flex items-center gap-2 border-b border-border">
         <button
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'transactions' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'}`}
-          onClick={() => setActiveTab('transactions')}
+          onClick={() => changeTab('transactions')}
         >
           Transactions Ledger
         </button>
         <button
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'delivery_notes' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'}`}
-          onClick={() => setActiveTab('delivery_notes')}
+          onClick={() => changeTab('delivery_notes')}
         >
           Grouped Delivery Notes
         </button>
@@ -108,28 +126,24 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
       {activeTab === 'transactions' && (
         <div className="flex flex-col gap-4 animate-fade-in">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 bg-surface p-4 rounded-xl border border-border shadow-sm">
+          <div className="flex flex-col sm:flex-row gap-3 bg-surface p-4 rounded-xl border border-border shadow-sm">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input
                 type="text"
-                placeholder="Filter by Product Name..."
-                className="w-full pl-9 pr-4 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors"
+                placeholder="Search by product name..."
+                className="w-full pl-9 pr-4 py-2.5 bg-surface text-text-primary border border-border rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 value={productFilter}
                 onChange={e => setProductFilter(e.target.value)}
               />
             </div>
             <div className="flex-1">
-              <select
-                className="w-full px-3 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors text-text-primary"
+              <CustomSelect
+                options={storeOptions}
                 value={storeId}
-                onChange={e => setStoreId(e.target.value)}
-              >
-                <option value="">All Stores</option>
-                {stores.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+                onChange={setStoreId}
+                placeholder="All Stores"
+              />
             </div>
           </div>
 
@@ -149,6 +163,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                         <th className="py-3 px-5">Product Details</th>
                         <th className="py-3 px-5">Destination Type</th>
                         <th className="py-3 px-5">Destination Entity</th>
+                        <th className="py-3 px-5">Via Supervisor</th>
                         <th className="py-3 px-5 text-center">Quantity</th>
                         <th className="py-3 px-5">Delivery Note</th>
                         <th className="py-3 px-5">Remarks</th>
@@ -179,6 +194,16 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                               <span className="badge text-[10px] bg-secondary/15 text-secondary border border-secondary/10">{tx.toEntityType}</span>
                             </td>
                             <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary whitespace-nowrap">{destinationName}</td>
+                            <td className="py-3.5 px-5 whitespace-nowrap">
+                              {tx.deliverySupervisorId ? (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                                  <UserCheck size={12} />
+                                  {supervisorNames[tx.deliverySupervisorId] || '---'}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-text-muted">—</span>
+                              )}
+                            </td>
                             <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-primary">-{tx.quantity}</td>
                             <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
                               {tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId ? (
@@ -260,10 +285,10 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                 return (
                   <div key={groupKey} className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
                     <div 
-                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-elevated/20 transition-colors"
+                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-elevated/20 transition-colors gap-4"
                       onClick={() => toggleDnExpand(groupKey)}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 min-w-0">
                         <div className={`p-2 rounded-lg ${isExpanded ? 'bg-primary text-white' : 'bg-surface-elevated text-text-secondary'}`}>
                           {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                         </div>
@@ -277,7 +302,17 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/outbound/${encodeURIComponent(group.deliveryNote)}/edit`);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors"
+                        >
+                          <Edit2 size={14} />
+                          <span>Edit</span>
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -288,6 +323,30 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                           <CopyPlus size={14} />
                           <span>Duplicate</span>
                         </button>
+                        {group.items.some(tx => tx.product.isReturnable) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/dashboard/returns?dn=${encodeURIComponent(group.deliveryNote)}`);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors"
+                          >
+                            <RotateCcw size={14} />
+                            <span>Return</span>
+                          </button>
+                        )}
+                        {group.items.some(tx => tx.product.isDisposable) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/dashboard/used?dn=${encodeURIComponent(group.deliveryNote)}`);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 font-bold text-xs rounded-lg transition-colors"
+                          >
+                            <Trash2 size={14} />
+                            <span>Mark Used</span>
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -308,7 +367,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                     </div>
 
                     {isExpanded && (
-                      <div className="border-t border-border bg-surface/50">
+                      <div className="border-t border-border bg-surface/50 overflow-x-auto">
                         <table className="min-w-full divide-y divide-border text-sm">
                           <thead>
                             <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
@@ -325,13 +384,33 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                                 <td className="py-3 px-5 text-xs text-text-secondary">{tx.product.brand.name}</td>
                                 <td className="py-3 px-5 text-center font-mono text-xs font-bold text-primary">-{tx.quantity}</td>
                                 <td className="py-3 px-5 text-right">
-                                  <TransactionActions
-                                    txId={tx.id}
-                                    notes={tx.notes || ''}
-                                    deliveryNote={tx.deliveryNote || ''}
-                                    showDeliveryNote={true}
-                                    copyType="outbound"
-                                  />
+                                  <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                    {tx.product.isReturnable && (
+                                      <button
+                                        type="button"
+                                        onClick={() => router.push(`/dashboard/returns?dn=${encodeURIComponent(tx.deliveryNote || '')}`)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] rounded-md transition-colors"
+                                      >
+                                        <RotateCcw size={10} /> Return
+                                      </button>
+                                    )}
+                                    {tx.product.isDisposable && (
+                                      <button
+                                        type="button"
+                                        onClick={() => router.push(`/dashboard/used?dn=${encodeURIComponent(tx.deliveryNote || '')}`)}
+                                        className="inline-flex items-center gap-1 px-2 py-1 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 font-bold text-[10px] rounded-md transition-colors"
+                                      >
+                                        <Trash2 size={10} /> Mark Used
+                                      </button>
+                                    )}
+                                    <TransactionActions
+                                      txId={tx.id}
+                                      notes={tx.notes || ''}
+                                      deliveryNote={tx.deliveryNote || ''}
+                                      showDeliveryNote={true}
+                                      copyType="outbound"
+                                    />
+                                  </div>
                                 </td>
                               </tr>
                             ))}

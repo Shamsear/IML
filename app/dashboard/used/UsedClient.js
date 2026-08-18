@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Package, Search, Store, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List } from 'lucide-react';
+import { Package, Search, Store, Trash2, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
 
-export default function ReturnsClient({ transactions, stores }) {
+export default function UsedClient({ transactions, stores }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -18,23 +18,20 @@ export default function ReturnsClient({ transactions, stores }) {
     params.set('tab', tab);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
-
   const [searchDN, setSearchDN] = useState(initialDN);
   const [searchStore, setSearchStore] = useState('');
-  const [processingItems, setProcessingItems] = useState({});
+  const [selectedIds, setSelectedIds] = useState({});  // { [txId]: { notes: '' } }
   const [expandedGroups, setExpandedGroups] = useState(initialDN ? { [initialDN]: true } : {});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // --- Filtering ---
   const filteredTransactions = useMemo(() => transactions.filter(tx => {
     const matchDN = !searchDN || tx.deliveryNote?.toLowerCase().includes(searchDN.toLowerCase());
     const matchStore = !searchStore || tx.toEntityId === searchStore;
     return matchDN && matchStore;
   }), [transactions, searchDN, searchStore]);
 
-  // --- Grouping by Delivery Note ---
   const deliveryNoteGroups = useMemo(() => {
     const groups = {};
     filteredTransactions.forEach(tx => {
@@ -47,69 +44,60 @@ export default function ReturnsClient({ transactions, stores }) {
     return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [filteredTransactions, stores]);
 
-  // --- Selection helpers ---
   const handleSelect = (txId, isSelected) => {
-    setProcessingItems(prev => {
-      const tx = transactions.find(t => t.id === txId);
+    setSelectedIds(prev => {
       if (!isSelected) { const next = { ...prev }; delete next[txId]; return next; }
-      return { ...prev, [txId]: { actionType: 'RETURN', qty: tx.quantity - (tx.returnedQty || 0), notes: '' } };
+      return { ...prev, [txId]: { notes: '' } };
     });
   };
 
-  const handleChange = (txId, field, value) => {
-    setProcessingItems(prev => ({ ...prev, [txId]: { ...prev[txId], [field]: value } }));
+  const handleNotes = (txId, value) => {
+    setSelectedIds(prev => ({ ...prev, [txId]: { ...prev[txId], notes: value } }));
   };
 
   const handleSelectGroup = (group) => {
-    const allSelected = group.items.every(tx => !!processingItems[tx.id]);
-    setProcessingItems(prev => {
+    const allSelected = group.items.every(tx => !!selectedIds[tx.id]);
+    setSelectedIds(prev => {
       const next = { ...prev };
-      if (allSelected) {
-        group.items.forEach(tx => delete next[tx.id]);
-      } else {
-        group.items.forEach(tx => {
-          if (!next[tx.id]) next[tx.id] = { actionType: 'RETURN', qty: tx.quantity - (tx.returnedQty || 0), notes: '' };
-        });
-      }
+      if (allSelected) { group.items.forEach(tx => delete next[tx.id]); }
+      else { group.items.forEach(tx => { if (!next[tx.id]) next[tx.id] = { notes: '' }; }); }
       return next;
     });
   };
 
   const toggleGroup = (dn) => setExpandedGroups(prev => ({ ...prev, [dn]: !prev[dn] }));
 
-  // --- Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
-    const payload = Object.keys(processingItems).map(id => ({ transactionId: id, ...processingItems[id], actionType: 'RETURN' }));
-    if (payload.length === 0) { setError('Select at least one item to return.'); return; }
-    for (const item of payload) {
-      if (!item.qty || item.qty <= 0) { setError('Return quantity must be greater than 0'); return; }
-    }
+    const payload = Object.keys(selectedIds).map(id => ({
+      transactionId: id, actionType: 'USED', qty: 0,
+      notes: selectedIds[id].notes || 'Marked as used/consumed',
+    }));
+    if (payload.length === 0) { setError('Select at least one item to mark as used.'); return; }
     setIsSubmitting(true);
     try {
       const res = await processOutboundReturns(payload);
-      if (res.success) { setSuccess('Stock returned to warehouse successfully!'); setProcessingItems({}); }
+      if (res.success) { setSuccess('Items marked as used/consumed successfully!'); setSelectedIds({}); }
     } catch (err) {
       setError(err.message || 'An error occurred');
     } finally { setIsSubmitting(false); }
   };
 
-  const selectedCount = Object.keys(processingItems).length;
+  const selectedCount = Object.keys(selectedIds).length;
 
   return (
     <div className="flex flex-col gap-6 relative">
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
-        <RotateCcw size={250} />
+        <Trash2 size={250} />
       </div>
-
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border z-10 relative">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
           <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight flex items-center gap-3">
-            <RotateCcw className="text-primary" size={28} /> Stock Returns
+            <Trash2 className="text-warning" size={28} /> Mark as Used / Consumed
           </h1>
           <p className="text-sm font-medium text-text-secondary mt-1">
-            Return issued stock back to the warehouse. Only returnable products appear here.
+            Mark disposable items as fully used. Stock will not return to warehouse.
           </p>
         </div>
       </header>
@@ -157,38 +145,34 @@ export default function ReturnsClient({ transactions, stores }) {
                     <th className="py-3 px-5">Date &amp; DN</th>
                     <th className="py-3 px-5">Store</th>
                     <th className="py-3 px-5">Product</th>
-                    <th className="py-3 px-5 text-right">Available</th>
-                    <th className="py-3 px-5 w-32">Return Qty</th>
+                    <th className="py-3 px-5 text-right">Qty to Mark</th>
                     <th className="py-3 px-5">Remarks</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {filteredTransactions.length === 0 ? (
-                    <tr><td colSpan="7" className="py-12 text-center text-text-muted">
-                      <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returnable items found.</span></div>
+                    <tr><td colSpan="6" className="py-12 text-center text-text-muted">
+                      <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No disposable items pending.</span></div>
                     </td></tr>
                   ) : filteredTransactions.map(tx => {
-                    const isSelected = !!processingItems[tx.id];
+                    const isSelected = !!selectedIds[tx.id];
                     const remainingQty = tx.quantity - (tx.returnedQty || 0);
-                    const itemState = processingItems[tx.id];
                     return (
-                      <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/30'}`}>
-                        <td className="py-3 px-5"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
+                      <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/30'}`}>
+                        <td className="py-3 px-5"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
                         <td className="py-3 px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                           <div className="font-mono text-xs text-text-muted mt-0.5">{tx.deliveryNote || 'No DN'}</div>
                         </td>
                         <td className="py-3 px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
-                        <td className="py-3 px-5 font-semibold text-primary max-w-[200px] truncate" title={tx.product?.name}>{tx.product?.name}</td>
+                        <td className="py-3 px-5 font-semibold text-warning max-w-[200px] truncate" title={tx.product?.name}>
+                          {tx.product?.name}
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
+                        </td>
                         <td className="py-3 px-5 text-right font-mono font-bold text-text-primary">{remainingQty}</td>
                         <td className="py-3 px-5">
-                          <input type="number" min="1" max={remainingQty} disabled={!isSelected}
-                            value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
-                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
-                        </td>
-                        <td className="py-3 px-5">
                           <input type="text" placeholder="Optional notes..." disabled={!isSelected}
-                            value={itemState?.notes || ''} onChange={(e) => handleChange(tx.id, 'notes', e.target.value)}
+                            value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
                             className="w-full min-w-[150px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
                         </td>
                       </tr>
@@ -205,20 +189,19 @@ export default function ReturnsClient({ transactions, stores }) {
               {deliveryNoteGroups.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
                   <Package size={48} className="opacity-20" />
-                  <span className="font-semibold">No returnable delivery notes found.</span>
+                  <span className="font-semibold">No disposable delivery notes found.</span>
                 </div>
               ) : deliveryNoteGroups.map(group => {
                 const isExpanded = !!expandedGroups[group.dn];
-                const allSelected = group.items.length > 0 && group.items.every(tx => !!processingItems[tx.id]);
-                const someSelected = group.items.some(tx => !!processingItems[tx.id]);
+                const allSelected = group.items.length > 0 && group.items.every(tx => !!selectedIds[tx.id]);
+                const someSelected = group.items.some(tx => !!selectedIds[tx.id]);
                 return (
                   <div key={group.dn} className="bg-surface">
-                    {/* Group Header */}
                     <div onClick={() => toggleGroup(group.dn)}
                       className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-elevated/30 transition-colors gap-4">
                       <div className="flex items-center gap-3 min-w-0">
                         <div onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
-                          className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-colors ${allSelected ? 'bg-primary border-primary' : someSelected ? 'bg-primary/30 border-primary' : 'border-border bg-surface'}`}>
+                          className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-colors ${allSelected ? 'bg-warning border-warning' : someSelected ? 'bg-warning/30 border-warning' : 'border-border bg-surface'}`}>
                           {(allSelected || someSelected) && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
                         </div>
                         {isExpanded ? <ChevronDown size={18} className="text-text-muted flex-shrink-0" /> : <ChevronRight size={18} className="text-text-muted flex-shrink-0" />}
@@ -233,12 +216,11 @@ export default function ReturnsClient({ transactions, stores }) {
                         </div>
                       </div>
                       <button type="button" onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
-                        className={`flex-shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${allSelected ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated/60'}`}>
+                        className={`flex-shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${allSelected ? 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20' : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated/60'}`}>
                         {allSelected ? 'Deselect All' : 'Select All'}
                       </button>
                     </div>
 
-                    {/* Expanded Items */}
                     {isExpanded && (
                       <div className="border-t border-border bg-surface/50">
                         <table className="min-w-full divide-y divide-border text-sm">
@@ -246,31 +228,24 @@ export default function ReturnsClient({ transactions, stores }) {
                             <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                               <th className="py-2.5 px-5 pl-16 w-10"></th>
                               <th className="py-2.5 px-5">Product</th>
-                              <th className="py-2.5 px-5 text-right">Available</th>
-                              <th className="py-2.5 px-5 w-32">Return Qty</th>
+                              <th className="py-2.5 px-5 text-right">Qty to Mark</th>
                               <th className="py-2.5 px-5">Remarks</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border text-text-primary">
                             {group.items.map(tx => {
-                              const isSelected = !!processingItems[tx.id];
+                              const isSelected = !!selectedIds[tx.id];
                               const remainingQty = tx.quantity - (tx.returnedQty || 0);
-                              const itemState = processingItems[tx.id];
                               return (
-                                <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/40'}`}>
+                                <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/40'}`}>
                                   <td className="py-3 px-5 pl-16">
-                                    <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
+                                    <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
                                   </td>
-                                  <td className="py-3 px-5 font-medium text-xs text-primary">{tx.product?.name}</td>
+                                  <td className="py-3 px-5 font-medium text-xs text-warning">{tx.product?.name}</td>
                                   <td className="py-3 px-5 text-right font-mono font-bold text-text-primary text-xs">{remainingQty}</td>
                                   <td className="py-3 px-5">
-                                    <input type="number" min="1" max={remainingQty} disabled={!isSelected}
-                                      value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
-                                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
-                                  </td>
-                                  <td className="py-3 px-5">
                                     <input type="text" placeholder="Optional notes..." disabled={!isSelected}
-                                      value={itemState?.notes || ''} onChange={(e) => handleChange(tx.id, 'notes', e.target.value)}
+                                      value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
                                       className="w-full min-w-[140px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
                                   </td>
                                 </tr>
@@ -291,12 +266,12 @@ export default function ReturnsClient({ transactions, stores }) {
             <div className="flex flex-col">
               {error && <div className="text-danger text-xs font-bold flex items-center gap-1.5 mb-1 bg-danger/10 px-2 py-1 rounded"><AlertCircle size={14} /> {error}</div>}
               {success && <div className="text-success text-xs font-bold flex items-center gap-1.5 mb-1 bg-success/10 px-2 py-1 rounded"><CheckCircle2 size={14} /> {success}</div>}
-              <span className="text-xs font-semibold text-text-secondary">{selectedCount} item(s) selected for return.</span>
+              <span className="text-xs font-semibold text-text-secondary">{selectedCount} item(s) selected to mark as used.</span>
             </div>
             <button type="submit" disabled={isSubmitting || selectedCount === 0}
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover disabled:bg-primary/50 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center">
+              className="px-6 py-2.5 bg-warning hover:bg-warning/80 disabled:bg-warning/40 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center">
               {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-              <span>Confirm Return</span>
+              <span>Confirm Used / Consumed</span>
             </button>
           </div>
         </form>

@@ -37,9 +37,13 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
     <>
       <div className="flex items-center gap-1">
         <Link
-          href={`/dashboard/transactions/${txId}/edit`}
+          href={
+            deliveryNote && (copyType === 'inbound' || copyType === 'outbound')
+              ? `/dashboard/${copyType}/${encodeURIComponent(deliveryNote)}/edit`
+              : `/dashboard/transactions/${txId}/edit`
+          }
           className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
-          title="Edit transaction"
+          title={deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? "Edit entire Delivery Note" : "Edit transaction"}
         >
           <Edit2 size={13} />
         </Link>

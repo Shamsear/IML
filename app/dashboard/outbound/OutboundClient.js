@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2, UserCheck, Tag } from 'lucide-react';
 import Link from 'next/link';
-import { createBulkDispatchTransactions } from '@/app/actions/transactions';
+import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
 import { getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 
@@ -28,16 +28,33 @@ const playBeep = () => {
   }
 };
 
-function OutboundFormContent({ products, stores, supervisors, staff, initialItems = null, initialDestinationType = 'STORE', initialDestinationId = '', brands = [] }) {
+function OutboundFormContent({ products, stores, supervisors, directSellers = [], initialItems = null, initialDestinationType = 'STORE', initialDestinationId = '', brands = [], initialDeliverySupervisorId = '', editMode = false, existingDn = '' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Destination states
+  // Destination (To) states - Default to STORE unless specified
   const [toType, setToType] = useState(initialDestinationType);
-  const [toId, setToId] = useState(initialDestinationId);
+  const [toId, setToId] = useState(initialDestinationId || '');
+
+  // Delivery supervisor (who carried goods to the store)
+  const [deliverySupervisorId, setDeliverySupervisorId] = useState(initialDeliverySupervisorId || '');
+  const [showNewSupervisorForm, setShowNewSupervisorForm] = useState(false);
+  const [newSupName, setNewSupName] = useState('');
+  const [newSupPhone, setNewSupPhone] = useState('');
+  const [newSupEmail, setNewSupEmail] = useState('');
+  const [supervisorList, setSupervisorList] = useState(supervisors);
+  const [creatingSup, setCreatingSup] = useState(false);
+
+  // Global brand filter — sets all items at once; per-item pills override individually
+  const [globalBrand, setGlobalBrand] = useState('ALL');
+
+  const handleGlobalBrandChange = (brandId) => {
+    setGlobalBrand(brandId);
+    setItems(prev => prev.map(item => ({ ...item, brandFilter: brandId })));
+  };
 
   // Default toType initial destination selection
   useEffect(() => {
@@ -46,15 +63,13 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
     } else {
       if (toType === 'STORE') {
         setToId(stores[0]?.id || '');
-      } else if (toType === 'STAFF') {
-        setToId(staff[0]?.id || '');
-      } else if (toType === 'SUPERVISOR') {
-        setToId(supervisors[0]?.id || '');
+      } else if (toType === 'DIRECT') {
+        setToId(directSellers[0] || '');
       } else {
         setToId('');
       }
     }
-  }, [toType, stores, supervisors, staff, initialDestinationId, initialDestinationType]);
+  }, [toType, stores, supervisors, directSellers, initialDestinationId, initialDestinationType]);
 
   // Global Scan Input State (for fast scanning)
   const [globalScanInput, setGlobalScanInput] = useState('');
@@ -115,6 +130,7 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
     rangeMode: false,
     isExpanded: true,
     error: '',
+    brandFilter: 'ALL',
   });
 
   // State array for outbound items queue
@@ -124,6 +140,7 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
         ...item,
         selectedBarcodes: item.selectedBarcodes || [],
         availableBarcodes: item.availableBarcodes || [],
+        brandFilter: item.productId ? (products.find(p => p.id === item.productId)?.brandId || 'ALL') : 'ALL',
       }));
     }
     return [];
@@ -585,18 +602,29 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
       };
     });
 
+    const payload = {
+      fromEntityType: 'WAREHOUSE',
+      fromEntityId: null,
+      toEntityType: toType,
+      toEntityId: toId,
+      deliverySupervisorId: deliverySupervisorId || null,
+      items: itemsPayload
+    };
+
     try {
-      await createBulkDispatchTransactions({
-        fromEntityType: 'WAREHOUSE',
-        fromEntityId: null,
-        toEntityType: toType,
-        toEntityId: toId,
-        items: itemsPayload
-      });
-      setSuccessMsg(`Dispatched all ${items.length} items successfully!`);
-      setTimeout(() => {
-        router.push('/dashboard/outbound');
-      }, 1500);
+      if (editMode && existingDn) {
+        await updateBulkIssueTransactions(existingDn, payload);
+        setSuccessMsg(`Delivery note ${existingDn} updated successfully!`);
+        setTimeout(() => {
+          router.push('/dashboard/outbound');
+        }, 1500);
+      } else {
+        await createBulkIssueTransactions(payload);
+        setSuccessMsg(`Dispatched all ${items.length} items successfully!`);
+        setTimeout(() => {
+          router.push('/dashboard/outbound');
+        }, 1500);
+      }
     } catch (err) {
       setError(err.message || 'Failed to complete outbound transaction.');
       setLoading(false);
@@ -604,7 +632,10 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
   };
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans">
+    <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <ArrowUpRight size={250} />
+      </div>
       {/* Page Header */}
       <header className="flex items-center gap-4 pb-5 border-b border-border">
         <Link href="/dashboard/outbound" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
@@ -647,8 +678,7 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
             <CustomSelect
               options={[
                 { value: 'STORE', label: 'Retail Store / Placement' },
-                { value: 'STAFF', label: 'Field Promoter (Direct)' },
-                { value: 'SUPERVISOR', label: 'Field Supervisor' },
+                { value: 'DIRECT', label: 'Direct Seller (Custom)' },
               ]}
               value={toType}
               onChange={(val) => setToType(val)}
@@ -666,26 +696,120 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
                 required
               />
             )}
-            {toType === 'STAFF' && (
-              <CustomSelect
-                options={staff.map(s => ({ value: s.id, label: `${s.name} (${s.phone || 'No phone'})` }))}
-                value={toId}
-                onChange={(val) => setToId(val)}
-                placeholder="-- Select Promoter --"
-                required
-              />
-            )}
-            {toType === 'SUPERVISOR' && (
-              <CustomSelect
-                options={supervisors.map(s => ({ value: s.id, label: s.name }))}
-                value={toId}
-                onChange={(val) => setToId(val)}
-                placeholder="-- Select Supervisor --"
-                required
-              />
+            {toType === 'DIRECT' && (
+              <div className="flex flex-col gap-1.5">
+                <input
+                  type="text"
+                  list="direct-sellers-list"
+                  value={toId}
+                  onChange={(e) => setToId(e.target.value)}
+                  placeholder="Type or select direct seller name"
+                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  required
+                />
+                <datalist id="direct-sellers-list">
+                  {directSellers.map(ds => <option key={ds} value={ds} />)}
+                </datalist>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Delivery Supervisor — shown when dispatching to a store */}
+        {toType === 'STORE' && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                <UserCheck size={13} />
+                Delivered By (Supervisor) <span className="text-text-muted font-normal">— optional</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => { setShowNewSupervisorForm(!showNewSupervisorForm); setNewSupName(''); setNewSupPhone(''); setNewSupEmail(''); }}
+                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+              >
+                <Plus size={11} />
+                {showNewSupervisorForm ? 'Cancel' : 'Create new'}
+              </button>
+            </div>
+
+            {showNewSupervisorForm ? (
+              <div className="bg-surface-elevated/60 border border-border rounded-lg p-4 flex flex-col gap-3">
+                <p className="text-[11px] text-text-muted">Fill in details to create a new supervisor and assign them to this dispatch.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Name *</label>
+                    <input
+                      type="text"
+                      value={newSupName}
+                      onChange={e => setNewSupName(e.target.value)}
+                      placeholder="Supervisor name"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Phone</label>
+                    <input
+                      type="text"
+                      value={newSupPhone}
+                      onChange={e => setNewSupPhone(e.target.value)}
+                      placeholder="+971..."
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Email</label>
+                    <input
+                      type="email"
+                      value={newSupEmail}
+                      onChange={e => setNewSupEmail(e.target.value)}
+                      placeholder="email@example.com"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={creatingSup || !newSupName.trim()}
+                  onClick={async () => {
+                    if (!newSupName.trim()) return;
+                    setCreatingSup(true);
+                    try {
+                      const { createSupervisor } = await import('@/app/actions/supervisors');
+                      const fd = new FormData();
+                      fd.set('name', newSupName.trim());
+                      if (newSupPhone.trim()) fd.set('phone', newSupPhone.trim());
+                      if (newSupEmail.trim()) fd.set('email', newSupEmail.trim());
+                      const created = await createSupervisor(fd);
+                      setSupervisorList(prev => [...prev, created]);
+                      setDeliverySupervisorId(created.id);
+                      setShowNewSupervisorForm(false);
+                      setNewSupName(''); setNewSupPhone(''); setNewSupEmail('');
+                    } catch (err) {
+                      setError(err.message || 'Failed to create supervisor');
+                    } finally {
+                      setCreatingSup(false);
+                    }
+                  }}
+                  className="self-start inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                >
+                  {creatingSup ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />}
+                  {creatingSup ? 'Creating...' : 'Create & Assign Supervisor'}
+                </button>
+              </div>
+            ) : (
+              <CustomSelect
+                options={[
+                  { value: '', label: 'No supervisor (skip)' },
+                  ...supervisorList.map(s => ({ value: s.id, label: `${s.name}${s.phone ? ' · ' + s.phone : ''}` }))
+                ]}
+                value={deliverySupervisorId}
+                onChange={val => setDeliverySupervisorId(val)}
+                placeholder="-- Select delivering supervisor --"
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Global Quick Scan Bar */}
@@ -743,6 +867,49 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
           </div>
         )}
       </div>
+
+      {/* Global Brand Filter */}
+      {brands.length > 0 && (
+        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Tag size={15} className="text-primary" />
+            <span className="text-sm font-bold text-text-primary">Global Brand Filter</span>
+            <span className="text-xs text-text-muted">— sets all items at once, override per-item below</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleGlobalBrandChange('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                globalBrand === 'ALL'
+                  ? 'bg-primary text-white border-primary shadow-sm'
+                  : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+              }`}
+            >
+              All Brands
+            </button>
+            {brands.map(b => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => handleGlobalBrandChange(b.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                  globalBrand === b.id
+                    ? 'bg-primary text-white border-primary shadow-sm'
+                    : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                }`}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+          {globalBrand !== 'ALL' && (
+            <p className="text-[11px] text-primary font-semibold">
+              Showing only <strong>{brands.find(b => b.id === globalBrand)?.name}</strong> products · {products.filter(p => p.brand?.id === globalBrand).length} products available
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Accordion Form Cards Queue */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -831,16 +998,46 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Product Selector */}
-                      <div className="flex flex-col gap-1.5 sm:col-span-2">
-                        <label className="text-xs font-semibold text-text-secondary">Product to Dispatch</label>
-                        <CustomSelect
-                          options={products.map(p => ({ value: p.id, label: `${p.brand.name} - ${p.name} (${p.category})` }))}
-                          value={item.productId}
-                          onChange={(val) => handleProductChange(idx, val)}
-                          placeholder="-- Select Product --"
-                          required
-                        />
+                      {/* Product Selector with per-item brand override */}
+                      <div className="sm:col-span-2 flex flex-col gap-2.5">
+                        {/* Per-item brand pills */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex-shrink-0 flex items-center gap-1">
+                            <Tag size={10} /> Brand:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => updateItemField(idx, 'brandFilter', 'ALL')}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                            >All</button>
+                            {brands.map(b => (
+                              <button
+                                key={b.id}
+                                type="button"
+                                onClick={() => updateItemField(idx, 'brandFilter', b.id)}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              >{b.name}</button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Product selector filtered by this item's brandFilter */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary">Product to Dispatch</label>
+                          <CustomSelect
+                            options={products
+                              .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
+                              .map(p => ({ value: p.id, label: `${p.brand?.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl }))}
+                            value={item.productId}
+                            onChange={(val) => handleProductChange(idx, val)}
+                            placeholder={
+                              (item.brandFilter || 'ALL') === 'ALL'
+                                ? '-- Select Product --'
+                                : `-- Select ${brands.find(b => b.id === item.brandFilter)?.name || ''} Product --`
+                            }
+                            required
+                          />
+                        </div>
                       </div>
 
                       {/* Quantity Input */}
@@ -1008,7 +1205,7 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
             disabled={loading}
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
-            <span>Confirm Outbound Batch ({items.length})</span>
+            <span>{editMode ? `Update Outbound Batch (${items.length})` : `Confirm Outbound Batch (${items.length})`}</span>
           </button>
         </div>
       </form>
@@ -1120,7 +1317,7 @@ function OutboundFormContent({ products, stores, supervisors, staff, initialItem
   );
 }
 
-export default function OutboundClient({ products, stores, supervisors, staff, initialItems, initialDestinationType, initialDestinationId }) {
+export default function OutboundClient({ products, stores, supervisors, directSellers = [], brands = [], initialItems, initialDestinationType, initialDestinationId, initialDeliverySupervisorId, editMode = false, existingDn = '' }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -1131,10 +1328,14 @@ export default function OutboundClient({ products, stores, supervisors, staff, i
         products={products} 
         stores={stores}
         supervisors={supervisors}
-        staff={staff}
+        directSellers={directSellers}
+        brands={brands}
         initialItems={initialItems}
         initialDestinationType={initialDestinationType}
         initialDestinationId={initialDestinationId}
+        initialDeliverySupervisorId={initialDeliverySupervisorId}
+        editMode={editMode}
+        existingDn={existingDn}
       />
     </Suspense>
   );

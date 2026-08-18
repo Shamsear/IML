@@ -335,7 +335,10 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
   };
 
   return (
-    <div className="flex flex-col gap-6 font-sans max-w-4xl mx-auto pb-10">
+    <div className="flex flex-col gap-6 font-sans max-w-4xl mx-auto pb-10 relative">
+      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
+        <Shirt size={250} />
+      </div>
       {/* Back Header */}
       <header className="flex items-center gap-4 pb-4 border-b border-border">
         <button

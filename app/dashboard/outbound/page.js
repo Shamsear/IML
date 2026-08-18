@@ -24,6 +24,7 @@ export default async function OutboundPage({ searchParams }) {
         toEntityId: true,
         quantity: true,
         deliveryNote: true,
+        deliverySupervisorId: true,
         timestamp: true,
         notes: true,
         product: {
@@ -31,6 +32,8 @@ export default async function OutboundPage({ searchParams }) {
             id: true,
             name: true,
             brandId: true,
+            isReturnable: true,
+            isDisposable: true,
             brand: {
               select: {
                 name: true
@@ -67,5 +70,8 @@ export default async function OutboundPage({ searchParams }) {
   supervisors.forEach(s => { entityNames[s.id] = s.name; });
   staffList.forEach(s => { entityNames[s.id] = s.name; });
 
-  return <OutboundLedgerClient transactions={transactions} totalCount={totalCount} totalPages={totalPages} page={page} entityNames={entityNames} stores={stores} />;
+  const supervisorNames = {};
+  supervisors.forEach(s => { supervisorNames[s.id] = s.name; });
+
+  return <OutboundLedgerClient transactions={transactions} totalCount={totalCount} totalPages={totalPages} page={page} entityNames={entityNames} stores={stores} supervisorNames={supervisorNames} />;
 }
