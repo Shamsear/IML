@@ -7,14 +7,14 @@ import { ArrowUpRight, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPl
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 
-export default function OutboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {} }) {
+export default function OutboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {}, stores = [] }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' | 'delivery_notes'
   const [pdfLoadingKey, setPdfLoadingKey] = useState(null); // tracks which group's PDF button is loading
   
   // Filters for Transactions Tab
   const [productFilter, setProductFilter] = useState('');
-  const [storeFilter, setStoreFilter] = useState('');
+  const [storeId, setStoreId] = useState(''); // '' = all stores
 
   // Search filter for Delivery Notes Tab
   const [dnSearch, setDnSearch] = useState('');
@@ -54,13 +54,12 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
       const matchProduct = tx.product.name.toLowerCase().includes(productFilter.toLowerCase());
-      const destinationName = tx.toEntityType === 'CLIENT' 
-        ? (tx.toEntityId || 'Client Possession') 
-        : (entityNames[tx.toEntityId] || tx.toEntityId || '');
-      const matchStore = destinationName.toLowerCase().includes(storeFilter.toLowerCase());
+      const matchStore = storeId
+        ? (tx.toEntityType === 'STORE' && tx.toEntityId === storeId)
+        : true;
       return matchProduct && matchStore;
     });
-  }, [transactions, productFilter, storeFilter, entityNames]);
+  }, [transactions, productFilter, storeId]);
 
   const filteredGroups = deliveryNotesGroups.filter(g => 
     g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) || 
@@ -120,15 +119,17 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                 onChange={e => setProductFilter(e.target.value)}
               />
             </div>
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-              <input
-                type="text"
-                placeholder="Filter by Store / Destination..."
-                className="w-full pl-9 pr-4 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors"
-                value={storeFilter}
-                onChange={e => setStoreFilter(e.target.value)}
-              />
+            <div className="flex-1">
+              <select
+                className="w-full px-3 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors text-text-primary"
+                value={storeId}
+                onChange={e => setStoreId(e.target.value)}
+              >
+                <option value="">All Stores</option>
+                {stores.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 

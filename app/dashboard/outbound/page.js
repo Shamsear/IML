@@ -67,5 +67,5 @@ export default async function OutboundPage({ searchParams }) {
   supervisors.forEach(s => { entityNames[s.id] = s.name; });
   staffList.forEach(s => { entityNames[s.id] = s.name; });
 
-  return <OutboundLedgerClient transactions={transactions} totalCount={totalCount} totalPages={totalPages} page={page} entityNames={entityNames} />;
+  return <OutboundLedgerClient transactions={transactions} totalCount={totalCount} totalPages={totalPages} page={page} entityNames={entityNames} stores={stores} />;
 }

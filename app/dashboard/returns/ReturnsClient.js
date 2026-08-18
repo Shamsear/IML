@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Package, Search, Store, ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+
 import { processOutboundReturns } from '@/app/actions/transactions';
 
 export default function ReturnsClient({ transactions, stores }) {
@@ -188,7 +188,7 @@ export default function ReturnsClient({ transactions, stores }) {
                           />
                         </td>
                         <td className="py-3 px-5 whitespace-nowrap">
-                          <div className="font-semibold text-text-primary text-[11px]">{format(new Date(tx.timestamp), 'dd MMM yyyy')}</div>
+                          <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                           <div className="font-mono text-xs text-text-muted mt-0.5">{tx.deliveryNote || 'No DN'}</div>
                         </td>
                         <td className="py-3 px-5 font-semibold text-text-primary text-xs whitespace-nowrap">

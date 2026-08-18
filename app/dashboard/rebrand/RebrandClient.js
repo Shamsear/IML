@@ -563,7 +563,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         return;
       }
       if (qty > (sourceSelectedProduct?.warehouseStock || 0)) {
-        setError(Quantity exceeds available warehouse stock ());
+        setError(`Quantity exceeds available warehouse stock (${sourceSelectedProduct?.warehouseStock || 0})`);
         setLoading(false);
         return;
       }

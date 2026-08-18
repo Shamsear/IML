@@ -14,7 +14,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
 
   // Filters for Transactions Tab
   const [productFilter, setProductFilter] = useState('');
-  const [storeFilter, setStoreFilter] = useState(''); // Stores or suppliers filter
+  const [brandId, setBrandId] = useState(''); // '' = all brands
 
   // Search filter for Delivery Notes Tab
   const [dnSearch, setDnSearch] = useState('');
@@ -29,10 +29,21 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
     }));
   };
 
+  // Derive unique brands from transactions
+  const brands = useMemo(() => {
+    const map = {};
+    (transactions || []).forEach(tx => {
+      if (tx.product?.brandId && tx.product?.brand?.name) {
+        map[tx.product.brandId] = tx.product.brand.name;
+      }
+    });
+    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [transactions]);
+
   // Group by Delivery Note + Source Entity ID
   const deliveryNotesGroups = useMemo(() => {
     const groups = {};
-    transactions.forEach(tx => {
+    (transactions || []).forEach(tx => {
       if (tx.deliveryNote) {
         const sourceName = tx.fromEntityType === 'STORE' 
           ? (entityNames[tx.fromEntityId] || tx.fromEntityId || 'Store')
@@ -57,17 +68,12 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
 
   // Filtered transactions for the Ledger tab
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(tx => {
+    return (transactions || []).filter(tx => {
       const matchProduct = tx.product.name.toLowerCase().includes(productFilter.toLowerCase());
-      
-      const sourceName = tx.fromEntityType === 'STORE'
-        ? (entityNames[tx.fromEntityId] || tx.fromEntityId || '')
-        : (tx.fromEntityId || '');
-      const matchStore = sourceName.toLowerCase().includes(storeFilter.toLowerCase());
-      
-      return matchProduct && matchStore;
+      const matchBrand = brandId ? tx.product.brandId === brandId : true;
+      return matchProduct && matchBrand;
     });
-  }, [transactions, productFilter, storeFilter, entityNames]);
+  }, [transactions, productFilter, brandId]);
 
   const filteredGroups = deliveryNotesGroups.filter(g => 
     g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) || 
@@ -127,15 +133,17 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                 onChange={e => setProductFilter(e.target.value)}
               />
             </div>
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-              <input
-                type="text"
-                placeholder="Filter by Supplier / Store..."
-                className="w-full pl-9 pr-4 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors"
-                value={storeFilter}
-                onChange={e => setStoreFilter(e.target.value)}
-              />
+            <div className="flex-1">
+              <select
+                className="w-full px-3 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors text-text-primary"
+                value={brandId}
+                onChange={e => setBrandId(e.target.value)}
+              >
+                <option value="">All Brands</option>
+                {brands.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
