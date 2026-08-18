@@ -35,37 +35,47 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
 
   return (
     <>
-      <div className="flex items-center gap-1">
-        <Link
-          href={
-            deliveryNote && (copyType === 'inbound' || copyType === 'outbound')
-              ? `/dashboard/${copyType}/${encodeURIComponent(deliveryNote)}/edit`
-              : `/dashboard/transactions/${txId}/edit`
-          }
-          className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
-          title={deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? "Edit entire Delivery Note" : "Edit transaction"}
-        >
-          <Edit2 size={13} />
-        </Link>
-        <Link
-          href={
-            deliveryNote
-              ? `/dashboard/${copyType}/new?copyDn=${deliveryNote}`
-              : `/dashboard/${copyType}/new?copyTxId=${txId}`
-          }
-          className="p-1.5 rounded-md text-text-muted hover:text-success hover:bg-success/10 transition-colors"
-          title={deliveryNote ? `Duplicate full delivery note: ${deliveryNote}` : `Duplicate transaction`}
-        >
-          <CopyPlus size={13} />
-        </Link>
-        <button
-          type="button"
-          onClick={handleOpenDelete}
-          className="p-1.5 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
-          title="Delete transaction"
-        >
-          <Trash2 size={13} />
-        </button>
+      <div className="flex items-center gap-1.5">
+        <div className="has-tooltip">
+          <Link
+            href={
+              deliveryNote && (copyType === 'inbound' || copyType === 'outbound')
+                ? `/dashboard/${copyType}/${encodeURIComponent(deliveryNote)}/edit`
+                : `/dashboard/transactions/${txId}/edit`
+            }
+            className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
+          >
+            <Edit2 size={13} />
+          </Link>
+          <span className="tooltip-box tooltip-left">
+            {deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? "Edit entire Delivery Note" : "Edit transaction"}
+          </span>
+        </div>
+        <div className="has-tooltip">
+          <Link
+            href={
+              deliveryNote
+                ? `/dashboard/${copyType}/new?copyDn=${deliveryNote}`
+                : `/dashboard/${copyType}/new?copyTxId=${txId}`
+            }
+            className="p-1.5 rounded-md text-text-muted hover:text-success hover:bg-success/10 transition-colors"
+          >
+            <CopyPlus size={13} />
+          </Link>
+          <span className="tooltip-box tooltip-left">
+            {deliveryNote ? `Duplicate full delivery note` : `Duplicate transaction`}
+          </span>
+        </div>
+        <div className="has-tooltip">
+          <button
+            type="button"
+            onClick={handleOpenDelete}
+            className="p-1.5 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+          >
+            <Trash2 size={13} />
+          </button>
+          <span className="tooltip-box tooltip-left">Delete transaction record</span>
+        </div>
       </div>
 
       {deleteOpen && (

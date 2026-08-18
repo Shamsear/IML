@@ -118,8 +118,11 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     prodItemCode: '',
     prodLowStockAlert: '10',
     prodIsReturnable: false,
+    prodIsDisposable: false,
     prodImageFile: null,
     prodImagePreview: '',
+    prodRack: '',
+    prodShelf: '',
     prodSimStoreId: stores[0]?.id || '',
     prodSimStoreCode: '',
     prodAutoGenName: true,
@@ -156,8 +159,11 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           prodItemCode: '',
           prodLowStockAlert: '10',
           prodIsReturnable: false,
+          prodIsDisposable: false,
           prodImageFile: null,
           prodImagePreview: '',
+          prodRack: '',
+          prodShelf: '',
         };
       });
       setItems(urlItems);
@@ -675,6 +681,9 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         prodItemCode: item.prodItemCode,
         prodLowStockAlert: item.prodLowStockAlert,
         prodIsReturnable: item.prodIsReturnable,
+        prodIsDisposable: item.prodIsDisposable,
+        prodRack: item.prodRack,
+        prodShelf: item.prodShelf,
       };
     });
 
@@ -958,22 +967,26 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                       </div>
                       
                       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => handleExpandItem(idx)}
-                          className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
-                          title="Expand Entry"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(idx)}
-                          className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
-                          title="Remove Entry"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="has-tooltip">
+                          <button
+                            type="button"
+                            onClick={() => handleExpandItem(idx)}
+                            className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <span className="tooltip-box">Expand receipt item details</span>
+                        </div>
+                        <div className="has-tooltip">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                          <span className="tooltip-box">Remove entry</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1032,28 +1045,33 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                         <div className="flex flex-col gap-1.5 sm:col-span-2">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-semibold text-text-secondary">Product to Receive</label>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveScanTarget({ itemIdx: idx, field: 'productId' });
-                                  handleOpenMobileScanner();
-                                }}
-                                className="inline-flex items-center gap-0.5 text-[10px] text-text-secondary hover:text-text-primary font-semibold cursor-pointer"
-                                title="Sync catalog product via companion"
-                              >
-                                <Smartphone size={10} /> <span>Sync</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveScanTarget({ itemIdx: idx, field: 'productId' });
-                                  setIsCameraOpen(true);
-                                }}
-                                className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline font-bold cursor-pointer"
-                              >
-                                <Camera size={10} /> <span>Scan SKU</span>
-                              </button>
+                            <div className="flex items-center gap-3">
+                              <div className="has-tooltip">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveScanTarget({ itemIdx: idx, field: 'productId' });
+                                    handleOpenMobileScanner();
+                                  }}
+                                  className="inline-flex items-center gap-0.5 text-[10px] text-text-secondary hover:text-text-primary font-semibold cursor-pointer"
+                                >
+                                  <Smartphone size={10} /> <span>Sync</span>
+                                </button>
+                                <span className="tooltip-box">Sync catalog product via companion</span>
+                              </div>
+                              <div className="has-tooltip">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveScanTarget({ itemIdx: idx, field: 'productId' });
+                                    setIsCameraOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline font-bold cursor-pointer"
+                                >
+                                  <Camera size={10} /> <span>Scan SKU</span>
+                                </button>
+                                <span className="tooltip-box">Scan SKU barcode with camera</span>
+                              </div>
                             </div>
                           </div>
                           {/* Per-item brand override pills */}
@@ -1217,6 +1235,28 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               />
                             </div>
 
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-semibold text-text-secondary">Warehouse Rack (Optional)</label>
+                              <input
+                                type="text"
+                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                value={item.prodRack || ''}
+                                onChange={(e) => updateItemField(idx, 'prodRack', e.target.value)}
+                                placeholder="e.g. Rack A"
+                              />
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-semibold text-text-secondary">Warehouse Shelf (Optional)</label>
+                              <input
+                                type="text"
+                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                value={item.prodShelf || ''}
+                                onChange={(e) => updateItemField(idx, 'prodShelf', e.target.value)}
+                                placeholder="e.g. Shelf 3"
+                              />
+                            </div>
+
                             <div className="flex items-center gap-6 mt-4">
                               <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
                                 <input 
@@ -1226,6 +1266,15 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                   onChange={(e) => updateItemField(idx, 'prodIsReturnable', e.target.checked)}
                                 />
                                 <span>Returnable Asset</span>
+                              </label>
+                              <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                <input 
+                                  type="checkbox" 
+                                  className="custom-checkbox"
+                                  checked={item.prodIsDisposable}
+                                  onChange={(e) => updateItemField(idx, 'prodIsDisposable', e.target.checked)}
+                                />
+                                <span>Disposable (Single Use)</span>
                               </label>
                             </div>
 
@@ -1437,26 +1486,32 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                             <div className="flex items-center justify-between pb-1">
                               <span className="text-[10px] text-text-secondary">Type or scan barcodes separated by commas or lines...</span>
                               <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveScanTarget({ itemIdx: idx, field: 'list' });
-                                    handleOpenMobileScanner();
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
-                                >
-                                  <Smartphone size={10} /> <span>Companion Sync</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveScanTarget({ itemIdx: idx, field: 'list' });
-                                    setIsCameraOpen(true);
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
-                                >
-                                  <Camera size={10} /> <span>Webcam Scan</span>
-                                </button>
+                                <div className="has-tooltip">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveScanTarget({ itemIdx: idx, field: 'list' });
+                                      handleOpenMobileScanner();
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
+                                  >
+                                    <Smartphone size={10} /> <span>Companion Sync</span>
+                                  </button>
+                                  <span className="tooltip-box">Pair and scan using smartphone</span>
+                                </div>
+                                <div className="has-tooltip">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveScanTarget({ itemIdx: idx, field: 'list' });
+                                      setIsCameraOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
+                                  >
+                                    <Camera size={10} /> <span>Webcam Scan</span>
+                                  </button>
+                                  <span className="tooltip-box">Scan barcodes using webcam</span>
+                                </div>
                               </div>
                             </div>
                             <textarea
@@ -1573,13 +1628,16 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                   <span className="text-[10px] font-bold text-text-secondary uppercase">Bulk Scan</span>
                 </label>
 
-                <button 
-                  type="button" 
-                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
-                  onClick={() => setIsCameraOpen(false)}
-                >
-                  <X size={16} />
-                </button>
+                <div className="has-tooltip">
+                  <button 
+                    type="button" 
+                    className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                    onClick={() => setIsCameraOpen(false)}
+                  >
+                    <X size={16} />
+                  </button>
+                  <span className="tooltip-box">Close scanner</span>
+                </div>
               </div>
             </div>
             

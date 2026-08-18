@@ -461,3 +461,131 @@ body {
   outline: none;
   box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2);
 }
+
+/* ============================================================
+   PREMIUM CUSTOM TOOLTIP UI/UX STYLING
+   ============================================================ */
+.has-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tooltip-box {
+  display: none;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background-color: var(--text-primary);
+  color: var(--text-inverse);
+  text-align: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  z-index: 999;
+  letter-spacing: 0.025em;
+  text-transform: none;
+}
+
+/* Tooltip arrow */
+.tooltip-box::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -4px;
+  border-width: 4px;
+  border-style: solid;
+  border-color: var(--text-primary) transparent transparent transparent;
+}
+
+.has-tooltip:hover .tooltip-box {
+  display: block;
+  animation: tooltip-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Tooltip right alignment variant */
+.tooltip-box.tooltip-right {
+  bottom: auto;
+  left: 115%;
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+}
+
+.tooltip-box.tooltip-right::after {
+  top: 50%;
+  left: auto;
+  right: 100%;
+  margin-top: -4px;
+  margin-left: 0;
+  border-width: 4px;
+  border-color: transparent var(--text-primary) transparent transparent;
+}
+
+@keyframes tooltip-fade-in-right {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.has-tooltip:hover .tooltip-box.tooltip-right {
+  display: block;
+  animation: tooltip-fade-in-right 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Tooltip left alignment variant */
+.tooltip-box.tooltip-left {
+  bottom: auto;
+  right: 115%;
+  left: auto;
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+}
+
+.tooltip-box.tooltip-left::after {
+  top: 50%;
+  left: 100%;
+  right: auto;
+  margin-top: -4px;
+  margin-left: 0;
+  border-width: 4px;
+  border-color: transparent transparent transparent var(--text-primary);
+}
+
+@keyframes tooltip-fade-in-left {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.has-tooltip:hover .tooltip-box.tooltip-left {
+  display: block;
+  animation: tooltip-fade-in-left 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

@@ -207,14 +207,16 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                             <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap">+{tx.quantity}</td>
                             <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
                               {tx.deliveryNote ? (
-                                <Link
-                                  href={`/api/dashboard/inbound/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
-                                  target="_blank"
-                                  className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold"
-                                  title="Download Delivery Note PDF"
-                                >
-                                  {tx.deliveryNote}
-                                </Link>
+                                <div className="has-tooltip">
+                                  <Link
+                                    href={`/api/dashboard/inbound/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                                    target="_blank"
+                                    className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold"
+                                  >
+                                    {tx.deliveryNote}
+                                  </Link>
+                                  <span className="tooltip-box">Download Delivery Note PDF</span>
+                                </div>
                               ) : (
                                 <span>---</span>
                               )}

@@ -103,7 +103,9 @@ export async function getProductsSlim() {
         isSerialized: true,
         category: true,
         imageUrl: true,
-        brand: { select: { id: true, name: true } }
+        rack: true,
+        shelf: true,
+        brand: { select: { id: true, name: true, rack: true, shelf: true } }
       }
     }),
     prisma.inventoryTransaction.groupBy({
@@ -185,6 +187,8 @@ export async function createProduct(formData) {
   const isPublic = formData.get('isPublic') === 'true';
   const isSerialized = formData.get('isSerialized') === 'true';
   const stockCap = formData.get('stockCap') ? parseInt(formData.get('stockCap'), 10) : null;
+  const rack = formData.get('rack') || null;
+  const shelf = formData.get('shelf') || null;
 
   if (!name) throw new Error('Product name is required');
   if (!brandId) throw new Error('Associated Brand is required');
@@ -200,6 +204,8 @@ export async function createProduct(formData) {
       itemCode,
       category,
       imageUrl,
+      rack,
+      shelf,
       isReturnable,
       isDisposable,
       trackExpiry,
@@ -327,6 +333,8 @@ export async function updateProduct(id, formData) {
   const isPublic = formData.get('isPublic') === 'true';
   const isSerialized = formData.get('isSerialized') === 'true';
   const stockCap = formData.get('stockCap') ? parseInt(formData.get('stockCap'), 10) : null;
+  const rack = formData.get('rack') || null;
+  const shelf = formData.get('shelf') || null;
 
   if (!name) throw new Error('Product name is required');
   if (!brandId) throw new Error('Associated Brand is required');
@@ -339,6 +347,8 @@ export async function updateProduct(id, formData) {
       itemCode,
       category,
       imageUrl,
+      rack,
+      shelf,
       isReturnable,
       isDisposable,
       trackExpiry,
@@ -589,6 +599,8 @@ export async function createBulkProducts(formData) {
     const stockCap = formData.get(`item_${i}_stockCap`);
     const isReturnable = formData.get(`item_${i}_isReturnable`) === 'true';
     const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
+    const rack = formData.get(`item_${i}_rack`) || null;
+    const shelf = formData.get(`item_${i}_shelf`) || null;
 
     const inboundCount = parseInt(formData.get(`item_${i}_inboundCount`), 10) || 0;
     const inbounds = [];
@@ -620,6 +632,8 @@ export async function createBulkProducts(formData) {
       stockCap,
       isReturnable,
       isPublic,
+      rack,
+      shelf,
       inbounds,
       imageUrl
     });
@@ -670,6 +684,8 @@ export async function createBulkProducts(formData) {
           itemCode: item.itemCode ? item.itemCode.trim() : null,
           category: item.category || 'Stands',
           imageUrl: item.imageUrl || null,
+          rack: item.rack || null,
+          shelf: item.shelf || null,
           isReturnable: !!item.isReturnable,
           isPublic: item.isPublic !== false,
           isSerialized,

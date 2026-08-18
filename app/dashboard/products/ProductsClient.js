@@ -11,7 +11,7 @@ import {
 import { createTransaction } from '@/app/actions/transactions';
 import { 
   Package, Plus, Edit2, Trash2, ShieldAlert, CheckCircle, 
-  QrCode, Upload, Filter, Loader2, X,
+  QrCode, Upload, Filter, Loader2, X, Search,
   Copy, Trash, Camera, ArrowDownLeft, ArrowUpRight
 } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
@@ -148,6 +148,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
 
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [brandFilter, setBrandFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
@@ -360,12 +361,17 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
     catch (err) { alert(err.message); } finally { setLoading(false); }
   };
 
-  const filteredProducts = products.filter(p => brandFilter === 'ALL' || p.brandId === brandFilter);
+  const filteredProducts = products.filter(p => {
+    const matchesBrand = brandFilter === 'ALL' || p.brandId === brandFilter;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (p.itemCode && p.itemCode.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesBrand && matchesSearch;
+  });
 
-  // Reset pagination on brand filter change
+  // Reset pagination on brand filter or search change
   useEffect(() => {
     setCurrentPage(0);
-  }, [brandFilter]);
+  }, [brandFilter, searchQuery]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = filteredProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
@@ -390,19 +396,26 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
           </p>
         </div>
         {!activePanel && (
-          <div className="flex gap-2">
-            <button 
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" 
-              onClick={openCSVModal}
-            >
-              <Upload size={14} /> <span>Import CSV</span>
-            </button>
-            <Link 
-              href="/dashboard/products/new" 
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-            >
-              <Plus size={16} /> <span>Add Product</span>
-            </Link>
+          <div className="flex gap-2.5">
+            <div className="has-tooltip">
+              <button 
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" 
+                onClick={openCSVModal}
+                type="button"
+              >
+                <Upload size={14} /> <span>Import CSV</span>
+              </button>
+              <span className="tooltip-box">Import catalog items via CSV</span>
+            </div>
+            <div className="has-tooltip">
+              <Link 
+                href="/dashboard/products/new" 
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <Plus size={16} /> <span>Add Product</span>
+              </Link>
+              <span className="tooltip-box">Create a new catalog item</span>
+            </div>
           </div>
         )}
       </header>
@@ -637,20 +650,36 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
 
         {/* Products List Pane */}
         <div className="w-full flex flex-col gap-4">
-          {/* Filters Bar */}
-          <div className="bg-surface border border-border rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2">
-              <Filter size={14} className="text-text-muted" />
-              <span className="text-xs font-semibold text-text-secondary">Filter by Brand:</span>
-              <CustomSelect
-                options={[{ value: 'ALL', label: 'All Brands' }, ...brands.map(brand => ({ value: brand.id, label: brand.name }))]}
-                value={brandFilter}
-                onChange={(val) => setBrandFilter(val)}
-                size="sm"
-                className="w-[160px]"
-              />
+          {/* Filters & Search Bar */}
+          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col md:flex-row items-end justify-between gap-4 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end flex-1 w-full max-w-2xl">
+              {/* Search Input */}
+              <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Search Catalog</label>
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={13} />
+                  <input
+                    type="text"
+                    placeholder="Search by name or SKU..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-[34px]"
+                  />
+                </div>
+              </div>
+
+              {/* Brand Filter */}
+              <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Filter by Brand</label>
+                <CustomSelect
+                  options={[{ value: 'ALL', label: 'All Brands' }, ...brands.map(brand => ({ value: brand.id, label: brand.name }))]}
+                  value={brandFilter}
+                  onChange={(val) => setBrandFilter(val)}
+                  size="sm"
+                />
+              </div>
             </div>
-            <span className="text-xs font-semibold text-text-muted">{filteredProducts.length} products total</span>
+            <span className="text-xs font-semibold text-text-muted pb-2">{filteredProducts.length} products total</span>
           </div>
 
           {/* Bulk Update / Duplicate Bar */}
@@ -679,31 +708,43 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                   size="sm"
                   className="w-[140px]"
                 />
-                <button 
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/15 hover:bg-success text-success hover:text-white border border-success/20 rounded-lg text-xs font-bold transition-all duration-200" 
-                  onClick={() => router.push(`/dashboard/inbound/new?productIds=${selectedProductIds.join(',')}`)}
-                >
-                  <ArrowDownLeft size={13} /> 
-                  <span>Bulk Receive</span>
-                </button>
-                <button 
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/15 hover:bg-primary text-primary hover:text-white border border-primary/20 rounded-lg text-xs font-bold transition-all duration-200" 
-                  onClick={() => router.push(`/dashboard/outbound/new?productIds=${selectedProductIds.join(',')}`)}
-                >
-                  <ArrowUpRight size={13} /> 
-                  <span>Bulk Issue</span>
-                </button>
-                <button className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={handleBulkDuplicate}>
-                  <Copy size={12} /> 
-                  <span>Clone</span>
-                </button>
-                <button className="inline-flex items-center gap-1 px-3 py-1.5 bg-danger/15 hover:bg-danger text-danger hover:text-white border border-danger/30 rounded-lg text-xs font-semibold transition-all duration-200" onClick={handleBulkDelete}>
-                  <Trash size={12} /> 
-                  <span>Delete</span>
-                </button>
-                <button className="text-xs font-semibold text-text-muted hover:text-text-primary transition-colors ml-2" onClick={() => setSelectedProductIds([])}>
+                <div className="has-tooltip">
+                  <button 
+                    type="button"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/15 hover:bg-success text-success hover:text-white border border-success/20 rounded-lg text-xs font-bold transition-all duration-200" 
+                    onClick={() => router.push(`/dashboard/inbound/new?productIds=${selectedProductIds.join(',')}`)}
+                  >
+                    <ArrowDownLeft size={13} /> 
+                    <span>Bulk Receive</span>
+                  </button>
+                  <span className="tooltip-box">Create bulk inbound note</span>
+                </div>
+                <div className="has-tooltip">
+                  <button 
+                    type="button"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/15 hover:bg-primary text-primary hover:text-white border border-primary/20 rounded-lg text-xs font-bold transition-all duration-200" 
+                    onClick={() => router.push(`/dashboard/outbound/new?productIds=${selectedProductIds.join(',')}`)}
+                  >
+                    <ArrowUpRight size={13} /> 
+                    <span>Bulk Issue</span>
+                  </button>
+                  <span className="tooltip-box">Create bulk outbound note</span>
+                </div>
+                <div className="has-tooltip">
+                  <button className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={handleBulkDuplicate} type="button">
+                    <Copy size={12} /> 
+                    <span>Clone</span>
+                  </button>
+                  <span className="tooltip-box">Clone selected products</span>
+                </div>
+                <div className="has-tooltip">
+                  <button className="inline-flex items-center gap-1 px-3 py-1.5 bg-danger/15 hover:bg-danger text-danger hover:text-white border border-danger/30 rounded-lg text-xs font-semibold transition-all duration-200" onClick={handleBulkDelete} type="button">
+                    <Trash size={12} /> 
+                    <span>Delete</span>
+                  </button>
+                  <span className="tooltip-box">Delete selected products</span>
+                </div>
+                <button className="text-xs font-semibold text-text-muted hover:text-text-primary transition-colors ml-2" onClick={() => setSelectedProductIds([])} type="button">
                   Clear
                 </button>
               </div>
@@ -767,7 +808,14 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                                   <Package size={15} />
                                 </div>
                               )}
-                              <span className="font-semibold">{product.name}</span>
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold text-text-primary truncate">{product.name}</span>
+                                {((product.rack || product.shelf) || (product.brand?.rack || product.brand?.shelf)) && (
+                                  <span className="text-[10px] text-text-muted mt-0.5 font-medium">
+                                    Loc: {product.rack || product.brand?.rack ? `Rack ${product.rack || product.brand?.rack}` : ''}{(product.rack || product.brand?.rack) && (product.shelf || product.brand?.shelf) ? ', ' : ''}{product.shelf || product.brand?.shelf ? `Shelf ${product.shelf || product.brand?.shelf}` : ''}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">{product.itemCode || '---'}</td>
@@ -826,31 +874,39 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                             )}
                           </td>
                            <td className="py-3.5 px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1">
+                            <div className="flex items-center justify-end gap-2">
                               {!product.isSerialized && (
-                                <button 
-                                  className="inline-flex items-center gap-0.5 px-2 py-1 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded text-xs font-semibold transition-colors"
-                                  onClick={() => {
-                                    setAddQtyProduct(product);
-                                    setAddQtyValue('');
-                                    setAddQtyDN('');
-                                    setAddQtyDeliveryFrom('');
-                                    setAddQtyNotes('');
-                                    setAddQtyError('');
-                                  }}
-                                  title="Quick Add Stock"
-                                  type="button"
-                                >
-                                  <Plus size={11} /> 
-                                  <span>Stock</span>
-                                </button>
+                                <div className="has-tooltip">
+                                  <button 
+                                    className="inline-flex items-center gap-0.5 px-2 py-1 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded text-xs font-semibold transition-colors"
+                                    onClick={() => {
+                                      setAddQtyProduct(product);
+                                      setAddQtyValue('');
+                                      setAddQtyDN('');
+                                      setAddQtyDeliveryFrom('');
+                                      setAddQtyNotes('');
+                                      setAddQtyError('');
+                                    }}
+                                    type="button"
+                                  >
+                                    <Plus size={11} /> 
+                                    <span>Stock</span>
+                                  </button>
+                                  <span className="tooltip-box tooltip-left">Quick receive warehouse stock</span>
+                                </div>
                               )}
-                              <button type="button" className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
-                                <Edit2 size={13} />
-                              </button>
-                              <button type="button" className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" onClick={() => handleDelete(product.id)}>
-                                <Trash2 size={13} />
-                              </button>
+                              <div className="has-tooltip">
+                                <button type="button" className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
+                                  <Edit2 size={13} />
+                                </button>
+                                <span className="tooltip-box tooltip-left">Edit product settings</span>
+                              </div>
+                              <div className="has-tooltip">
+                                <button type="button" className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" onClick={() => handleDelete(product.id)}>
+                                  <Trash2 size={13} />
+                                </button>
+                                <span className="tooltip-box tooltip-left">Delete product and stock ledger</span>
+                              </div>
                             </div>
                           </td>
                         </tr>

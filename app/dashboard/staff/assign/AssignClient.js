@@ -158,6 +158,13 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
     setAllocatedItems(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const validateUaePhone = (phone) => {
+    if (!phone) return true;
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    const uaePhoneRegex = /^0(?:5[024568]|[234679])\d{7}$/;
+    return uaePhoneRegex.test(cleanPhone);
+  };
+
   // Single Item Submit Handler (Edit Modes)
   const handleSingleSubmit = async (e) => {
     e.preventDefault();
@@ -167,6 +174,10 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
     if (isEditStaffMode) {
       if (!promoterName) {
         setError('Promoter name is required.');
+        return;
+      }
+      if (promoterPhone && !validateUaePhone(promoterPhone)) {
+        setError('Please enter a valid UAE phone number starting with 0 (e.g. 050 123 4567 or 04 123 4567, without country code).');
         return;
       }
       setLoading(true);
@@ -194,6 +205,10 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
     }
     if (isNewPromoter && !promoterName && !isEditMode) {
       setError('Promoter name is required.');
+      return;
+    }
+    if (isNewPromoter && promoterPhone && !validateUaePhone(promoterPhone)) {
+      setError('Please enter a valid UAE phone number starting with 0 (e.g. 050 123 4567 or 04 123 4567, without country code).');
       return;
     }
     if (!storeId) {
@@ -275,6 +290,10 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
       updateItemField(idx, 'error', 'Promoter name is required');
       return;
     }
+    if (item.isNewPromoter && item.promoterPhone && !validateUaePhone(item.promoterPhone)) {
+      updateItemField(idx, 'error', 'Please enter a valid UAE phone number starting with 0 (e.g. 050 123 4567 or 04 123 4567, without country code)');
+      return;
+    }
     if (!item.isNewPromoter && !item.existingStaffId) {
       updateItemField(idx, 'error', 'Please select an existing promoter');
       return;
@@ -297,6 +316,12 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
       const item = items[i];
       if (item.isNewPromoter && !item.promoterName.trim()) {
         updateItemField(i, 'error', 'Promoter name is required');
+        updateItemField(i, 'isExpanded', true);
+        setLoading(false);
+        return;
+      }
+      if (item.isNewPromoter && item.promoterPhone && !validateUaePhone(item.promoterPhone)) {
+        updateItemField(i, 'error', 'Please enter a valid UAE phone number starting with 0 (e.g. 050 123 4567 or 04 123 4567, without country code)');
         updateItemField(i, 'isExpanded', true);
         setLoading(false);
         return;
@@ -421,7 +446,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                     className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
                     value={promoterPhone} 
                     onChange={(e) => setPromoterPhone(e.target.value)} 
-                    placeholder="Phone number" 
+                    placeholder="e.g. 050 123 4567" 
                   />
                 </div>
               </div>
@@ -765,7 +790,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                                   className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
                                   value={item.promoterPhone} 
                                   onChange={(e) => updateItemField(idx, 'promoterPhone', e.target.value)} 
-                                  placeholder="+971 55 123 4567" 
+                                  placeholder="e.g. 055 123 4567" 
                                 />
                               </div>
                             </div>

@@ -723,7 +723,7 @@ export async function createBulkReceiveTransactions(formData) {
 
       if (isNewProduct) {
         // Register the product inline!
-        const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert = '10', prodIsReturnable } = item;
+        const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert = '10', prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
 
         if (!prodName) throw new Error(`Product name is required for inline product registration at entry #${idx + 1}`);
         if (!prodBrandId) throw new Error(`Brand is required for inline product registration at entry #${idx + 1}`);
@@ -743,8 +743,11 @@ export async function createBulkReceiveTransactions(formData) {
             brandId: prodBrandId,
             category: prodCategory || 'General',
             itemCode: prodItemCode || '',
+            rack: prodRack || null,
+            shelf: prodShelf || null,
             lowStockAlert: parseInt(prodLowStockAlert, 10) || 10,
             isReturnable: !!prodIsReturnable,
+            isDisposable: !!prodIsDisposable,
             imageUrl,
           }
         });
@@ -1767,7 +1770,7 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
       let { isNewProduct, productId, quantity, barcodes = [], notes, manufactureDate, expiryDate } = item;
 
       if (isNewProduct) {
-        const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert, prodIsReturnable } = item;
+        const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert, prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
         let imageUrl = null;
         const newProduct = await tx.product.create({
           data: {
@@ -1776,8 +1779,11 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
             brandId: prodBrandId,
             category: prodCategory || null,
             itemCode: prodItemCode || null,
+            rack: prodRack || null,
+            shelf: prodShelf || null,
             isSerialized: (prodType === 'SIM' || prodType === 'ROUTER'),
             isReturnable: prodIsReturnable,
+            isDisposable: prodIsDisposable,
             lowStockAlert: prodLowStockAlert ? parseInt(prodLowStockAlert, 10) : 0,
             imageUrl: imageUrl,
           }

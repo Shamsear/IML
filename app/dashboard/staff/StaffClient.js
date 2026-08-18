@@ -289,8 +289,9 @@ export default function StaffClient({ initialStaff, stores }) {
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-display font-extrabold text-warning">{activeAllocationsCount}</span>
               {overdueAllocationsCount > 0 && (
-                <span className="text-[10px] font-extrabold text-danger bg-danger/10 border border-danger/15 px-1.5 py-0.5 rounded-full flex items-center gap-0.5" title="Past working period end date and not returned">
+                <span className="text-[10px] font-extrabold text-danger bg-danger/10 border border-danger/15 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 has-tooltip cursor-help">
                   {overdueAllocationsCount} overdue
+                  <span className="tooltip-box font-sans text-2xs uppercase">Past working period end date and not returned</span>
                 </span>
               )}
             </div>
@@ -545,22 +546,28 @@ export default function StaffClient({ initialStaff, stores }) {
                               {new Date(alloc.givenDate).toLocaleDateString()}
                             </td>
                             <td className="py-3.5 px-5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => router.push(`/dashboard/staff/assign?id=${alloc.id}`)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold transition-all cursor-pointer"
-                                  title="Edit Assignment"
-                                >
-                                  <Edit2 size={10} /> <span>Edit</span>
-                                </button>
-                                {( !isFullyReturned ) ? (
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <div className="has-tooltip">
                                   <button
-                                    onClick={() => openSingleReturnModal(alloc)}
-                                    className="px-2 py-1 bg-success hover:bg-success-hover text-white rounded text-[10px] font-bold transition-all cursor-pointer"
-                                    title="Mark items as returned or used"
+                                    onClick={() => router.push(`/dashboard/staff/assign?id=${alloc.id}`)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold transition-all cursor-pointer"
+                                    type="button"
                                   >
-                                    Return / Mark Used
+                                    <Edit2 size={10} /> <span>Edit</span>
                                   </button>
+                                  <span className="tooltip-box tooltip-left">Edit assignment log</span>
+                                </div>
+                                {( !isFullyReturned ) ? (
+                                  <div className="has-tooltip">
+                                    <button
+                                      onClick={() => openSingleReturnModal(alloc)}
+                                      className="px-2 py-1 bg-success hover:bg-success-hover text-white rounded text-[10px] font-bold transition-all cursor-pointer"
+                                      type="button"
+                                    >
+                                      Return / Mark Used
+                                    </button>
+                                    <span className="tooltip-box tooltip-left">Mark items as returned or used</span>
+                                  </div>
                                 ) : (
                                   <span className="text-[10px] font-bold text-success uppercase tracking-wider block pr-2">
                                     Fully Returned
@@ -667,24 +674,37 @@ export default function StaffClient({ initialStaff, stores }) {
                             })()}
                           </td>
                           <td className="py-3.5 px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1">
-                              <button 
-                                className="p-1.5 hover:bg-primary/10 text-text-secondary hover:text-primary rounded-md transition-colors" 
-                                onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} 
-                                title="Issue Uniform"
-                              >
-                                <Shirt size={13} />
-                              </button>
-                              <button 
-                                className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" 
-                                onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)} 
-                                title="Edit Promoter Profile"
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                              <button className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" onClick={() => handlePromoterDelete(staff.id)} title="Delete Promoter">
-                                <Trash2 size={13} />
-                              </button>
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="has-tooltip">
+                                <button 
+                                  className="p-1.5 hover:bg-primary/10 text-text-secondary hover:text-primary rounded-md transition-colors" 
+                                  onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} 
+                                  type="button"
+                                >
+                                  <Shirt size={13} />
+                                </button>
+                                <span className="tooltip-box tooltip-left">Allocate uniforms to promoter</span>
+                              </div>
+                              <div className="has-tooltip">
+                                <button 
+                                  className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" 
+                                  onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)} 
+                                  type="button"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <span className="tooltip-box tooltip-left">Edit promoter details</span>
+                              </div>
+                              <div className="has-tooltip">
+                                <button 
+                                  className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" 
+                                  onClick={() => handlePromoterDelete(staff.id)}
+                                  type="button"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                                <span className="tooltip-box tooltip-left">Delete promoter and records</span>
+                              </div>
                             </div>
                           </td>
                         </tr>

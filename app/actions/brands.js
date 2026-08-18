@@ -39,6 +39,8 @@ export async function createBrand(formData) {
   const description = formData.get('description');
   const imageFile = formData.get('imageFile');
   let imageUrl = formData.get('imageUrl') || null;
+  const rack = formData.get('rack') || null;
+  const shelf = formData.get('shelf') || null;
 
   if (imageFile && imageFile.size > 0) {
     const savedPath = await saveFile(imageFile);
@@ -58,6 +60,8 @@ export async function createBrand(formData) {
       name,
       description,
       imageUrl,
+      rack,
+      shelf,
       isPublic,
       secretKey,
     },
@@ -74,6 +78,8 @@ export async function updateBrand(id, formData) {
   const description = formData.get('description');
   const imageFile = formData.get('imageFile');
   let imageUrl = formData.get('imageUrl') || null;
+  const rack = formData.get('rack') || null;
+  const shelf = formData.get('shelf') || null;
 
   if (imageFile && imageFile.size > 0) {
     const savedPath = await saveFile(imageFile);
@@ -90,6 +96,8 @@ export async function updateBrand(id, formData) {
       name,
       description,
       imageUrl,
+      rack,
+      shelf,
       isPublic,
     },
   });
@@ -125,6 +133,9 @@ export async function getBrandWithDetails(id) {
           name: true,
           itemCode: true,
           category: true,
+          imageUrl: true,
+          rack: true,
+          shelf: true,
           isSerialized: true,
           stockCap: true,
           _count: {
@@ -310,6 +321,8 @@ export async function createBulkBrands(formData) {
     const description = formData.get(`item_${i}_description`);
     const imageFile = formData.get(`item_${i}_imageFile`);
     let imageUrl = formData.get(`item_${i}_imageUrl`) || null;
+    const rack = formData.get(`item_${i}_rack`) || null;
+    const shelf = formData.get(`item_${i}_shelf`) || null;
 
     if (imageFile && imageFile.size > 0) {
       const savedPath = await saveFile(imageFile);
@@ -319,7 +332,7 @@ export async function createBulkBrands(formData) {
     const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
 
     if (!name) throw new Error('Brand name is required');
-    brandsList.push({ name, description, imageUrl, isPublic });
+    brandsList.push({ name, description, imageUrl, isPublic, rack, shelf });
   }
 
   // Save all in a transaction
@@ -337,6 +350,8 @@ export async function createBulkBrands(formData) {
           name: b.name,
           description: b.description,
           imageUrl: b.imageUrl,
+          rack: b.rack,
+          shelf: b.shelf,
           isPublic: b.isPublic,
           secretKey,
         }

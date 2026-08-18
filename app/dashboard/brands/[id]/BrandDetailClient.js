@@ -61,7 +61,10 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   const [productCategory, setProductCategory] = useState('');
   const [productCap, setProductCap] = useState('');
   const [productReturnable, setProductReturnable] = useState(false);
+  const [productDisposable, setProductDisposable] = useState(false);
   const [productFile, setProductFile] = useState(null);
+  const [productRack, setProductRack] = useState('');
+  const [productShelf, setProductShelf] = useState('');
   
   // Auto-naming SIM states
   const [simStoreId, setSimStoreId] = useState(brand.stores[0]?.id || '');
@@ -172,8 +175,11 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     formData.append('category', productCategory);
     formData.append('stockCap', productCap);
     formData.append('isReturnable', productReturnable.toString());
+    formData.append('isDisposable', productDisposable.toString());
     formData.append('isSerialized', (productType !== 'NORMAL').toString());
     formData.append('brandId', brand.id);
+    formData.append('rack', productRack);
+    formData.append('shelf', productShelf);
     if (productFile) {
       formData.append('imageFile', productFile);
     }
@@ -332,8 +338,12 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           <div>
             <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
               {brand.name} Control Panel
-            </h1>
             <p className="text-text-secondary text-sm mt-1">{brand.description || 'Campaign details, store mapping, and product catalog'}</p>
+            {(brand.rack || brand.shelf) && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/10 mt-2 select-none">
+                Default Location: {brand.rack ? `Rack ${brand.rack}` : ''}{brand.rack && brand.shelf ? ', ' : ''}{brand.shelf ? `Shelf ${brand.shelf}` : ''}
+              </span>
+            )}
           </div>
         </div>
         
@@ -497,14 +507,23 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                             )}
                             <div className="flex flex-col min-w-0">
                               <span className="font-semibold text-text-primary truncate">{product.name}</span>
+                              {((product.rack || product.shelf) || (brand.rack || brand.shelf)) && (
+                                <span className="text-[10px] text-text-muted mt-0.5 font-medium">
+                                  Loc: {product.rack || brand.rack ? `Rack ${product.rack || brand.rack}` : ''}{(product.rack || brand.rack) && (product.shelf || brand.shelf) ? ', ' : ''}{product.shelf || brand.shelf ? `Shelf ${product.shelf || brand.shelf}` : ''}
+                                </span>
+                              )}
                               {product.isSerialized && (
-                                <button 
-                                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline mt-0.5" 
-                                  onClick={() => openSerialsModal(product)}
-                                >
-                                  <QrCode size={11} />
-                                  <span>{product.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({product._count?.serialNumbers || 0})</span>
-                                </button>
+                                <div className="has-tooltip self-start">
+                                  <button 
+                                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline mt-0.5 animate-fade-in" 
+                                    onClick={() => openSerialsModal(product)}
+                                    type="button"
+                                  >
+                                    <QrCode size={11} />
+                                    <span>{product.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({product._count?.serialNumbers || 0})</span>
+                                  </button>
+                                  <span className="tooltip-box">Registered barcodes index</span>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -546,16 +565,22 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                           )}
                         </td>
                         <td className="py-3.5 px-5 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-2.5">
-                            <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-xs font-semibold text-success hover:underline inline-flex items-center gap-0.5">
-                              <ArrowDownLeft size={12} />
-                              <span>Recv</span>
-                            </Link>
-                            {brand.stores.length > 0 && (
-                              <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
-                                <ArrowUpRight size={12} />
-                                <span>Issue</span>
+                          <div className="flex items-center justify-end gap-3">
+                            <div className="has-tooltip">
+                              <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-xs font-semibold text-success hover:underline inline-flex items-center gap-0.5">
+                                <ArrowDownLeft size={12} />
+                                <span>Recv</span>
                               </Link>
+                              <span className="tooltip-box tooltip-left">Inbound stock log</span>
+                            </div>
+                            {brand.stores.length > 0 && (
+                              <div className="has-tooltip">
+                                <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
+                                  <ArrowUpRight size={12} />
+                                  <span>Issue</span>
+                                </Link>
+                                <span className="tooltip-box tooltip-left">Outbound stock dispatch</span>
+                              </div>
                             )}
                           </div>
                         </td>
@@ -788,11 +813,26 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                   <label className="text-xs font-semibold text-text-secondary">Cap Threshold</label>
                   <input type="number" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={productCap} onChange={(e) => setProductCap(e.target.value)} placeholder="Max Limit" />
                 </div>
-                <div className="flex items-center mt-6">
+                <div className="flex items-center gap-6 mt-6">
                   <label className="flex items-center gap-2 text-xs font-semibold text-text-secondary cursor-pointer">
                     <input type="checkbox" checked={productReturnable} onChange={(e) => setProductReturnable(e.target.checked)} className="custom-checkbox" />
                     <span>Returnable Item</span>
                   </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-text-secondary cursor-pointer">
+                    <input type="checkbox" checked={productDisposable} onChange={(e) => setProductDisposable(e.target.checked)} className="custom-checkbox" />
+                    <span>Disposable (Single Use)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-text-secondary">Warehouse Rack (Optional)</label>
+                  <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={productRack} onChange={(e) => setProductRack(e.target.value)} placeholder="e.g. Rack A" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-text-secondary">Warehouse Shelf (Optional)</label>
+                  <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={productShelf} onChange={(e) => setProductShelf(e.target.value)} placeholder="e.g. Shelf 3" />
                 </div>
               </div>
 

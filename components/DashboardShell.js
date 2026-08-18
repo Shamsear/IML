@@ -69,13 +69,16 @@ export default function DashboardShell({ user, children }) {
           </div>
           
           {/* Collapse sidebar trigger */}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex items-center justify-center p-1.5 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          </button>
+          <div className="has-tooltip hidden lg:flex">
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="flex items-center justify-center p-1.5 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors"
+              type="button"
+            >
+              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </button>
+            <span className="tooltip-box tooltip-right">{collapsed ? 'Expand sidebar' : 'Collapse sidebar'}</span>
+          </div>
           
           {/* Close mobile drawer */}
           <button
@@ -105,14 +108,16 @@ export default function DashboardShell({ user, children }) {
             )}
           </div>
           {(!collapsed || mobileOpen) && (
-            <button 
-              type="button" 
-              onClick={() => setShowLogoutModal(true)}
-              className="p-2 rounded-md hover:bg-danger/10 hover:text-danger text-text-secondary transition-colors"
-              title="Sign Out"
-            >
-              <LogOut size={15} />
-            </button>
+            <div className="has-tooltip">
+              <button 
+                type="button" 
+                onClick={() => setShowLogoutModal(true)}
+                className="p-2 rounded-md hover:bg-danger/10 hover:text-danger text-text-secondary transition-colors"
+              >
+                <LogOut size={15} />
+              </button>
+              <span className="tooltip-box">Sign Out</span>
+            </div>
           )}
         </div>
       </aside>

@@ -28,6 +28,8 @@ export default function BrandsClient({ initialBrands }) {
     imageUrl: '',
     logoFile: null,
     logoPreview: '',
+    rack: '',
+    shelf: '',
     isPublic: true,
     isExpanded: true,
     error: '',
@@ -52,6 +54,8 @@ export default function BrandsClient({ initialBrands }) {
       imageUrl: brand.imageUrl || '',
       logoFile: null,
       logoPreview: '',
+      rack: brand.rack || '',
+      shelf: brand.shelf || '',
       isPublic: brand.isPublic,
       isExpanded: true,
       error: '',
@@ -117,6 +121,8 @@ export default function BrandsClient({ initialBrands }) {
         formData.append('name', item.name);
         formData.append('description', item.description);
         formData.append('imageUrl', item.imageUrl);
+        formData.append('rack', item.rack);
+        formData.append('shelf', item.shelf);
         if (item.logoFile) {
           formData.append('imageFile', item.logoFile);
         }
@@ -128,6 +134,8 @@ export default function BrandsClient({ initialBrands }) {
         items.forEach((item, idx) => {
           formData.append(`item_${idx}_name`, item.name);
           formData.append(`item_${idx}_description`, item.description);
+          formData.append(`item_${idx}_rack`, item.rack);
+          formData.append(`item_${idx}_shelf`, item.shelf);
           formData.append(`item_${idx}_isPublic`, item.isPublic.toString());
           if (item.logoFile) {
             formData.append(`item_${idx}_imageFile`, item.logoFile);
@@ -177,13 +185,16 @@ export default function BrandsClient({ initialBrands }) {
           </p>
         </div>
         {!isFormOpen && (
-          <button 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
-            onClick={openAddModal}
-          >
-            <Plus size={16} />
-            <span>Add Brand</span>
-          </button>
+          <div className="has-tooltip">
+            <button 
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
+              onClick={openAddModal}
+            >
+              <Plus size={16} />
+              <span>Add Brand</span>
+            </button>
+            <span className="tooltip-box">Register new brand owner</span>
+          </div>
         )}
       </header>
 
@@ -326,6 +337,29 @@ export default function BrandsClient({ initialBrands }) {
                           </div>
                         </div>
 
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Default Warehouse Rack (Optional)</label>
+                            <input
+                              type="text"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                              value={item.rack || ''}
+                              onChange={(e) => updateItemField(idx, 'rack', e.target.value)}
+                              placeholder="e.g. Rack A"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Default Warehouse Shelf (Optional)</label>
+                            <input
+                              type="text"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                              value={item.shelf || ''}
+                              onChange={(e) => updateItemField(idx, 'shelf', e.target.value)}
+                              placeholder="e.g. Shelf 3"
+                            />
+                          </div>
+                        </div>
+
                         <div className="flex flex-col gap-1.5">
                           <label className="text-xs font-semibold text-text-secondary">Description</label>
                           <textarea
@@ -435,6 +469,11 @@ export default function BrandsClient({ initialBrands }) {
                       <p className="text-xs text-text-secondary leading-relaxed mt-1 line-clamp-2 h-8">
                         {brand.description || 'No description provided.'}
                       </p>
+                      {(brand.rack || brand.shelf) && (
+                        <div className="text-[10px] text-text-muted mt-2 font-semibold">
+                          Location: {brand.rack ? `Rack ${brand.rack}` : ''}{brand.rack && brand.shelf ? ', ' : ''}{brand.shelf ? `Shelf ${brand.shelf}` : ''}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between border-t border-border pt-4 mt-auto">
@@ -445,21 +484,27 @@ export default function BrandsClient({ initialBrands }) {
                         Manage Inventory ➔
                       </Link>
                       
-                      <div className="flex items-center gap-1">
-                        <button 
-                          className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer"
-                          onClick={() => openEditModal(brand)}
-                          title="Edit Brand"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button 
-                          className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors cursor-pointer"
-                          onClick={() => handleDelete(brand.id)}
-                          title="Delete Brand"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                      <div className="flex items-center gap-2">
+                        <div className="has-tooltip">
+                          <button 
+                            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer"
+                            onClick={() => openEditModal(brand)}
+                            type="button"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <span className="tooltip-box">Modify brand name and logo</span>
+                        </div>
+                        <div className="has-tooltip">
+                          <button 
+                            className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors cursor-pointer"
+                            onClick={() => handleDelete(brand.id)}
+                            type="button"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                          <span className="tooltip-box">Remove brand and catalog products</span>
+                        </div>
                       </div>
                     </div>
                   </div>

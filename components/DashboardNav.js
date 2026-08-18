@@ -99,13 +99,12 @@ export default function DashboardNav({ collapsed }) {
                   key={item.href} 
                   href={item.href} 
                   className={`flex items-center gap-3 rounded-lg text-sm font-semibold transition-all duration-200 group relative
-                    ${collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5'}
+                    ${collapsed ? 'justify-center p-2.5 has-tooltip' : 'px-3 py-2.5'}
                     ${isActive 
                       ? 'text-primary bg-primary/10 border-l-2 border-primary rounded-l-none' 
                       : 'text-text-secondary hover:text-text-primary hover:bg-black/5'
                     }
                   `}
-                  title={collapsed ? item.name : undefined}
                 >
                   <Icon 
                     size={18} 
@@ -118,6 +117,10 @@ export default function DashboardNav({ collapsed }) {
                   {/* Subtle hover indicator dot if collapsed */}
                   {isActive && collapsed && (
                     <div className="absolute right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
+
+                  {collapsed && (
+                    <span className="tooltip-box tooltip-right">{item.name}</span>
                   )}
                 </Link>
               );

@@ -20,36 +20,53 @@ export default function ReportsClient({ initialProducts, brands }) {
 
   // Compute stock levels for a product from its transactions
   const getProductStock = (transactions) => {
+    let purchased = 0;
     let warehouse = 0;
-    let outlets = 0;
-    let staff = 0;
-    let damaged = 0;
-
+    let issued = 0;
+    let used = 0;
+    let withClient = 0;
+    let damage = 0;
+    let lost = 0;
+    let reBrand = 0;
+    
     transactions.forEach(t => {
       const qty = t.quantity || 0;
       if (t.transactionType === 'RECEIVE') {
+        purchased += qty;
         warehouse += qty;
       } else if (t.transactionType === 'ISSUE') {
         warehouse -= qty;
-        if (t.toEntityType === 'STORE') outlets += qty;
-        else if (t.toEntityType === 'STAFF' || t.toEntityType === 'SUPERVISOR') staff += qty;
+        if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
+        else if (t.toEntityType === 'STAFF') used += qty;
+        else if (t.toEntityType === 'CLIENT') withClient += qty;
       } else if (t.transactionType === 'RETURN') {
         warehouse += qty;
-        if (t.fromEntityType === 'STORE') outlets -= qty;
-        else if (t.fromEntityType === 'STAFF' || t.fromEntityType === 'SUPERVISOR') staff -= qty;
-      } else if (t.transactionType === 'DAMAGE' || t.transactionType === 'LOST') {
+        if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+      } else if (t.transactionType === 'DAMAGE') {
         if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE') outlets -= qty;
-        else if (t.fromEntityType === 'STAFF' || t.fromEntityType === 'SUPERVISOR') staff -= qty;
-        damaged += qty;
+        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        damage += qty;
+      } else if (t.transactionType === 'LOST') {
+        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
+        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
+        else if (t.fromEntityType === 'STAFF') used -= qty;
+        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        lost += qty;
       } else if (t.transactionType === 'REBRAND_OUT') {
         warehouse -= qty;
+        reBrand += qty;
       } else if (t.transactionType === 'REBRAND_IN') {
         warehouse += qty;
       }
     });
 
-    return { warehouse, outlets, staff, damaged, total: warehouse + outlets + staff };
+    const total = warehouse + issued + used + damage + lost + withClient + reBrand;
+
+    return { purchased, warehouse, issued, used, damage, lost, withClient, reBrand, total };
   };
 
   // Compile products list with computed metrics
@@ -75,13 +92,17 @@ export default function ReportsClient({ initialProducts, brands }) {
 
   // Aggregate global metrics across the filtered list
   const aggregateTotals = filteredProducts.reduce((acc, p) => {
+    acc.purchased += p.stock.purchased;
     acc.warehouse += p.stock.warehouse;
-    acc.outlets += p.stock.outlets;
-    acc.staff += p.stock.staff;
-    acc.damaged += p.stock.damaged;
+    acc.issued += p.stock.issued;
+    acc.used += p.stock.used;
+    acc.damage += p.stock.damage;
+    acc.lost += p.stock.lost;
+    acc.withClient += p.stock.withClient;
+    acc.reBrand += p.stock.reBrand;
     acc.total += p.stock.total;
     return acc;
-  }, { warehouse: 0, outlets: 0, staff: 0, damaged: 0, total: 0 });
+  }, { purchased: 0, warehouse: 0, issued: 0, used: 0, damage: 0, lost: 0, withClient: 0, reBrand: 0, total: 0 });
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const paginatedProducts = filteredProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
@@ -109,14 +130,17 @@ export default function ReportsClient({ initialProducts, brands }) {
 
         {/* Action triggers */}
         <div className="flex items-center gap-2 flex-wrap print:hidden">
-          <button 
-            type="button" 
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200"
-          >
-            <Printer size={15} />
-            <span>Print Report</span>
-          </button>
+          <div className="has-tooltip">
+            <button 
+              type="button" 
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200"
+            >
+              <Printer size={15} />
+              <span>Print Report</span>
+            </button>
+            <span className="tooltip-box">Export stock ledger to PDF/Printer</span>
+          </div>
         </div>
       </header>
 
@@ -143,7 +167,7 @@ export default function ReportsClient({ initialProducts, brands }) {
             <span className="w-1.5 h-1.5 rounded-full bg-warning"></span> Store Outlets
           </span>
           <span className="text-2xl font-display font-black text-warning mt-1 block print:text-lg">
-            {aggregateTotals.outlets}
+            {aggregateTotals.issued}
           </span>
         </div>
 
@@ -152,7 +176,7 @@ export default function ReportsClient({ initialProducts, brands }) {
             <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> Promoters/Staff
           </span>
           <span className="text-2xl font-display font-black text-primary mt-1 block print:text-lg">
-            {aggregateTotals.staff}
+            {aggregateTotals.used}
           </span>
         </div>
 
@@ -161,47 +185,48 @@ export default function ReportsClient({ initialProducts, brands }) {
             <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse"></span> Damaged / Lost
           </span>
           <span className="text-2xl font-display font-black text-danger mt-1 block print:text-lg">
-            {aggregateTotals.damaged}
+            {aggregateTotals.damage + aggregateTotals.lost}
           </span>
         </div>
       </section>
 
       {/* Control filters card */}
-      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col sm:flex-row items-center gap-4 print:hidden">
+      <div className="bg-surface border border-border rounded-xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 items-end print:hidden">
         {/* Search Input */}
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
-          <input
-            type="text"
-            placeholder="Search products by name or SKU code..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+        <div className="flex flex-col gap-1.5 w-full">
+          <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Search Catalogue</label>
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={13} />
+            <input
+              type="text"
+              placeholder="Search by name or SKU..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-[34px]"
+            />
+          </div>
+        </div>
+
+        {/* Brand Filter */}
+        <div className="flex flex-col gap-1.5 w-full">
+          <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Brand Owner</label>
+          <CustomSelect
+            options={[{ value: 'ALL', label: 'All Brands' }, ...brands.map(b => ({ value: b.id, label: b.name }))]}
+            value={selectedBrand}
+            onChange={(val) => setSelectedBrand(val)}
+            size="sm"
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          {/* Brand Filter */}
-          <div className="flex flex-col gap-1 w-full sm:w-48">
-            <label className="text-[10px] font-bold text-text-secondary uppercase">Brand Owner</label>
-            <CustomSelect
-              options={[{ value: 'ALL', label: 'All Brands' }, ...brands.map(b => ({ value: b.id, label: b.name }))]}
-              value={selectedBrand}
-              onChange={(val) => setSelectedBrand(val)}
-              size="sm"
-            />
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex flex-col gap-1 w-full sm:w-44">
-            <label className="text-[10px] font-bold text-text-secondary uppercase">Category</label>
-            <CustomSelect
-              options={[{ value: 'ALL', label: 'All Categories' }, ...categories.map(cat => ({ value: cat, label: cat }))]}
-              value={selectedCategory}
-              onChange={(val) => setSelectedCategory(val)}
-              size="sm"
-            />
-          </div>
+        {/* Category Filter */}
+        <div className="flex flex-col gap-1.5 w-full">
+          <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Category</label>
+          <CustomSelect
+            options={[{ value: 'ALL', label: 'All Categories' }, ...categories.map(cat => ({ value: cat, label: cat }))]}
+            value={selectedCategory}
+            onChange={(val) => setSelectedCategory(val)}
+            size="sm"
+          />
         </div>
       </div>
 
@@ -216,24 +241,27 @@ export default function ReportsClient({ initialProducts, brands }) {
             <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border print:divide-y-2 print:divide-black">
               <thead>
-                <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider print:text-[9px] print:text-black">
-                  <th className="pb-3 pr-4">Product Details</th>
-                  <th className="pb-3 px-4">Brand</th>
-                  <th className="pb-3 px-4">Category</th>
-                  <th className="pb-3 px-4 text-center">Warehouse</th>
-                  <th className="pb-3 px-4 text-center">Outlets</th>
-                  <th className="pb-3 px-4 text-center">Staff</th>
-                  <th className="pb-3 px-4 text-center text-danger print:text-black">Damaged</th>
-                  <th className="pb-3 pl-4 text-center font-bold text-primary print:text-black">Total Stock</th>
+                <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider print:text-[9px] print:text-black border-b border-border">
+                  <th className="pb-3 pr-4 whitespace-nowrap font-semibold">Product Details</th>
+                  <th className="pb-3 px-4 whitespace-nowrap font-semibold">Brand</th>
+                  <th className="pb-3 px-4 whitespace-nowrap font-semibold">Category</th>
+                  <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Purchased</th>
+                  <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Warehouse</th>
+                  <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Issued</th>
+                  <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Used</th>
+                  <th className="pb-3 px-4 text-center text-danger whitespace-nowrap font-semibold print:text-black">Damage</th>
+                  <th className="pb-3 px-4 text-center text-danger whitespace-nowrap font-semibold print:text-black">Lost</th>
+                  <th className="pb-3 px-4 text-center text-secondary whitespace-nowrap font-semibold print:text-black">Rebrand</th>
+                  <th className="pb-3 pl-4 text-center font-bold text-primary whitespace-nowrap print:text-black">Total Stock</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border text-sm text-text-primary print:divide-y print:divide-gray-400 print:text-[10px]">
+              <tbody className="divide-y divide-border text-xs text-text-primary print:divide-y print:divide-gray-400 print:text-[9px]">
                 {paginatedProducts.map(p => (
                   <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors print:hover:bg-transparent">
-                    <td className="py-3.5 pr-4">
+                    <td className="py-3.5 pr-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-text-primary print:font-bold">{p.name}</span>
-                        <span className="text-xs text-text-muted mt-0.5 font-mono print:text-[8px]">
+                        <span className="font-semibold text-text-primary print:font-bold whitespace-nowrap">{p.name}</span>
+                        <span className="text-[10px] text-text-muted mt-0.5 font-mono print:text-[8px] whitespace-nowrap">
                           SKU: {p.itemCode || '---'}
                         </span>
                       </div>
@@ -244,11 +272,14 @@ export default function ReportsClient({ initialProducts, brands }) {
                         {p.category || '---'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-center font-mono font-bold">{p.stock.warehouse}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-text-secondary">{p.stock.outlets}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-text-secondary">{p.stock.staff}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-danger/80 print:text-black">{p.stock.damaged}</td>
-                    <td className="py-3.5 pl-4 text-center font-mono font-extrabold text-primary print:text-black">{p.stock.total}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap">{p.stock.purchased}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-bold whitespace-nowrap">{p.stock.warehouse}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-text-secondary whitespace-nowrap">{p.stock.issued}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-text-secondary whitespace-nowrap">{p.stock.used}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-danger/80 print:text-black whitespace-nowrap">{p.stock.damage}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-danger/80 print:text-black whitespace-nowrap">{p.stock.lost}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-secondary/80 print:text-black whitespace-nowrap">{p.stock.reBrand}</td>
+                    <td className="py-3.5 pl-4 text-center font-mono font-extrabold text-primary print:text-black whitespace-nowrap">{p.stock.total}</td>
                   </tr>
                 ))}
               </tbody>

@@ -34,6 +34,8 @@ model Brand {
   name        String
   description String?
   imageUrl    String?
+  rack        String?
+  shelf       String?
   isPublic    Boolean   @default(true)
   secretKey   String    @unique @default(uuid())
   createdAt   DateTime  @default(now())
@@ -50,6 +52,8 @@ model Product {
   name           String    // e.g. "Sadia Yellow T-Shirt (Large)"
   category       String?   
   imageUrl       String?
+  rack           String?
+  shelf          String?
   isReturnable   Boolean   @default(false) 
   isDisposable   Boolean   @default(false)
   trackExpiry    Boolean   @default(false)

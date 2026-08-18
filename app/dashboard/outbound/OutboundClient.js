@@ -763,7 +763,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       type="text"
                       value={newSupPhone}
                       onChange={e => setNewSupPhone(e.target.value)}
-                      placeholder="+971..."
+                      placeholder="e.g. 056 123 4567"
                       className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                     />
                   </div>
@@ -783,6 +783,16 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                   disabled={creatingSup || !newSupName.trim()}
                   onClick={async () => {
                     if (!newSupName.trim()) return;
+                    
+                    if (newSupPhone.trim()) {
+                      const cleanPhone = newSupPhone.replace(/[\s\-\(\)]/g, '');
+                      const uaePhoneRegex = /^0(?:5[024568]|[234679])\d{7}$/;
+                      if (!uaePhoneRegex.test(cleanPhone)) {
+                        setError('Please enter a valid UAE phone number starting with 0 (e.g. 050 123 4567 or 04 123 4567, without country code).');
+                        return;
+                      }
+                    }
+
                     setCreatingSup(true);
                     try {
                       const { createSupervisor } = await import('@/app/actions/supervisors');
@@ -959,24 +969,28 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                         <span className="text-[10px] font-bold uppercase text-text-secondary block">Dispatch Qty</span>
                         <span className="text-xs font-extrabold text-primary">{item.quantity} units</span>
                       </div>
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => handleExpandItem(idx)}
-                          className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
-                          title="Expand Entry"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        {items.length > 1 && (
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="has-tooltip">
                           <button
                             type="button"
-                            onClick={() => handleRemoveItem(idx)}
-                            className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
-                            title="Remove Entry"
+                            onClick={() => handleExpandItem(idx)}
+                            className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
                           >
-                            <Trash2 size={14} />
+                            <Edit2 size={14} />
                           </button>
+                          <span className="tooltip-box">Expand dispatch item details</span>
+                        </div>
+                        {items.length > 1 && (
+                          <div className="has-tooltip">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(idx)}
+                              className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                            <span className="tooltip-box">Remove entry</span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1236,13 +1250,16 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                   />
                   <span className="text-[10px] font-bold text-text-secondary uppercase">Bulk Scan</span>
                 </label>
-                <button 
-                  type="button" 
-                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
-                  onClick={() => setIsCameraOpen(false)}
-                >
-                  <X size={16} />
-                </button>
+                <div className="has-tooltip">
+                  <button 
+                    type="button" 
+                    className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                    onClick={() => setIsCameraOpen(false)}
+                  >
+                    <X size={16} />
+                  </button>
+                  <span className="tooltip-box">Close scanner</span>
+                </div>
               </div>
             </div>
             

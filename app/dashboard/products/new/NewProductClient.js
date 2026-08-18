@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { createBulkProducts } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
+import DashboardLoading from '@/app/dashboard/loading';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -105,12 +106,15 @@ export default function NewProductClient({ brands, stores = [], editId = null })
     productType: 'NORMAL', // 'NORMAL', 'SIM', 'ROUTER'
     stockCap: '',
     isReturnable: false,
+    isDisposable: false,
     isPublic: true,
     includeInbound: false, // Default is false (catalog details only)
     inbounds: [createEmptyInboundEntry(0)], // List of inbound shipments
     imageFile: null,
     imagePreview: '',
     imageUrl: '',
+    rack: '',
+    shelf: '',
     isExpanded: true,
     error: '',
     simStoreId: stores[0]?.id || '',
@@ -143,12 +147,15 @@ export default function NewProductClient({ brands, stores = [], editId = null })
               productType: pType,
               stockCap: product.stockCap ? product.stockCap.toString() : '',
               isReturnable: product.isReturnable,
+              isDisposable: product.isDisposable,
               isPublic: product.isPublic,
               includeInbound: false,
               inbounds: [createEmptyInboundEntry(0)],
               imageFile: null,
               imagePreview: '',
               imageUrl: product.imageUrl || '',
+              rack: product.rack || '',
+              shelf: product.shelf || '',
               isExpanded: true,
               error: '',
               simStoreId: stores[0]?.id || '',
@@ -635,7 +642,10 @@ export default function NewProductClient({ brands, stores = [], editId = null })
         formData.append('isSerialized', item.productType !== 'NORMAL' ? 'true' : 'false');
         formData.append('stockCap', item.stockCap || '');
         formData.append('isReturnable', item.isReturnable ? 'true' : 'false');
+        formData.append('isDisposable', item.isDisposable ? 'true' : 'false');
         formData.append('isPublic', item.isPublic ? 'true' : 'false');
+        formData.append('rack', item.rack || '');
+        formData.append('shelf', item.shelf || '');
         if (item.imageFile) {
           formData.append('imageFile', item.imageFile);
         } else if (item.imageUrl) {
@@ -655,7 +665,10 @@ export default function NewProductClient({ brands, stores = [], editId = null })
           formData.append(`item_${idx}_productType`, item.productType);
           formData.append(`item_${idx}_stockCap`, item.stockCap || '');
           formData.append(`item_${idx}_isReturnable`, item.isReturnable ? 'true' : 'false');
+          formData.append(`item_${idx}_isDisposable`, item.isDisposable ? 'true' : 'false');
           formData.append(`item_${idx}_isPublic`, item.isPublic ? 'true' : 'false');
+          formData.append(`item_${idx}_rack`, item.rack || '');
+          formData.append(`item_${idx}_shelf`, item.shelf || '');
 
           // Serialize optional multiple inbounds
           formData.append(`item_${idx}_inboundCount`, item.includeInbound ? item.inbounds.length.toString() : '0');
@@ -698,6 +711,10 @@ export default function NewProductClient({ brands, stores = [], editId = null })
       setLoading(false);
     }
   };
+
+  if (editId && loading && items[0]?.name === '') {
+    return <DashboardLoading />;
+  }
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans relative">
@@ -975,6 +992,28 @@ export default function NewProductClient({ brands, stores = [], editId = null })
                           />
                         </div>
 
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary">Warehouse Rack (Optional)</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                            value={item.rack || ''}
+                            onChange={(e) => updateItemField(idx, 'rack', e.target.value)}
+                            placeholder="e.g. Rack A"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary">Warehouse Shelf (Optional)</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                            value={item.shelf || ''}
+                            onChange={(e) => updateItemField(idx, 'shelf', e.target.value)}
+                            placeholder="e.g. Shelf 3"
+                          />
+                        </div>
+
                         <div className="flex items-center gap-6 mt-4">
                           <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
                             <input 
@@ -984,6 +1023,15 @@ export default function NewProductClient({ brands, stores = [], editId = null })
                               onChange={(e) => updateItemField(idx, 'isReturnable', e.target.checked)}
                             />
                             <span>Returnable Item</span>
+                          </label>
+                          <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                            <input 
+                              type="checkbox" 
+                              className="custom-checkbox"
+                              checked={item.isDisposable}
+                              onChange={(e) => updateItemField(idx, 'isDisposable', e.target.checked)}
+                            />
+                            <span>Disposable (Single Use)</span>
                           </label>
                         </div>
 

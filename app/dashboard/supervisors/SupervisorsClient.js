@@ -41,6 +41,17 @@ export default function SupervisorsClient({ initialSupervisors }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    if (phone) {
+      const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+      const uaePhoneRegex = /^0(?:5[024568]|[234679])\d{7}$/;
+      if (!uaePhoneRegex.test(cleanPhone)) {
+        setError('Please enter a valid UAE phone number starting with 0 (e.g. 050 123 4567 or 04 123 4567, without country code).');
+        setLoading(false);
+        return;
+      }
+    }
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('email', email);
@@ -86,12 +97,15 @@ export default function SupervisorsClient({ initialSupervisors }) {
           </p>
         </div>
         {!isFormOpen && (
-          <button 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
-            onClick={openAddModal}
-          >
-            <Plus size={16} /> <span>Add Supervisor</span>
-          </button>
+          <div className="has-tooltip">
+            <button 
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
+              onClick={openAddModal}
+            >
+              <Plus size={16} /> <span>Add Supervisor</span>
+            </button>
+            <span className="tooltip-box">Register new team supervisor</span>
+          </div>
         )}
       </header>
 
@@ -147,7 +161,7 @@ export default function SupervisorsClient({ initialSupervisors }) {
                     className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" 
                     value={phone} 
                     onChange={(e) => setPhone(e.target.value)} 
-                    placeholder="+971 56 123 4567" 
+                    placeholder="e.g. 056 123 4567" 
                   />
                 </div>
               </div>
@@ -218,9 +232,12 @@ export default function SupervisorsClient({ initialSupervisors }) {
                       <Edit2 size={13} />
                       <span>Edit</span>
                     </button>
-                    <button className="inline-flex items-center justify-center p-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => handleDelete(supervisor.id)}>
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="has-tooltip">
+                      <button className="inline-flex items-center justify-center p-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => handleDelete(supervisor.id)}>
+                        <Trash2 size={14} />
+                      </button>
+                      <span className="tooltip-box">Remove supervisor profile</span>
+                    </div>
                   </div>
                 </div>
               ))}

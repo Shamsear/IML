@@ -172,12 +172,15 @@ export default function StoresClient({ initialStores }) {
           </p>
         </div>
         {!isFormOpen && (
-          <button 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
-            onClick={openAddModal}
-          >
-            <Plus size={16} /> <span>Add Store</span>
-          </button>
+          <div className="has-tooltip">
+            <button 
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
+              onClick={openAddModal}
+            >
+              <Plus size={16} /> <span>Add Store</span>
+            </button>
+            <span className="tooltip-box">Register new outlet</span>
+          </div>
         )}
       </header>
 
@@ -438,28 +441,36 @@ export default function StoresClient({ initialStores }) {
                     <span className="leading-relaxed line-clamp-2 h-8">{store.location || 'No coordinates or address specified.'}</span>
                   </div>
 
-                  <div className="flex items-center justify-end gap-1.5 border-t border-border/60 pt-3">
-                    <Link
-                      href={`/dashboard/stores/${store.id}`}
-                      className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-md transition-colors cursor-pointer"
-                      title="View Store Details"
-                    >
-                      <Store size={13} />
-                    </Link>
-                    <button 
-                      className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer"
-                      onClick={() => openEditModal(store)}
-                      title="Edit Outlet"
-                    >
-                      <Edit2 size={13} />
-                    </button>
-                    <button 
-                      className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors cursor-pointer"
-                      onClick={() => handleDelete(store.id)}
-                      title="Delete Outlet"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                  <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3">
+                    <div className="has-tooltip">
+                      <Link
+                        href={`/dashboard/stores/${store.id}`}
+                        className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-md transition-colors cursor-pointer"
+                      >
+                        <Store size={13} />
+                      </Link>
+                      <span className="tooltip-box">Open placement ledger</span>
+                    </div>
+                    <div className="has-tooltip">
+                      <button 
+                        className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer"
+                        onClick={() => openEditModal(store)}
+                        type="button"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <span className="tooltip-box">Edit outlet details</span>
+                    </div>
+                    <div className="has-tooltip">
+                      <button 
+                        className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors cursor-pointer"
+                        onClick={() => handleDelete(store.id)}
+                        type="button"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                      <span className="tooltip-box">Delete store mapping</span>
+                    </div>
                   </div>
                 </div>
               ))}
