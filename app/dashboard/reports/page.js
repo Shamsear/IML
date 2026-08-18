@@ -38,8 +38,16 @@ export default async function ReportsPage() {
   });
 
   // Map database aggregates back to the products in the format the component expects
+  const aggsMap = new Map();
+  aggregates.forEach(agg => {
+    if (!aggsMap.has(agg.productId)) {
+      aggsMap.set(agg.productId, []);
+    }
+    aggsMap.get(agg.productId).push(agg);
+  });
+
   const productsWithTransactions = products.map(product => {
-    const productAggs = aggregates.filter(a => a.productId === product.id);
+    const productAggs = aggsMap.get(product.id) || [];
     const fakeTransactions = productAggs.map(agg => ({
       transactionType: agg.transactionType,
       quantity: agg._sum.quantity || 0,

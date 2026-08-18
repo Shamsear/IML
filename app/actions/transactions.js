@@ -466,49 +466,116 @@ export async function createBulkIssueTransactions(payload) {
   // Auto-generate Delivery Note number for the entire dispatch batch
   const autoDeliveryNote = `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+  // 1. Batch Product Query
+  const productIds = [...new Set(items.map(i => i.productId))];
+  const dbProducts = await prisma.product.findMany({
+    where: { id: { in: productIds } }
+  });
+  const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
+  // Validate all product existences
+  for (const item of items) {
+    const product = productsMap.get(item.productId);
+    if (!product) throw new Error(`Product not found for ID: ${item.productId}`);
+  }
+
+  // 2. Batch Stock checks for bulk (non-serialized) items
+  const bulkProductIds = items
+    .filter(item => {
+      const product = productsMap.get(item.productId);
+      return product && !product.isSerialized;
+    })
+    .map(item => item.productId);
+
+  const stockMap = new Map();
+  if (bulkProductIds.length > 0 && fromEntityType && fromEntityType !== 'SUPPLIER') {
+    const [inboundSums, outboundSums] = await Promise.all([
+      prisma.inventoryTransaction.groupBy({
+        by: ['productId'],
+        where: {
+          productId: { in: bulkProductIds },
+          toEntityType: fromEntityType,
+          toEntityId: fromEntityId || null,
+        },
+        _sum: { quantity: true },
+      }),
+      prisma.inventoryTransaction.groupBy({
+        by: ['productId'],
+        where: {
+          productId: { in: bulkProductIds },
+          fromEntityType: fromEntityType,
+          fromEntityId: fromEntityId || null,
+        },
+        _sum: { quantity: true },
+      })
+    ]);
+
+    inboundSums.forEach(s => {
+      stockMap.set(s.productId, (s._sum.quantity || 0));
+    });
+    outboundSums.forEach(s => {
+      const current = stockMap.get(s.productId) || 0;
+      stockMap.set(s.productId, current - (s._sum.quantity || 0));
+    });
+  }
+
+  // Validate stocks in-memory
+  for (const item of items) {
+    const product = productsMap.get(item.productId);
+    if (product && !product.isSerialized && fromEntityType && fromEntityType !== 'SUPPLIER') {
+      const currentStock = stockMap.get(item.productId) || 0;
+      if (currentStock < item.quantity) {
+        throw new Error(`Insufficient stock for product "${product.name}". Current stock at ${fromEntityType} is ${currentStock}, requested ${item.quantity}.`);
+      }
+    }
+  }
+
+  // 3. Batch Serial verification
+  const allBarcodes = items.flatMap(item => item.barcodes || []);
+  let serialsMap = new Map();
+  if (allBarcodes.length > 0) {
+    const dbSerials = await prisma.productSerialNumber.findMany({
+      where: { barcode: { in: allBarcodes } },
+      include: { product: { select: { name: true } } }
+    });
+    serialsMap = new Map(dbSerials.map(s => [s.barcode, s]));
+  }
+
+  // Verify serial barcodes in-memory
+  for (const item of items) {
+    const product = productsMap.get(item.productId);
+    if (product && product.isSerialized && item.barcodes && item.barcodes.length > 0) {
+      const foundSerials = item.barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+      const foundBarcodeStrings = foundSerials.map(s => s.barcode);
+      const missingBarcodes = item.barcodes.filter(b => !foundBarcodeStrings.includes(b));
+      if (missingBarcodes.length > 0) {
+        throw new Error(`Some barcodes for product "${product.name}" could not be found in the database: ${missingBarcodes.join(', ')}`);
+      }
+
+      const mismatchedSerials = foundSerials.filter(s => s.productId !== item.productId);
+      if (mismatchedSerials.length > 0) {
+        const mismatches = mismatchedSerials.map(s => `"${s.barcode}" (belongs to product "${s.product.name}")`).join(', ');
+        throw new Error(`Some barcodes belong to different products instead of "${product.name}": ${mismatches}`);
+      }
+
+      if (fromEntityType) {
+        const invalidSerials = foundSerials.filter(
+          (s) => s.currentLocationType !== fromEntityType || s.currentLocationId !== fromEntityId
+        );
+        if (invalidSerials.length > 0) {
+          throw new Error(`Some barcodes for "${product.name}" are not present at the source location (${fromEntityType}).`);
+        }
+      }
+    }
+  }
+
+  // 4. Open transaction and write
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
 
     for (const item of items) {
       const { productId, quantity, barcodes = [], notes } = item;
-
-      if (!productId) throw new Error('Product ID is required for all items');
-      if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0 for all items');
-
-      const product = await tx.product.findUnique({
-        where: { id: productId },
-      });
-
-      if (!product) throw new Error(`Product not found for ID: ${productId}`);
-
-      // Verify stock levels for bulk (non-serialized) products
-      if (!product.isSerialized && fromEntityType && fromEntityType !== 'SUPPLIER') {
-        const inboundSum = await tx.inventoryTransaction.aggregate({
-          where: {
-            productId,
-            toEntityType: fromEntityType,
-            toEntityId: fromEntityId || null,
-          },
-          _sum: { quantity: true },
-        });
-
-        const outboundSum = await tx.inventoryTransaction.aggregate({
-          where: {
-            productId,
-            fromEntityType: fromEntityType,
-            fromEntityId: fromEntityId || null,
-          },
-          _sum: { quantity: true },
-        });
-
-        const inQty = inboundSum._sum.quantity || 0;
-        const outQty = outboundSum._sum.quantity || 0;
-        const currentStock = inQty - outQty;
-
-        if (currentStock < quantity) {
-          throw new Error(`Insufficient stock for product "${product.name}". Current stock at ${fromEntityType} is ${currentStock}, requested ${quantity}.`);
-        }
-      }
+      const product = productsMap.get(productId);
 
       // A. Create core transaction
       const invTx = await tx.inventoryTransaction.create({
@@ -529,46 +596,14 @@ export async function createBulkIssueTransactions(payload) {
 
       // B. Link serialized serials
       if (product.isSerialized && barcodes.length > 0) {
-        // Find serials globally to give descriptive mismatches
-        const globalSerials = await tx.productSerialNumber.findMany({
-          where: {
-            barcode: { in: barcodes },
-          },
-          include: {
-            product: { select: { name: true } }
-          }
-        });
-
-        const foundBarcodes = globalSerials.map(s => s.barcode);
-        const missingBarcodes = barcodes.filter(b => !foundBarcodes.includes(b));
-        if (missingBarcodes.length > 0) {
-          throw new Error(`Some barcodes for product "${product.name}" could not be found in the database: ${missingBarcodes.join(', ')}`);
-        }
-
-        const mismatchedSerials = globalSerials.filter(s => s.productId !== productId);
-        if (mismatchedSerials.length > 0) {
-          const mismatches = mismatchedSerials.map(s => `"${s.barcode}" (belongs to product "${s.product.name}")`).join(', ');
-          throw new Error(`Some barcodes belong to different products instead of "${product.name}": ${mismatches}`);
-        }
-
-        const dbSerials = globalSerials.filter(s => s.productId === productId);
-
-        if (fromEntityType) {
-          const invalidSerials = dbSerials.filter(
-            (s) => s.currentLocationType !== fromEntityType || s.currentLocationId !== fromEntityId
-          );
-          if (invalidSerials.length > 0) {
-            throw new Error(`Some barcodes for "${product.name}" are not present at the source location (${fromEntityType}).`);
-          }
-        }
-
+        const itemSerials = barcodes.map(b => serialsMap.get(b)).filter(Boolean);
         let nextStatus = 'AVAILABLE';
         if (toEntityType === 'CLIENT' || toEntityType === 'STAFF' || toEntityType === 'DIRECT') nextStatus = 'USED';
 
         // Bulk update location and status (1 write)
         await tx.productSerialNumber.updateMany({
           where: {
-            id: { in: dbSerials.map(s => s.id) }
+            id: { in: itemSerials.map(s => s.id) }
           },
           data: {
             currentLocationType: toEntityType || null,
@@ -579,7 +614,7 @@ export async function createBulkIssueTransactions(payload) {
 
         // Bulk link serials to transaction (1 write)
         await tx.transactionSerialNumber.createMany({
-          data: dbSerials.map(serial => ({
+          data: itemSerials.map(serial => ({
             transactionId: invTx.id,
             serialNumberId: serial.id,
           }))
@@ -598,7 +633,7 @@ export async function createBulkIssueTransactions(payload) {
   return transactions;
 }
 
-// 7. Create multiple receive transactions atomically in a single batch
+
 export async function createBulkReceiveTransactions(formData) {
   await checkAuth();
 
@@ -615,12 +650,76 @@ export async function createBulkReceiveTransactions(formData) {
   // Auto-generate Delivery Note number for the entire receive batch
   const autoDeliveryNote = `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+  // 1. Eagerly upload images outside database transaction lock
+  const uploadedUrls = await Promise.all(
+    items.map(async (item, idx) => {
+      if (item.isNewProduct) {
+        const imageFile = formData.get(`item_${idx}_imageFile`);
+        if (imageFile && imageFile.size > 0) {
+          const savedPath = await uploadToImageKit(imageFile);
+          return { index: idx, url: savedPath };
+        }
+      }
+      return { index: idx, url: null };
+    })
+  );
+  const imageUrlsMap = new Map(uploadedUrls.map(u => [u.index, u.url]));
+
+  // 2. Pre-generate IDs for new products
+  const newProductItems = items.filter(i => i.isNewProduct);
+  let nextProductNum = 1;
+  if (newProductItems.length > 0) {
+    const lastProduct = await prisma.product.findFirst({
+      where: { id: { startsWith: 'PROD' } },
+      orderBy: { id: 'desc' },
+      select: { id: true }
+    });
+    if (lastProduct) {
+      const parts = lastProduct.id.split('-');
+      const numPart = parts[parts.length - 1];
+      const parsed = parseInt(numPart, 10);
+      if (!isNaN(parsed)) {
+        nextProductNum = parsed + 1;
+      }
+    }
+  }
+
+  // 3. Pre-validate existing products in one query
+  const existingProductIds = items.filter(i => !i.isNewProduct).map(i => i.productId);
+  const dbProducts = await prisma.product.findMany({
+    where: { id: { in: existingProductIds } }
+  });
+  const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
+  // Validate existence of existing products in-memory
+  for (const item of items) {
+    if (!item.isNewProduct) {
+      const product = productsMap.get(item.productId);
+      if (!product) throw new Error(`Product not found for ID: ${item.productId}`);
+    }
+  }
+
+  // 4. Pre-verify barcodes check for duplicates globally
+  const allBarcodes = items.flatMap(i => i.barcodes || []);
+  if (allBarcodes.length > 0) {
+    const existingSerials = await prisma.productSerialNumber.findMany({
+      where: { barcode: { in: allBarcodes } },
+      include: { product: { select: { name: true } } }
+    });
+    if (existingSerials.length > 0) {
+      const dupes = existingSerials.map(s => `"${s.barcode}" (linked to product "${s.product.name}")`).join(', ');
+      throw new Error(`Some barcodes already exist in the database: ${dupes}`);
+    }
+  }
+
+  // 5. Open transaction and write data
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
 
     for (let idx = 0; idx < items.length; idx++) {
       const item = items[idx];
       let { productId, quantity, barcodes = [], notes, manufactureDate, expiryDate, isNewProduct } = item;
+      let product;
 
       if (isNewProduct) {
         // Register the product inline!
@@ -629,16 +728,13 @@ export async function createBulkReceiveTransactions(formData) {
         if (!prodName) throw new Error(`Product name is required for inline product registration at entry #${idx + 1}`);
         if (!prodBrandId) throw new Error(`Brand is required for inline product registration at entry #${idx + 1}`);
 
-        // Upload the image file if it exists in the FormData
-        const imageFile = formData.get(`item_${idx}_imageFile`);
-        let imageUrl = null;
-        if (imageFile && imageFile.size > 0) {
-          const savedPath = await uploadToImageKit(imageFile);
-          if (savedPath) imageUrl = savedPath;
-        }
+        const padded = String(nextProductNum).padStart(4, '0');
+        const newProductId = `PROD-${padded}`;
+        nextProductNum++;
 
-        const newProductId = await generateId('product', 'PROD', 4);
-        const newProduct = await tx.product.create({
+        const imageUrl = imageUrlsMap.get(idx) || null;
+
+        product = await tx.product.create({
           data: {
             id: newProductId,
             name: prodName,
@@ -653,23 +749,16 @@ export async function createBulkReceiveTransactions(formData) {
           }
         });
 
-        // Set the newly created product's ID
-        productId = newProduct.id;
-        
-        // Ensure quantity is correct if newly registered is serialized
-        if (newProduct.isSerialized) {
+        productId = product.id;
+        if (product.isSerialized) {
           quantity = barcodes.length;
         }
+      } else {
+        product = productsMap.get(productId);
       }
 
       if (!productId) throw new Error('Product ID is required for all items');
       if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0 for all items');
-
-      const product = await tx.product.findUnique({
-        where: { id: productId },
-      });
-
-      if (!product) throw new Error(`Product not found for ID: ${productId}`);
 
       // A. Create core transaction
       const invTx = await tx.inventoryTransaction.create({
@@ -692,20 +781,6 @@ export async function createBulkReceiveTransactions(formData) {
 
       // B. Create serials if serialized
       if (product.isSerialized && barcodes.length > 0) {
-        const existingSerials = await tx.productSerialNumber.findMany({
-          where: {
-            barcode: { in: barcodes },
-          },
-          include: {
-            product: { select: { name: true } }
-          }
-        });
-
-        if (existingSerials.length > 0) {
-          const dupes = existingSerials.map(s => `"${s.barcode}" (linked to product "${s.product.name}")`).join(', ');
-          throw new Error(`Some barcodes already exist in the database: ${dupes}`);
-        }
-
         // 1. Bulk insert all new product serials (1 write)
         await tx.productSerialNumber.createMany({
           data: barcodes.map(barcode => ({
@@ -748,7 +823,7 @@ export async function createBulkReceiveTransactions(formData) {
   return transactions;
 }
 
-// 8. Log multiple damage transactions atomically in a single batch
+
 export async function createBulkDamageTransactions(payload) {
   await checkAuth();
 
