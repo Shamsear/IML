@@ -338,6 +338,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           <div>
             <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
               {brand.name} Control Panel
+            </h1>
             <p className="text-text-secondary text-sm mt-1">{brand.description || 'Campaign details, store mapping, and product catalog'}</p>
             {(brand.rack || brand.shelf) && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/10 mt-2 select-none">

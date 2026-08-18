@@ -24,7 +24,8 @@ export default async function NewProductPage({ searchParams }) {
     supervisors,
     staff,
     recentReceivers,
-    recentSuppliers
+    recentSuppliers,
+    categoriesData
   ] = await Promise.all([
     prisma.brand.findMany({
       orderBy: { name: 'asc' },
@@ -34,8 +35,15 @@ export default async function NewProductPage({ searchParams }) {
     getSupervisors(),
     getStaff(),
     getRecentReceivers(),
-    getRecentSuppliers()
+    getRecentSuppliers(),
+    prisma.product.findMany({
+      select: { category: true },
+      distinct: ['category'],
+      where: { category: { not: null } }
+    })
   ]);
+
+  const categories = categoriesData.map(c => c.category).filter(Boolean);
 
   return (
     <NewProductClient 
@@ -46,6 +54,7 @@ export default async function NewProductPage({ searchParams }) {
       recentReceivers={recentReceivers}
       recentSuppliers={recentSuppliers}
       editId={editId}
+      existingCategories={categories}
     />
   );
 }

@@ -37,6 +37,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
   // Brand filter for product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
+  const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
   const handleGlobalBrandChange = (brandId) => {
     setBrandFilter(brandId);
@@ -1216,12 +1217,18 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               <label className="text-xs font-semibold text-text-secondary">Category Group</label>
                               <input
                                 type="text"
+                                list="existing-inbound-categories"
                                 className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/45"
                                 value={item.prodCategory}
                                 onChange={(e) => updateItemField(idx, 'prodCategory', e.target.value)}
                                 disabled={item.prodType !== 'NORMAL'}
                                 placeholder="e.g. Materials"
                               />
+                              <datalist id="existing-inbound-categories">
+                                {uniqueCategories.map((cat, cIdx) => (
+                                  <option key={cIdx} value={cat} />
+                                ))}
+                              </datalist>
                             </div>
 
                             <div className="flex flex-col gap-1.5">

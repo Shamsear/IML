@@ -30,7 +30,7 @@ const playBeep = () => {
   }
 };
 
-export default function NewProductClient({ brands, stores = [], editId: propEditId = null }) {
+export default function NewProductClient({ brands, stores = [], editId: propEditId = null, existingCategories = [] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('editId') || propEditId;
@@ -974,12 +974,18 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                           <label className="text-xs font-semibold text-text-secondary">Category Group</label>
                           <input
                             type="text"
+                            list="existing-categories"
                             className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/40"
                             value={item.category}
                             onChange={(e) => updateItemField(idx, 'category', e.target.value)}
                             disabled={item.productType !== 'NORMAL'}
                             placeholder="e.g. Stands"
                           />
+                          <datalist id="existing-categories">
+                            {existingCategories.map((cat, cIdx) => (
+                              <option key={cIdx} value={cat} />
+                            ))}
+                          </datalist>
                         </div>
 
                         <div className="flex flex-col gap-1.5">
