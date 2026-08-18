@@ -1626,6 +1626,20 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
 
   if (oldTxs.length === 0) throw new Error('Existing delivery note not found or no receive transactions');
 
+  // Constraint: Check if any of these products have been dispatched outbound since this receipt
+  for (const oldTx of oldTxs) {
+    const issueExists = await prisma.inventoryTransaction.findFirst({
+      where: {
+        productId: oldTx.productId,
+        transactionType: 'ISSUE',
+        timestamp: { gt: oldTx.timestamp }
+      }
+    });
+    if (issueExists) {
+      throw new Error(`Cannot edit this Inbound receipt. Product "${oldTx.product.name}" has already been dispatched outbound since this receipt.`);
+    }
+  }
+
   const transactions = await prisma.$transaction(async (tx) => {
     // 1. REVERT OLD TRANSACTIONS
     for (const oldTx of oldTxs) {
