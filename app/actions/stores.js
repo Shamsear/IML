@@ -89,6 +89,22 @@ export async function createBulkStores(formData) {
     throw new Error('No stores provided for creation');
   }
 
+  const lastRecord = await prisma.store.findFirst({
+    where: { id: { startsWith: 'STOR' } },
+    orderBy: { id: 'desc' },
+    select: { id: true }
+  });
+
+  let nextNum = 1;
+  if (lastRecord) {
+    const parts = lastRecord.id.split('-');
+    const numPart = parts[parts.length - 1];
+    const parsed = parseInt(numPart, 10);
+    if (!isNaN(parsed)) {
+      nextNum = parsed + 1;
+    }
+  }
+
   const storesList = [];
   for (let i = 0; i < count; i++) {
     const name = formData.get(`item_${i}_name`);
@@ -97,30 +113,20 @@ export async function createBulkStores(formData) {
     const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
 
     if (!name) throw new Error('Store name is required');
-    storesList.push({ name, region, location, isPublic });
+    
+    const padded = String(nextNum).padStart(3, '0');
+    const id = `STOR-${padded}`;
+    nextNum++;
+
+    storesList.push({ id, name, region, location, isPublic });
   }
 
-  const results = await prisma.$transaction(async (tx) => {
-    const createdStores = [];
-    for (let i = 0; i < storesList.length; i++) {
-      const s = storesList[i];
-      const id = await generateId('store', 'STOR', 3);
-      const created = await tx.store.create({
-        data: {
-          id,
-          name: s.name,
-          region: s.region,
-          location: s.location,
-          isPublic: s.isPublic,
-        }
-      });
-      createdStores.push(created);
-    }
-    return createdStores;
+  await prisma.store.createMany({
+    data: storesList
   });
 
   revalidatePath('/dashboard/stores');
   revalidatePath('/');
-  return results;
+  return { success: true, count: storesList.length };
 }
 

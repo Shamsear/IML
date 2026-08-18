@@ -28,15 +28,6 @@ export default async function ExpiryPage() {
               name: true,
             },
           },
-          serialNumbers: {
-            where: {
-              status: 'AVAILABLE',
-            },
-            select: {
-              id: true,
-              barcode: true,
-            },
-          },
         },
       },
     },
@@ -95,7 +86,7 @@ export default async function ExpiryPage() {
       receivedDate: tx.timestamp,
       manufactureDate: tx.manufactureDate,
       expiryDate: tx.expiryDate,
-      availableSerials: tx.product.isSerialized ? tx.product.serialNumbers : [],
+      availableSerials: [],
     };
   });
 

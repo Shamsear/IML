@@ -5,37 +5,67 @@ import {
   History, ArrowDownLeft, ArrowUpRight, ShieldAlert, RefreshCw, 
   ClipboardList, Calendar, FileText, User, Store, UserCheck, Package, Search
 } from 'lucide-react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 
 export default function TransactionsClient({ 
   initialTransactions, 
-  products 
+  products,
+  totalCount = 0,
+  totalPages = 1,
+  page = 1,
+  initialSearch = '',
+  initialType = 'ALL',
+  initialProductId = 'ALL'
 }) {
-  const [transactions] = useState(initialTransactions);
-  const [filterType, setFilterType] = useState('ALL');
-  const [filterProduct, setFilterProduct] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 50;
+  const [filterType, setFilterType] = useState(initialType);
+  const [filterProduct, setFilterProduct] = useState(initialProductId);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
 
-  // Filtered transactions for view table
-  const filteredTransactions = transactions.filter(tx => {
-    const matchesType = filterType === 'ALL' || tx.transactionType === filterType;
-    const matchesProduct = filterProduct === 'ALL' || tx.productId === filterProduct;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = !q ||
-      tx.product?.name?.toLowerCase().includes(q) ||
-      (tx.deliveryNote && tx.deliveryNote.toLowerCase().includes(q)) ||
-      (tx.toEntityId && tx.toEntityId.toLowerCase().includes(q)) ||
-      (tx.fromEntityId && tx.fromEntityId.toLowerCase().includes(q));
-    return matchesType && matchesProduct && matchesSearch;
-  });
+  // Reference to prevent searching on mount
+  const searchTimeoutRef = useRef(null);
 
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-  const paginatedTransactions = filteredTransactions.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  const updateUrlParams = (newFilters) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (newFilters.page !== undefined) {
+      params.set('page', String(newFilters.page));
+    } else {
+      params.set('page', '1');
+    }
+    
+    if (newFilters.search !== undefined) {
+      if (newFilters.search) params.set('search', newFilters.search);
+      else params.delete('search');
+    }
+    if (newFilters.type !== undefined) {
+      if (newFilters.type && newFilters.type !== 'ALL') params.set('type', newFilters.type);
+      else params.delete('type');
+    }
+    if (newFilters.productId !== undefined) {
+      if (newFilters.productId && newFilters.productId !== 'ALL') params.set('productId', newFilters.productId);
+      else params.delete('productId');
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  // Debounced search query update
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      updateUrlParams({ search: val });
+    }, 400);
+  };
+
+  // Since we query server-side, paginatedTransactions is just initialTransactions
+  const paginatedTransactions = initialTransactions;
 
   return (
     <div className="flex flex-col gap-6 relative">
@@ -90,7 +120,7 @@ export default function TransactionsClient({
                 { value: 'REBRAND_IN', label: 'Rebrand In' },
               ]}
               value={filterType}
-              onChange={(val) => { setFilterType(val); setCurrentPage(0); }}
+              onChange={(val) => { setFilterType(val); updateUrlParams({ type: val }); }}
               size="sm"
               className="w-[180px]"
             />
@@ -102,7 +132,7 @@ export default function TransactionsClient({
             <CustomSelect
               options={[{ value: 'ALL', label: 'All Products' }, ...products.map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl }))]}
               value={filterProduct}
-              onChange={(val) => { setFilterProduct(val); setCurrentPage(0); }}
+              onChange={(val) => { setFilterProduct(val); updateUrlParams({ productId: val }); }}
               size="sm"
               className="w-[200px]"
             />
@@ -114,7 +144,7 @@ export default function TransactionsClient({
               type="text"
               placeholder="Search product, delivery note..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(0); }}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
@@ -122,7 +152,7 @@ export default function TransactionsClient({
 
         {/* Ledger Table Panel */}
         <div className="bg-surface border border-border rounded-xl p-5 shadow-sm overflow-hidden">
-          {filteredTransactions.length === 0 ? (
+          {paginatedTransactions.length === 0 ? (
             <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
               <History size={48} />
               <h3 className="font-display font-bold text-lg text-text-primary">No Ledger Logs Found</h3>
@@ -238,32 +268,32 @@ export default function TransactionsClient({
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
                 <span className="text-text-muted">
-                  Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{" "}
+                  Showing <strong className="text-text-primary">{totalCount === 0 ? 0 : (page - 1) * 50 + 1}</strong> to{" "}
                   <strong className="text-text-primary">
-                    {Math.min((currentPage + 1) * itemsPerPage, filteredTransactions.length)}
+                    {Math.min(page * 50, totalCount)}
                   </strong> of{" "}
-                  <strong className="text-text-primary">{filteredTransactions.length}</strong> movements
+                  <strong className="text-text-primary">{totalCount}</strong> movements
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    disabled={currentPage === 0}
-                    onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                    disabled={page === 1}
+                    onClick={() => updateUrlParams({ page: page - 1 })}
                     className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
                   >
                     Previous
                   </button>
                   <button
                     type="button"
-                    disabled={currentPage === totalPages - 1}
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                    disabled={page === totalPages}
+                    onClick={() => updateUrlParams({ page: page + 1 })}
                     className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
                   >
                     Next
                   </button>
                 </div>
               </div>
-              )}
+            )}
             </>
           )}
         </div>

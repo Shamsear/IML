@@ -44,23 +44,49 @@ export async function getStockAtLocation(productId, entityType, entityId) {
 }
 
 // 2. Fetch all transactions
-export async function getTransactions() {
+export async function getTransactions(filters = {}) {
   await checkAuth();
-  return prisma.inventoryTransaction.findMany({
-    orderBy: { timestamp: 'desc' },
-    take: 400,
-    include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-          isSerialized: true,
-          brandId: true,
-          brand: { select: { name: true } },
+  const { search, type, productId, page = 1, pageSize = 50 } = filters;
+
+  const where = {};
+  if (type && type !== 'ALL') {
+    where.transactionType = type;
+  }
+  if (productId && productId !== 'ALL') {
+    where.productId = productId;
+  }
+  if (search) {
+    const searchString = String(search).trim();
+    where.OR = [
+      { deliveryNote: { contains: searchString, mode: 'insensitive' } },
+      { toEntityId: { contains: searchString, mode: 'insensitive' } },
+      { fromEntityId: { contains: searchString, mode: 'insensitive' } },
+      { product: { name: { contains: searchString, mode: 'insensitive' } } }
+    ];
+  }
+
+  const [transactions, totalCount] = await Promise.all([
+    prisma.inventoryTransaction.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            isSerialized: true,
+            brandId: true,
+            brand: { select: { name: true } },
+          }
         }
       }
-    }
-  });
+    }),
+    prisma.inventoryTransaction.count({ where })
+  ]);
+
+  return { transactions, totalCount };
 }
 
 // 3. Create a transaction (Receive, Issue, Return, Damage)
@@ -337,30 +363,50 @@ export async function getStoreInventory(storeId) {
     orderBy: { barcode: 'asc' }
   });
 
-  // 2. Fetch all bulk product transactions for this store to compute active stock
-  const bulkTransactions = await prisma.inventoryTransaction.findMany({
-    where: {
-      OR: [
-        { fromEntityType: 'STORE', fromEntityId: storeId },
-        { toEntityType: 'STORE', toEntityId: storeId },
-      ],
-      product: {
-        isSerialized: false, // only bulk products
-      }
-    },
+  // 2. Fetch all bulk product transactions for this store grouped and summed at database level
+  const [toTransactions, fromTransactions] = await Promise.all([
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId'],
+      where: {
+        toEntityType: 'STORE',
+        toEntityId: storeId,
+        product: { isSerialized: false }
+      },
+      _sum: { quantity: true }
+    }),
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId'],
+      where: {
+        fromEntityType: 'STORE',
+        fromEntityId: storeId,
+        product: { isSerialized: false }
+      },
+      _sum: { quantity: true }
+    })
+  ]);
+
+  const netQuantities = new Map();
+  toTransactions.forEach(t => {
+    netQuantities.set(t.productId, (t._sum.quantity || 0));
+  });
+  fromTransactions.forEach(t => {
+    const current = netQuantities.get(t.productId) || 0;
+    netQuantities.set(t.productId, current - (t._sum.quantity || 0));
+  });
+
+  const activeBulkProductIds = [];
+  for (const [prodId, qty] of netQuantities.entries()) {
+    if (qty > 0) {
+      activeBulkProductIds.push(prodId);
+    }
+  }
+
+  const bulkProducts = await prisma.product.findMany({
+    where: { id: { in: activeBulkProductIds } },
     select: {
-      productId: true,
-      transactionType: true,
-      fromEntityType: true,
-      toEntityType: true,
-      quantity: true,
-      product: {
-        select: {
-          name: true,
-          isSerialized: true,
-          brand: { select: { name: true } }
-        }
-      }
+      id: true,
+      name: true,
+      brand: { select: { name: true } }
     }
   });
 
@@ -387,33 +433,19 @@ export async function getStoreInventory(storeId) {
     });
   }
 
-  // Process bulk items (compute net quantity in-memory)
-  for (const tx of bulkTransactions) {
-    const prodId = tx.productId;
-    let netChange = 0;
-    if (tx.toEntityType === 'STORE' && tx.toEntityId === storeId) {
-      netChange = tx.quantity;
-    } else if (tx.fromEntityType === 'STORE' && tx.fromEntityId === storeId) {
-      netChange = -tx.quantity;
-    }
+  // Process bulk items
+  bulkProducts.forEach(p => {
+    inventoryMap[p.id] = {
+      productId: p.id,
+      name: p.name,
+      brandName: p.brand?.name || 'No Brand',
+      isSerialized: false,
+      quantity: netQuantities.get(p.id) || 0,
+      serials: []
+    };
+  });
 
-    if (netChange !== 0) {
-      if (!inventoryMap[prodId]) {
-        inventoryMap[prodId] = {
-          productId: prodId,
-          name: tx.product.name,
-          brandName: tx.product.brand?.name || 'No Brand',
-          isSerialized: false,
-          quantity: 0,
-          serials: []
-        };
-      }
-      inventoryMap[prodId].quantity += netChange;
-    }
-  }
-
-  // Filter out any products that ended up with 0 or negative quantity
-  return Object.values(inventoryMap).filter(item => item.quantity > 0);
+  return Object.values(inventoryMap);
 }
 
 // 6. Create multiple issue transactions atomically in a single batch

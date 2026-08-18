@@ -41,33 +41,49 @@ export default async function DashboardPage() {
         name: true,
         stockCap: true,
         isSerialized: true,
-        serialNumbers: {
-          where: {
-            status: 'AVAILABLE',
-            OR: [
-              { currentLocationType: 'WAREHOUSE' },
-              { currentLocationType: null }
-            ]
-          },
-          select: { id: true }
-        },
-        transactions: {
-          where: {
-            OR: [
-              { fromEntityType: 'WAREHOUSE' },
-              { toEntityType: 'WAREHOUSE' }
-            ]
-          },
+        _count: {
           select: {
-            transactionType: true,
-            quantity: true,
-            fromEntityType: true,
-            toEntityType: true,
+            serialNumbers: {
+              where: {
+                status: 'AVAILABLE',
+                OR: [
+                  { currentLocationType: 'WAREHOUSE' },
+                  { currentLocationType: null }
+                ]
+              }
+            }
           }
         }
       }
     }),
   ]);
+
+  const cappedProductIds = cappedProducts.map(p => p.id);
+
+  // Group aggregates at database level
+  const [toWarehouseAggs, fromWarehouseAggs] = await Promise.all([
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId'],
+      where: {
+        productId: { in: cappedProductIds },
+        toEntityType: 'WAREHOUSE',
+        transactionType: { in: ['RECEIVE', 'RETURN', 'REBRAND_IN'] }
+      },
+      _sum: { quantity: true }
+    }),
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId'],
+      where: {
+        productId: { in: cappedProductIds },
+        fromEntityType: 'WAREHOUSE',
+        transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] }
+      },
+      _sum: { quantity: true }
+    })
+  ]);
+
+  const toMap = new Map(toWarehouseAggs.map(a => [a.productId, a._sum.quantity || 0]));
+  const fromMap = new Map(fromWarehouseAggs.map(a => [a.productId, a._sum.quantity || 0]));
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -76,21 +92,11 @@ export default async function DashboardPage() {
   const lowStockAlerts = cappedProducts.map(p => {
     let currentStock = 0;
     if (p.isSerialized) {
-      currentStock = p.serialNumbers.length;
+      currentStock = p._count.serialNumbers;
     } else {
-      p.transactions.forEach(t => {
-        const qty = t.quantity || 0;
-        if (t.toEntityType === 'WAREHOUSE') {
-          if (t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN') {
-            currentStock += qty;
-          }
-        }
-        if (t.fromEntityType === 'WAREHOUSE') {
-          if (t.transactionType === 'ISSUE' || t.transactionType === 'DAMAGE' || t.transactionType === 'LOST' || t.transactionType === 'REBRAND_OUT') {
-            currentStock -= qty;
-          }
-        }
-      });
+      const added = toMap.get(p.id) || 0;
+      const removed = fromMap.get(p.id) || 0;
+      currentStock = added - removed;
     }
 
     return {

@@ -54,13 +54,21 @@ export async function getProducts() {
     })
   ]);
 
+  const serialsMap = new Map(serialsCount.map(s => [s.productId, s._count.id]));
+  const aggsMap = new Map();
+  aggregates.forEach(agg => {
+    if (!aggsMap.has(agg.productId)) {
+      aggsMap.set(agg.productId, []);
+    }
+    aggsMap.get(agg.productId).push(agg);
+  });
+
   return products.map(product => {
     let warehouseStock = 0;
     if (product.isSerialized) {
-      const serCount = serialsCount.find(s => s.productId === product.id);
-      warehouseStock = serCount?._count.id || 0;
+      warehouseStock = serialsMap.get(product.id) || 0;
     } else {
-      const productAggs = aggregates.filter(a => a.productId === product.id);
+      const productAggs = aggsMap.get(product.id) || [];
       productAggs.forEach(t => {
         const qty = t._sum.quantity || 0;
         if (t.toEntityType === 'WAREHOUSE') {
@@ -119,13 +127,21 @@ export async function getProductsSlim() {
     })
   ]);
 
+  const serialsMap = new Map(serialsCount.map(s => [s.productId, s._count.id]));
+  const aggsMap = new Map();
+  aggregates.forEach(agg => {
+    if (!aggsMap.has(agg.productId)) {
+      aggsMap.set(agg.productId, []);
+    }
+    aggsMap.get(agg.productId).push(agg);
+  });
+
   return products.map(product => {
     let warehouseStock = 0;
     if (product.isSerialized) {
-      const serCount = serialsCount.find(s => s.productId === product.id);
-      warehouseStock = serCount?._count.id || 0;
+      warehouseStock = serialsMap.get(product.id) || 0;
     } else {
-      const productAggs = aggregates.filter(a => a.productId === product.id);
+      const productAggs = aggsMap.get(product.id) || [];
       productAggs.forEach(t => {
         const qty = t._sum.quantity || 0;
         if (t.toEntityType === 'WAREHOUSE') {
