@@ -30,7 +30,7 @@ const playBeep = () => {
   }
 };
 
-export default function NewProductClient({ brands, stores = [], editId: propEditId = null, existingCategories = [] }) {
+export default function NewProductClient({ brands, stores = [], editId: propEditId = null, existingCategories = [], recentSuppliers = [], recentReceivers = [] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('editId') || propEditId;
@@ -1147,23 +1147,35 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                       <label className="text-xs font-bold text-text-secondary">Inbound Supplier / Source</label>
                                       <input
                                         type="text"
+                                        list="recent-suppliers-list"
                                         className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
                                         value={inb.fromId}
                                         onChange={(e) => updateInboundField(idx, subIdx, 'fromId', e.target.value)}
                                         placeholder="Supplier Name"
                                         required
                                       />
+                                      <datalist id="recent-suppliers-list">
+                                        {recentSuppliers.map((sup, sIdx) => (
+                                          <option key={sIdx} value={sup} />
+                                        ))}
+                                      </datalist>
                                     </div>
 
                                     <div className="flex flex-col gap-1.5">
                                       <label className="text-xs font-bold text-text-secondary">Received By (Staff)</label>
                                       <input
                                         type="text"
+                                        list="recent-receivers-list"
                                         className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
                                         value={inb.receivedBy}
                                         onChange={(e) => updateInboundField(idx, subIdx, 'receivedBy', e.target.value)}
                                         placeholder="e.g. John Doe"
                                       />
+                                      <datalist id="recent-receivers-list">
+                                        {recentReceivers.map((rec, rIdx) => (
+                                          <option key={rIdx} value={rec} />
+                                        ))}
+                                      </datalist>
                                     </div>
 
                                     {item.productType === 'NORMAL' ? (

@@ -326,6 +326,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   const itemsPerPage = 25;
   const totalPages = Math.ceil(brand.products.length / itemsPerPage);
   const paginatedProducts = brand.products.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  const uniqueCategories = Array.from(new Set(brand.products.map(p => p.category).filter(Boolean)));
 
   return (
     <div className="flex flex-col gap-6">
@@ -795,7 +796,12 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Category</label>
-                  <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={productCategory} onChange={(e) => setProductCategory(e.target.value)} placeholder="Category" />
+                  <input type="text" list="brand-product-categories" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={productCategory} onChange={(e) => setProductCategory(e.target.value)} placeholder="Category" />
+                  <datalist id="brand-product-categories">
+                    {uniqueCategories.map((cat, cIdx) => (
+                      <option key={cIdx} value={cat} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
 

@@ -29,6 +29,8 @@ export type BrandMinAggregateOutputType = {
   name: string | null
   description: string | null
   imageUrl: string | null
+  rack: string | null
+  shelf: string | null
   isPublic: boolean | null
   secretKey: string | null
   createdAt: Date | null
@@ -40,6 +42,8 @@ export type BrandMaxAggregateOutputType = {
   name: string | null
   description: string | null
   imageUrl: string | null
+  rack: string | null
+  shelf: string | null
   isPublic: boolean | null
   secretKey: string | null
   createdAt: Date | null
@@ -51,6 +55,8 @@ export type BrandCountAggregateOutputType = {
   name: number
   description: number
   imageUrl: number
+  rack: number
+  shelf: number
   isPublic: number
   secretKey: number
   createdAt: number
@@ -64,6 +70,8 @@ export type BrandMinAggregateInputType = {
   name?: true
   description?: true
   imageUrl?: true
+  rack?: true
+  shelf?: true
   isPublic?: true
   secretKey?: true
   createdAt?: true
@@ -75,6 +83,8 @@ export type BrandMaxAggregateInputType = {
   name?: true
   description?: true
   imageUrl?: true
+  rack?: true
+  shelf?: true
   isPublic?: true
   secretKey?: true
   createdAt?: true
@@ -86,6 +96,8 @@ export type BrandCountAggregateInputType = {
   name?: true
   description?: true
   imageUrl?: true
+  rack?: true
+  shelf?: true
   isPublic?: true
   secretKey?: true
   createdAt?: true
@@ -170,6 +182,8 @@ export type BrandGroupByOutputType = {
   name: string
   description: string | null
   imageUrl: string | null
+  rack: string | null
+  shelf: string | null
   isPublic: boolean
   secretKey: string
   createdAt: Date
@@ -202,6 +216,8 @@ export type BrandWhereInput = {
   name?: Prisma.StringFilter<"Brand"> | string
   description?: Prisma.StringNullableFilter<"Brand"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Brand"> | string | null
+  rack?: Prisma.StringNullableFilter<"Brand"> | string | null
+  shelf?: Prisma.StringNullableFilter<"Brand"> | string | null
   isPublic?: Prisma.BoolFilter<"Brand"> | boolean
   secretKey?: Prisma.StringFilter<"Brand"> | string
   createdAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
@@ -215,6 +231,8 @@ export type BrandOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rack?: Prisma.SortOrderInput | Prisma.SortOrder
+  shelf?: Prisma.SortOrderInput | Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   secretKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -232,6 +250,8 @@ export type BrandWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Brand"> | string
   description?: Prisma.StringNullableFilter<"Brand"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Brand"> | string | null
+  rack?: Prisma.StringNullableFilter<"Brand"> | string | null
+  shelf?: Prisma.StringNullableFilter<"Brand"> | string | null
   isPublic?: Prisma.BoolFilter<"Brand"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
@@ -244,6 +264,8 @@ export type BrandOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rack?: Prisma.SortOrderInput | Prisma.SortOrder
+  shelf?: Prisma.SortOrderInput | Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   secretKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -261,6 +283,8 @@ export type BrandScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"Brand"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
   imageUrl?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
+  rack?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
+  shelf?: Prisma.StringNullableWithAggregatesFilter<"Brand"> | string | null
   isPublic?: Prisma.BoolWithAggregatesFilter<"Brand"> | boolean
   secretKey?: Prisma.StringWithAggregatesFilter<"Brand"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Brand"> | Date | string
@@ -272,6 +296,8 @@ export type BrandCreateInput = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isPublic?: boolean
   secretKey?: string
   createdAt?: Date | string
@@ -285,6 +311,8 @@ export type BrandUncheckedCreateInput = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isPublic?: boolean
   secretKey?: string
   createdAt?: Date | string
@@ -298,6 +326,8 @@ export type BrandUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -311,6 +341,8 @@ export type BrandUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -324,6 +356,8 @@ export type BrandCreateManyInput = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isPublic?: boolean
   secretKey?: string
   createdAt?: Date | string
@@ -335,6 +369,8 @@ export type BrandUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -346,6 +382,8 @@ export type BrandUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -357,6 +395,8 @@ export type BrandCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  rack?: Prisma.SortOrder
+  shelf?: Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   secretKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -368,6 +408,8 @@ export type BrandMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  rack?: Prisma.SortOrder
+  shelf?: Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   secretKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -379,6 +421,8 @@ export type BrandMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  rack?: Prisma.SortOrder
+  shelf?: Prisma.SortOrder
   isPublic?: Prisma.SortOrder
   secretKey?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -457,6 +501,8 @@ export type BrandCreateWithoutProductsInput = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isPublic?: boolean
   secretKey?: string
   createdAt?: Date | string
@@ -469,6 +515,8 @@ export type BrandUncheckedCreateWithoutProductsInput = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isPublic?: boolean
   secretKey?: string
   createdAt?: Date | string
@@ -497,6 +545,8 @@ export type BrandUpdateWithoutProductsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -509,6 +559,8 @@ export type BrandUncheckedUpdateWithoutProductsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -521,6 +573,8 @@ export type BrandCreateWithoutStoresInput = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isPublic?: boolean
   secretKey?: string
   createdAt?: Date | string
@@ -533,6 +587,8 @@ export type BrandUncheckedCreateWithoutStoresInput = {
   name: string
   description?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isPublic?: boolean
   secretKey?: string
   createdAt?: Date | string
@@ -569,6 +625,8 @@ export type BrandScalarWhereInput = {
   name?: Prisma.StringFilter<"Brand"> | string
   description?: Prisma.StringNullableFilter<"Brand"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Brand"> | string | null
+  rack?: Prisma.StringNullableFilter<"Brand"> | string | null
+  shelf?: Prisma.StringNullableFilter<"Brand"> | string | null
   isPublic?: Prisma.BoolFilter<"Brand"> | boolean
   secretKey?: Prisma.StringFilter<"Brand"> | string
   createdAt?: Prisma.DateTimeFilter<"Brand"> | Date | string
@@ -580,6 +638,8 @@ export type BrandUpdateWithoutStoresInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -592,6 +652,8 @@ export type BrandUncheckedUpdateWithoutStoresInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -604,6 +666,8 @@ export type BrandUncheckedUpdateManyWithoutStoresInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublic?: Prisma.BoolFieldUpdateOperationsInput | boolean
   secretKey?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -655,6 +719,8 @@ export type BrandSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   name?: boolean
   description?: boolean
   imageUrl?: boolean
+  rack?: boolean
+  shelf?: boolean
   isPublic?: boolean
   secretKey?: boolean
   createdAt?: boolean
@@ -669,6 +735,8 @@ export type BrandSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   name?: boolean
   description?: boolean
   imageUrl?: boolean
+  rack?: boolean
+  shelf?: boolean
   isPublic?: boolean
   secretKey?: boolean
   createdAt?: boolean
@@ -680,6 +748,8 @@ export type BrandSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   name?: boolean
   description?: boolean
   imageUrl?: boolean
+  rack?: boolean
+  shelf?: boolean
   isPublic?: boolean
   secretKey?: boolean
   createdAt?: boolean
@@ -691,13 +761,15 @@ export type BrandSelectScalar = {
   name?: boolean
   description?: boolean
   imageUrl?: boolean
+  rack?: boolean
+  shelf?: boolean
   isPublic?: boolean
   secretKey?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type BrandOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "imageUrl" | "isPublic" | "secretKey" | "createdAt" | "updatedAt", ExtArgs["result"]["brand"]>
+export type BrandOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "imageUrl" | "rack" | "shelf" | "isPublic" | "secretKey" | "createdAt" | "updatedAt", ExtArgs["result"]["brand"]>
 export type BrandInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   products?: boolean | Prisma.Brand$productsArgs<ExtArgs>
   stores?: boolean | Prisma.Brand$storesArgs<ExtArgs>
@@ -717,6 +789,8 @@ export type $BrandPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     name: string
     description: string | null
     imageUrl: string | null
+    rack: string | null
+    shelf: string | null
     isPublic: boolean
     secretKey: string
     createdAt: Date
@@ -1150,6 +1224,8 @@ export interface BrandFieldRefs {
   readonly name: Prisma.FieldRef<"Brand", 'String'>
   readonly description: Prisma.FieldRef<"Brand", 'String'>
   readonly imageUrl: Prisma.FieldRef<"Brand", 'String'>
+  readonly rack: Prisma.FieldRef<"Brand", 'String'>
+  readonly shelf: Prisma.FieldRef<"Brand", 'String'>
   readonly isPublic: Prisma.FieldRef<"Brand", 'Boolean'>
   readonly secretKey: Prisma.FieldRef<"Brand", 'String'>
   readonly createdAt: Prisma.FieldRef<"Brand", 'DateTime'>

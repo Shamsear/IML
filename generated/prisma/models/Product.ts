@@ -41,6 +41,8 @@ export type ProductMinAggregateOutputType = {
   name: string | null
   category: string | null
   imageUrl: string | null
+  rack: string | null
+  shelf: string | null
   isReturnable: boolean | null
   isDisposable: boolean | null
   trackExpiry: boolean | null
@@ -58,6 +60,8 @@ export type ProductMaxAggregateOutputType = {
   name: string | null
   category: string | null
   imageUrl: string | null
+  rack: string | null
+  shelf: string | null
   isReturnable: boolean | null
   isDisposable: boolean | null
   trackExpiry: boolean | null
@@ -75,6 +79,8 @@ export type ProductCountAggregateOutputType = {
   name: number
   category: number
   imageUrl: number
+  rack: number
+  shelf: number
   isReturnable: number
   isDisposable: number
   trackExpiry: number
@@ -102,6 +108,8 @@ export type ProductMinAggregateInputType = {
   name?: true
   category?: true
   imageUrl?: true
+  rack?: true
+  shelf?: true
   isReturnable?: true
   isDisposable?: true
   trackExpiry?: true
@@ -119,6 +127,8 @@ export type ProductMaxAggregateInputType = {
   name?: true
   category?: true
   imageUrl?: true
+  rack?: true
+  shelf?: true
   isReturnable?: true
   isDisposable?: true
   trackExpiry?: true
@@ -136,6 +146,8 @@ export type ProductCountAggregateInputType = {
   name?: true
   category?: true
   imageUrl?: true
+  rack?: true
+  shelf?: true
   isReturnable?: true
   isDisposable?: true
   trackExpiry?: true
@@ -240,6 +252,8 @@ export type ProductGroupByOutputType = {
   name: string
   category: string | null
   imageUrl: string | null
+  rack: string | null
+  shelf: string | null
   isReturnable: boolean
   isDisposable: boolean
   trackExpiry: boolean
@@ -280,6 +294,8 @@ export type ProductWhereInput = {
   name?: Prisma.StringFilter<"Product"> | string
   category?: Prisma.StringNullableFilter<"Product"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
+  rack?: Prisma.StringNullableFilter<"Product"> | string | null
+  shelf?: Prisma.StringNullableFilter<"Product"> | string | null
   isReturnable?: Prisma.BoolFilter<"Product"> | boolean
   isDisposable?: Prisma.BoolFilter<"Product"> | boolean
   trackExpiry?: Prisma.BoolFilter<"Product"> | boolean
@@ -300,6 +316,8 @@ export type ProductOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rack?: Prisma.SortOrderInput | Prisma.SortOrder
+  shelf?: Prisma.SortOrderInput | Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
   trackExpiry?: Prisma.SortOrder
@@ -323,6 +341,8 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Product"> | string
   category?: Prisma.StringNullableFilter<"Product"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
+  rack?: Prisma.StringNullableFilter<"Product"> | string | null
+  shelf?: Prisma.StringNullableFilter<"Product"> | string | null
   isReturnable?: Prisma.BoolFilter<"Product"> | boolean
   isDisposable?: Prisma.BoolFilter<"Product"> | boolean
   trackExpiry?: Prisma.BoolFilter<"Product"> | boolean
@@ -343,6 +363,8 @@ export type ProductOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  rack?: Prisma.SortOrderInput | Prisma.SortOrder
+  shelf?: Prisma.SortOrderInput | Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
   trackExpiry?: Prisma.SortOrder
@@ -368,6 +390,8 @@ export type ProductScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"Product"> | string
   category?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   imageUrl?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
+  rack?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
+  shelf?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   isReturnable?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   isDisposable?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   trackExpiry?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
@@ -384,6 +408,8 @@ export type ProductCreateInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -404,6 +430,8 @@ export type ProductUncheckedCreateInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -422,6 +450,8 @@ export type ProductUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -442,6 +472,8 @@ export type ProductUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -461,6 +493,8 @@ export type ProductCreateManyInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -477,6 +511,8 @@ export type ProductUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -494,6 +530,8 @@ export type ProductUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -521,6 +559,8 @@ export type ProductCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   category?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  rack?: Prisma.SortOrder
+  shelf?: Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
   trackExpiry?: Prisma.SortOrder
@@ -542,6 +582,8 @@ export type ProductMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   category?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  rack?: Prisma.SortOrder
+  shelf?: Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
   trackExpiry?: Prisma.SortOrder
@@ -559,6 +601,8 @@ export type ProductMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   category?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
+  rack?: Prisma.SortOrder
+  shelf?: Prisma.SortOrder
   isReturnable?: Prisma.SortOrder
   isDisposable?: Prisma.SortOrder
   trackExpiry?: Prisma.SortOrder
@@ -662,6 +706,8 @@ export type ProductCreateWithoutBrandInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -680,6 +726,8 @@ export type ProductUncheckedCreateWithoutBrandInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -728,6 +776,8 @@ export type ProductScalarWhereInput = {
   name?: Prisma.StringFilter<"Product"> | string
   category?: Prisma.StringNullableFilter<"Product"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
+  rack?: Prisma.StringNullableFilter<"Product"> | string | null
+  shelf?: Prisma.StringNullableFilter<"Product"> | string | null
   isReturnable?: Prisma.BoolFilter<"Product"> | boolean
   isDisposable?: Prisma.BoolFilter<"Product"> | boolean
   trackExpiry?: Prisma.BoolFilter<"Product"> | boolean
@@ -744,6 +794,8 @@ export type ProductCreateWithoutSerialNumbersInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -763,6 +815,8 @@ export type ProductUncheckedCreateWithoutSerialNumbersInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -796,6 +850,8 @@ export type ProductUpdateWithoutSerialNumbersInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -815,6 +871,8 @@ export type ProductUncheckedUpdateWithoutSerialNumbersInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -832,6 +890,8 @@ export type ProductCreateWithoutTransactionsInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -851,6 +911,8 @@ export type ProductUncheckedCreateWithoutTransactionsInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -884,6 +946,8 @@ export type ProductUpdateWithoutTransactionsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -903,6 +967,8 @@ export type ProductUncheckedUpdateWithoutTransactionsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -920,6 +986,8 @@ export type ProductCreateManyBrandInput = {
   name: string
   category?: string | null
   imageUrl?: string | null
+  rack?: string | null
+  shelf?: string | null
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -936,6 +1004,8 @@ export type ProductUpdateWithoutBrandInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -954,6 +1024,8 @@ export type ProductUncheckedUpdateWithoutBrandInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -972,6 +1044,8 @@ export type ProductUncheckedUpdateManyWithoutBrandInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isReturnable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isDisposable?: Prisma.BoolFieldUpdateOperationsInput | boolean
   trackExpiry?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1029,6 +1103,8 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   name?: boolean
   category?: boolean
   imageUrl?: boolean
+  rack?: boolean
+  shelf?: boolean
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -1050,6 +1126,8 @@ export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   name?: boolean
   category?: boolean
   imageUrl?: boolean
+  rack?: boolean
+  shelf?: boolean
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -1068,6 +1146,8 @@ export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   name?: boolean
   category?: boolean
   imageUrl?: boolean
+  rack?: boolean
+  shelf?: boolean
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -1086,6 +1166,8 @@ export type ProductSelectScalar = {
   name?: boolean
   category?: boolean
   imageUrl?: boolean
+  rack?: boolean
+  shelf?: boolean
   isReturnable?: boolean
   isDisposable?: boolean
   trackExpiry?: boolean
@@ -1096,7 +1178,7 @@ export type ProductSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "itemCode" | "name" | "category" | "imageUrl" | "isReturnable" | "isDisposable" | "trackExpiry" | "isPublic" | "isSerialized" | "stockCap" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "itemCode" | "name" | "category" | "imageUrl" | "rack" | "shelf" | "isReturnable" | "isDisposable" | "trackExpiry" | "isPublic" | "isSerialized" | "stockCap" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
 export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   transactions?: boolean | Prisma.Product$transactionsArgs<ExtArgs>
@@ -1124,6 +1206,8 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     name: string
     category: string | null
     imageUrl: string | null
+    rack: string | null
+    shelf: string | null
     isReturnable: boolean
     isDisposable: boolean
     trackExpiry: boolean
@@ -1564,6 +1648,8 @@ export interface ProductFieldRefs {
   readonly name: Prisma.FieldRef<"Product", 'String'>
   readonly category: Prisma.FieldRef<"Product", 'String'>
   readonly imageUrl: Prisma.FieldRef<"Product", 'String'>
+  readonly rack: Prisma.FieldRef<"Product", 'String'>
+  readonly shelf: Prisma.FieldRef<"Product", 'String'>
   readonly isReturnable: Prisma.FieldRef<"Product", 'Boolean'>
   readonly isDisposable: Prisma.FieldRef<"Product", 'Boolean'>
   readonly trackExpiry: Prisma.FieldRef<"Product", 'Boolean'>

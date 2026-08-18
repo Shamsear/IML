@@ -11,8 +11,11 @@ export default async function UsedPage() {
     prisma.inventoryTransaction.findMany({
       where: {
         transactionType: { in: ['ISSUE', 'OUTBOUND'] },
-        returnStatus: { notIn: ['RETURNED', 'USED'] },
         product: { isDisposable: true },
+        OR: [
+          { returnStatus: null },
+          { returnStatus: { notIn: ['RETURNED', 'USED'] } }
+        ]
       },
       include: {
         product: { select: { id: true, name: true, isReturnable: true, isDisposable: true, isSerialized: true } }
