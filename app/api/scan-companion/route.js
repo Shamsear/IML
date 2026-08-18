@@ -95,6 +95,10 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Invalid barcode value' }, { status: 400 });
     }
 
+    if (barcode.length > 100) {
+      return NextResponse.json({ error: 'Barcode value exceeds maximum allowed length of 100 characters' }, { status: 400 });
+    }
+
     // Append barcode to the session's barcodes array
     await prisma.scanSession.update({
       where: { id: cleanSessionId },
