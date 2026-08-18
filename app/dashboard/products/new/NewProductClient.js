@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, Save, Users, Building2, Calendar, FileText, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, Edit2, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { createBulkProducts } from '@/app/actions/products';
+import { createBulkProducts, getProductById, updateProduct } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import DashboardLoading from '@/app/dashboard/loading';
@@ -132,7 +132,6 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
       const loadProduct = async () => {
         setLoading(true);
         try {
-          const { getProductById } = await import('@/app/actions/products');
           const product = await getProductById(editId);
           if (product) {
             let pType = 'NORMAL';
