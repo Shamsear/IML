@@ -1540,11 +1540,11 @@ export async function processOutboundReturns(returnsPayload) {
           }
         });
 
-        // 2. Create INBOUND transaction to return stock to Warehouse
+        // 2. Create RETURN transaction to return stock to Warehouse
         await tx.inventoryTransaction.create({
           data: {
             productId: originalTx.productId,
-            transactionType: 'INBOUND',
+            transactionType: 'RETURN',
             fromEntityType: originalTx.toEntityType,
             fromEntityId: originalTx.toEntityId,
             toEntityType: 'WAREHOUSE',

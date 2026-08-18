@@ -18,7 +18,8 @@ export default function TransactionsClient({
   page = 1,
   initialSearch = '',
   initialType = 'ALL',
-  initialProductId = 'ALL'
+  initialProductId = 'ALL',
+  entityNames = {}
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -105,49 +106,54 @@ export default function TransactionsClient({
       {/* Main Workspace */}
       <div className="flex flex-col gap-6">
         {/* Filter Toolbar */}
-        <div className="bg-surface border border-border rounded-xl p-4 flex flex-wrap gap-6 items-center shadow-sm">
-          <div className="flex items-center gap-2">
-            <ClipboardList size={16} className="text-text-secondary" />
-            <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Type:</span>
-            <CustomSelect
-              options={[
-                { value: 'ALL', label: 'All Transactions' },
-                { value: 'RECEIVE', label: 'Inbound (Receive)' },
-                { value: 'ISSUE', label: 'Outbound (Dispatch)' },
-                { value: 'RETURN', label: 'Return' },
-                { value: 'DAMAGE', label: 'Damage' },
-                { value: 'REBRAND_OUT', label: 'Rebrand Out' },
-                { value: 'REBRAND_IN', label: 'Rebrand In' },
-              ]}
-              value={filterType}
-              onChange={(val) => { setFilterType(val); updateUrlParams({ type: val }); }}
-              size="sm"
-              className="w-[180px]"
-            />
-          </div>
+        <div className="bg-surface border border-border rounded-xl p-4 flex flex-col md:flex-row items-end gap-4 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end flex-1 w-full">
+            {/* Filter by Type */}
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Filter by Type</label>
+              <CustomSelect
+                options={[
+                  { value: 'ALL', label: 'All Transactions' },
+                  { value: 'RECEIVE', label: 'Inbound (Receive)' },
+                  { value: 'ISSUE', label: 'Outbound (Dispatch)' },
+                  { value: 'RETURN', label: 'Return' },
+                  { value: 'DAMAGE', label: 'Damage' },
+                  { value: 'REBRAND_OUT', label: 'Rebrand Out' },
+                  { value: 'REBRAND_IN', label: 'Rebrand In' },
+                ]}
+                value={filterType}
+                onChange={(val) => { setFilterType(val); updateUrlParams({ type: val }); }}
+                size="sm"
+              />
+            </div>
 
-          <div className="flex items-center gap-2">
-            <Package size={16} className="text-text-secondary" />
-            <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Product:</span>
-            <CustomSelect
-              options={[{ value: 'ALL', label: 'All Products' }, ...products.map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl }))]}
-              value={filterProduct}
-              onChange={(val) => { setFilterProduct(val); updateUrlParams({ productId: val }); }}
-              size="sm"
-              className="w-[200px]"
-            />
-          </div>
+            {/* Filter by Product */}
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Filter by Product</label>
+              <CustomSelect
+                options={[{ value: 'ALL', label: 'All Products' }, ...products.map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl }))]}
+                value={filterProduct}
+                onChange={(val) => { setFilterProduct(val); updateUrlParams({ productId: val }); }}
+                size="sm"
+              />
+            </div>
 
-          <div className="relative flex-1 max-w-xs ml-auto">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input
-              type="text"
-              placeholder="Search product, delivery note..."
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-            />
+            {/* Search Input */}
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Search Ledger</label>
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={13} />
+                <input
+                  type="text"
+                  placeholder="Search product, delivery note..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-[34px]"
+                />
+              </div>
+            </div>
           </div>
+          <span className="text-xs font-semibold text-text-muted pb-2 flex-shrink-0">{totalCount} logs total</span>
         </div>
 
         {/* Ledger Table Panel */}
@@ -180,11 +186,7 @@ export default function TransactionsClient({
                         <td className="py-3.5 pr-4 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-semibold text-text-primary">{tx.product.name}</span>
-                            {tx.notes && (
-                              <span className="text-xs text-text-secondary italic bg-surface-elevated/45 border-l-2 border-primary px-2 py-0.5 mt-1 rounded-r max-w-xs truncate" title={tx.notes}>
-                                {tx.notes}
-                              </span>
-                            )}
+
                             {tx.receivedBy && (
                               <span className="text-[10px] text-text-secondary mt-1 font-semibold flex items-center gap-1">
                                 👤 Received/Processed by: <span className="text-primary font-bold">{tx.receivedBy}</span>
@@ -202,53 +204,65 @@ export default function TransactionsClient({
                           </span>
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-xs">
+                          <div className="flex items-center gap-2 text-xs font-semibold">
                             {tx.fromEntityType === 'SUPPLIER' && <Store size={14} className="text-success" />}
                             {tx.fromEntityType === 'WAREHOUSE' && <Package size={14} className="text-primary" />}
                             {tx.fromEntityType === 'STORE' && <Store size={14} className="text-secondary" />}
                             {tx.fromEntityType === 'SUPERVISOR' && <UserCheck size={14} className="text-warning" />}
-                            <span className="font-semibold">{tx.fromEntityType || 'N/A'}</span>
-                            {tx.fromEntityId && (
-                              <span className="font-mono text-text-muted bg-surface-elevated px-1.5 py-0.5 rounded text-[10px]">
-                                {tx.fromEntityId.slice(-6)}
-                              </span>
-                            )}
+                            <span className="text-text-primary">
+                              {tx.fromEntityType === 'WAREHOUSE' ? 'Warehouse' : 
+                               tx.fromEntityType === 'SUPPLIER' ? (tx.fromEntityId || 'Supplier') :
+                               (entityNames[tx.fromEntityId] || tx.fromEntityType || 'N/A')}
+                            </span>
                           </div>
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-xs">
+                          <div className="flex items-center gap-2 text-xs font-semibold">
                             {tx.toEntityType === 'WAREHOUSE' && <Package size={14} className="text-primary" />}
                             {tx.toEntityType === 'STORE' && <Store size={14} className="text-secondary" />}
                             {tx.toEntityType === 'STAFF' && <User size={14} className="text-success" />}
                             {tx.toEntityType === 'SUPERVISOR' && <UserCheck size={14} className="text-warning" />}
                             {tx.toEntityType === 'CLIENT' && <User size={14} className="text-text-primary" />}
-                            <span className="font-semibold">{tx.toEntityType || 'N/A'}</span>
-                            {tx.toEntityId && (
-                              <span className="font-mono text-text-muted bg-surface-elevated px-1.5 py-0.5 rounded text-[10px]">
-                                {tx.toEntityId.slice(-6)}
-                              </span>
-                            )}
+                            <span className="text-text-primary">
+                              {tx.toEntityType === 'WAREHOUSE' ? 'Warehouse' :
+                               tx.toEntityType === 'CLIENT' ? (tx.toEntityId || 'Client') :
+                               (entityNames[tx.toEntityId] || tx.toEntityType || 'N/A')}
+                            </span>
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap font-mono font-bold">
                           {tx.quantity}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap text-xs text-text-secondary">
-                          {tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId ? (
-                            <Link
-                              href={`/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
-                              target="_blank"
-                              className="flex items-center gap-1.5 text-primary hover:text-primary-hover hover:underline transition-colors"
-                              title="Download Delivery Note PDF"
-                            >
-                              <FileText size={13} />
-                              <span className="font-semibold">{tx.deliveryNote}</span>
-                            </Link>
+                          {tx.deliveryNote ? (
+                            (tx.transactionType === 'RECEIVE' || tx.transactionType === 'RETURN') ? (
+                              <Link
+                                href={`/api/dashboard/inbound/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                                target="_blank"
+                                className="flex items-center gap-1.5 text-success hover:text-success/80 hover:underline transition-colors"
+                                title="Download Inbound Delivery Note PDF"
+                              >
+                                <FileText size={13} />
+                                <span className="font-semibold">{tx.deliveryNote}</span>
+                              </Link>
+                            ) : (tx.transactionType === 'ISSUE' && tx.toEntityType === 'STORE' && tx.toEntityId) ? (
+                              <Link
+                                href={`/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                                target="_blank"
+                                className="flex items-center gap-1.5 text-primary hover:text-primary-hover hover:underline transition-colors"
+                                title="Download Delivery Note PDF"
+                              >
+                                <FileText size={13} />
+                                <span className="font-semibold">{tx.deliveryNote}</span>
+                              </Link>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <FileText size={13} className="text-text-muted" />
+                                <span>{tx.deliveryNote}</span>
+                              </div>
+                            )
                           ) : (
-                            <div className="flex items-center gap-1.5">
-                              <FileText size={13} className="text-text-muted" />
-                              <span>{tx.deliveryNote || 'N/A'}</span>
-                            </div>
+                            <span className="text-text-muted">N/A</span>
                           )}
                         </td>
                         <td className="py-3.5 pl-4 whitespace-nowrap text-xs text-text-secondary">
@@ -266,7 +280,7 @@ export default function TransactionsClient({
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
+              <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs font-semibold">
                 <span className="text-text-muted">
                   Showing <strong className="text-text-primary">{totalCount === 0 ? 0 : (page - 1) * 50 + 1}</strong> to{" "}
                   <strong className="text-text-primary">
@@ -274,20 +288,41 @@ export default function TransactionsClient({
                   </strong> of{" "}
                   <strong className="text-text-primary">{totalCount}</strong> movements
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     type="button"
                     disabled={page === 1}
                     onClick={() => updateUrlParams({ page: page - 1 })}
-                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200 cursor-pointer"
                   >
                     Previous
                   </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .map((p, pIdx, arr) => {
+                      const prevPage = arr[pIdx - 1];
+                      return (
+                        <div key={p} className="flex items-center gap-1">
+                          {prevPage && p - prevPage > 1 && <span className="text-text-muted px-1">...</span>}
+                          <button
+                            type="button"
+                            onClick={() => updateUrlParams({ page: p })}
+                            className={`px-3 py-1.5 border rounded-lg font-semibold transition-all duration-200 cursor-pointer ${
+                              p === page
+                                ? 'bg-primary border-primary text-white'
+                                : 'bg-surface border-border hover:bg-surface-elevated text-text-secondary'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        </div>
+                      );
+                    })}
                   <button
                     type="button"
                     disabled={page === totalPages}
                     onClick={() => updateUrlParams({ page: page + 1 })}
-                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200 cursor-pointer"
                   >
                     Next
                   </button>

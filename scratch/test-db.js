@@ -13,21 +13,18 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 prisma.inventoryTransaction.findMany({
-  where: {
-    transactionType: { in: ['ISSUE', 'OUTBOUND'] },
-    product: { isReturnable: true },
-    OR: [
-      { returnStatus: null },
-      { returnStatus: { notIn: ['RETURNED', 'USED'] } }
-    ]
-  },
-  include: {
-    product: true
-  }
+  where: { transactionType: 'INBOUND' }
 })
-.then(txs => {
-  console.log('QUERY RETURNED COUNT:', txs.length);
-  console.log('QUERY DETAILS:', txs.map(t => ({ id: t.id, dn: t.deliveryNote, returnStatus: t.returnStatus })));
+.then(async txs => {
+  console.log('FOUND INBOUND TRANSACTIONS:', txs.map(t => ({ id: t.id, type: t.transactionType, qty: t.quantity, notes: t.notes })));
+  if (txs.length > 0) {
+    const ids = txs.map(t => t.id);
+    const updateResult = await prisma.inventoryTransaction.updateMany({
+      where: { id: { in: ids } },
+      data: { transactionType: 'RETURN' }
+    });
+    console.log('UPDATE RESULT:', updateResult);
+  }
   process.exit(0);
 })
 .catch(err => {
