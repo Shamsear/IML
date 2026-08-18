@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteStaff, returnUniformItem, bulkReturnUniformItems } from '@/app/actions/staff';
 import { 
@@ -30,16 +30,18 @@ export default function StaffClient({ initialStaff, stores }) {
   const [returnError, setReturnError] = useState('');
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
 
-  // Construct flat list of all allocations
-  const allAllocations = staffList.flatMap(staff => 
-    (staff.allocations || []).map(alloc => ({
-      ...alloc,
-      staffId: staff.id,
-      staffName: staff.name,
-      staffPhone: staff.phone,
-      staffShirtSize: staff.shirtSize,
-    }))
-  ).sort((a, b) => new Date(b.givenDate) - new Date(a.givenDate));
+  // Construct flat list of all allocations (Memoized)
+  const allAllocations = useMemo(() => {
+    return staffList.flatMap(staff => 
+      (staff.allocations || []).map(alloc => ({
+        ...alloc,
+        staffId: staff.id,
+        staffName: staff.name,
+        staffPhone: staff.phone,
+        staffShirtSize: staff.shirtSize,
+      }))
+    ).sort((a, b) => new Date(b.givenDate) - new Date(a.givenDate));
+  }, [staffList]);
 
   // Helper to parse allocated items safely
   const getAllocatedItems = (a) => {
@@ -62,26 +64,6 @@ export default function StaffClient({ initialStaff, stores }) {
     return uniformReturnedOk && capReturnedOk && itemsReturnedOk && (hasUniform || hasCap || items.length > 0);
   };
 
-  // Compute summary stats
-  const totalAllocationsCount = allAllocations.length;
-  
-  const activeAllocationsCount = allAllocations.filter(a => {
-    const hasItems = a.uniformQty > 0 || a.capQty > 0 || getAllocatedItems(a).length > 0;
-    return hasItems && !isAllocationFullyReturned(a);
-  }).length;
-
-  const returnedAllocationsCount = allAllocations.filter(a => isAllocationFullyReturned(a)).length;
-
-  const totalActiveQty = allAllocations.reduce((acc, a) => {
-    const activeUniform = (a.uniformQty > 0 && !a.uniformReturned) ? a.uniformQty : 0;
-    const activeCap = (a.capQty > 0 && !a.capReturned) ? a.capQty : 0;
-    
-    const items = getAllocatedItems(a);
-    const activeItemsQty = items.filter(i => !i.returned).reduce((sum, i) => sum + parseInt(i.qty || 0, 10), 0);
-
-    return acc + activeUniform + activeCap + activeItemsQty;
-  }, 0);
-
   const getOverdueStatus = (alloc) => {
     if (isAllocationFullyReturned(alloc)) return false;
 
@@ -98,7 +80,50 @@ export default function StaffClient({ initialStaff, stores }) {
     return false;
   };
 
-  const overdueAllocationsCount = allAllocations.filter(a => getOverdueStatus(a)).length;
+  // Compute summary stats (Memoized in a single loop)
+  const {
+    totalAllocationsCount,
+    activeAllocationsCount,
+    returnedAllocationsCount,
+    totalActiveQty,
+    overdueAllocationsCount
+  } = useMemo(() => {
+    const totalCount = allAllocations.length;
+    let activeCount = 0;
+    let returnedCount = 0;
+    let activeQty = 0;
+    let overdueCount = 0;
+
+    allAllocations.forEach(a => {
+      const isFullyReturned = isAllocationFullyReturned(a);
+      const hasItems = a.uniformQty > 0 || a.capQty > 0 || getAllocatedItems(a).length > 0;
+      if (hasItems && !isFullyReturned) {
+        activeCount++;
+      }
+      if (isFullyReturned) {
+        returnedCount++;
+      }
+      
+      const activeUniform = (a.uniformQty > 0 && !a.uniformReturned) ? a.uniformQty : 0;
+      const activeCap = (a.capQty > 0 && !a.capReturned) ? a.capQty : 0;
+      const items = getAllocatedItems(a);
+      const activeItemsQty = items.filter(i => !i.returned).reduce((sum, i) => sum + parseInt(i.qty || 0, 10), 0);
+      
+      activeQty += activeUniform + activeCap + activeItemsQty;
+      
+      if (getOverdueStatus(a)) {
+        overdueCount++;
+      }
+    });
+
+    return {
+      totalAllocationsCount: totalCount,
+      activeAllocationsCount: activeCount,
+      returnedAllocationsCount: returnedCount,
+      totalActiveQty: activeQty,
+      overdueAllocationsCount: overdueCount
+    };
+  }, [allAllocations]);
 
   const handlePromoterDelete = async (id) => {
     if (!confirm('Delete this promoter profile? All associated allocations will be deleted.')) return;
