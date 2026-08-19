@@ -1200,6 +1200,23 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                 placeholder={item.prodType === 'SIM' && item.prodAutoGenName ? "Complete store fields above to generate name..." : "e.g. Ooredoo Promo Stand"}
                                 required
                               />
+                              {(() => {
+                                 const brandObj = brands.find(b => b.id === item.prodBrandId);
+                                 const bName = brandObj?.name || '';
+                                 let previewName = item.prodName.trim();
+                                 if (bName && previewName) {
+                                   const lowerName = previewName.toLowerCase();
+                                   const lowerBrand = bName.toLowerCase();
+                                   if (!lowerName.startsWith(lowerBrand)) {
+                                     previewName = `${bName} - ${previewName}`;
+                                   }
+                                 }
+                                 return previewName ? (
+                                   <p className="text-[11px] text-text-muted mt-1 font-semibold flex items-center gap-1 bg-surface-elevated/45 px-2 py-1 rounded border border-border/40 w-fit">
+                                     📝 Preview Registered Name: <strong className="text-primary">{previewName}</strong>
+                                   </p>
+                                 ) : null;
+                               })()}
                             </div>
 
                             <div className="flex flex-col gap-1.5">

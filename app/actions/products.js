@@ -193,13 +193,25 @@ export async function createProduct(formData) {
   if (!name) throw new Error('Product name is required');
   if (!brandId) throw new Error('Associated Brand is required');
 
+  const brand = await prisma.brand.findUnique({
+    where: { id: brandId },
+  });
+  if (!brand) throw new Error('Associated Brand not found');
+
+  let formattedName = name.trim();
+  const lowerName = formattedName.toLowerCase();
+  const lowerBrand = brand.name.toLowerCase();
+  if (!lowerName.startsWith(lowerBrand)) {
+    formattedName = `${brand.name} - ${formattedName}`;
+  }
+
   // 1. Create product row
   const id = await generateId('product', 'PROD', 3);
 
   const product = await prisma.product.create({
     data: {
       id,
-      name,
+      name: formattedName,
       brandId,
       itemCode,
       category,
@@ -674,12 +686,26 @@ export async function createBulkProducts(formData) {
       }
       const prodId = `PROD-${String(lastProdNum + 1).padStart(5, '0')}`;
 
+      const brand = await tx.brand.findUnique({
+        where: { id: item.brandId },
+        select: { name: true }
+      });
+      const bName = brand?.name || '';
+      let formattedName = item.name.trim();
+      if (bName) {
+        const lowerName = formattedName.toLowerCase();
+        const lowerBrand = bName.toLowerCase();
+        if (!lowerName.startsWith(lowerBrand)) {
+          formattedName = `${bName} - ${formattedName}`;
+        }
+      }
+
       // 1. Create Product
       const isSerialized = item.productType !== 'NORMAL';
       const prod = await tx.product.create({
         data: {
           id: prodId,
-          name: item.name.trim(),
+          name: formattedName,
           brandId: item.brandId,
           itemCode: item.itemCode ? item.itemCode.trim() : null,
           category: item.category || 'Stands',

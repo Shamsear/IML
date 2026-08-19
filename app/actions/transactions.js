@@ -160,6 +160,17 @@ export async function createTransaction(data) {
       },
     });
 
+    if (transactionType === 'ISSUE' && toEntityType === 'STORE' && toEntityId) {
+      await tx.brand.update({
+        where: { id: product.brandId },
+        data: {
+          stores: {
+            connect: { id: toEntityId }
+          }
+        }
+      });
+    }
+
     // B. Handle Serialized Barcode Updates
     if (product.isSerialized && barcodes.length > 0) {
       // Find serials globally to give descriptive mismatches
@@ -594,6 +605,17 @@ export async function createBulkIssueTransactions(payload) {
         },
       });
 
+      if (toEntityType === 'STORE' && toEntityId) {
+        await tx.brand.update({
+          where: { id: product.brandId },
+          data: {
+            stores: {
+              connect: { id: toEntityId }
+            }
+          }
+        });
+      }
+
       // B. Link serialized serials
       if (product.isSerialized && barcodes.length > 0) {
         const itemSerials = barcodes.map(b => serialsMap.get(b)).filter(Boolean);
@@ -725,8 +747,19 @@ export async function createBulkReceiveTransactions(formData) {
         // Register the product inline!
         const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert = '10', prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
 
-        if (!prodName) throw new Error(`Product name is required for inline product registration at entry #${idx + 1}`);
-        if (!prodBrandId) throw new Error(`Brand is required for inline product registration at entry #${idx + 1}`);
+        const brandObj = await tx.brand.findUnique({
+          where: { id: prodBrandId },
+          select: { name: true }
+        });
+        const bName = brandObj?.name || '';
+        let formattedName = prodName.trim();
+        if (bName) {
+          const lowerName = formattedName.toLowerCase();
+          const lowerBrand = bName.toLowerCase();
+          if (!lowerName.startsWith(lowerBrand)) {
+            formattedName = `${bName} - ${formattedName}`;
+          }
+        }
 
         const padded = String(nextProductNum).padStart(4, '0');
         const newProductId = `PROD-${padded}`;
@@ -737,7 +770,7 @@ export async function createBulkReceiveTransactions(formData) {
         product = await tx.product.create({
           data: {
             id: newProductId,
-            name: prodName,
+            name: formattedName,
             isSerialized: prodType === 'SIM' || prodType === 'ROUTER',
             productType: prodType,
             brandId: prodBrandId,
