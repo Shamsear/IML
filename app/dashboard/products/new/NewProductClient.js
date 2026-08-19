@@ -50,6 +50,11 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
   // Active target slot for webcam/companion barcode scans: { itemIdx, inboundIdx }
   const [activeScanTarget, setActiveScanTarget] = useState(null);
+  
+  // Custom suggestions active targets
+  const [activeCategorySuggestionsTarget, setActiveCategorySuggestionsTarget] = useState(null); // idx
+  const [activeSupplierSuggestionsTarget, setActiveSupplierSuggestionsTarget] = useState(null); // { itemIdx, inboundIdx }
+  const [activeReceiverSuggestionsTarget, setActiveReceiverSuggestionsTarget] = useState(null); // { itemIdx, inboundIdx }
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -126,6 +131,24 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
   // State array for products queue
   const [items, setItems] = useState([createEmptyProductItem(0)]);
+
+  // Filtering helpers for custom suggestions dropdowns
+  const getFilteredCategories = (query) => {
+    const list = ['Stands', 'Uniforms', 'Gifts', 'Disposables', ...existingCategories];
+    const unique = Array.from(new Set(list));
+    if (!query) return unique;
+    return unique.filter(c => c.toLowerCase().includes(query.toLowerCase()));
+  };
+
+  const getFilteredSuppliers = (query) => {
+    if (!query) return recentSuppliers;
+    return recentSuppliers.filter(s => s.toLowerCase().includes(query.toLowerCase()));
+  };
+
+  const getFilteredReceivers = (query) => {
+    if (!query) return recentReceivers;
+    return recentReceivers.filter(r => r.toLowerCase().includes(query.toLowerCase()));
+  };
 
   // Edit Mode state (if editId is set, we only handle one single product item)
   useEffect(() => {
@@ -992,22 +1015,40 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                           />
                         </div>
 
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-1.5 relative">
                           <label className="text-xs font-semibold text-text-secondary">Category Group</label>
-                          <input
-                            type="text"
-                            list="existing-categories"
-                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/40"
-                            value={item.category}
-                            onChange={(e) => updateItemField(idx, 'category', e.target.value)}
-                            disabled={item.productType !== 'NORMAL'}
-                            placeholder="e.g. Stands"
-                          />
-                          <datalist id="existing-categories">
-                            {existingCategories.map((cat, cIdx) => (
-                              <option key={cIdx} value={cat} />
-                            ))}
-                          </datalist>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:bg-surface-elevated/40"
+                              value={item.category}
+                              onChange={(e) => {
+                                updateItemField(idx, 'category', e.target.value);
+                                setActiveCategorySuggestionsTarget(idx);
+                              }}
+                              onFocus={() => setActiveCategorySuggestionsTarget(idx)}
+                              onBlur={() => setTimeout(() => setActiveCategorySuggestionsTarget(null), 250)}
+                              disabled={item.productType !== 'NORMAL'}
+                              placeholder="e.g. Stands"
+                            />
+                            {activeCategorySuggestionsTarget === idx && getFilteredCategories(item.category).length > 0 && (
+                              <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                                {getFilteredCategories(item.category).map((cat, catIdx) => (
+                                  <button
+                                    key={catIdx}
+                                    type="button"
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                    onClick={() => {
+                                      updateItemField(idx, 'category', cat);
+                                      setActiveCategorySuggestionsTarget(null);
+                                    }}
+                                  >
+                                    {cat}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex flex-col gap-1.5">
@@ -1166,39 +1207,75 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                   </div>
 
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="flex flex-col gap-1.5">
+                                    <div className="flex flex-col gap-1.5 relative">
                                       <label className="text-xs font-bold text-text-secondary">Inbound Supplier / Source</label>
-                                      <input
-                                        type="text"
-                                        list="recent-suppliers-list"
-                                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                        value={inb.fromId}
-                                        onChange={(e) => updateInboundField(idx, subIdx, 'fromId', e.target.value)}
-                                        placeholder="Supplier Name"
-                                        required
-                                      />
-                                      <datalist id="recent-suppliers-list">
-                                        {recentSuppliers.map((sup, sIdx) => (
-                                          <option key={sIdx} value={sup} />
-                                        ))}
-                                      </datalist>
+                                      <div className="relative">
+                                        <input
+                                          type="text"
+                                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                          value={inb.fromId}
+                                          onChange={(e) => {
+                                            updateInboundField(idx, subIdx, 'fromId', e.target.value);
+                                            setActiveSupplierSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                          }}
+                                          onFocus={() => setActiveSupplierSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx })}
+                                          onBlur={() => setTimeout(() => setActiveSupplierSuggestionsTarget(null), 250)}
+                                          placeholder="Supplier Name"
+                                          required
+                                        />
+                                        {activeSupplierSuggestionsTarget?.itemIdx === idx && activeSupplierSuggestionsTarget?.inboundIdx === subIdx && getFilteredSuppliers(inb.fromId).length > 0 && (
+                                          <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                                            {getFilteredSuppliers(inb.fromId).map((sup, sIdx) => (
+                                              <button
+                                                key={sIdx}
+                                                type="button"
+                                                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                                onClick={() => {
+                                                  updateInboundField(idx, subIdx, 'fromId', sup);
+                                                  setActiveSupplierSuggestionsTarget(null);
+                                                }}
+                                              >
+                                                {sup}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
 
-                                    <div className="flex flex-col gap-1.5">
+                                    <div className="flex flex-col gap-1.5 relative">
                                       <label className="text-xs font-bold text-text-secondary">Received By (Staff)</label>
-                                      <input
-                                        type="text"
-                                        list="recent-receivers-list"
-                                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                        value={inb.receivedBy}
-                                        onChange={(e) => updateInboundField(idx, subIdx, 'receivedBy', e.target.value)}
-                                        placeholder="e.g. John Doe"
-                                      />
-                                      <datalist id="recent-receivers-list">
-                                        {recentReceivers.map((rec, rIdx) => (
-                                          <option key={rIdx} value={rec} />
-                                        ))}
-                                      </datalist>
+                                      <div className="relative">
+                                        <input
+                                          type="text"
+                                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                          value={inb.receivedBy}
+                                          onChange={(e) => {
+                                            updateInboundField(idx, subIdx, 'receivedBy', e.target.value);
+                                            setActiveReceiverSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                          }}
+                                          onFocus={() => setActiveReceiverSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx })}
+                                          onBlur={() => setTimeout(() => setActiveReceiverSuggestionsTarget(null), 250)}
+                                          placeholder="e.g. John Doe"
+                                        />
+                                        {activeReceiverSuggestionsTarget?.itemIdx === idx && activeReceiverSuggestionsTarget?.inboundIdx === subIdx && getFilteredReceivers(inb.receivedBy).length > 0 && (
+                                          <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                                            {getFilteredReceivers(inb.receivedBy).map((name, nameIdx) => (
+                                              <button
+                                                key={nameIdx}
+                                                type="button"
+                                                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                                onClick={() => {
+                                                  updateInboundField(idx, subIdx, 'receivedBy', name);
+                                                  setActiveReceiverSuggestionsTarget(null);
+                                                }}
+                                              >
+                                                {name}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
 
                                     {item.productType === 'NORMAL' ? (

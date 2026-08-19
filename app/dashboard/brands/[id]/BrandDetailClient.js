@@ -59,6 +59,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   const [productType, setProductType] = useState('NORMAL'); // 'NORMAL', 'SIM', 'ROUTER'
   const [productCode, setProductCode] = useState('');
   const [productCategory, setProductCategory] = useState('');
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
   const [productCap, setProductCap] = useState('');
   const [productReturnable, setProductReturnable] = useState(false);
   const [productDisposable, setProductDisposable] = useState(false);
@@ -794,14 +795,45 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                   <label className="text-xs font-semibold text-text-secondary">SKU / Code</label>
                   <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={productCode} onChange={(e) => setProductCode(e.target.value)} placeholder="e.g. SKU-1234" />
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5 relative">
                   <label className="text-xs font-semibold text-text-secondary">Category</label>
-                  <input type="text" list="brand-product-categories" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={productCategory} onChange={(e) => setProductCategory(e.target.value)} placeholder="Category" />
-                  <datalist id="brand-product-categories">
-                    {uniqueCategories.map((cat, cIdx) => (
-                      <option key={cIdx} value={cat} />
-                    ))}
-                  </datalist>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      value={productCategory}
+                      onChange={(e) => { setProductCategory(e.target.value); setShowCategorySuggestions(true); }}
+                      onFocus={() => setShowCategorySuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 250)}
+                      placeholder="Category"
+                    />
+                    {showCategorySuggestions && (() => {
+                      const list = ['Stands', 'Uniforms', 'Gifts', 'Disposables', ...uniqueCategories];
+                      const unique = Array.from(new Set(list));
+                      const filtered = productCategory ? unique.filter(c => c.toLowerCase().includes(productCategory.toLowerCase())) : unique;
+                      return filtered.length > 0;
+                    })() && (
+                      <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                        {(() => {
+                          const list = ['Stands', 'Uniforms', 'Gifts', 'Disposables', ...uniqueCategories];
+                          const unique = Array.from(new Set(list));
+                          return productCategory ? unique.filter(c => c.toLowerCase().includes(productCategory.toLowerCase())) : unique;
+                        })().map((cat, catIdx) => (
+                          <button
+                            key={catIdx}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                            onClick={() => {
+                              setProductCategory(cat);
+                              setShowCategorySuggestions(false);
+                            }}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

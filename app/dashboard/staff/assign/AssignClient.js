@@ -55,6 +55,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
   // Common UI states
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeUniformSuggestionsTarget, setActiveUniformSuggestionsTarget] = useState(null); // { idx: number, type: 'single' | 'bulk', allocIdx?: number }
 
   // Derive list of previously used item types for datalist autocomplete
   const uniqueItemTypes = useMemo(() => {
@@ -79,6 +80,14 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
     }
     return Array.from(types);
   }, [staffList]);
+
+  const getFilteredUniformTypes = (query) => {
+    const defaultTypes = ['Chef Hat', 'Abaya', 'Frock', 'T-Shirt', 'Pants', 'Cap', 'Apron'];
+    const list = [...defaultTypes, ...uniqueItemTypes];
+    const unique = Array.from(new Set(list));
+    if (!query) return unique;
+    return unique.filter(t => t.toLowerCase().includes(query.toLowerCase()));
+  };
 
   // Pre-fill states from editStaffObj (Edit promoter profile only)
   useEffect(() => {
@@ -404,11 +413,7 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
         </div>
       </header>
 
-      <datalist id="uniform-types">
-        {uniqueItemTypes.map(type => (
-          <option key={type} value={type} />
-        ))}
-      </datalist>
+
 
       {error && (
         <div className="bg-danger/10 border border-danger/20 text-danger rounded-xl p-4 text-xs font-semibold text-center animate-slide-down">
@@ -498,15 +503,38 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                   <div key={item.id} className="grid grid-cols-12 gap-3 items-end">
                     <div className="col-span-5 flex flex-col gap-1.5">
                       <label className="text-[10px] text-text-muted">Item Type</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Chef Hat, Abaya, Frock"
-                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                        value={item.type}
-                        onChange={(e) => handleUpdateAllocatedItem(idx, 'type', e.target.value)}
-                        list="uniform-types"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="e.g. Chef Hat, Abaya, Frock"
+                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                          value={item.type}
+                          onChange={(e) => {
+                            handleUpdateAllocatedItem(idx, 'type', e.target.value);
+                            setActiveUniformSuggestionsTarget({ idx, type: 'single' });
+                          }}
+                          onFocus={() => setActiveUniformSuggestionsTarget({ idx, type: 'single' })}
+                          onBlur={() => setTimeout(() => setActiveUniformSuggestionsTarget(null), 250)}
+                          required
+                        />
+                        {activeUniformSuggestionsTarget?.idx === idx && activeUniformSuggestionsTarget?.type === 'single' && getFilteredUniformTypes(item.type).length > 0 && (
+                          <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                            {getFilteredUniformTypes(item.type).map((type, tIdx) => (
+                              <button
+                                key={tIdx}
+                                type="button"
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                onClick={() => {
+                                  handleUpdateAllocatedItem(idx, 'type', type);
+                                  setActiveUniformSuggestionsTarget(null);
+                                }}
+                              >
+                                {type}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="col-span-4 flex flex-col gap-1.5">
                       <label className="text-[10px] text-text-muted">Size</label>
@@ -835,25 +863,48 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                           />
                         </div>
 
-                        <div className="flex flex-col gap-3 mt-2">
+              <div className="flex flex-col gap-3 mt-2">
                           <label className="text-xs font-semibold text-text-secondary">Assigned Uniform Items</label>
                           {(item.allocatedItems || []).map((allocItem, allocIdx) => (
                             <div key={allocItem.id} className="grid grid-cols-12 gap-3 items-end">
                               <div className="col-span-5 flex flex-col gap-1.5">
                                 <label className="text-[10px] text-text-muted">Item Type</label>
-                                <input
-                                  type="text"
-                                  placeholder="e.g. Chef Hat, Abaya"
-                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-                                  value={allocItem.type}
-                                  onChange={(e) => {
-                                    const updatedAllocItems = [...(item.allocatedItems || [])];
-                                    updatedAllocItems[allocIdx].type = e.target.value;
-                                    updateItemField(idx, 'allocatedItems', updatedAllocItems);
-                                  }}
-                                  list="uniform-types"
-                                  required
-                                />
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. Chef Hat, Abaya"
+                                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                    value={allocItem.type}
+                                    onChange={(e) => {
+                                      const updatedAllocItems = [...(item.allocatedItems || [])];
+                                      updatedAllocItems[allocIdx].type = e.target.value;
+                                      updateItemField(idx, 'allocatedItems', updatedAllocItems);
+                                      setActiveUniformSuggestionsTarget({ idx, type: 'bulk', allocIdx });
+                                    }}
+                                    onFocus={() => setActiveUniformSuggestionsTarget({ idx, type: 'bulk', allocIdx })}
+                                    onBlur={() => setTimeout(() => setActiveUniformSuggestionsTarget(null), 250)}
+                                    required
+                                  />
+                                  {activeUniformSuggestionsTarget?.idx === idx && activeUniformSuggestionsTarget?.type === 'bulk' && activeUniformSuggestionsTarget?.allocIdx === allocIdx && getFilteredUniformTypes(allocItem.type).length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                                      {getFilteredUniformTypes(allocItem.type).map((type, tIdx) => (
+                                        <button
+                                          key={tIdx}
+                                          type="button"
+                                          className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                          onClick={() => {
+                                            const updatedAllocItems = [...(item.allocatedItems || [])];
+                                            updatedAllocItems[allocIdx].type = type;
+                                            updateItemField(idx, 'allocatedItems', updatedAllocItems);
+                                            setActiveUniformSuggestionsTarget(null);
+                                          }}
+                                        >
+                                          {type}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <div className="col-span-4 flex flex-col gap-1.5">
                                 <label className="text-[10px] text-text-muted">Size</label>

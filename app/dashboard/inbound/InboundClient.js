@@ -63,6 +63,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
   const [isCompanionActive, setIsCompanionActive] = useState(false);
+  const [activeCategorySuggestionsTarget, setActiveCategorySuggestionsTarget] = useState(null); // idx
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -724,6 +725,13 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     s.toLowerCase() !== fromId.toLowerCase()
   );
 
+  const getFilteredCategories = (query) => {
+    const list = ['Stands', 'Uniforms', 'Gifts', 'Disposables', ...uniqueCategories];
+    const unique = Array.from(new Set(list));
+    if (!query) return unique;
+    return unique.filter(c => c.toLowerCase().includes(query.toLowerCase()));
+  };
+
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans relative">
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
@@ -1096,7 +1104,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                           <CustomSelect
                             options={products
                               .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
-                              .map(p => ({ value: p.id, label: `${p.brand?.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl }))}
+                              .map(p => ({ value: p.id, label: `${p.brand?.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
                             value={item.productId}
                             onChange={(val) => updateItemField(idx, 'productId', val)}
                             placeholder={
@@ -1232,22 +1240,40 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               />
                             </div>
 
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-1.5 relative">
                               <label className="text-xs font-semibold text-text-secondary">Category Group</label>
-                              <input
-                                type="text"
-                                list="existing-inbound-categories"
-                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/45"
-                                value={item.prodCategory}
-                                onChange={(e) => updateItemField(idx, 'prodCategory', e.target.value)}
-                                disabled={item.prodType !== 'NORMAL'}
-                                placeholder="e.g. Materials"
-                              />
-                              <datalist id="existing-inbound-categories">
-                                {uniqueCategories.map((cat, cIdx) => (
-                                  <option key={cIdx} value={cat} />
-                                ))}
-                              </datalist>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:bg-surface-elevated/45"
+                                  value={item.prodCategory}
+                                  onChange={(e) => {
+                                    updateItemField(idx, 'prodCategory', e.target.value);
+                                    setActiveCategorySuggestionsTarget(idx);
+                                  }}
+                                  onFocus={() => setActiveCategorySuggestionsTarget(idx)}
+                                  onBlur={() => setTimeout(() => setActiveCategorySuggestionsTarget(null), 250)}
+                                  disabled={item.prodType !== 'NORMAL'}
+                                  placeholder="e.g. Materials"
+                                />
+                                {activeCategorySuggestionsTarget === idx && getFilteredCategories(item.prodCategory).length > 0 && (
+                                  <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                                    {getFilteredCategories(item.prodCategory).map((cat, catIdx) => (
+                                      <button
+                                        key={catIdx}
+                                        type="button"
+                                        className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                        onClick={() => {
+                                          updateItemField(idx, 'prodCategory', cat);
+                                          setActiveCategorySuggestionsTarget(null);
+                                        }}
+                                      >
+                                        {cat}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             <div className="flex flex-col gap-1.5">

@@ -691,7 +691,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
             <CustomSelect
               options={sourceProducts
                 .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
-                .map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
+                .map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
               value={sourceProductId}
               onChange={(val) => setSourceProductId(val)}
               placeholder="Select Source Product..."
@@ -749,7 +749,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                     p.name?.toUpperCase().includes('SIM') ||
                     p.name?.toUpperCase().includes('ROUTER')
                   )
-                ).map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl }))}
+                ).map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
                 value={targetProductId}
                 onChange={(val) => setTargetProductId(val)}
                 placeholder="Select Target Product..."

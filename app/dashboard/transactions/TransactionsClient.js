@@ -131,7 +131,7 @@ export default function TransactionsClient({
             <div className="flex flex-col gap-1.5 w-full">
               <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Filter by Product</label>
               <CustomSelect
-                options={[{ value: 'ALL', label: 'All Products' }, ...products.map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl }))]}
+                options={[{ value: 'ALL', label: 'All Products' }, ...products.map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))]}
                 value={filterProduct}
                 onChange={(val) => { setFilterProduct(val); updateUrlParams({ productId: val }); }}
                 size="sm"

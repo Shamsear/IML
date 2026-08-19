@@ -86,6 +86,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
   const [isCompanionActive, setIsCompanionActive] = useState(false);
+  const [showDirectSellerSuggestions, setShowDirectSellerSuggestions] = useState(false);
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -709,19 +710,41 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
               />
             )}
             {toType === 'DIRECT' && (
-              <div className="flex flex-col gap-1.5">
-                <input
-                  type="text"
-                  list="direct-sellers-list"
-                  value={toId}
-                  onChange={(e) => setToId(e.target.value)}
-                  placeholder="Type or select direct seller name"
-                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  required
-                />
-                <datalist id="direct-sellers-list">
-                  {directSellers.map(ds => <option key={ds} value={ds} />)}
-                </datalist>
+              <div className="flex flex-col gap-1.5 relative">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={toId}
+                    onChange={(e) => { setToId(e.target.value); setShowDirectSellerSuggestions(true); }}
+                    onFocus={() => setShowDirectSellerSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowDirectSellerSuggestions(false), 250)}
+                    placeholder="Type or select direct seller name"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    required
+                  />
+                  {showDirectSellerSuggestions && (() => {
+                    const filtered = toId ? directSellers.filter(ds => ds.toLowerCase().includes(toId.toLowerCase())) : directSellers;
+                    return filtered.length > 0;
+                  })() && (
+                    <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                      {(() => {
+                        return toId ? directSellers.filter(ds => ds.toLowerCase().includes(toId.toLowerCase())) : directSellers;
+                      })().map((ds, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                          onClick={() => {
+                            setToId(ds);
+                            setShowDirectSellerSuggestions(false);
+                          }}
+                        >
+                          {ds}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1057,7 +1080,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                           <CustomSelect
                             options={products
                               .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
-                              .map(p => ({ value: p.id, label: `${p.brand?.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl }))}
+                              .map(p => ({ value: p.id, label: `${p.brand?.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
                             value={item.productId}
                             onChange={(val) => handleProductChange(idx, val)}
                             placeholder={

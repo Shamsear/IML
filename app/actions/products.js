@@ -760,7 +760,9 @@ export async function createBulkProducts(formData) {
                 toEntityType: 'WAREHOUSE',
                 toEntityId: 'MAIN',
                 quantity: entry.qty,
-                deliveryNote: entry.deliveryNote || 'INITIAL_STOCK',
+                deliveryNote: (entry.deliveryNote && entry.deliveryNote.trim() && entry.deliveryNote !== 'INITIAL_STOCK')
+                  ? entry.deliveryNote.trim()
+                  : `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`,
                 notes: entry.notes || 'Auto-received initial stock',
                 receivedBy: entry.receivedBy || null,
               }

@@ -206,6 +206,15 @@ export default function CustomSelect({
             />
           )}
           <span>{selectedOption ? selectedOption.label : placeholder}</span>
+          {selectedOption && (() => {
+            const optionCount = selectedOption.count !== undefined ? selectedOption.count : (selectedOption.stock !== undefined ? selectedOption.stock : selectedOption.warehouseStock);
+            if (optionCount === undefined) return null;
+            return (
+              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${optionCount > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-danger/10 text-danger'}`}>
+                {optionCount} qty
+              </span>
+            );
+          })()}
         </span>
         <ChevronDown
           size={size === 'sm' ? 14 : 16}
@@ -288,7 +297,18 @@ export default function CustomSelect({
                       )}
                       <span>{opt.label}</span>
                     </span>
-                    {isSelected && <Check size={12} className="text-primary flex-shrink-0" />}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {(() => {
+                        const optionCount = opt.count !== undefined ? opt.count : (opt.stock !== undefined ? opt.stock : opt.warehouseStock);
+                        if (optionCount === undefined) return null;
+                        return (
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${optionCount > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-danger/10 text-danger'}`}>
+                            {optionCount} qty
+                          </span>
+                        );
+                      })()}
+                      {isSelected && <Check size={12} className="text-primary flex-shrink-0" />}
+                    </div>
                   </button>
                 );
               })
