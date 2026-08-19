@@ -448,10 +448,11 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                   <label className="text-xs font-semibold text-text-secondary">Phone Number</label>
                   <input 
                     type="text" 
-                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono" 
                     value={promoterPhone} 
-                    onChange={(e) => setPromoterPhone(e.target.value)} 
-                    placeholder="e.g. 050 123 4567" 
+                    onChange={(e) => setPromoterPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                    maxLength={10}
+                    placeholder="e.g. 0501234567" 
                   />
                 </div>
               </div>
@@ -817,8 +818,9 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
                                   type="text" 
                                   className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
                                   value={item.promoterPhone} 
-                                  onChange={(e) => updateItemField(idx, 'promoterPhone', e.target.value)} 
-                                  placeholder="e.g. 055 123 4567" 
+                                  onChange={(e) => updateItemField(idx, 'promoterPhone', e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                                  maxLength={10}
+                                  placeholder="e.g. 0501234567" 
                                 />
                               </div>
                             </div>

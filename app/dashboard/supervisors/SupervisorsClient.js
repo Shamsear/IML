@@ -158,10 +158,11 @@ export default function SupervisorsClient({ initialSupervisors }) {
                   <label className="text-xs font-semibold text-text-secondary">Phone Contact</label>
                   <input 
                     type="text" 
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" 
+                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none font-mono" 
                     value={phone} 
-                    onChange={(e) => setPhone(e.target.value)} 
-                    placeholder="e.g. 056 123 4567" 
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                    maxLength={10}
+                    placeholder="e.g. 0501234567" 
                   />
                 </div>
               </div>

@@ -810,9 +810,10 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                     <input
                       type="text"
                       value={newSupPhone}
-                      onChange={e => setNewSupPhone(e.target.value)}
-                      placeholder="e.g. 056 123 4567"
-                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      onChange={e => setNewSupPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      maxLength={10}
+                      placeholder="e.g. 0501234567"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
