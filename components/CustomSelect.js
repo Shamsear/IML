@@ -277,10 +277,13 @@ export default function CustomSelect({
                     type="button"
                     role="option"
                     aria-selected={isSelected}
-                    onMouseEnter={() => setHighlightedIndex(idx)}
-                    onClick={() => handleSelect(opt.value)}
+                    disabled={opt.disabled}
+                    onMouseEnter={() => !opt.disabled && setHighlightedIndex(idx)}
+                    onClick={() => !opt.disabled && handleSelect(opt.value)}
                     className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors ${
-                      isHighlighted
+                      opt.disabled
+                        ? 'opacity-40 cursor-not-allowed bg-surface-elevated/20 text-text-muted'
+                        : isHighlighted
                         ? 'bg-primary/10 text-primary'
                         : isSelected
                         ? 'bg-primary/5 text-primary font-bold'

@@ -582,7 +582,13 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                     <CustomSelect
                       options={products
                         .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
-                        .map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
+                        .map(p => ({
+                          value: p.id,
+                          label: `${p.name} (${p.brand?.name || 'No Brand'})`,
+                          imageUrl: p.imageUrl,
+                          warehouseStock: p.warehouseStock,
+                          disabled: items.filter((_, i) => i !== index).map(it => it.productId).filter(Boolean).includes(p.id)
+                        }))}
                       value={item.productId}
                       onChange={(id) => handleProductChange(index, id)}
                       placeholder="Choose product..."

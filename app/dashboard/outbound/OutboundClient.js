@@ -1080,7 +1080,13 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                           <CustomSelect
                             options={products
                               .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
-                              .map(p => ({ value: p.id, label: `${p.brand?.name} - ${p.name} (${p.category})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
+                              .map(p => ({
+                                value: p.id,
+                                label: `${p.brand?.name} - ${p.name} (${p.category})`,
+                                imageUrl: p.imageUrl,
+                                warehouseStock: p.warehouseStock,
+                                disabled: items.filter((_, i) => i !== idx).map(it => it.productId).filter(Boolean).includes(p.id)
+                              }))}
                             value={item.productId}
                             onChange={(val) => handleProductChange(idx, val)}
                             placeholder={
