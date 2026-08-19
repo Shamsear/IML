@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2, UserCheck, Tag, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/actions/transactions';
+import { createSupervisor } from '@/app/actions/supervisors';
 import CustomSelect from '@/components/CustomSelect';
 import { getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 
@@ -795,7 +796,6 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
 
                     setCreatingSup(true);
                     try {
-                      const { createSupervisor } = await import('@/app/actions/supervisors');
                       const fd = new FormData();
                       fd.set('name', newSupName.trim());
                       if (newSupPhone.trim()) fd.set('phone', newSupPhone.trim());

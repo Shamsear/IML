@@ -1197,7 +1197,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                 value={item.prodName}
                                 onChange={(e) => updateItemField(idx, 'prodName', e.target.value)}
                                 disabled={item.prodType === 'SIM' && item.prodAutoGenName}
-                                placeholder={item.prodType === 'SIM' && item.prodAutoGenName ? "Complete store fields above to generate name..." : "e.g. Ooredoo Promo Stand"}
+                                placeholder={item.prodType === 'SIM' && item.prodAutoGenName ? "Complete store fields above to generate name..." : "e.g. Promo Stand"}
                                 required
                               />
                               {(() => {
@@ -1211,7 +1211,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                      previewName = `${bName} - ${previewName}`;
                                    }
                                  }
-                                 return previewName && previewName !== item.prodName.trim() ? (
+                                 return previewName ? (
                                    <p className="text-[11px] text-text-muted mt-1 font-semibold flex items-center gap-1 bg-surface-elevated/45 px-2 py-1 rounded border border-border/40 w-fit">
                                      📝 Preview Registered Name: <strong className="text-primary">{previewName}</strong>
                                    </p>

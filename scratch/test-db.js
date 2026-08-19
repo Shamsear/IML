@@ -12,19 +12,12 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-prisma.inventoryTransaction.findMany({
-  where: { transactionType: 'INBOUND' }
+prisma.product.findMany({
+  select: { id: true, name: true },
+  orderBy: { id: 'asc' }
 })
-.then(async txs => {
-  console.log('FOUND INBOUND TRANSACTIONS:', txs.map(t => ({ id: t.id, type: t.transactionType, qty: t.quantity, notes: t.notes })));
-  if (txs.length > 0) {
-    const ids = txs.map(t => t.id);
-    const updateResult = await prisma.inventoryTransaction.updateMany({
-      where: { id: { in: ids } },
-      data: { transactionType: 'RETURN' }
-    });
-    console.log('UPDATE RESULT:', updateResult);
-  }
+.then(products => {
+  console.log('ALL PRODUCTS IN DB:', products);
   process.exit(0);
 })
 .catch(err => {

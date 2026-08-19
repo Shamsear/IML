@@ -691,19 +691,19 @@ export async function createBulkReceiveTransactions(formData) {
   const newProductItems = items.filter(i => i.isNewProduct);
   let nextProductNum = 1;
   if (newProductItems.length > 0) {
-    const lastProduct = await prisma.product.findFirst({
+    const existingProducts = await prisma.product.findMany({
       where: { id: { startsWith: 'PROD' } },
-      orderBy: { id: 'desc' },
       select: { id: true }
     });
-    if (lastProduct) {
-      const parts = lastProduct.id.split('-');
-      const numPart = parts[parts.length - 1];
-      const parsed = parseInt(numPart, 10);
-      if (!isNaN(parsed)) {
-        nextProductNum = parsed + 1;
+    let maxProdNum = 0;
+    for (const p of existingProducts) {
+      const match = p.id.match(/\d+/);
+      if (match) {
+        const num = parseInt(match[0], 10);
+        if (num > maxProdNum) maxProdNum = num;
       }
     }
+    nextProductNum = maxProdNum + 1;
   }
 
   // 3. Pre-validate existing products in one query
@@ -761,7 +761,7 @@ export async function createBulkReceiveTransactions(formData) {
           }
         }
 
-        const padded = String(nextProductNum).padStart(4, '0');
+        const padded = String(nextProductNum).padStart(3, '0');
         const newProductId = `PROD-${padded}`;
         nextProductNum++;
 

@@ -670,21 +670,24 @@ export async function createBulkProducts(formData) {
       if (!isNaN(parsed)) nextSerNum = parsed + 1;
     }
 
+    // Get all product IDs dynamically to prevent race conditions and find mathematical maximum
+    const existingProducts = await tx.product.findMany({
+      where: { id: { startsWith: 'PROD' } },
+      select: { id: true }
+    });
+    let maxProdNum = 0;
+    for (const p of existingProducts) {
+      const match = p.id.match(/\d+/);
+      if (match) {
+        const num = parseInt(match[0], 10);
+        if (num > maxProdNum) maxProdNum = num;
+      }
+    }
+
     for (let i = 0; i < productsList.length; i++) {
       const item = productsList[i];
-
-      // Get last product ID dynamically to prevent race conditions
-      const lastProduct = await tx.product.findFirst({
-        where: { id: { startsWith: 'PROD' } },
-        orderBy: { id: 'desc' },
-        select: { id: true },
-      });
-      let lastProdNum = 0;
-      if (lastProduct) {
-        const match = lastProduct.id.match(/\d+/);
-        if (match) lastProdNum = parseInt(match[0], 10);
-      }
-      const prodId = `PROD-${String(lastProdNum + 1).padStart(5, '0')}`;
+      maxProdNum++;
+      const prodId = `PROD-${String(maxProdNum).padStart(3, '0')}`;
 
       const brand = await tx.brand.findUnique({
         where: { id: item.brandId },
