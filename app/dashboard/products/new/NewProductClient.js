@@ -967,7 +967,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                 previewName = `${bName} - ${previewName}`;
                               }
                             }
-                            return previewName ? (
+                            return previewName && previewName !== item.name.trim() ? (
                               <p className="text-[11px] text-text-muted mt-1 font-semibold flex items-center gap-1 bg-surface-elevated/45 px-2 py-1 rounded border border-border/40 w-fit">
                                 📝 Preview Registered Name: <strong className="text-primary">{previewName}</strong>
                               </p>
