@@ -62,6 +62,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   // Wireless Mobile companion scanner states
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
+  const [isCompanionActive, setIsCompanionActive] = useState(false);
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -419,6 +420,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
   // Mobile companion scanner pairing
   const handleOpenMobileScanner = async () => {
+    setIsCompanionActive(true);
     try {
       if (mobileSession?.sessionId) {
         setIsMobileModalOpen(true);
@@ -440,7 +442,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   // Poll mobile companion scanned barcodes
   useEffect(() => {
     let interval = null;
-    if (mobileSession?.sessionId) {
+    if (mobileSession?.sessionId && isCompanionActive) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -466,7 +468,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mobileSession, activeScanTarget]);
+  }, [mobileSession, activeScanTarget, isCompanionActive]);
 
   const handleExpandItem = (idx) => {
     setItems(prev => prev.map((item, i) => ({ ...item, isExpanded: i === idx })));

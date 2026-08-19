@@ -64,6 +64,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   // Wireless Mobile companion scanner states
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
+  const [isCompanionActive, setIsCompanionActive] = useState(false);
 
   // Sync isBulkScan to Ref to prevent stale closures without re-triggering camera instantiations
   const isBulkScanRef = useRef(isBulkScan);
@@ -341,8 +342,13 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
 
   // Mobile pairing setup
   const handleOpenMobileScanner = async (rowIndex) => {
+    setActiveCameraRow(rowIndex);
+    setIsCompanionActive(true);
+    if (mobileSession?.sessionId) {
+      setIsMobileModalOpen(true);
+      return;
+    }
     try {
-      setActiveCameraRow(rowIndex);
       const res = await fetch('/api/scan-companion', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
@@ -357,7 +363,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   // Poll for mobile scanned items
   useEffect(() => {
     let interval = null;
-    if (mobileSession?.sessionId && activeCameraRow !== null) {
+    if (mobileSession?.sessionId && activeCameraRow !== null && isCompanionActive) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -395,7 +401,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mobileSession, activeCameraRow]);
+  }, [mobileSession, activeCameraRow, isCompanionActive]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

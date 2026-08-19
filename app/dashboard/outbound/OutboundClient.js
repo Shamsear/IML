@@ -85,6 +85,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   // Wireless Mobile companion scanner states
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
+  const [isCompanionActive, setIsCompanionActive] = useState(false);
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -471,7 +472,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   useEffect(() => {
     let interval = null;
     const activeIdx = items.findIndex(item => item.isExpanded);
-    if (mobileSession?.sessionId) {
+    if (mobileSession?.sessionId && isCompanionActive) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -498,7 +499,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMobileModalOpen, mobileSession, items]);
+  }, [isCompanionActive, mobileSession, items]);
 
   const handleApplyRange = (idx) => {
     const item = items[idx];
@@ -859,6 +860,11 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
               <button
                 type="button"
                 onClick={async () => {
+                  setIsCompanionActive(true);
+                  if (mobileSession?.sessionId) {
+                    setIsMobileModalOpen(true);
+                    return;
+                  }
                   try {
                     const res = await fetch('/api/scan-companion', { method: 'POST' });
                     if (res.ok) {

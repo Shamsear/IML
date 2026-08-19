@@ -46,6 +46,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
   // Wireless Mobile companion scanner states
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
+  const [isCompanionActive, setIsCompanionActive] = useState(false);
 
   // Active target slot for webcam/companion barcode scans: { itemIdx, inboundIdx }
   const [activeScanTarget, setActiveScanTarget] = useState(null);
@@ -480,6 +481,11 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
   // Mobile pairing setup
   const handleOpenMobileScanner = async () => {
+    setIsCompanionActive(true);
+    if (mobileSession?.sessionId) {
+      setIsMobileModalOpen(true);
+      return;
+    }
     try {
       const res = await fetch('/api/scan-companion', { method: 'POST' });
       if (res.ok) {
@@ -495,7 +501,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
   // Poll mobile scans
   useEffect(() => {
     let interval = null;
-    if (mobileSession?.sessionId) {
+    if (mobileSession?.sessionId && isCompanionActive) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -521,7 +527,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mobileSession, activeScanTarget]);
+  }, [mobileSession, activeScanTarget, isCompanionActive]);
 
   // Add brand-new empty product configuration to queue
   const handleAddNewItem = () => {

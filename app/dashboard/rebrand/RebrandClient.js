@@ -87,6 +87,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   // Wireless Mobile companion scanner states
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
+  const [isCompanionActive, setIsCompanionActive] = useState(false);
 
   // Sync isBulkScan to Ref
   const isBulkScanRef = useRef(isBulkScan);
@@ -459,6 +460,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
 
   // Mobile pairing setup
   const handleOpenMobileScanner = async () => {
+    setIsCompanionActive(true);
     try {
       if (mobileSession?.sessionId) {
         setIsMobileModalOpen(true);
@@ -480,7 +482,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   // Poll for mobile scanned items
   useEffect(() => {
     let interval = null;
-    if (mobileSession?.sessionId) {
+    if (mobileSession?.sessionId && isCompanionActive) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
@@ -528,7 +530,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mobileSession, availableBarcodes]);
+  }, [mobileSession, availableBarcodes, isCompanionActive]);
 
   // Get current session barcodes for bulk list view
   const scannedBarcodesList = mappings.map(m => m.sourceBarcode).filter(Boolean);

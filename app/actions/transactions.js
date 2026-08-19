@@ -153,7 +153,9 @@ export async function createTransaction(data) {
         toEntityType,
         toEntityId: toEntityId || null,
         quantity,
-        deliveryNote,
+        deliveryNote: (transactionType === 'RECEIVE' || transactionType === 'RETURN')
+          ? (deliveryNote && deliveryNote.trim() ? deliveryNote.trim() : `${transactionType === 'RETURN' ? 'RET' : 'DN'}-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`)
+          : (deliveryNote || null),
         deliveryStatus,
         notes,
         receivedBy,
@@ -1585,6 +1587,7 @@ export async function processOutboundReturns(returnsPayload) {
             quantity: processQty,
             notes: `Auto-generated Return from Outbound ${transactionId}. ${notes || ''}`,
             deliveryStatus: 'Delivered',
+            deliveryNote: `RET-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`,
           }
         });
 

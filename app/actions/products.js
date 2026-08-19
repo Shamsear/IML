@@ -230,7 +230,10 @@ export async function createProduct(formData) {
   // 2. Read optional initial stock parameters
   const initialQty = parseInt(formData.get('initialQty'), 10) || 0;
   const initialBarcodesStr = formData.get('initialBarcodes') || '';
-  const deliveryNote = formData.get('deliveryNote') || 'INITIAL_STOCK';
+  const rawDeliveryNote = formData.get('deliveryNote');
+  const deliveryNote = (rawDeliveryNote && rawDeliveryNote.trim() && rawDeliveryNote !== 'INITIAL_STOCK')
+    ? rawDeliveryNote.trim()
+    : `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
   const notesStr = formData.get('notes') || 'Auto-received initial stock on product registration';
 
   const fromEntityType = formData.get('fromEntityType') || 'SUPPLIER';
@@ -622,7 +625,12 @@ export async function createBulkProducts(formData) {
         barcodes: formData.get(`item_${i}_inbound_${j}_barcodes`) || '',
         fromId: formData.get(`item_${i}_inbound_${j}_fromId`) || 'Initial Import',
         receivedBy: formData.get(`item_${i}_inbound_${j}_receivedBy`) || null,
-        deliveryNote: formData.get(`item_${i}_inbound_${j}_deliveryNote`) || 'INITIAL_STOCK',
+        deliveryNote: (() => {
+          const val = formData.get(`item_${i}_inbound_${j}_deliveryNote`);
+          return (val && val.trim() && val !== 'INITIAL_STOCK')
+            ? val.trim()
+            : `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
+        })(),
         notes: formData.get(`item_${i}_inbound_${j}_notes`) || 'Auto-received initial stock',
       });
     }
