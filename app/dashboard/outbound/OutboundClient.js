@@ -771,6 +771,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
             />
           </div>
         </div>
+      </div>
 
         {/* Delivery Supervisor — shown when dispatching to a store */}
         {toType === 'STORE' && (
