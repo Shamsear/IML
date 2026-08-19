@@ -1239,6 +1239,37 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
           )}
         </div>
         )}
+        {!sourceSelectedProduct?.isSerialized && sourceSelectedProduct && (
+          <div className="bg-surface border border-border rounded-xl p-5 shadow-sm mt-4 animate-fade-in">
+            <div className="flex flex-col gap-1.5 max-w-xs">
+              <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                <span>Quantity to Rebrand</span>
+                <span className="text-[10px] text-text-muted font-mono">
+                  In Stock: <strong className="text-primary">{sourceSelectedProduct.warehouseStock || 0}</strong>
+                </span>
+              </label>
+              <input
+                type="number"
+                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                min={1}
+                value={nonSerializedQty}
+                onChange={(e) => setNonSerializedQty(e.target.value)}
+                placeholder="e.g. 10"
+                required
+              />
+              {parseInt(nonSerializedQty, 10) > sourceSelectedProduct.warehouseStock && (
+                <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse">
+                  ⚠️ Warning: Quantity exceeds available stock ({sourceSelectedProduct.warehouseStock})!
+                </span>
+              )}
+              {parseInt(nonSerializedQty, 10) <= 0 && (
+                <span className="text-[10px] font-semibold text-danger mt-1">
+                  ⚠️ Warning: Quantity must be greater than 0.
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Global Remarks */}
         <div className="flex flex-col gap-1.5 pt-4 border-t border-border">

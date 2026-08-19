@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkDamageTransactions } from '@/app/actions/transactions';
-import { getAvailableBarcodes } from '@/app/actions/products';
+import { getAvailableBarcodes, getProductStockAtLocation } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
@@ -29,7 +29,7 @@ const playBeep = () => {
   }
 };
 
-function DamageFormContent({ products, brands = [], initialItems = null, lockedType = null }) {
+function DamageFormContent({ products, brands = [], initialItems = null, lockedType = null, stores = [], directSellers = [] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -48,6 +48,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     }
     return 'DAMAGE';
   });
+  const [fromType, setFromType] = useState('WAREHOUSE'); // 'WAREHOUSE', 'STORE', 'DIRECT'
+  const [fromId, setFromId] = useState('');
+  const [showDirectSellerSuggestions, setShowDirectSellerSuggestions] = useState(false);
 
   // State for bulk damage items
   const [items, setItems] = useState([]);
@@ -78,51 +81,55 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
 
   // Initialize selected products from URL search parameter "productIds" or initialItems
   useEffect(() => {
-    if (initialItems) {
-      setItems(initialItems.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        selectedBarcodes: [],
-        availableBarcodes: [],
-        notes: item.notes || ''
-      })));
-      return;
-    }
-
-    const urlIds = searchParams.get('productIds')?.split(',').filter(Boolean) || [];
     const initRows = async () => {
       let initialItemsList = [];
-      if (urlIds.length > 0) {
-        initialItemsList = urlIds.map(id => {
-          const prod = products.find(p => p.id === id);
-          return {
-            productId: id,
+      if (initialItems) {
+        initialItemsList = initialItems.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          selectedBarcodes: item.barcodes || [],
+          availableBarcodes: [],
+          currentStock: 0,
+          notes: item.notes || ''
+        }));
+      } else {
+        const urlIds = searchParams.get('productIds')?.split(',').filter(Boolean) || [];
+        if (urlIds.length > 0) {
+          initialItemsList = urlIds.map(id => {
+            const prod = products.find(p => p.id === id);
+            return {
+              productId: id,
+              quantity: prod?.isSerialized ? 0 : 1,
+              selectedBarcodes: [],
+              availableBarcodes: [],
+              currentStock: prod?.warehouseStock || 0,
+              notes: ''
+            };
+          });
+        } else {
+          const defaultId = products[0]?.id || '';
+          const prod = products.find(p => p.id === defaultId);
+          initialItemsList = [{
+            productId: defaultId,
             quantity: prod?.isSerialized ? 0 : 1,
             selectedBarcodes: [],
             availableBarcodes: [],
+            currentStock: prod?.warehouseStock || 0,
             notes: ''
-          };
-        });
-      } else {
-        const defaultId = products[0]?.id || '';
-        const prod = products.find(p => p.id === defaultId);
-        initialItemsList = [{
-          productId: defaultId,
-          quantity: prod?.isSerialized ? 0 : 1,
-          selectedBarcodes: [],
-          availableBarcodes: [],
-          notes: ''
-        }];
+          }];
+        }
       }
+
       setItems(initialItemsList);
 
       for (let i = 0; i < initialItemsList.length; i++) {
         const item = initialItemsList[i];
         const prod = products.find(p => p.id === item.productId);
-        if (prod?.isSerialized) {
+        if (prod) {
           try {
-            const available = await getAvailableBarcodes(item.productId, 'WAREHOUSE', null);
-            setItems(prev => prev.map((x, idx) => idx === i ? { ...x, availableBarcodes: available || [] } : x));
+            const available = prod.isSerialized ? await getAvailableBarcodes(item.productId, fromType, fromId || null) : [];
+            const stock = prod.isSerialized ? available.length : (fromType === 'WAREHOUSE' ? prod.warehouseStock : await getProductStockAtLocation(item.productId, fromType, fromId || null));
+            setItems(prev => prev.map((x, idx) => idx === i ? { ...x, availableBarcodes: available || [], currentStock: stock } : x));
           } catch (e) {
             console.error(e);
           }
@@ -133,24 +140,87 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     initRows();
   }, [searchParams, products]);
 
-  const handleAddRow = () => {
+  // Effect to reload available barcodes and stock counts when location changes
+  useEffect(() => {
+    const reloadLocationData = async () => {
+      const updated = await Promise.all(items.map(async (item) => {
+        const prod = products.find(p => p.id === item.productId);
+        let available = [];
+        let currentStock = 0;
+        
+        if (prod) {
+          if (prod.isSerialized) {
+            try {
+              available = await getAvailableBarcodes(item.productId, fromType, fromId || null);
+              currentStock = available.length;
+            } catch (e) {
+              console.error(e);
+            }
+          } else {
+            try {
+              if (fromType === 'WAREHOUSE') {
+                currentStock = prod.warehouseStock;
+              } else {
+                currentStock = await getProductStockAtLocation(item.productId, fromType, fromId || null);
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }
+        
+        return {
+          ...item,
+          availableBarcodes: available || [],
+          selectedBarcodes: [],
+          quantity: prod?.isSerialized ? 0 : 1,
+          currentStock
+        };
+      }));
+      setItems(updated);
+    };
+
+    if (items.length > 0) {
+      reloadLocationData();
+    }
+  }, [fromType, fromId]);
+
+  const handleAddRow = async () => {
     const defaultId = products[0]?.id || '';
     const prod = products.find(p => p.id === defaultId);
     const newIdx = items.length;
+    let available = [];
+    let currentStock = prod?.warehouseStock || 0;
+
+    if (prod) {
+      if (prod.isSerialized) {
+        try {
+          available = await getAvailableBarcodes(defaultId, fromType, fromId || null);
+          currentStock = available.length;
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        try {
+          if (fromType === 'WAREHOUSE') {
+            currentStock = prod.warehouseStock;
+          } else {
+            currentStock = await getProductStockAtLocation(defaultId, fromType, fromId || null);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
     
     setItems(prev => [...prev, { 
       productId: defaultId, 
       quantity: prod?.isSerialized ? 0 : 1, 
       selectedBarcodes: [], 
-      availableBarcodes: [], 
+      availableBarcodes: available || [], 
+      currentStock,
       notes: '' 
     }]);
-
-    if (prod?.isSerialized) {
-      getAvailableBarcodes(defaultId, 'WAREHOUSE', null).then(available => {
-        setItems(prev => prev.map((x, idx) => idx === newIdx ? { ...x, availableBarcodes: available || [] } : x));
-      });
-    }
   };
 
   const handleRemoveRow = (index) => {
@@ -174,23 +244,39 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
 
   const handleProductChange = async (index, productId) => {
     const prod = products.find(p => p.id === productId);
+    let available = [];
+    let currentStock = 0;
+
+    if (prod) {
+      if (prod.isSerialized) {
+        try {
+          available = await getAvailableBarcodes(productId, fromType, fromId || null);
+          currentStock = available.length;
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        try {
+          if (fromType === 'WAREHOUSE') {
+            currentStock = prod.warehouseStock;
+          } else {
+            currentStock = await getProductStockAtLocation(productId, fromType, fromId || null);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
     setItems(prev => prev.map((x, idx) => idx === index ? {
       ...x,
       productId,
       quantity: prod?.isSerialized ? 0 : 1,
       selectedBarcodes: [],
-      availableBarcodes: [],
+      availableBarcodes: available || [],
+      currentStock,
       notes: ''
     } : x));
-
-    if (prod?.isSerialized) {
-      try {
-        const available = await getAvailableBarcodes(productId, 'WAREHOUSE', null);
-        setItems(prev => prev.map((x, idx) => idx === index ? { ...x, availableBarcodes: available || [] } : x));
-      } catch (e) {
-        console.error(e);
-      }
-    }
   };
 
   // Keyboard scan input toggle handler
@@ -423,8 +509,8 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           setLoading(false);
           return;
         }
-        if (qty > (prod.warehouseStock || 0)) {
-          setError(`Quantity for ${prod.name} exceeds available warehouse stock (${prod.warehouseStock || 0})`);
+        if (qty > (item.currentStock || 0)) {
+          setError(`Quantity for ${prod.name} exceeds available stock (${item.currentStock || 0})`);
           setLoading(false);
           return;
         }
@@ -443,8 +529,8 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
 
     try {
       await createBulkDamageTransactions({
-        fromEntityType: 'WAREHOUSE',
-        fromEntityId: null,
+        fromEntityType: fromType,
+        fromEntityId: fromId || null,
         transactionType: reportType,
         items: itemsPayload
       });
@@ -539,6 +625,86 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         </div>
         )}
 
+        {/* Source Selection Header */}
+        <div className="bg-surface-elevated/40 border border-border rounded-xl p-5 shadow-sm">
+          <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
+            <AlertCircle size={15} className="text-danger animate-pulse" />
+            <span>Report Source / Location</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-text-secondary">Source Location Type</label>
+              <CustomSelect
+                options={[
+                  { value: 'WAREHOUSE', label: 'Central Warehouse' },
+                  { value: 'STORE', label: 'Retail Store / Placement' },
+                  { value: 'DIRECT', label: 'Direct Seller / Promoter Staff' },
+                ]}
+                value={fromType}
+                onChange={(val) => {
+                  setFromType(val);
+                  setFromId('');
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              {fromType === 'STORE' && (
+                <>
+                  <label className="text-xs font-semibold text-text-secondary">Select Retail Store</label>
+                  <CustomSelect
+                    options={stores.map(s => ({ value: s.id, label: s.name }))}
+                    value={fromId}
+                    onChange={(val) => setFromId(val)}
+                    placeholder="-- Select Retail Store --"
+                    required
+                  />
+                </>
+              )}
+              {fromType === 'DIRECT' && (
+                <div className="flex flex-col gap-1.5 relative">
+                  <label className="text-xs font-semibold text-text-secondary">Direct Seller / Staff Name</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={fromId}
+                      onChange={(e) => { setFromId(e.target.value); setShowDirectSellerSuggestions(true); }}
+                      onFocus={() => setShowDirectSellerSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowDirectSellerSuggestions(false), 250)}
+                      placeholder="Type or select seller/staff name"
+                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold"
+                      required
+                    />
+                    {showDirectSellerSuggestions && (() => {
+                      const filtered = fromId ? directSellers.filter(ds => ds.toLowerCase().includes(fromId.toLowerCase())) : directSellers;
+                      return filtered.length > 0;
+                    })() && (
+                      <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                        {(() => {
+                          return fromId ? directSellers.filter(ds => ds.toLowerCase().includes(fromId.toLowerCase())) : directSellers;
+                        })().map((ds, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium"
+                            onClick={() => {
+                              setFromId(ds);
+                              setShowDirectSellerSuggestions(false);
+                            }}
+                          >
+                            {ds}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Destination Header */}
         <h3 className="font-display font-bold text-lg text-text-primary pb-3 border-b border-border font-semibold">
           {reportType === 'LOST' ? 'Lost / Missing Products' : 'Damaged Products Ledger'}
@@ -603,20 +769,32 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                       </label>
                       {selectedProd && !selectedProd.isSerialized && (
                         <span className="text-[10px] font-mono text-text-muted">
-                          In Stock: <strong className="text-primary">{selectedProd.warehouseStock || 0}</strong>
+                          In Stock: <strong className="text-primary">{item.currentStock || 0}</strong>
                         </span>
                       )}
                     </div>
                     {!selectedProd?.isSerialized ? (
-                      <input 
-                        type="number" 
-                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
-                        min={1} 
-                        max={selectedProd.warehouseStock || 0}
-                        value={item.quantity}
-                        onChange={(e) => handleFieldChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
-                        required 
-                      />
+                      <div className="flex flex-col gap-1.5 w-full">
+                         <input 
+                           type="number" 
+                           className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
+                           min={1} 
+                           max={item.currentStock || 0}
+                           value={item.quantity}
+                           onChange={(e) => handleFieldChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
+                           required 
+                         />
+                         {item.quantity > (item.currentStock || 0) && (
+                           <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse block">
+                             ⚠️ Warning: Quantity exceeds available stock ({item.currentStock || 0})!
+                           </span>
+                         )}
+                         {item.quantity <= 0 && (
+                           <span className="text-[10px] font-semibold text-danger mt-1 block">
+                             ⚠️ Warning: Quantity must be greater than 0.
+                           </span>
+                         )}
+                       </div>
                     ) : (
                       <input 
                         type="number" 
@@ -934,14 +1112,14 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   );
 }
 
-export default function DamageClient({ products, brands = [], initialItems = null, lockedType = null }) {
+export default function DamageClient({ products, brands = [], initialItems = null, lockedType = null, stores = [], directSellers = [] }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 size={36} className="animate-spin text-primary" />
       </div>
     }>
-      <DamageFormContent products={products} brands={brands} initialItems={initialItems} lockedType={lockedType} />
+      <DamageFormContent products={products} brands={brands} initialItems={initialItems} lockedType={lockedType} stores={stores} directSellers={directSellers} />
     </Suspense>
   );
 }

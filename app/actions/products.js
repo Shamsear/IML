@@ -557,6 +557,33 @@ export async function getAvailableBarcodes(productId, locationType, locationId =
   });
 }
 
+export async function getProductStockAtLocation(productId, locationType, locationId = null) {
+  await checkAuth();
+  
+  const [inboundSum, outboundSum] = await Promise.all([
+    prisma.inventoryTransaction.aggregate({
+      where: {
+        productId,
+        toEntityType: locationType,
+        toEntityId: locationId || null,
+      },
+      _sum: { quantity: true },
+    }),
+    prisma.inventoryTransaction.aggregate({
+      where: {
+        productId,
+        fromEntityType: locationType,
+        fromEntityId: locationId || null,
+      },
+      _sum: { quantity: true },
+    })
+  ]);
+
+  const inQty = inboundSum._sum.quantity || 0;
+  const outQty = outboundSum._sum.quantity || 0;
+  return inQty - outQty;
+}
+
 // Find a product and its location availability details by serial barcode
 export async function findProductByBarcode(barcode) {
   await checkAuth();

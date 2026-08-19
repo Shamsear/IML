@@ -1,6 +1,7 @@
 import { getProductsSlim } from '@/app/actions/products';
 import { getBrands } from '@/app/actions/brands';
-import { getTransactionsByDeliveryNote } from '@/app/actions/transactions';
+import { getStores } from '@/app/actions/stores';
+import { getTransactionsByDeliveryNote, getRecentDirectSellers } from '@/app/actions/transactions';
 import DamageClient from '../DamageClient';
 
 export const metadata = {
@@ -12,9 +13,11 @@ export default async function NewDamagePage({ searchParams }) {
   const params = await searchParams;
   const copyDn = params?.copyDn;
 
-  const [products, brands, initialItems] = await Promise.all([
+  const [products, brands, stores, directSellers, initialItems] = await Promise.all([
     getProductsSlim(),
     getBrands(),
+    getStores(),
+    getRecentDirectSellers(),
     copyDn ? getTransactionsByDeliveryNote(copyDn) : Promise.resolve([])
   ]);
 
@@ -22,6 +25,8 @@ export default async function NewDamagePage({ searchParams }) {
     <DamageClient 
       products={products} 
       brands={brands} 
+      stores={stores}
+      directSellers={directSellers}
       initialItems={initialItems.length > 0 ? initialItems : null}
       lockedType="DAMAGE"
     />

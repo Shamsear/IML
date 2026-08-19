@@ -1160,6 +1160,16 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                         {selectedProd?.isSerialized && (
                           <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected serial numbers.</span>
                         )}
+                        {!selectedProd?.isSerialized && selectedProd && parseInt(item.quantity, 10) > selectedProd.warehouseStock && (
+                          <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse">
+                            ⚠️ Warning: Quantity ({item.quantity}) exceeds available warehouse stock ({selectedProd.warehouseStock} units)!
+                          </span>
+                        )}
+                        {!selectedProd?.isSerialized && selectedProd && parseInt(item.quantity, 10) <= 0 && (
+                          <span className="text-[10px] font-semibold text-danger mt-1">
+                            ⚠️ Warning: Quantity must be greater than 0.
+                          </span>
+                        )}
                       </div>
 
                       {/* Notes / Remarks */}
