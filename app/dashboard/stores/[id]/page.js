@@ -163,7 +163,7 @@ export default async function StoreDetailPage({ params, searchParams }) {
                         <th className="pb-3 pr-4">Product Name</th>
                         <th className="pb-3 px-4">Brand</th>
                         <th className="pb-3 px-4 text-center">Quantity</th>
-                        <th className="pb-3 pl-4">Tracking Type</th>
+                        <th className="pb-3 pl-4">Barcodes / Serials</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">

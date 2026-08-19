@@ -50,6 +50,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
   // Received By details - Receiver is locked to WAREHOUSE
   const [receivedBy, setReceivedBy] = useState('');
+  const [globalNotes, setGlobalNotes] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Webcam scanning state
@@ -176,6 +177,22 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     }
     // else: keep the initialItems already loaded from useState
   }, [searchParams, products, brands]);
+
+  // Prefill receivedBy and globalNotes from initialItems on edit or copy
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0) {
+      if (initialItems[0].receivedBy) {
+        setReceivedBy(initialItems[0].receivedBy);
+      }
+      if (initialItems[0].notes) {
+        if (initialItems[0].notes.includes(' | ')) {
+          setGlobalNotes(initialItems[0].notes.split(' | ')[0]);
+        } else {
+          setGlobalNotes(initialItems[0].notes);
+        }
+      }
+    }
+  }, [initialItems]);
 
   // Helper to update specific fields on item
   const updateItemField = (idx, field, value) => {
@@ -653,6 +670,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     formData.append('toEntityType', 'WAREHOUSE');
     formData.append('toEntityId', '');
     formData.append('receivedBy', receivedBy || '');
+    formData.append('globalNotes', globalNotes || '');
 
     // Map items to payload
     const itemsPayload = items.map((item, idx) => {
@@ -838,6 +856,17 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-xs font-semibold text-text-secondary">Delivery Note Global Remarks</label>
+            <input
+              type="text"
+              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              value={globalNotes}
+              onChange={(e) => setGlobalNotes(e.target.value)}
+              placeholder="Global remark visible at the top of the Delivery Note PDF..."
+            />
           </div>
         </div>
       </div>
@@ -1132,7 +1161,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                           </h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1.5">
-                              <label className="text-xs font-semibold text-text-secondary">Tracking Type</label>
+                              <label className="text-xs font-semibold text-text-secondary">Product Type</label>
                               <CustomSelect
                                 options={[
                                   { value: 'NORMAL', label: 'Bulk Product (Stands, Shirts, etc.)' },
@@ -1315,25 +1344,49 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               />
                             </div>
 
-                            <div className="flex items-center gap-6 mt-4">
-                              <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
-                                <input 
-                                  type="checkbox" 
-                                  className="custom-checkbox"
-                                  checked={item.prodIsReturnable}
-                                  onChange={(e) => updateItemField(idx, 'prodIsReturnable', e.target.checked)}
-                                />
-                                <span>Returnable Asset</span>
-                              </label>
-                              <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
-                                <input 
-                                  type="checkbox" 
-                                  className="custom-checkbox"
-                                  checked={item.prodIsDisposable}
-                                  onChange={(e) => updateItemField(idx, 'prodIsDisposable', e.target.checked)}
-                                />
-                                <span>Disposable (Single Use)</span>
-                              </label>
+                            <div className="flex flex-col gap-1.5 sm:col-span-2 mt-4">
+                              <label className="text-xs font-semibold text-text-secondary">Returnable / Disposable Status</label>
+                              <div className="flex items-center gap-6 mt-1 flex-wrap">
+                                <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                  <input 
+                                    type="radio" 
+                                    name={`prod-status-${idx}`}
+                                    className="custom-radio"
+                                    checked={!item.prodIsReturnable && !item.prodIsDisposable}
+                                    onChange={() => {
+                                      updateItemField(idx, 'prodIsReturnable', false);
+                                      updateItemField(idx, 'prodIsDisposable', false);
+                                    }}
+                                  />
+                                  <span>Standard (Neither)</span>
+                                </label>
+                                <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                  <input 
+                                    type="radio" 
+                                    name={`prod-status-${idx}`}
+                                    className="custom-radio"
+                                    checked={item.prodIsReturnable}
+                                    onChange={() => {
+                                      updateItemField(idx, 'prodIsReturnable', true);
+                                      updateItemField(idx, 'prodIsDisposable', false);
+                                    }}
+                                  />
+                                  <span>Returnable</span>
+                                </label>
+                                <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                  <input 
+                                    type="radio" 
+                                    name={`prod-status-${idx}`}
+                                    className="custom-radio"
+                                    checked={item.prodIsDisposable}
+                                    onChange={() => {
+                                      updateItemField(idx, 'prodIsReturnable', false);
+                                      updateItemField(idx, 'prodIsDisposable', true);
+                                    }}
+                                  />
+                                  <span>Disposable (Single Use)</span>
+                                </label>
+                              </div>
                             </div>
 
                             {/* Image Upload Area */}

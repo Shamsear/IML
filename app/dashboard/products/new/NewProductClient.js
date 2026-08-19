@@ -900,7 +900,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                       <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider pb-1 border-b border-border/60">1. Classification</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-text-secondary">Tracking Type</label>
+                          <label className="text-xs font-semibold text-text-secondary">Product Type</label>
                           <CustomSelect
                             options={[
                               { value: 'NORMAL', label: 'Bulk Product (Stands, Shirts, etc.)' },
@@ -1084,25 +1084,49 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                           />
                         </div>
 
-                        <div className="flex items-center gap-6 mt-4">
-                          <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
-                            <input 
-                              type="checkbox" 
-                              className="custom-checkbox"
-                              checked={item.isReturnable}
-                              onChange={(e) => updateItemField(idx, 'isReturnable', e.target.checked)}
-                            />
-                            <span>Returnable Item</span>
-                          </label>
-                          <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
-                            <input 
-                              type="checkbox" 
-                              className="custom-checkbox"
-                              checked={item.isDisposable}
-                              onChange={(e) => updateItemField(idx, 'isDisposable', e.target.checked)}
-                            />
-                            <span>Disposable (Single Use)</span>
-                          </label>
+                        <div className="flex flex-col gap-1.5 sm:col-span-2 mt-4">
+                          <label className="text-xs font-semibold text-text-secondary">Returnable / Disposable Status</label>
+                          <div className="flex items-center gap-6 mt-1 flex-wrap">
+                            <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                              <input 
+                                type="radio" 
+                                name={`status-${idx}`}
+                                className="custom-radio"
+                                checked={!item.isReturnable && !item.isDisposable}
+                                onChange={() => {
+                                  updateItemField(idx, 'isReturnable', false);
+                                  updateItemField(idx, 'isDisposable', false);
+                                }}
+                              />
+                              <span>Standard (Neither)</span>
+                            </label>
+                            <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                              <input 
+                                type="radio" 
+                                name={`status-${idx}`}
+                                className="custom-radio"
+                                checked={item.isReturnable}
+                                onChange={() => {
+                                  updateItemField(idx, 'isReturnable', true);
+                                  updateItemField(idx, 'isDisposable', false);
+                                }}
+                              />
+                              <span>Returnable</span>
+                            </label>
+                            <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                              <input 
+                                type="radio" 
+                                name={`status-${idx}`}
+                                className="custom-radio"
+                                checked={item.isDisposable}
+                                onChange={() => {
+                                  updateItemField(idx, 'isReturnable', false);
+                                  updateItemField(idx, 'isDisposable', true);
+                                }}
+                              />
+                              <span>Disposable (Single Use)</span>
+                            </label>
+                          </div>
                         </div>
 
                         {/* Image Upload */}

@@ -707,7 +707,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
 
           <div className="flex flex-col gap-1.5 justify-end pb-3">
             <span className="text-xs text-text-secondary leading-relaxed">
-              Source tracking type: <strong className="text-primary font-bold uppercase">{sourceSelectedProduct?.category || 'SIM'}</strong>
+              Source category: <strong className="text-primary font-bold uppercase">{sourceSelectedProduct?.category || 'SIM'}</strong>
             </span>
           </div>
         </div>

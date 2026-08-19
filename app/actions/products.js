@@ -103,6 +103,8 @@ export async function getProductsSlim() {
         isSerialized: true,
         category: true,
         imageUrl: true,
+        isReturnable: true,
+        isDisposable: true,
         rack: true,
         shelf: true,
         brand: { select: { id: true, name: true, rack: true, shelf: true } }

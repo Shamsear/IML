@@ -87,6 +87,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
   const [isCompanionActive, setIsCompanionActive] = useState(false);
   const [showDirectSellerSuggestions, setShowDirectSellerSuggestions] = useState(false);
+  const [globalNotes, setGlobalNotes] = useState('');
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -197,6 +198,17 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
 
     initRows();
   }, [searchParams, products, initialItems]);
+
+  // Prefill globalNotes from initialItems on edit or copy
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0 && initialItems[0].notes) {
+      if (initialItems[0].notes.includes(' | ')) {
+        setGlobalNotes(initialItems[0].notes.split(' | ')[0]);
+      } else {
+        setGlobalNotes(initialItems[0].notes);
+      }
+    }
+  }, [initialItems]);
 
   // Helper to update specific fields on item
   const updateItemField = (idx, field, value) => {
@@ -621,6 +633,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       toEntityType: toType,
       toEntityId: toId,
       deliverySupervisorId: deliverySupervisorId || null,
+      globalNotes: globalNotes || '',
       items: itemsPayload
     };
 
@@ -747,6 +760,15 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                 </div>
               </div>
             )}
+          <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2">
+            <label className="text-xs font-semibold text-text-secondary">Delivery Note Global Remarks</label>
+            <input
+              type="text"
+              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              value={globalNotes}
+              onChange={(e) => setGlobalNotes(e.target.value)}
+              placeholder="Global remark visible at the top of the Delivery Note PDF..."
+            />
           </div>
         </div>
 
@@ -988,7 +1010,20 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                           {selectedProd ? `${selectedProd.brand.name} - ${selectedProd.name}` : <span className="text-text-muted italic">Select product...</span>}
                         </span>
                         <span className="text-[10px] text-text-secondary block mt-0.5">
-                          {selectedProd?.isSerialized ? 'Serialized Tracking' : 'Bulk/Normal Product'} {item.notes && `| Remarks: ${item.notes}`}
+                          {selectedProd?.isSerialized ? 'Serialized Tracking' : 'Bulk/Normal Product'}
+                          {selectedProd && (
+                            <>
+                              {' | '}
+                              <span className={`font-bold ${selectedProd.isReturnable ? 'text-success' : 'text-text-secondary'}`}>
+                                {selectedProd.isReturnable ? 'Returnable' : 'Non-Returnable'}
+                              </span>
+                              {' | '}
+                              <span className={`font-bold ${selectedProd.isDisposable ? 'text-warning' : 'text-text-secondary'}`}>
+                                {selectedProd.isDisposable ? 'Disposable' : 'Non-Disposable'}
+                              </span>
+                            </>
+                          )}
+                          {item.notes && ` | Remarks: ${item.notes}`}
                         </span>
                       </div>
                     </div>
@@ -1094,9 +1129,19 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                 ? '-- Select Product --'
                                 : `-- Select ${brands.find(b => b.id === item.brandFilter)?.name || ''} Product --`
                             }
-                            required
-                          />
+                            />
                         </div>
+                        {selectedProd && (
+                          <div className="flex items-center gap-2 mt-1 flex-wrap animate-fade-in">
+                            <span className="text-[10px] font-bold text-text-secondary uppercase">Product Status:</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${selectedProd.isReturnable ? 'bg-success/10 text-success border-success/20' : 'bg-surface-elevated/40 text-text-secondary border-border'}`}>
+                              {selectedProd.isReturnable ? 'Returnable' : 'Non-Returnable'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${selectedProd.isDisposable ? 'bg-warning/10 text-warning border-warning/20' : 'bg-surface-elevated/40 text-text-secondary border-border'}`}>
+                              {selectedProd.isDisposable ? 'Disposable' : 'Non-Disposable'}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Quantity Input */}

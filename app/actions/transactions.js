@@ -471,6 +471,7 @@ export async function createBulkIssueTransactions(payload) {
     toEntityType,
     toEntityId,
     deliverySupervisorId,
+    globalNotes = '',
     items = [], // Array of { productId, quantity, barcodes, notes }
   } = payload;
 
@@ -586,7 +587,8 @@ export async function createBulkIssueTransactions(payload) {
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
 
-    for (const item of items) {
+    for (let idx = 0; idx < items.length; idx++) {
+      const item = items[idx];
       const { productId, quantity, barcodes = [], notes } = item;
       const product = productsMap.get(productId);
 
@@ -601,7 +603,13 @@ export async function createBulkIssueTransactions(payload) {
           toEntityId: toEntityId || null,
           quantity,
           deliveryNote: autoDeliveryNote,
-          notes: notes || `Bulk issue dispatch`,
+          notes: (() => {
+            const itemNote = notes || `Bulk issue dispatch`;
+            if (idx === 0 && globalNotes) {
+              return `${globalNotes.trim()} | ${itemNote.trim()}`;
+            }
+            return itemNote;
+          })(),
           deliveryStatus: 'Delivered',
           deliverySupervisorId: deliverySupervisorId || null,
         },
@@ -666,6 +674,7 @@ export async function createBulkReceiveTransactions(formData) {
   const toEntityType = formData.get('toEntityType') || 'WAREHOUSE';
   const toEntityId = formData.get('toEntityId') || null;
   const receivedBy = formData.get('receivedBy') || null;
+  const globalNotes = formData.get('globalNotes') || '';
   const itemsJson = formData.get('items');
   const items = JSON.parse(itemsJson || '[]');
 
@@ -809,7 +818,13 @@ export async function createBulkReceiveTransactions(formData) {
           toEntityId,
           quantity,
           deliveryNote: autoDeliveryNote,
-          notes: notes || `Bulk receive from ${fromEntityType}`,
+          notes: (() => {
+            const itemNote = notes || `Bulk receive from ${fromEntityType}`;
+            if (idx === 0 && globalNotes) {
+              return `${globalNotes.trim()} | ${itemNote.trim()}`;
+            }
+            return itemNote;
+          })(),
           manufactureDate: manufactureDate ? new Date(manufactureDate) : null,
           expiryDate: expiryDate ? new Date(expiryDate) : null,
           deliveryStatus: 'Delivered',
@@ -1624,6 +1639,7 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
     toEntityType,
     toEntityId,
     deliverySupervisorId,
+    globalNotes = '',
     items = [],
   } = payload;
 
@@ -1660,7 +1676,8 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
     // 2. CREATE NEW TRANSACTIONS
     const createdTxs = [];
 
-    for (const item of items) {
+    for (let idx = 0; idx < items.length; idx++) {
+      const item = items[idx];
       const { productId, quantity, barcodes = [], notes } = item;
 
       if (!productId) throw new Error('Product ID is required for all items');
@@ -1696,7 +1713,13 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
           toEntityType,
           toEntityId: toEntityId || null,
           quantity,
-          notes,
+          notes: (() => {
+            const itemNote = notes || `Bulk issue dispatch`;
+            if (idx === 0 && globalNotes) {
+              return `${globalNotes.trim()} | ${itemNote.trim()}`;
+            }
+            return itemNote;
+          })(),
           deliveryNote, // Reuse existing!
           deliverySupervisorId: deliverySupervisorId || null,
           deliveryStatus: 'Delivered',
@@ -1756,6 +1779,7 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
   const toEntityType = formData.get('toEntityType') || 'WAREHOUSE';
   const toEntityId = formData.get('toEntityId');
   const receivedBy = formData.get('receivedBy') || null;
+  const globalNotes = formData.get('globalNotes') || '';
   const itemsJson = formData.get('items');
   const items = JSON.parse(itemsJson || '[]');
 
@@ -1839,7 +1863,13 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
           toEntityType,
           toEntityId: toEntityId || null,
           quantity,
-          notes,
+          notes: (() => {
+            const itemNote = notes || `Bulk receive from ${fromEntityType}`;
+            if (idx === 0 && globalNotes) {
+              return `${globalNotes.trim()} | ${itemNote.trim()}`;
+            }
+            return itemNote;
+          })(),
           deliveryNote, // Reuse existing!
         }
       });

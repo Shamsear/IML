@@ -395,13 +395,14 @@ export async function GET(request, { params }) {
       }
 
       if (txs[0]?.notes) {
-        notes = txs[0].notes;
+        notes = txs[0].notes.includes(' | ') ? txs[0].notes.split(' | ')[0] : txs[0].notes;
       }
 
       // Group transactions by product ID to build consolidated list
       const productGroups = {};
       for (const tx of txs) {
         const prod = tx.product;
+        const parsedItemNotes = tx.notes && tx.notes.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
         if (!productGroups[prod.id]) {
           productGroups[prod.id] = {
             productId: prod.id,
@@ -411,7 +412,7 @@ export async function GET(request, { params }) {
             isSerialized: prod.isSerialized,
             quantity: 0,
             serials: [],
-            notes: tx.notes || ''
+            notes: parsedItemNotes
           };
         }
         productGroups[prod.id].quantity += tx.quantity;
