@@ -123,7 +123,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
         </button>
         <button onClick={() => changeTab('grouped')}
           className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'grouped' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
-          <ChevronDown size={15} /> By Return Note
+          <ChevronDown size={15} /> By Delivery Notes
         </button>
         <button onClick={() => changeTab('history')}
           className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'history' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
@@ -145,7 +145,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
             </div>
             <div className="relative flex-1">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input type="text" placeholder="Search Return Note..." value={searchDN}
+              <input type="text" placeholder="Search Delivery Note..." value={searchDN}
                 onChange={(e) => setSearchDN(e.target.value)}
                 className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold font-mono" />
             </div>
@@ -166,7 +166,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     <th className="py-3 px-5">Product</th>
                     <th className="py-3 px-5 text-right">Available</th>
                     <th className="py-3 px-5 w-32">Return Qty</th>
-                    <th className="py-3 px-5">Return Note</th>
+                    <th className="py-3 px-5">Delivery Note</th>
                     <th className="py-3 px-5">Remarks</th>
                   </tr>
                 </thead>
@@ -202,7 +202,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                               className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold has-tooltip"
                             >
                               {tx.deliveryNote}
-                              <span className="tooltip-box">Download Return Note PDF</span>
+                              <span className="tooltip-box">Download Delivery Note PDF</span>
                             </a>
                           ) : (
                             <span className="text-text-muted">---</span>
@@ -227,7 +227,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
               {deliveryNoteGroups.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
                   <Package size={48} className="opacity-20" />
-                  <span className="font-semibold">No returnable return notes found.</span>
+                  <span className="font-semibold">No returnable delivery notes found.</span>
                 </div>
               ) : deliveryNoteGroups.map(group => {
                 const isExpanded = !!expandedGroups[group.dn];
