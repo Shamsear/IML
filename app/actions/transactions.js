@@ -10,7 +10,30 @@ import { uploadToImageKit } from '@/lib/imagekit';
 async function checkAuth() {
   const session = await getServerSession(authOptions);
   if (!session) throw new Error('Unauthorized');
-  return session;
+}
+
+async function generateCustomRef(tx, type, brandName, customDate = null) {
+  const cleanBrand = brandName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 3) || 'gen';
+  
+  const dateObj = customDate ? new Date(customDate) : new Date();
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const year = String(dateObj.getFullYear()).slice(-2);
+  const dateStr = `${day}${month}${year}`;
+
+  const prefix = `${type}-brand(${cleanBrand})-date(${dateStr})-`;
+  
+  const existing = await tx.inventoryTransaction.findMany({
+    where: {
+      deliveryNote: { startsWith: prefix }
+    },
+    select: { deliveryNote: true },
+    distinct: ['deliveryNote']
+  });
+
+  const nextNum = existing.length + 1;
+  const suffix = String(nextNum).padStart(3, '0');
+  return `${prefix}${suffix}`;
 }
 
 // 1. Calculate stock at a specific location for bulk products
@@ -479,13 +502,11 @@ export async function createBulkIssueTransactions(payload) {
 
   if (items.length === 0) throw new Error('At least one product item is required for bulk issue');
 
-  // Auto-generate Delivery Note number for the entire dispatch batch
-  const autoDeliveryNote = `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
-
   // 1. Batch Product Query
   const productIds = [...new Set(items.map(i => i.productId))];
   const dbProducts = await prisma.product.findMany({
-    where: { id: { in: productIds } }
+    where: { id: { in: productIds } },
+    include: { brand: { select: { name: true } } }
   });
   const productsMap = new Map(dbProducts.map(p => [p.id, p]));
 
@@ -589,74 +610,89 @@ export async function createBulkIssueTransactions(payload) {
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
 
-    for (let idx = 0; idx < items.length; idx++) {
-      const item = items[idx];
-      const { productId, quantity, barcodes = [], notes } = item;
-      const product = productsMap.get(productId);
-
-      // A. Create core transaction
-      const invTx = await tx.inventoryTransaction.create({
-        data: {
-          productId,
-          transactionType: 'ISSUE',
-          fromEntityType,
-          fromEntityId: fromEntityId || null,
-          toEntityType,
-          toEntityId: toEntityId || null,
-          quantity,
-          deliveryNote: autoDeliveryNote,
-          notes: (() => {
-            const itemNote = notes || `Bulk issue dispatch`;
-            if (idx === 0 && globalNotes) {
-              return `${globalNotes.trim()} | ${itemNote.trim()}`;
-            }
-            return itemNote;
-          })(),
-          deliveryStatus: 'Delivered',
-          deliverySupervisorId: deliverySupervisorId || null,
-          timestamp: transactionDate ? new Date(transactionDate) : undefined,
-        },
-      });
-
-      if (toEntityType === 'STORE' && toEntityId) {
-        await tx.brand.update({
-          where: { id: product.brandId },
-          data: {
-            stores: {
-              connect: { id: toEntityId }
-            }
-          }
-        });
+    // Group items by brand name
+    const itemsByBrand = {};
+    for (const item of items) {
+      const product = productsMap.get(item.productId);
+      const brandName = product?.brand?.name || 'General';
+      if (!itemsByBrand[brandName]) {
+        itemsByBrand[brandName] = [];
       }
+      itemsByBrand[brandName].push(item);
+    }
 
-      // B. Link serialized serials
-      if (product.isSerialized && barcodes.length > 0) {
-        const itemSerials = barcodes.map(b => serialsMap.get(b)).filter(Boolean);
-        let nextStatus = 'AVAILABLE';
-        if (toEntityType === 'CLIENT' || toEntityType === 'STAFF' || toEntityType === 'DIRECT') nextStatus = 'USED';
+    for (const [brandName, brandItems] of Object.entries(itemsByBrand)) {
+      const deliveryNote = await generateCustomRef(tx, 'dn', brandName, transactionDate);
 
-        // Bulk update location and status (1 write)
-        await tx.productSerialNumber.updateMany({
-          where: {
-            id: { in: itemSerials.map(s => s.id) }
+      for (let idx = 0; idx < brandItems.length; idx++) {
+        const item = brandItems[idx];
+        const { productId, quantity, barcodes = [], notes } = item;
+        const product = productsMap.get(productId);
+
+        // A. Create core transaction
+        const invTx = await tx.inventoryTransaction.create({
+          data: {
+            productId,
+            transactionType: 'ISSUE',
+            fromEntityType,
+            fromEntityId: fromEntityId || null,
+            toEntityType,
+            toEntityId: toEntityId || null,
+            quantity,
+            deliveryNote,
+            notes: (() => {
+              const itemNote = notes || `Bulk issue dispatch`;
+              if (idx === 0 && globalNotes) {
+                return `${globalNotes.trim()} | ${itemNote.trim()}`;
+              }
+              return itemNote;
+            })(),
+            deliveryStatus: 'Delivered',
+            deliverySupervisorId: deliverySupervisorId || null,
+            timestamp: transactionDate ? new Date(transactionDate) : undefined,
           },
-          data: {
-            currentLocationType: toEntityType || null,
-            currentLocationId: toEntityId || null,
-            status: nextStatus,
-          }
         });
 
-        // Bulk link serials to transaction (1 write)
-        await tx.transactionSerialNumber.createMany({
-          data: itemSerials.map(serial => ({
-            transactionId: invTx.id,
-            serialNumberId: serial.id,
-          }))
-        });
+        if (toEntityType === 'STORE' && toEntityId) {
+          await tx.brand.update({
+            where: { id: product.brandId },
+            data: {
+              stores: {
+                connect: { id: toEntityId }
+              }
+            }
+          });
+        }
+
+        // B. Link serialized serials
+        if (product.isSerialized && barcodes.length > 0) {
+          const itemSerials = barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+          let nextStatus = 'AVAILABLE';
+          if (toEntityType === 'CLIENT' || toEntityType === 'STAFF' || toEntityType === 'DIRECT') nextStatus = 'USED';
+
+          // Bulk update location and status (1 write)
+          await tx.productSerialNumber.updateMany({
+            where: {
+              id: { in: itemSerials.map(s => s.id) }
+            },
+            data: {
+              currentLocationType: toEntityType || null,
+              currentLocationId: toEntityId || null,
+              status: nextStatus,
+            }
+          });
+
+          // Bulk link serials to transaction (1 write)
+          await tx.transactionSerialNumber.createMany({
+            data: itemSerials.map(serial => ({
+              transactionId: invTx.id,
+              serialNumberId: serial.id,
+            }))
+          });
+        }
+
+        createdTxs.push(invTx);
       }
-
-      createdTxs.push(invTx);
     }
 
     return createdTxs;
@@ -683,9 +719,6 @@ export async function createBulkReceiveTransactions(formData) {
   const items = JSON.parse(itemsJson || '[]');
 
   if (items.length === 0) throw new Error('At least one product item is required for bulk receive');
-
-  // Auto-generate Delivery Note number for the entire receive batch
-  const autoDeliveryNote = `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   // 1. Eagerly upload images outside database transaction lock
   const uploadedUrls = await Promise.all(
@@ -724,9 +757,26 @@ export async function createBulkReceiveTransactions(formData) {
   // 3. Pre-validate existing products in one query
   const existingProductIds = items.filter(i => !i.isNewProduct).map(i => i.productId);
   const dbProducts = await prisma.product.findMany({
-    where: { id: { in: existingProductIds } }
+    where: { id: { in: existingProductIds } },
+    include: { brand: { select: { name: true } } }
   });
   const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
+  const newBrandIds = [...new Set(newProductItems.map(i => i.prodBrandId).filter(Boolean))];
+  const dbBrands = await prisma.brand.findMany({
+    where: { id: { in: newBrandIds } },
+    select: { id: true, name: true }
+  });
+  const brandsMap = new Map(dbBrands.map(b => [b.id, b.name]));
+
+  const getItemBrandName = (item) => {
+    if (item.isNewProduct) {
+      return brandsMap.get(item.prodBrandId) || 'General';
+    } else {
+      const prod = productsMap.get(item.productId);
+      return prod?.brand?.name || 'General';
+    }
+  };
 
   // Validate existence of existing products in-memory
   for (const item of items) {
@@ -753,123 +803,136 @@ export async function createBulkReceiveTransactions(formData) {
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
 
-    for (let idx = 0; idx < items.length; idx++) {
-      const item = items[idx];
-      let { productId, quantity, barcodes = [], notes, manufactureDate, expiryDate, isNewProduct } = item;
-      let product;
-
-      if (isNewProduct) {
-        // Register the product inline!
-        const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert = '10', prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
-
-        const brandObj = await tx.brand.findUnique({
-          where: { id: prodBrandId },
-          select: { name: true }
-        });
-        const bName = brandObj?.name || '';
-        let formattedName = prodName.trim();
-        if (bName) {
-          const lowerName = formattedName.toLowerCase();
-          const lowerBrand = bName.toLowerCase();
-          if (!lowerName.startsWith(lowerBrand)) {
-            formattedName = `${bName} - ${formattedName}`;
-          }
-        }
-
-        const padded = String(nextProductNum).padStart(3, '0');
-        const newProductId = `PROD-${padded}`;
-        nextProductNum++;
-
-        const imageUrl = imageUrlsMap.get(idx) || null;
-
-        product = await tx.product.create({
-          data: {
-            id: newProductId,
-            name: formattedName,
-            isSerialized: prodType === 'SIM' || prodType === 'ROUTER',
-            productType: prodType,
-            brandId: prodBrandId,
-            category: prodCategory || 'General',
-            itemCode: prodItemCode || '',
-            rack: prodRack || null,
-            shelf: prodShelf || null,
-            lowStockAlert: parseInt(prodLowStockAlert, 10) || 10,
-            isReturnable: !!prodIsReturnable,
-            isDisposable: !!prodIsDisposable,
-            imageUrl,
-          }
-        });
-
-        productId = product.id;
-        if (product.isSerialized) {
-          quantity = barcodes.length;
-        }
-      } else {
-        product = productsMap.get(productId);
+    // Group items by brand name
+    const itemsByBrand = {};
+    items.forEach((item, idx) => {
+      const brandName = getItemBrandName(item);
+      if (!itemsByBrand[brandName]) {
+        itemsByBrand[brandName] = [];
       }
+      itemsByBrand[brandName].push({ item, idx });
+    });
 
-      if (!productId) throw new Error('Product ID is required for all items');
-      if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0 for all items');
+    for (const [brandName, brandGroup] of Object.entries(itemsByBrand)) {
+      const deliveryNote = await generateCustomRef(tx, 'recieved', brandName, transactionDate);
 
-      // A. Create core transaction
-      const invTx = await tx.inventoryTransaction.create({
-        data: {
-          productId,
-          transactionType: 'RECEIVE',
-          fromEntityType,
-          fromEntityId,
-          toEntityType,
-          toEntityId,
-          quantity,
-          deliveryNote: autoDeliveryNote,
-          notes: (() => {
-            const itemNote = notes || `Bulk receive from ${fromEntityType}`;
-            if (idx === 0 && globalNotes) {
-              return `${globalNotes.trim()} | ${itemNote.trim()}`;
+      for (const { item, idx } of brandGroup) {
+        let { productId, quantity, barcodes = [], notes, manufactureDate, expiryDate, isNewProduct } = item;
+        let product;
+
+        if (isNewProduct) {
+          // Register the product inline!
+          const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert = '10', prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
+
+          const brandObj = await tx.brand.findUnique({
+            where: { id: prodBrandId },
+            select: { name: true }
+          });
+          const bName = brandObj?.name || '';
+          let formattedName = prodName.trim();
+          if (bName) {
+            const lowerName = formattedName.toLowerCase();
+            const lowerBrand = bName.toLowerCase();
+            if (!lowerName.startsWith(lowerBrand)) {
+              formattedName = `${bName} - ${formattedName}`;
             }
-            return itemNote;
-          })(),
-          manufactureDate: manufactureDate ? new Date(manufactureDate) : null,
-          expiryDate: expiryDate ? new Date(expiryDate) : null,
-          deliveryStatus: 'Delivered',
-          receivedBy,
-          timestamp: transactionDate ? new Date(transactionDate) : undefined,
-        },
-      });
+          }
 
-      // B. Create serials if serialized
-      if (product.isSerialized && barcodes.length > 0) {
-        // 1. Bulk insert all new product serials (1 write)
-        await tx.productSerialNumber.createMany({
-          data: barcodes.map(barcode => ({
-            productId,
-            barcode: barcode.trim(),
-            currentLocationType: toEntityType || 'WAREHOUSE',
-            currentLocationId: toEntityId || null,
-            status: 'AVAILABLE',
-          })),
-          skipDuplicates: true
-        });
+          const padded = String(nextProductNum).padStart(3, '0');
+          const newProductId = `PROD-${padded}`;
+          nextProductNum++;
 
-        // 2. Fetch the newly created serial records to get their IDs
-        const newSerials = await tx.productSerialNumber.findMany({
-          where: {
+          const imageUrl = imageUrlsMap.get(idx) || null;
+
+          product = await tx.product.create({
+            data: {
+              id: newProductId,
+              name: formattedName,
+              isSerialized: prodType === 'SIM' || prodType === 'ROUTER',
+              productType: prodType,
+              brandId: prodBrandId,
+              category: prodCategory || 'General',
+              itemCode: prodItemCode || '',
+              rack: prodRack || null,
+              shelf: prodShelf || null,
+              lowStockAlert: parseInt(prodLowStockAlert, 10) || 10,
+              isReturnable: !!prodIsReturnable,
+              isDisposable: !!prodIsDisposable,
+              imageUrl,
+            }
+          });
+
+          productId = product.id;
+          if (product.isSerialized) {
+            quantity = barcodes.length;
+          }
+        } else {
+          product = productsMap.get(productId);
+        }
+
+        if (!productId) throw new Error('Product ID is required for all items');
+        if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0 for all items');
+
+        // A. Create core transaction
+        const invTx = await tx.inventoryTransaction.create({
+          data: {
             productId,
-            barcode: { in: barcodes }
+            transactionType: 'RECEIVE',
+            fromEntityType,
+            fromEntityId,
+            toEntityType,
+            toEntityId,
+            quantity,
+            deliveryNote,
+            notes: (() => {
+              const itemNote = notes || `Bulk receive from ${fromEntityType}`;
+              if (idx === 0 && globalNotes) {
+                return `${globalNotes.trim()} | ${itemNote.trim()}`;
+              }
+              return itemNote;
+            })(),
+            manufactureDate: manufactureDate ? new Date(manufactureDate) : null,
+            expiryDate: expiryDate ? new Date(expiryDate) : null,
+            deliveryStatus: 'Delivered',
+            receivedBy,
+            timestamp: transactionDate ? new Date(transactionDate) : undefined,
           },
-          select: { id: true }
         });
 
-        // 3. Bulk insert the transaction-serial mappings (1 write)
-        await tx.transactionSerialNumber.createMany({
-          data: newSerials.map(serial => ({
-            transactionId: invTx.id,
-            serialNumberId: serial.id,
-          }))
-        });
+        // B. Create serials if serialized
+        if (product.isSerialized && barcodes.length > 0) {
+          // 1. Bulk insert all new product serials (1 write)
+          await tx.productSerialNumber.createMany({
+            data: barcodes.map(barcode => ({
+              productId,
+              barcode: barcode.trim(),
+              currentLocationType: toEntityType || 'WAREHOUSE',
+              currentLocationId: toEntityId || null,
+              status: 'AVAILABLE',
+            })),
+            skipDuplicates: true
+          });
+
+          // 2. Fetch the newly created serial records to get their IDs
+          const newSerials = await tx.productSerialNumber.findMany({
+            where: {
+              productId,
+              barcode: { in: barcodes }
+            },
+            select: { id: true }
+          });
+
+          // 3. Bulk insert the transaction-serial mappings (1 write)
+          await tx.transactionSerialNumber.createMany({
+            data: newSerials.map(serial => ({
+              transactionId: invTx.id,
+              serialNumberId: serial.id,
+            }))
+          });
+        }
+
+        createdTxs.push(invTx);
       }
-
-      createdTxs.push(invTx);
     }
 
     return createdTxs;
@@ -1595,6 +1658,13 @@ export async function processOutboundReturns(returnsPayload) {
           }
         });
 
+        const product = await tx.product.findUnique({
+          where: { id: originalTx.productId },
+          include: { brand: { select: { name: true } } }
+        });
+        const brandName = product?.brand?.name || 'General';
+        const deliveryNote = await generateCustomRef(tx, 'return', brandName);
+
         // 2. Create RETURN transaction to return stock to Warehouse
         await tx.inventoryTransaction.create({
           data: {
@@ -1607,20 +1677,46 @@ export async function processOutboundReturns(returnsPayload) {
             quantity: processQty,
             notes: `Auto-generated Return from Outbound ${transactionId}. ${notes || ''}`,
             deliveryStatus: 'Delivered',
-            deliveryNote: `RET-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`,
+            deliveryNote,
           }
         });
 
       } else if (actionType === 'USED') {
-        // Just mark the entire remaining quantity as used
+        const remainingQty = originalTx.quantity - (originalTx.returnedQty || 0);
+        if (remainingQty <= 0) throw new Error('No remaining quantity to mark as used');
+
         const newNotes = originalTx.returnNotes ? `${originalTx.returnNotes} | ${notes || 'Marked Used'}` : (notes || 'Marked Used');
-        
+
+        // 1. Update original Outbound transaction
         await tx.inventoryTransaction.update({
           where: { id: transactionId },
           data: {
             returnStatus: 'USED',
             returnNotes: newNotes,
             returnedQty: originalTx.quantity, // Set to max so it's fully processed
+          }
+        });
+
+        // 2. Create USED transaction to move stock from Store to Staff (Used)
+        const product = await tx.product.findUnique({
+          where: { id: originalTx.productId },
+          include: { brand: { select: { name: true } } }
+        });
+        const brandName = product?.brand?.name || 'General';
+        const deliveryNote = await generateCustomRef(tx, 'used', brandName);
+
+        await tx.inventoryTransaction.create({
+          data: {
+            productId: originalTx.productId,
+            transactionType: 'ISSUE',
+            fromEntityType: originalTx.toEntityType,
+            fromEntityId: originalTx.toEntityId,
+            toEntityType: 'STAFF',
+            toEntityId: null,
+            quantity: remainingQty,
+            notes: `Marked as Used from Outbound ${transactionId}. ${notes || ''}`,
+            deliveryStatus: 'Delivered',
+            deliveryNote,
           }
         });
       } else {
@@ -1631,6 +1727,8 @@ export async function processOutboundReturns(returnsPayload) {
 
   revalidatePath('/dashboard/outbound');
   revalidatePath('/dashboard/returns');
+  revalidatePath('/dashboard/used');
+  revalidatePath('/dashboard/reports');
   revalidatePath('/dashboard/products');
   return { success: true };
 }
@@ -1645,12 +1743,12 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
     toEntityId,
     deliverySupervisorId,
     globalNotes = '',
-    transactionDate, // Custom transaction date/time
-    items = [],
+    transactionDate,
+    items = []
   } = payload;
 
   if (!deliveryNote) throw new Error('Delivery Note is required for update');
-  if (items.length === 0) throw new Error('At least one product item is required for bulk issue');
+  if (items.length === 0) throw new Error('At least one product item is required for update');
 
   const oldTxs = await prisma.inventoryTransaction.findMany({
     where: { deliveryNote, transactionType: 'ISSUE' },
@@ -1661,6 +1759,22 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
   });
 
   if (oldTxs.length === 0) throw new Error('Existing delivery note not found or no issue transactions');
+
+  // Eagerly load products for stock checking
+  const productIds = [...new Set(items.map(i => i.productId))];
+  const dbProducts = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: { brand: { select: { name: true } } }
+  });
+  const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
+  // Eager stock checking for new items
+  const bulkProductIds = items
+    .filter(item => {
+      const product = productsMap.get(item.productId);
+      return product && !product.isSerialized;
+    })
+    .map(item => item.productId);
 
   const transactions = await prisma.$transaction(async (tx) => {
     // 1. REVERT OLD TRANSACTIONS
@@ -1679,42 +1793,51 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
       await tx.inventoryTransaction.delete({ where: { id: oldTx.id } });
     }
 
-    // 2. CREATE NEW TRANSACTIONS
-    const createdTxs = [];
+    // 2. CHECK STOCK & CREATE NEW TRANSACTIONS
+    const stockMap = new Map();
+    if (bulkProductIds.length > 0 && fromEntityType && fromEntityType !== 'SUPPLIER') {
+      const [inboundSums, outboundSums] = await Promise.all([
+        tx.inventoryTransaction.groupBy({
+          by: ['productId'],
+          where: {
+            productId: { in: bulkProductIds },
+            toEntityType: fromEntityType,
+            ...(fromEntityType === 'WAREHOUSE' ? {} : { toEntityId: fromEntityId || null }),
+          },
+          _sum: { quantity: true },
+        }),
+        tx.inventoryTransaction.groupBy({
+          by: ['productId'],
+          where: {
+            productId: { in: bulkProductIds },
+            fromEntityType: fromEntityType,
+            ...(fromEntityType === 'WAREHOUSE' ? {} : { fromEntityId: fromEntityId || null }),
+          },
+          _sum: { quantity: true },
+        })
+      ]);
 
+      inboundSums.forEach(s => {
+        stockMap.set(s.productId, (s._sum.quantity || 0));
+      });
+      outboundSums.forEach(s => {
+        const current = stockMap.get(s.productId) || 0;
+        stockMap.set(s.productId, current - (s._sum.quantity || 0));
+      });
+    }
+
+    const createdTxs = [];
     for (let idx = 0; idx < items.length; idx++) {
       const item = items[idx];
       const { productId, quantity, barcodes = [], notes } = item;
+      const product = productsMap.get(productId);
 
-      if (!productId) throw new Error('Product ID is required for all items');
-      if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0 for all items');
-
-      const product = await tx.product.findUnique({ where: { id: productId } });
       if (!product) throw new Error(`Product not found for ID: ${productId}`);
 
       if (!product.isSerialized && fromEntityType && fromEntityType !== 'SUPPLIER') {
-        const inboundSum = await tx.inventoryTransaction.aggregate({
-          where: {
-            productId,
-            toEntityType: fromEntityType,
-            ...(fromEntityType === 'WAREHOUSE' ? {} : { toEntityId: fromEntityId || null })
-          },
-          _sum: { quantity: true },
-        });
-        const outboundSum = await tx.inventoryTransaction.aggregate({
-          where: {
-            productId,
-            fromEntityType: fromEntityType,
-            ...(fromEntityType === 'WAREHOUSE' ? {} : { fromEntityId: fromEntityId || null })
-          },
-          _sum: { quantity: true },
-        });
-        const inQty = inboundSum._sum.quantity || 0;
-        const outQty = outboundSum._sum.quantity || 0;
-        const currentStock = inQty - outQty;
-
+        const currentStock = stockMap.get(productId) || 0;
         if (currentStock < quantity) {
-          throw new Error(`Insufficient stock for product "${product.name}". Current stock is ${currentStock}, requested ${quantity}.`);
+          throw new Error(`Insufficient stock for product "${product.name}". Current stock at ${fromEntityType} is ${currentStock}, requested ${quantity}.`);
         }
       }
 
@@ -1734,7 +1857,7 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
             }
             return itemNote;
           })(),
-          deliveryNote, // Reuse existing!
+          deliveryNote,
           deliverySupervisorId: deliverySupervisorId || null,
           deliveryStatus: 'Delivered',
           timestamp: transactionDate ? new Date(transactionDate) : undefined,

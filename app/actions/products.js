@@ -233,9 +233,27 @@ export async function createProduct(formData) {
   const initialQty = parseInt(formData.get('initialQty'), 10) || 0;
   const initialBarcodesStr = formData.get('initialBarcodes') || '';
   const rawDeliveryNote = formData.get('deliveryNote');
-  const deliveryNote = (rawDeliveryNote && rawDeliveryNote.trim() && rawDeliveryNote !== 'INITIAL_STOCK')
+  let deliveryNote = (rawDeliveryNote && rawDeliveryNote.trim() && rawDeliveryNote !== 'INITIAL_STOCK')
     ? rawDeliveryNote.trim()
-    : `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
+    : null;
+
+  if (!deliveryNote) {
+    const cleanBrand = brand.name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 3) || 'gen';
+    const dateObj = new Date();
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = String(dateObj.getFullYear()).slice(-2);
+    const dateStr = `${day}${month}${year}`;
+    const prefix = `recieved-brand(${cleanBrand})-date(${dateStr})-`;
+    const existing = await prisma.inventoryTransaction.findMany({
+      where: { deliveryNote: { startsWith: prefix } },
+      select: { deliveryNote: true },
+      distinct: ['deliveryNote']
+    });
+    const nextNum = existing.length + 1;
+    const suffix = String(nextNum).padStart(3, '0');
+    deliveryNote = `${prefix}${suffix}`;
+  }
   const notesStr = formData.get('notes') || 'Auto-received initial stock on product registration';
 
   const fromEntityType = formData.get('fromEntityType') || 'SUPPLIER';

@@ -36,10 +36,15 @@ export default function ReportsClient({ initialProducts, brands }) {
         purchased += qty;
         warehouse += qty;
       } else if (t.transactionType === 'ISSUE') {
-        warehouse -= qty;
-        if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
-        else if (t.toEntityType === 'STAFF') used += qty;
-        else if (t.toEntityType === 'CLIENT') withClient += qty;
+        if (t.fromEntityType === 'STORE') {
+          issued -= qty;
+          if (t.toEntityType === 'STAFF') used += qty;
+        } else {
+          warehouse -= qty;
+          if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
+          else if (t.toEntityType === 'STAFF') used += qty;
+          else if (t.toEntityType === 'CLIENT') withClient += qty;
+        }
       } else if (t.transactionType === 'RETURN') {
         warehouse += qty;
         if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
