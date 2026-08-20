@@ -31,7 +31,7 @@ export default async function ReportsPage() {
 
   // Aggregate ledger quantities grouped by product and transaction parameters at database level
   const aggregates = await prisma.inventoryTransaction.groupBy({
-    by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
+    by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType', 'returnStatus'],
     _sum: {
       quantity: true,
     },
@@ -53,6 +53,7 @@ export default async function ReportsPage() {
       quantity: agg._sum.quantity || 0,
       fromEntityType: agg.fromEntityType,
       toEntityType: agg.toEntityType,
+      returnStatus: agg.returnStatus,
     }));
 
     return {

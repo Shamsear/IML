@@ -20,7 +20,33 @@ export default function ReportsClient({ initialProducts, brands }) {
   }, [searchQuery, selectedBrand, selectedCategory]);
 
   // Compute stock levels for a product from its transactions
-  const getProductStock = (transactions) => {
+  const getProductStock = (rawTransactions) => {
+    const transactions = [...rawTransactions];
+
+    let totalQtyMarkedUsed = 0;
+    transactions.forEach(t => {
+      if (t.transactionType === 'ISSUE' && t.fromEntityType !== 'STORE' && t.returnStatus === 'USED') {
+        totalQtyMarkedUsed += t.quantity || 0;
+      }
+    });
+
+    let totalQtyStoreToStaff = 0;
+    transactions.forEach(t => {
+      if (t.transactionType === 'ISSUE' && t.fromEntityType === 'STORE' && t.toEntityType === 'STAFF') {
+        totalQtyStoreToStaff += t.quantity || 0;
+      }
+    });
+
+    const virtualQty = Math.max(0, totalQtyMarkedUsed - totalQtyStoreToStaff);
+    if (virtualQty > 0) {
+      transactions.push({
+        transactionType: 'ISSUE',
+        fromEntityType: 'STORE',
+        toEntityType: 'STAFF',
+        quantity: virtualQty,
+      });
+    }
+
     let purchased = 0;
     let warehouse = 0;
     let issued = 0;

@@ -257,6 +257,7 @@ export async function getBrandPortalDetails(secretKey) {
               toEntityId: true,
               timestamp: true,
               notes: true,
+              returnStatus: true,
             },
             orderBy: { timestamp: 'desc' }
           }
