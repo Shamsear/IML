@@ -64,10 +64,66 @@ export async function getProducts() {
     aggsMap.get(agg.productId).push(agg);
   });
 
+  const expiryProducts = products.filter(p => !p.isSerialized && p.trackExpiry).map(p => p.id);
+  const expiryTransactions = expiryProducts.length > 0 ? await prisma.inventoryTransaction.findMany({
+    where: {
+      productId: { in: expiryProducts },
+      OR: [
+        { fromEntityType: 'WAREHOUSE' },
+        { toEntityType: 'WAREHOUSE' }
+      ]
+    },
+    select: {
+      productId: true,
+      transactionType: true,
+      quantity: true,
+      expiryDate: true,
+      timestamp: true,
+      fromEntityType: true,
+      toEntityType: true,
+    },
+    orderBy: { timestamp: 'asc' }
+  }) : [];
+
+  const expiryStockMap = {};
+  if (expiryProducts.length > 0) {
+    const now = new Date();
+    expiryProducts.forEach(prodId => {
+      const prodTxs = expiryTransactions.filter(tx => tx.productId === prodId);
+      const inbounds = prodTxs.filter(tx => tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType));
+      const outbounds = prodTxs.filter(tx => tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType));
+
+      let totalOut = outbounds.reduce((sum, tx) => sum + tx.quantity, 0);
+      let availableQty = 0;
+
+      for (const inbound of inbounds) {
+        let remainingInboundQty = inbound.quantity;
+        if (totalOut > 0) {
+          if (totalOut >= remainingInboundQty) {
+            totalOut -= remainingInboundQty;
+            remainingInboundQty = 0;
+          } else {
+            remainingInboundQty -= totalOut;
+            totalOut = 0;
+          }
+        }
+        if (remainingInboundQty > 0) {
+          const isExpired = inbound.expiryDate && new Date(inbound.expiryDate) < now;
+          if (!isExpired) {
+            availableQty += remainingInboundQty;
+          }
+        }
+      }
+      expiryStockMap[prodId] = availableQty;
+    });
+  }
+
   return products.map(product => {
     let warehouseStock = 0;
     if (product.isSerialized) {
       warehouseStock = serialsMap.get(product.id) || 0;
+    } else if (product.trackExpiry) {
+      warehouseStock = expiryStockMap[product.id] || 0;
     } else {
       const productAggs = aggsMap.get(product.id) || [];
       productAggs.forEach(t => {
@@ -102,6 +158,7 @@ export async function getProductsSlim() {
         id: true,
         name: true,
         isSerialized: true,
+        trackExpiry: true,
         category: true,
         imageUrl: true,
         isReturnable: true,
@@ -142,10 +199,66 @@ export async function getProductsSlim() {
     aggsMap.get(agg.productId).push(agg);
   });
 
+  const expiryProducts = products.filter(p => !p.isSerialized && p.trackExpiry).map(p => p.id);
+  const expiryTransactions = expiryProducts.length > 0 ? await prisma.inventoryTransaction.findMany({
+    where: {
+      productId: { in: expiryProducts },
+      OR: [
+        { fromEntityType: 'WAREHOUSE' },
+        { toEntityType: 'WAREHOUSE' }
+      ]
+    },
+    select: {
+      productId: true,
+      transactionType: true,
+      quantity: true,
+      expiryDate: true,
+      timestamp: true,
+      fromEntityType: true,
+      toEntityType: true,
+    },
+    orderBy: { timestamp: 'asc' }
+  }) : [];
+
+  const expiryStockMap = {};
+  if (expiryProducts.length > 0) {
+    const now = new Date();
+    expiryProducts.forEach(prodId => {
+      const prodTxs = expiryTransactions.filter(tx => tx.productId === prodId);
+      const inbounds = prodTxs.filter(tx => tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType));
+      const outbounds = prodTxs.filter(tx => tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType));
+
+      let totalOut = outbounds.reduce((sum, tx) => sum + tx.quantity, 0);
+      let availableQty = 0;
+
+      for (const inbound of inbounds) {
+        let remainingInboundQty = inbound.quantity;
+        if (totalOut > 0) {
+          if (totalOut >= remainingInboundQty) {
+            totalOut -= remainingInboundQty;
+            remainingInboundQty = 0;
+          } else {
+            remainingInboundQty -= totalOut;
+            totalOut = 0;
+          }
+        }
+        if (remainingInboundQty > 0) {
+          const isExpired = inbound.expiryDate && new Date(inbound.expiryDate) < now;
+          if (!isExpired) {
+            availableQty += remainingInboundQty;
+          }
+        }
+      }
+      expiryStockMap[prodId] = availableQty;
+    });
+  }
+
   return products.map(product => {
     let warehouseStock = 0;
     if (product.isSerialized) {
       warehouseStock = serialsMap.get(product.id) || 0;
+    } else if (product.trackExpiry) {
+      warehouseStock = expiryStockMap[product.id] || 0;
     } else {
       const productAggs = aggsMap.get(product.id) || [];
       productAggs.forEach(t => {
@@ -605,28 +718,107 @@ export async function getAvailableBarcodes(productId, locationType, locationId =
 export async function getProductStockAtLocation(productId, locationType, locationId = null) {
   await checkAuth();
   
-  const [inboundSum, outboundSum] = await Promise.all([
-    prisma.inventoryTransaction.aggregate({
-      where: {
-        productId,
-        toEntityType: locationType,
-        ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
-      },
-      _sum: { quantity: true },
-    }),
-    prisma.inventoryTransaction.aggregate({
-      where: {
-        productId,
-        fromEntityType: locationType,
-        ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
-      },
-      _sum: { quantity: true },
-    })
-  ]);
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { isSerialized: true, trackExpiry: true }
+  });
 
-  const inQty = inboundSum._sum.quantity || 0;
-  const outQty = outboundSum._sum.quantity || 0;
-  return inQty - outQty;
+  if (!product) return 0;
+
+  if (product.isSerialized) {
+    return prisma.productSerialNumber.count({
+      where: {
+        productId,
+        currentLocationType: locationType,
+        currentLocationId: locationId ? locationId : null,
+        status: 'AVAILABLE'
+      }
+    });
+  }
+
+  if (!product.trackExpiry) {
+    const [inboundSum, outboundSum] = await Promise.all([
+      prisma.inventoryTransaction.aggregate({
+        where: {
+          productId,
+          toEntityType: locationType,
+          ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
+          transactionType: { in: ['RECEIVE', 'RETURN', 'REBRAND_IN'] }
+        },
+        _sum: { quantity: true },
+      }),
+      prisma.inventoryTransaction.aggregate({
+        where: {
+          productId,
+          fromEntityType: locationType,
+          ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
+          transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] }
+        },
+        _sum: { quantity: true },
+      })
+    ]);
+
+    const inQty = inboundSum._sum.quantity || 0;
+    const outQty = outboundSum._sum.quantity || 0;
+    return Math.max(0, inQty - outQty);
+  }
+
+  // Calculate using FIFO to deduct expired items
+  const inbounds = await prisma.inventoryTransaction.findMany({
+    where: {
+      productId,
+      toEntityType: locationType,
+      ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
+      transactionType: { in: ['RECEIVE', 'RETURN', 'REBRAND_IN'] }
+    },
+    select: {
+      quantity: true,
+      expiryDate: true,
+      timestamp: true
+    },
+    orderBy: { timestamp: 'asc' }
+  });
+
+  const outbounds = await prisma.inventoryTransaction.findMany({
+    where: {
+      productId,
+      fromEntityType: locationType,
+      ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
+      transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] }
+    },
+    select: {
+      quantity: true,
+      timestamp: true
+    },
+    orderBy: { timestamp: 'asc' }
+  });
+
+  let totalOut = outbounds.reduce((sum, tx) => sum + tx.quantity, 0);
+  let availableQty = 0;
+  const now = new Date();
+
+  for (const inbound of inbounds) {
+    let remainingInboundQty = inbound.quantity;
+
+    if (totalOut > 0) {
+      if (totalOut >= remainingInboundQty) {
+        totalOut -= remainingInboundQty;
+        remainingInboundQty = 0;
+      } else {
+        remainingInboundQty -= totalOut;
+        totalOut = 0;
+      }
+    }
+
+    if (remainingInboundQty > 0) {
+      const isExpired = inbound.expiryDate && new Date(inbound.expiryDate) < now;
+      if (!isExpired) {
+        availableQty += remainingInboundQty;
+      }
+    }
+  }
+
+  return availableQty;
 }
 
 // Find a product and its location availability details by serial barcode
