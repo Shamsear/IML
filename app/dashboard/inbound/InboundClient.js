@@ -129,16 +129,11 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     const activeFilter = brandFilter || 'ALL';
     const defaultBrand = (activeFilter !== 'ALL') ? activeFilter : (brands[0]?.id || '');
     
-    // Find first product matching the brand filter
-    const firstMatchedProduct = activeFilter === 'ALL' 
-      ? products[0] 
-      : products.find(p => p.brand?.id === activeFilter) || products[0];
-
     return {
       id: `temp-${Date.now()}-${index}`,
       isNewProduct: false,
-      productId: firstMatchedProduct?.id || '',
-      quantity: firstMatchedProduct?.isSerialized ? 0 : 1,
+      productId: '',
+      quantity: 1,
       barcodesInput: '',
       notes: '',
       rangeStart: '',

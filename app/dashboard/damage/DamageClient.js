@@ -122,14 +122,12 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
             };
           });
         } else {
-          const defaultId = products[0]?.id || '';
-          const prod = products.find(p => p.id === defaultId);
           initialItemsList = [{
-            productId: defaultId,
-            quantity: prod?.isSerialized ? 0 : 1,
+            productId: '',
+            quantity: 1,
             selectedBarcodes: [],
             availableBarcodes: [],
-            currentStock: prod?.warehouseStock || 0,
+            currentStock: 0,
             notes: '',
             availableBatches: [],
             selectedBatches: []
@@ -213,44 +211,14 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   }, [fromType, fromId]);
 
   const handleAddRow = async () => {
-    const defaultId = products[0]?.id || '';
-    const prod = products.find(p => p.id === defaultId);
-    let available = [];
-    let currentStock = prod?.warehouseStock || 0;
-    let batches = [];
-
-    if (prod) {
-      if (prod.isSerialized) {
-        try {
-          available = await getAvailableBarcodes(defaultId, fromType, fromId || null);
-          currentStock = available.length;
-        } catch (e) {
-          console.error(e);
-        }
-      } else {
-        try {
-          if (fromType === 'WAREHOUSE') {
-            currentStock = prod.warehouseStock;
-          } else {
-            currentStock = await getProductStockAtLocation(defaultId, fromType, fromId || null);
-          }
-          if (prod.trackExpiry) {
-            batches = await getProductBatchesAtLocation(defaultId, fromType, fromId || null);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    }
-    
     setItems(prev => [...prev, { 
-      productId: defaultId, 
-      quantity: prod?.isSerialized ? 0 : 1, 
+      productId: '', 
+      quantity: 1, 
       selectedBarcodes: [], 
-      availableBarcodes: available || [], 
-      currentStock,
+      availableBarcodes: [], 
+      currentStock: 0,
       notes: '',
-      availableBatches: batches || [],
+      availableBatches: [],
       selectedBatches: []
     }]);
   };

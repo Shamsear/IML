@@ -158,15 +158,11 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   // Helper to construct empty dispatch item configuration
   const createEmptyOutboundItem = (index = 0) => {
     const activeFilter = globalBrand || 'ALL';
-    const firstMatchedProduct = activeFilter === 'ALL'
-      ? products[0]
-      : products.find(p => p.brand?.id === activeFilter) || products[0];
 
-    const isUniform = firstMatchedProduct?.category?.toUpperCase() === 'UNIFORM';
     return {
       id: `temp-${Date.now()}-${index}`,
-      productId: firstMatchedProduct?.id || '',
-      quantity: firstMatchedProduct?.isSerialized ? 0 : 1,
+      productId: '',
+      quantity: 1,
       selectedBarcodes: [],
       availableBarcodes: [],
       notes: '',
@@ -176,12 +172,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       isExpanded: true,
       error: '',
       brandFilter: activeFilter,
-      promoterAssignment: isUniform ? {
-        isNewPromoter: true,
-        promoterName: '',
-        promoterPhone: '',
-        existingStaffId: '',
-      } : null,
+      promoterAssignment: null,
       availableBatches: [],
       selectedBatches: []
     };
