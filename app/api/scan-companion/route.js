@@ -57,20 +57,25 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
   }
 
-  // Atomically retrieve and clear the barcodes queue in a single write operation to prevent polling race conditions
-  const result = await prisma.$queryRaw`
-    UPDATE "ScanSession"
-    SET barcodes = ARRAY[]::text[]
-    WHERE id = ${sessionId}
-    RETURNING barcodes
-  `;
+  try {
+    const session = await prisma.scanSession.findUnique({
+      where: { id: sessionId },
+      select: { barcodes: true }
+    });
 
-  if (!result || result.length === 0) {
-    return NextResponse.json({ error: 'Session not found or expired' }, { status: 404 });
+    if (!session) {
+      return NextResponse.json({ error: 'Session not found or expired' }, { status: 404 });
+    }
+
+    await prisma.scanSession.update({
+      where: { id: sessionId },
+      data: { barcodes: [] }
+    });
+
+    return NextResponse.json({ barcodes: session.barcodes || [] });
+  } catch (e) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
-
-  const barcodes = result[0].barcodes || [];
-  return NextResponse.json({ barcodes });
 }
 
 export async function PUT(request) {
