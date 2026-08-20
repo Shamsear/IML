@@ -824,6 +824,8 @@ export async function createBulkProducts(formData) {
       }
     }
     return createdProducts;
+  }, {
+    timeout: 20000 // 20 seconds timeout limit for large batch transactions
   });
 
   revalidatePath('/dashboard/products');
