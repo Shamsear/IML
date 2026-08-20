@@ -268,7 +268,7 @@ export default function TransactionsClient({
                         <td className="py-3.5 pl-4 whitespace-nowrap text-xs text-text-secondary">
                           <div className="flex items-center gap-1.5">
                             <Calendar size={13} className="text-text-muted" />
-                            <span>{new Date(tx.timestamp).toLocaleString()}</span>
+                            <span>{new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai' })}</span>
                           </div>
                         </td>
                       </tr>

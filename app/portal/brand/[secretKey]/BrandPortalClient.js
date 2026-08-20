@@ -182,7 +182,8 @@ export default function BrandPortalClient({ brand }) {
       const date = new Date(t.timestamp);
       let key = date.toISOString().split('T')[0];
       if (mounted) {
-        key = date.toLocaleDateString(undefined, {
+        key = date.toLocaleDateString('en-AE', { 
+          timeZone: 'Asia/Dubai',
           weekday: 'long',
           year: 'numeric',
           month: 'long',
@@ -581,7 +582,7 @@ export default function BrandPortalClient({ brand }) {
                             
                             <div className="flex justify-between items-center text-[10px] text-text-secondary">
                               <span className="capitalize">{t.transactionType.toLowerCase()}</span>
-                              <span>{mounted ? new Date(t.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                              <span>{mounted ? new Date(t.timestamp).toLocaleTimeString('en-AE', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit' }) : ''}</span>
                             </div>
 
                             {/* Source/Destination Meta */}

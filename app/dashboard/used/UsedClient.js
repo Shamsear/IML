@@ -168,7 +168,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                       <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/30'}`}>
                         <td className="py-3 px-5"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
                         <td className="py-3 px-5 whitespace-nowrap">
-                          <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                          <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
                           <div className="font-mono text-xs text-text-muted mt-0.5">{tx.deliveryNote || 'No DN'}</div>
                         </td>
                         <td className="py-3 px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
@@ -218,7 +218,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                             <span className="text-[10px] bg-secondary/15 text-secondary border border-secondary/10 px-2 py-0.5 rounded uppercase tracking-wider font-bold">{group.storeName}</span>
                           </div>
                           <p className="text-xs text-text-secondary mt-0.5">
-                            {new Date(group.timestamp).toLocaleDateString('en-AE', { day: 'numeric', month: 'short', year: 'numeric' })} • {group.items.length} product(s)
+                            {new Date(group.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' })} • {group.items.length} product(s)
                           </p>
                         </div>
                       </div>
@@ -292,7 +292,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
                         <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
-                          {new Date(tx.timestamp).toLocaleString('en-AE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="py-3 px-5 font-semibold text-text-primary whitespace-nowrap">
                           <div className="flex flex-col">

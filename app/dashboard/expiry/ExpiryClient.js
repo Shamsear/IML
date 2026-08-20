@@ -198,9 +198,9 @@ export default function ExpiryClient({ initialBatches }) {
               </thead>
               <tbody className="divide-y divide-border text-text-primary">
                 {filteredBatches.map(batch => {
-                  const rcvDateStr = new Date(batch.receivedDate).toLocaleDateString('en-AE', { day: 'numeric', month: 'short', year: 'numeric' });
-                  const mfgDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString('en-AE', { day: 'numeric', month: 'short', year: 'numeric' }) : '---';
-                  const expDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString('en-AE', { day: 'numeric', month: 'short', year: 'numeric' }) : '---';
+                  const rcvDateStr = new Date(batch.receivedDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' });
+                  const mfgDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }) : '---';
+                  const expDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }) : '---';
 
                   let statusBadge = (
                     <span className="badge text-[10px] bg-success/15 text-success border border-success/10">

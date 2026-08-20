@@ -172,7 +172,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
                       {filteredTransactions.map((tx) => {
-                        const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', {
+                        const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai',
                           day: 'numeric', month: 'short', year: 'numeric',
                           hour: '2-digit', minute: '2-digit'
                         });
@@ -300,7 +300,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                             <span className="badge text-[10px] bg-secondary/15 text-secondary border border-secondary/10 px-2 py-0.5 rounded uppercase tracking-wider">{group.storeName}</span>
                           </div>
                           <p className="text-xs text-text-secondary mt-1">
-                            {new Date(group.timestamp).toLocaleDateString('en-AE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} • {group.items.length} product(s)
+                            {new Date(group.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} • {group.items.length} product(s)
                           </p>
                         </div>
                       </div>

@@ -44,22 +44,17 @@ function parseTransactionDate(dateStr) {
   if (!dateStr) return undefined;
   if (typeof dateStr !== 'string') return new Date(dateStr);
   
+  if (dateStr.includes('T') && !dateStr.includes('Z') && !dateStr.match(/[+-]\d{2}:\d{2}$/)) {
+    // UAE time is UTC+4
+    const hasSeconds = (dateStr.match(/:/g) || []).length > 1;
+    return new Date(dateStr + (hasSeconds ? '' : ':00') + '+04:00');
+  }
+  
   if (dateStr.includes('T') || dateStr.includes(':')) {
     return new Date(dateStr);
   }
   
-  const parts = dateStr.split('-');
-  if (parts.length === 3) {
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10);
-    const day = parseInt(parts[2], 10);
-    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-      const d = new Date();
-      d.setFullYear(year, month - 1, day);
-      return d;
-    }
-  }
-  return new Date(dateStr);
+  return new Date(dateStr + 'T12:00:00+04:00');
 }
 
 export async function generateCustomRef(tx, type, brandName, customDate = null) {

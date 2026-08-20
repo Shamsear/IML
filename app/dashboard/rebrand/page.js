@@ -95,7 +95,7 @@ export default async function RebrandPage({ searchParams }) {
               </thead>
               <tbody className="divide-y divide-border text-text-primary">
                 {transactions.map((tx) => {
-                  const dateStr = tx.timestamp.toLocaleDateString('en-AE', {
+                  const dateStr = tx.timestamp.toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai',
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric',

@@ -549,7 +549,7 @@ export default function StaffClient({ initialStaff, stores }) {
                               </div>
                             </td>
                             <td className="py-3.5 px-5 text-xs text-text-secondary font-mono whitespace-nowrap">
-                              {new Date(alloc.givenDate).toLocaleString('en-AE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              {new Date(alloc.givenDate).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </td>
                             <td className="py-3.5 px-5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1.5 justify-end">
@@ -913,7 +913,7 @@ export default function StaffClient({ initialStaff, stores }) {
                           <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-2">
                             <span className="font-mono text-text-secondary font-semibold">DN: {alloc.id}</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-text-muted">{new Date(alloc.givenDate).toLocaleDateString()}</span>
+                              <span className="text-[10px] text-text-muted">{new Date(alloc.givenDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' })}</span>
                               {isFullyReturned ? (
                                 <span className="px-1.5 py-0.5 bg-success/10 text-success text-[9px] font-extrabold rounded-full uppercase">Closed</span>
                               ) : (

@@ -36,11 +36,13 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   const [successMsg, setSuccessMsg] = useState('');
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
   const [transactionDate, setTransactionDate] = useState(() => {
-    const today = new Date();
+    const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Dubai" }));
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const hours = String(today.getHours()).padStart(2, '0');
+    const minutes = String(today.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   });
 
   // Brand filter for product selection
@@ -206,7 +208,17 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
-        setTransactionDate(`${year}-${month}-${day}`);
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        setTransactionDate(`${year}-${month}-${day}T${hours}:${minutes}`);
+      } else {
+        const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Dubai" }));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        setTransactionDate(`${year}-${month}-${day}T${hours}:${minutes}`);
       }
     }
   }, [initialItems]);
@@ -880,7 +892,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Transaction Date</label>
             <input
-              type="date"
+              type="datetime-local"
               className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
               value={transactionDate}
               onChange={(e) => setTransactionDate(e.target.value)}
