@@ -27,9 +27,29 @@ async function checkAuth() {
 
 export async function getBrands() {
   await checkAuth();
-  return prisma.brand.findMany({
+  const brands = await prisma.brand.findMany({
     orderBy: { createdAt: 'desc' },
   });
+
+  let needsRevalidate = false;
+  for (const brand of brands) {
+    const payload = verifyBrandJWT(brand.secretKey);
+    if (!payload || payload.brandId !== brand.id) {
+      const newSecretKey = generateBrandJWT(brand.id, brand.name);
+      await prisma.brand.update({
+        where: { id: brand.id },
+        data: { secretKey: newSecretKey },
+      });
+      brand.secretKey = newSecretKey;
+      needsRevalidate = true;
+    }
+  }
+
+  if (needsRevalidate) {
+    revalidatePath('/dashboard/brands');
+  }
+
+  return brands;
 }
 
 export async function createBrand(formData) {
@@ -154,6 +174,18 @@ export async function getBrandWithDetails(id) {
       }
     }
   });
+
+  if (brand) {
+    const payload = verifyBrandJWT(brand.secretKey);
+    if (!payload || payload.brandId !== brand.id) {
+      const newSecretKey = generateBrandJWT(brand.id, brand.name);
+      await prisma.brand.update({
+        where: { id: brand.id },
+        data: { secretKey: newSecretKey },
+      });
+      brand.secretKey = newSecretKey;
+    }
+  }
 
   return brand;
 }
