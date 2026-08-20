@@ -287,6 +287,127 @@ export async function processRebrand(data) {
     await tx.inventoryTransaction.create({
       data: {
         productId: oldProductId,
+        transactionType: 'REBRAND_OUT',
+        fromEntityType: 'WAREHOUSE',
+        quantity,
+        notes: `Rebrand output -> ${newProduct.name}. ${notes || ''}`,
+      },
+    });
+
+    // 2. Log addition of new product (to Warehouse)
+    await tx.inventoryTransaction.create({
+      data: {
+        productId: newProductId,
+        transactionType: 'REBRAND_IN',
+        toEntityType: 'WAREHOUSE',
+        quantity,
+        notes: `Rebrand input <- ${oldProduct.name}. ${notes || ''}`,
+      },
+    });
+
+    // 3. Update serials if serialized in bulk (3 writes total)
+    if (oldProduct.isSerialized && barcodes.length > 0) {
+      const oldBarcodes = barcodes.map(b => b.oldBarcode);
+      const oldSerials = await tx.productSerialNumber.findMany({
+        where: { barcode: { in: oldBarcodes } }
+      });
+
+      if (oldSerials.length !== barcodes.length) {
+        throw new Error('Some source barcodes could not be found.');
+      }
+
+      // Mark old serials as REPLACED in bulk
+      await tx.productSerialNumber.updateMany({
+        where: { id: { in: oldSerials.map(s => s.id) } },
+        data: {
+          status: 'REPLACED',
+          currentLocationType: null,
+          currentLocationId: null,
+        }
+      });
+
+      // Create new serial records linking back to old serials in bulk
+      const newSerialsData = barcodes.map(item => {
+        const matchingOld = oldSerials.find(s => s.barcode.toLowerCase() === item.oldBarcode.toLowerCase());
+        return {
+          productId: newProductId,
+          barcode: item.newBarcode.trim(),
+          secondaryBarcode: item.newSecondary ? item.newSecondary.trim() : null,
+          currentLocationType: 'WAREHOUSE',
+          status: 'AVAILABLE',
+          replacesId: matchingOld.id
+        };
+      });
+
+      await tx.productSerialNumber.createMany({
+        data: newSerialsData,
+        skipDuplicates: true
+      });
+    }
+  }, { timeout: 20000 });
+
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/transactions');
+}
+
+// 5. Query active stock of a store
+export async function getStoreInventory(storeId) {
+  await checkAuth();
+
+  // 1. Fetch all active serialized items at this store, including product & brand
+  const activeSerials = await prisma.productSerialNumber.findMany({
+    where: {
+      currentLocationType: 'STORE',
+      currentLocationId: storeId,
+      status: 'AVAILABLE',
+    },
+    select: {
+      barcode: true,
+      secondaryBarcode: true,
+      status: true,
+      productId: true,
+      product: {
+        select: {
+          name: true,
+          isSerialized: true,
+          brand: { select: { name: true } }
+        }
+      }
+    },
+    orderBy: { barcode: 'asc' }
+  });
+
+  // 2. Fetch all bulk product transactions for this store grouped and summed at database level
+  const [toTransactions, fromTransactions] = await Promise.all([
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId'],
+      where: {
+        toEntityType: 'STORE',
+        toEntityId: storeId,
+        product: { isSerialized: false }
+      },
+      _sum: { quantity: true }
+    }),
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId'],
+      where: {
+        fromEntityType: 'STORE',
+        fromEntityId: storeId,
+        product: { isSerialized: false }
+      },
+      _sum: { quantity: true }
+    })
+  ]);
+
+  const netQuantities = new Map();
+  toTransactions.forEach(t => {
+    netQuantities.set(t.productId, (t._sum.quantity || 0));
+  });
+  fromTransactions.forEach(t => {
+    const current = netQuantities.get(t.productId) || 0;
+    netQuantities.set(t.productId, current - (t._sum.quantity || 0));
+  });
+
   const activeBulkProductIds = [];
   for (const [prodId, qty] of netQuantities.entries()) {
     if (qty > 0) {
@@ -539,7 +660,7 @@ export async function createBulkIssueTransactions(payload) {
     }
 
     return createdTxs;
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/transactions');
