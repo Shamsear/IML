@@ -873,7 +873,7 @@ export async function createBulkReceiveTransactions(formData) {
     }
 
     return createdTxs;
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/transactions');
@@ -1627,7 +1627,7 @@ export async function processOutboundReturns(returnsPayload) {
         throw new Error(`Unknown action type: ${actionType}`);
       }
     }
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard/outbound');
   revalidatePath('/dashboard/returns');
@@ -1771,7 +1771,7 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
       createdTxs.push(invTx);
     }
     return createdTxs;
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard/outbound');
   revalidatePath('/dashboard/transactions');
@@ -1925,7 +1925,7 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
       createdTxs.push(invTx);
     }
     return createdTxs;
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard/inbound');
   revalidatePath('/dashboard/transactions');
