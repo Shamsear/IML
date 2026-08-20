@@ -37,41 +37,34 @@ export default async function ExpiryPage() {
     },
   });
 
-  // For each batch (RECEIVE transaction), calculate how much has been outbounded FROM that specific batch
-  // We'll use deliveryNote + productId to track batch-level movements
+  // For each batch (RECEIVE transaction), calculate remaining stock in warehouse
   const batches = await Promise.all(
     transactions.map(async (tx) => {
-      // Calculate total outbound from this specific batch (matching deliveryNote and product)
-      const outboundFromBatch = await prisma.inventoryTransaction.aggregate({
-        where: {
-          deliveryNote: tx.deliveryNote,
-          productId: tx.productId,
-          fromEntityType: 'WAREHOUSE',
-          transactionType: { in: ['ISSUE', 'OUTBOUND'] },
-        },
-        _sum: {
-          quantity: true,
-        },
-      });
+      // For batch-level tracking, we need to track by the specific RECEIVE transaction
+      // But outbound transactions don't necessarily reference the original receive DN
+      // So we calculate at product level for the warehouse
+      
+      // Get total warehouse stock for this product (all batches combined)
+      const [inboundTotal, outboundTotal] = await Promise.all([
+        prisma.inventoryTransaction.aggregate({
+          where: {
+            productId: tx.productId,
+            toEntityType: 'WAREHOUSE',
+            transactionType: { in: ['RECEIVE', 'RETURN'] },
+          },
+          _sum: { quantity: true },
+        }),
+        prisma.inventoryTransaction.aggregate({
+          where: {
+            productId: tx.productId,
+            fromEntityType: 'WAREHOUSE',
+            transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+          },
+          _sum: { quantity: true },
+        }),
+      ]);
 
-      // Calculate returns back to warehouse for this batch
-      const returnsToWarehouse = await prisma.inventoryTransaction.aggregate({
-        where: {
-          deliveryNote: tx.deliveryNote,
-          productId: tx.productId,
-          toEntityType: 'WAREHOUSE',
-          transactionType: 'RETURN',
-        },
-        _sum: {
-          quantity: true,
-        },
-      });
-
-      const receivedQty = tx.quantity;
-      const outboundQty = outboundFromBatch._sum.quantity || 0;
-      const returnedQty = returnsToWarehouse._sum.quantity || 0;
-      // Current warehouse stock = received - outbound + returned
-      const remainingBatchStock = receivedQty - outboundQty + returnedQty;
+      const totalWarehouseStock = (inboundTotal._sum.quantity || 0) - (outboundTotal._sum.quantity || 0);
 
       return {
         id: tx.id,
@@ -83,10 +76,8 @@ export default async function ExpiryPage() {
         isSerialized: tx.product.isSerialized,
         deliveryNote: tx.deliveryNote || 'N/A',
         supplier: tx.fromEntityId || 'Unknown Supplier',
-        receivedQty: receivedQty,
-        outboundedQty: outboundQty,
-        returnedQty: returnedQty,
-        remainingBatchStock: remainingBatchStock,
+        receivedQty: tx.quantity,
+        remainingBatchStock: totalWarehouseStock, // Show total product warehouse stock
         receivedDate: tx.timestamp,
         manufactureDate: tx.manufactureDate,
         expiryDate: tx.expiryDate,
@@ -95,9 +86,25 @@ export default async function ExpiryPage() {
     })
   );
 
-  // Filter out batches with no stock currently in warehouse (remaining stock <= 0)
-  // This shows only items currently in the warehouse
-  const activeBatches = batches.filter((batch) => batch.remainingBatchStock > 0);
+  // Filter: only show batches where the product still has stock in warehouse
+  // AND remove duplicate products (keep earliest expiry date per product)
+  const productMap = new Map();
+  batches
+    .filter(batch => batch.remainingBatchStock > 0)
+    .sort((a, b) => {
+      // Sort by expiry date (earliest first)
+      if (!a.expiryDate) return 1;
+      if (!b.expiryDate) return -1;
+      return new Date(a.expiryDate) - new Date(b.expiryDate);
+    })
+    .forEach(batch => {
+      // Keep only the earliest expiry batch per product
+      if (!productMap.has(batch.productId)) {
+        productMap.set(batch.productId, batch);
+      }
+    });
+
+  const activeBatches = Array.from(productMap.values());
 
   return <ExpiryClient initialBatches={activeBatches} />;
 }
