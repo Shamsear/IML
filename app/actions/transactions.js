@@ -710,11 +710,12 @@ export async function createBulkIssueTransactions(payload) {
             quantity,
             deliveryNote,
             notes: (() => {
-              const itemNote = notes || `Bulk issue dispatch`;
-              if (idx === 0 && globalNotes) {
-                return `${globalNotes.trim()} | ${itemNote.trim()}`;
+              const itemNote = notes?.trim() || '';
+              const gNotes = (idx === 0 && globalNotes) ? globalNotes.trim() : '';
+              if (gNotes && itemNote) {
+                return `${gNotes} | ${itemNote}`;
               }
-              return itemNote;
+              return gNotes || itemNote || null;
             })(),
             deliveryStatus: 'Delivered',
             deliverySupervisorId: deliverySupervisorId || null,
@@ -1059,11 +1060,12 @@ export async function createBulkReceiveTransactions(formData) {
             quantity,
             deliveryNote,
             notes: (() => {
-              const itemNote = notes || `Bulk receive from ${fromEntityType}`;
-              if (idx === 0 && globalNotes) {
-                return `${globalNotes.trim()} | ${itemNote.trim()}`;
+              const itemNote = notes?.trim() || '';
+              const gNotes = (idx === 0 && globalNotes) ? globalNotes.trim() : '';
+              if (gNotes && itemNote) {
+                return `${gNotes} | ${itemNote}`;
               }
-              return itemNote;
+              return gNotes || itemNote || null;
             })(),
             manufactureDate: manufactureDate ? new Date(manufactureDate) : null,
             expiryDate: expiryDate ? new Date(expiryDate) : null,
@@ -1193,7 +1195,7 @@ export async function createBulkDamageTransactions(payload) {
           toEntityType: null,
           toEntityId: null,
           quantity,
-          notes: notes || `Bulk ${resolvedType.toLowerCase()} logged`,
+          notes: notes ? notes.trim() : null,
           deliveryStatus: 'Delivered',
           deliveryNote,
         },
@@ -2042,11 +2044,12 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
           toEntityId: toEntityId || null,
           quantity,
           notes: (() => {
-            const itemNote = notes || `Bulk issue dispatch`;
-            if (idx === 0 && globalNotes) {
-              return `${globalNotes.trim()} | ${itemNote.trim()}`;
+            const itemNote = notes?.trim() || '';
+            const gNotes = (idx === 0 && globalNotes) ? globalNotes.trim() : '';
+            if (gNotes && itemNote) {
+              return `${gNotes} | ${itemNote}`;
             }
-            return itemNote;
+            return gNotes || itemNote || null;
           })(),
           deliveryNote,
           deliverySupervisorId: deliverySupervisorId || null,
