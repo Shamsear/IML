@@ -335,9 +335,28 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
       {/* Header */}
       <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-border">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/brands" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
+          <Link href="/dashboard/brands" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors flex-shrink-0">
             <ArrowLeft size={16} />
           </Link>
+          
+          {brand.imageUrl ? (
+            <img 
+              src={getOptimizedImageUrl(brand.imageUrl, 120, 120)} 
+              alt={brand.name} 
+              className="w-12 h-12 rounded-xl object-contain bg-white p-1 border border-border flex-shrink-0 cursor-pointer hover:border-primary transition-all shadow-sm"
+              onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
+              onError={(e) => {
+                if (e.target.src !== brand.imageUrl) {
+                  e.target.src = brand.imageUrl;
+                }
+              }}
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-display font-extrabold text-lg flex-shrink-0 border border-primary/20">
+              {brand.name.substring(0, 2).toUpperCase()}
+            </div>
+          )}
+
           <div>
             <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
               {brand.name} Control Panel

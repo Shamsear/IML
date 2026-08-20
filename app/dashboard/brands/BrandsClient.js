@@ -514,12 +514,12 @@ export default function BrandsClient({ initialBrands }) {
               {filteredBrands.map((brand) => (
                 <div key={brand.id} className="bg-surface border border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col aspect-square group relative">
                   {/* Brand Image/Logo Container - takes up most of the card */}
-                  <div className="flex-1 min-h-0 bg-white flex items-center justify-center p-6 relative">
+                  <div className="flex-1 min-h-0 bg-white flex items-center justify-center p-0 relative overflow-hidden">
                     {brand.imageUrl ? (
                       <img 
                         src={getOptimizedImageUrl(brand.imageUrl, 400, 400)} 
                         alt={brand.name} 
-                        className="w-full h-full object-contain filter group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover filter group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                       />
                     ) : (
