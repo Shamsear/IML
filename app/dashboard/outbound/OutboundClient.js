@@ -577,6 +577,16 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       updateItemField(idx, 'error', 'Quantity must be greater than 0');
       return;
     }
+    if (!prod?.isSerialized) {
+      const qty = parseInt(item.quantity, 10);
+      const originalItem = (initialItems && editMode) ? initialItems.find(x => x.productId === item.productId) : null;
+      const originalQty = originalItem ? originalItem.quantity : 0;
+      const stock = (prod?.warehouseStock || 0) + originalQty;
+      if (qty > stock) {
+        updateItemField(idx, 'error', `Insufficient stock for product "${prod.name}". Current stock at WAREHOUSE is ${stock}, requested ${qty}.`);
+        return;
+      }
+    }
     if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
       updateItemField(idx, 'error', 'Please select at least one barcode');
       return;
@@ -625,6 +635,18 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         handleExpandItem(i);
         setLoading(false);
         return;
+      }
+      if (!prod?.isSerialized) {
+        const qty = parseInt(item.quantity, 10);
+        const originalItem = (initialItems && editMode) ? initialItems.find(x => x.productId === item.productId) : null;
+        const originalQty = originalItem ? originalItem.quantity : 0;
+        const stock = (prod?.warehouseStock || 0) + originalQty;
+        if (qty > stock) {
+          updateItemField(i, 'error', `Insufficient stock for product "${prod.name}". Current stock at WAREHOUSE is ${stock}, requested ${qty}.`);
+          handleExpandItem(i);
+          setLoading(false);
+          return;
+        }
       }
       if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
         updateItemField(i, 'error', `Please select at least one barcode for ${prod.name}`);
