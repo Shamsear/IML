@@ -319,6 +319,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         const matched = products.find(p => p.itemCode?.toLowerCase() === cleanCode.toLowerCase());
         if (matched) {
           added = true;
+          setTimeout(() => setActiveScanTarget(null), 0);
           return prev.map((item, i) => i === itemIdx ? { 
             ...item, 
             productId: matched.id,
@@ -343,11 +344,13 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
       if (field === 'rangeStart') {
         added = true;
+        setTimeout(() => setActiveScanTarget(null), 0);
         return prev.map((item, i) => i === itemIdx ? { ...item, rangeStart: cleanCode } : item);
       }
 
       if (field === 'rangeEnd') {
         added = true;
+        setTimeout(() => setActiveScanTarget(null), 0);
         return prev.map((item, i) => i === itemIdx ? { ...item, rangeEnd: cleanCode } : item);
       }
 
@@ -442,6 +445,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
               if (!isBulkScanRef.current || activeScanTarget?.field === 'productId' || activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
                 setIsCameraOpen(false);
+                setActiveScanTarget(null);
               }
             },
             (err) => {}
@@ -527,6 +531,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                   playBeep();
                   if (activeScanTarget?.field === 'productId' || activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
                     setIsMobileModalOpen(false);
+                    setActiveScanTarget(null);
                   }
                 }
               });
@@ -1167,37 +1172,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                       /* EXISTING PRODUCT dropdown */
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5 sm:col-span-2">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold text-text-secondary">Product to Receive</label>
-                            <div className="flex items-center gap-3">
-                              <div className="has-tooltip">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveScanTarget({ itemIdx: idx, field: 'productId' });
-                                    handleOpenMobileScanner();
-                                  }}
-                                  className="inline-flex items-center gap-0.5 text-[10px] text-text-secondary hover:text-text-primary font-semibold cursor-pointer"
-                                >
-                                  <Smartphone size={10} /> <span>Sync</span>
-                                </button>
-                                <span className="tooltip-box">Sync catalog product via companion</span>
-                              </div>
-                              <div className="has-tooltip">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveScanTarget({ itemIdx: idx, field: 'productId' });
-                                    setIsCameraOpen(true);
-                                  }}
-                                  className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline font-bold cursor-pointer"
-                                >
-                                  <Camera size={10} /> <span>Scan SKU</span>
-                                </button>
-                                <span className="tooltip-box">Scan SKU barcode with camera</span>
-                              </div>
-                            </div>
-                          </div>
+                          <label className="text-xs font-semibold text-text-secondary">Product to Receive</label>
                           {/* Per-item brand override pills */}
                           <div className="flex flex-wrap gap-1.5 mt-1">
                             <button
@@ -1901,7 +1876,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                   <button 
                     type="button" 
                     className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
-                    onClick={() => setIsCameraOpen(false)}
+                    onClick={() => {
+                      setIsCameraOpen(false);
+                      setActiveScanTarget(null);
+                    }}
                   >
                     <X size={16} />
                   </button>
@@ -2024,7 +2002,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
               <button 
                 type="button" 
                 className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
-                onClick={() => setIsMobileModalOpen(false)}
+                onClick={() => {
+                  setIsMobileModalOpen(false);
+                  setActiveScanTarget(null);
+                }}
               >
                 <X size={16} />
               </button>

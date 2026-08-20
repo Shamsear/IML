@@ -356,6 +356,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
       if (field === 'rangeStart') {
         added = true;
+        setTimeout(() => setActiveScanTarget(null), 0);
         const updatedInbounds = targetItem.inbounds.map((inb, j) => {
           if (j !== inboundIdx) return inb;
           return { ...inb, rangeStart: cleanCode };
@@ -363,6 +364,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
         return prev.map((item, i) => i === itemIdx ? { ...item, inbounds: updatedInbounds } : item);
       } else if (field === 'rangeEnd') {
         added = true;
+        setTimeout(() => setActiveScanTarget(null), 0);
         const updatedInbounds = targetItem.inbounds.map((inb, j) => {
           if (j !== inboundIdx) return inb;
           return { ...inb, rangeEnd: cleanCode };
@@ -520,6 +522,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
               if (!isBulkScanRef.current || activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
                 setIsCameraOpen(false);
+                setActiveScanTarget(null);
               }
             },
             (err) => {}
@@ -603,6 +606,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                   playBeep();
                   if (activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
                     setIsMobileModalOpen(false);
+                    setActiveScanTarget(null);
                   }
                 }
               });
@@ -1709,7 +1713,10 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                 <button 
                   type="button" 
                   className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
-                  onClick={() => setIsCameraOpen(false)}
+                  onClick={() => {
+                    setIsCameraOpen(false);
+                    setActiveScanTarget(null);
+                  }}
                 >
                   <X size={16} />
                 </button>
@@ -1773,7 +1780,10 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
               <button 
                 type="button" 
                 className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
-                onClick={() => setIsMobileModalOpen(false)}
+                onClick={() => {
+                  setIsMobileModalOpen(false);
+                  setActiveScanTarget(null);
+                }}
               >
                 <X size={16} />
               </button>
