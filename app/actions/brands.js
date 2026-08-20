@@ -359,7 +359,7 @@ export async function createBulkBrands(formData) {
       createdBrands.push(created);
     }
     return createdBrands;
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard/brands');
   revalidatePath('/');

@@ -349,7 +349,8 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
           notes: notes ? (alloc.notes ? `${alloc.notes} | Bulk Return: ${notes}` : `Bulk Return: ${notes}`) : undefined
         }
       });
-    })
+    }),
+    { timeout: 20000 }
   );
 
   revalidatePath('/dashboard/staff');
@@ -428,7 +429,7 @@ export async function saveBulkCombinedAllocations(payload) {
     }
 
     return createdAllocations;
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard/staff');
   return allocations;
