@@ -52,6 +52,7 @@ export async function POST() {
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('sessionId')?.toUpperCase();
+  const checkOnly = searchParams.get('checkOnly') === 'true';
 
   if (!sessionId) {
     return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
@@ -64,7 +65,11 @@ export async function GET(request) {
     });
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found or expired' }, { status: 404 });
+      return NextResponse.json({ error: 'Session not found or expired', exists: false }, { status: 404 });
+    }
+
+    if (checkOnly) {
+      return NextResponse.json({ exists: true });
     }
 
     await prisma.scanSession.update({

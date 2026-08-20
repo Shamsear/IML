@@ -555,22 +555,38 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
         <AlertCircle size={250} />
       </div>
-      <header className="flex items-center gap-4 pb-5 border-b border-border">
-        <Link
-          href={lockedType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
-          className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors"
-        >
-          <ArrowLeft size={16} />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
-            {lockedType === 'LOST' ? 'Report Loss / Missing' : 'Report Damage & Wastage'}
-          </h1>
-          <p className="text-text-secondary text-sm mt-1">
-            {lockedType === 'LOST'
-              ? 'Log items that are missing, stolen, or cannot be accounted for.'
-              : 'Log damaged items or serial numbers to discard them from Central Warehouse stock.'}
-          </p>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border">
+        <div className="flex items-center gap-4">
+          <Link
+            href={lockedType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
+            className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors"
+          >
+            <ArrowLeft size={16} />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+              {lockedType === 'LOST' ? 'Report Loss / Missing' : 'Report Damage & Wastage'}
+            </h1>
+            <p className="text-text-secondary text-sm mt-1">
+              {lockedType === 'LOST'
+                ? 'Log items that are missing, stolen, or cannot be accounted for.'
+                : 'Log damaged items or serial numbers to discard them from Central Warehouse stock.'}
+            </p>
+          </div>
+        </div>
+        {/* Companion Scanner Status Badge */}
+        <div className="flex items-center">
+          {isCompanionActive && mobileSession?.sessionId ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Companion Active: {mobileSession.sessionId}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-surface border border-border text-text-muted">
+              <span className="w-1.5 h-1.5 rounded-full bg-text-muted/40" />
+              Companion Scanner Off
+            </span>
+          )}
         </div>
       </header>
 

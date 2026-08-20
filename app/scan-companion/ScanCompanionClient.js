@@ -26,6 +26,7 @@ const playBeep = () => {
 export default function ScanCompanionClient({ session }) {
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied', 'unsupported'
   const [scannedItems, setScannedItems] = useState([]);
+  const [isSessionActive, setIsSessionActive] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [manualBarcode, setManualBarcode] = useState('');
@@ -87,6 +88,25 @@ export default function ScanCompanionClient({ session }) {
       }
     } catch (e) {}
   };
+
+  // Check if session remains active on the host database (not deleted or expired)
+  useEffect(() => {
+    if (!session) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/scan-companion?sessionId=${session}&checkOnly=true`);
+        if (res.ok) {
+          const data = await res.json();
+          setIsSessionActive(data.exists !== false);
+        } else {
+          setIsSessionActive(false);
+        }
+      } catch (e) {
+        setIsSessionActive(false);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [session]);
 
   // Check camera permissions
   // Determine initial state: respect past permission approvals to prevent annoying duplicate browser prompts on scanning QR
@@ -296,8 +316,10 @@ export default function ScanCompanionClient({ session }) {
           <div>
             <h1 className="text-sm font-display font-extrabold text-text-primary">Mobile Scanner</h1>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
-              <span className="text-[10px] font-bold text-text-secondary uppercase">Connected: {session}</span>
+              <span className={`w-1.5 h-1.5 rounded-full ${isSessionActive ? 'bg-success animate-pulse' : 'bg-danger'}`}></span>
+              <span className="text-[10px] font-bold text-text-secondary uppercase">
+                {isSessionActive ? `Connected: ${session}` : 'Disconnected (Session Expired)'}
+              </span>
             </div>
           </div>
         </div>
@@ -314,6 +336,12 @@ export default function ScanCompanionClient({ session }) {
 
       {/* Main scanner container */}
       <main className="flex-1 overflow-y-auto p-4 max-w-md mx-auto w-full flex flex-col gap-4 min-h-0">
+        {!isSessionActive && (
+          <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold flex items-center gap-2.5 animate-slide-down">
+            <AlertCircle size={14} className="flex-shrink-0" />
+            <span>Connection to PC lost. The session has expired or was disconnected. Please pair again.</span>
+          </div>
+        )}
         {errorMessage && (
           <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold flex items-center gap-2 animate-slide-down">
             <AlertCircle size={14} className="flex-shrink-0" />
