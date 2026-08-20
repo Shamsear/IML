@@ -51,7 +51,22 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
   const handleGlobalBrandChange = (brandId) => {
     setBrandFilter(brandId);
-    setItems(prev => prev.map(item => ({ ...item, brandFilter: brandId })));
+    const firstMatchedProduct = brandId === 'ALL' 
+      ? null 
+      : products.find(p => p.brand?.id === brandId);
+
+    setItems(prev => prev.map(item => {
+      const updated = { ...item, brandFilter: brandId };
+      if (brandId !== 'ALL') {
+        if (item.isNewProduct) {
+          updated.prodBrandId = brandId;
+        } else if (firstMatchedProduct) {
+          updated.productId = firstMatchedProduct.id;
+          updated.quantity = firstMatchedProduct.isSerialized ? 0 : 1;
+        }
+      }
+      return updated;
+    }));
   };
 
   // Source (From) states - Locked to SUPPLIER
@@ -110,39 +125,49 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   }, []);
 
   // Helper to construct a blank receipt item configuration
-  const createEmptyInboundItem = (index = 0) => ({
-    id: `temp-${Date.now()}-${index}`,
-    isNewProduct: false,
-    productId: products[0]?.id || '',
-    quantity: products[0]?.isSerialized ? 0 : 1,
-    barcodesInput: '',
-    notes: '',
-    rangeStart: '',
-    rangeEnd: '',
-    rangeMode: false, // true = range builder, false = scan/text input
-    isExpanded: true,
-    error: '',
-    manufactureDate: '',
-    expiryDate: '',
-    // Inline Product registration states
-    prodName: '',
-    prodType: 'NORMAL',
-    prodBrandId: brands[0]?.id || '',
-    prodCategory: 'General',
-    prodSize: '',
-    prodItemCode: '',
-    prodLowStockAlert: '10',
-    prodIsReturnable: false,
-    prodIsDisposable: false,
-    prodImageFile: null,
-    prodImagePreview: '',
-    prodRack: '',
-    prodShelf: '',
-    prodSimStoreId: stores[0]?.id || '',
-    prodSimStoreCode: '',
-    prodAutoGenName: true,
-    brandFilter: 'ALL',
-  });
+  const createEmptyInboundItem = (index = 0) => {
+    const activeFilter = brandFilter || 'ALL';
+    const defaultBrand = (activeFilter !== 'ALL') ? activeFilter : (brands[0]?.id || '');
+    
+    // Find first product matching the brand filter
+    const firstMatchedProduct = activeFilter === 'ALL' 
+      ? products[0] 
+      : products.find(p => p.brand?.id === activeFilter) || products[0];
+
+    return {
+      id: `temp-${Date.now()}-${index}`,
+      isNewProduct: false,
+      productId: firstMatchedProduct?.id || '',
+      quantity: firstMatchedProduct?.isSerialized ? 0 : 1,
+      barcodesInput: '',
+      notes: '',
+      rangeStart: '',
+      rangeEnd: '',
+      rangeMode: false, // true = range builder, false = scan/text input
+      isExpanded: true,
+      error: '',
+      manufactureDate: '',
+      expiryDate: '',
+      // Inline Product registration states
+      prodName: '',
+      prodType: 'NORMAL',
+      prodBrandId: defaultBrand,
+      prodCategory: 'General',
+      prodSize: '',
+      prodItemCode: '',
+      prodLowStockAlert: '10',
+      prodIsReturnable: false,
+      prodIsDisposable: false,
+      prodImageFile: null,
+      prodImagePreview: '',
+      prodRack: '',
+      prodShelf: '',
+      prodSimStoreId: stores[0]?.id || '',
+      prodSimStoreCode: '',
+      prodAutoGenName: true,
+      brandFilter: activeFilter,
+    };
+  };
 
   // State array for receipt items queue
   const [items, setItems] = useState(initialItems || []);

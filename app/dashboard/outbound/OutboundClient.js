@@ -64,7 +64,30 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
 
   const handleGlobalBrandChange = (brandId) => {
     setGlobalBrand(brandId);
-    setItems(prev => prev.map(item => ({ ...item, brandFilter: brandId })));
+    const firstMatchedProduct = brandId === 'ALL' 
+      ? null 
+      : products.find(p => p.brand?.id === brandId);
+
+    setItems(prev => prev.map(item => {
+      const updated = { ...item, brandFilter: brandId };
+      if (brandId !== 'ALL' && firstMatchedProduct) {
+        updated.productId = firstMatchedProduct.id;
+        updated.quantity = firstMatchedProduct.isSerialized ? 0 : 1;
+        // Reset promoter assignment type if needed
+        const isUniform = firstMatchedProduct.category?.toUpperCase() === 'UNIFORM';
+        if (isUniform && !updated.promoterAssignment) {
+          updated.promoterAssignment = {
+            isNewPromoter: true,
+            promoterName: '',
+            promoterPhone: '',
+            existingStaffId: '',
+          };
+        } else if (!isUniform) {
+          updated.promoterAssignment = null;
+        }
+      }
+      return updated;
+    }));
   };
 
   // Default toType initial destination selection
@@ -134,12 +157,16 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
 
   // Helper to construct empty dispatch item configuration
   const createEmptyOutboundItem = (index = 0) => {
-    const defaultProduct = products[0];
-    const isUniform = defaultProduct?.category?.toUpperCase() === 'UNIFORM';
+    const activeFilter = globalBrand || 'ALL';
+    const firstMatchedProduct = activeFilter === 'ALL'
+      ? products[0]
+      : products.find(p => p.brand?.id === activeFilter) || products[0];
+
+    const isUniform = firstMatchedProduct?.category?.toUpperCase() === 'UNIFORM';
     return {
       id: `temp-${Date.now()}-${index}`,
-      productId: defaultProduct?.id || '',
-      quantity: defaultProduct?.isSerialized ? 0 : 1,
+      productId: firstMatchedProduct?.id || '',
+      quantity: firstMatchedProduct?.isSerialized ? 0 : 1,
       selectedBarcodes: [],
       availableBarcodes: [],
       notes: '',
@@ -148,7 +175,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       rangeMode: false,
       isExpanded: true,
       error: '',
-      brandFilter: 'ALL',
+      brandFilter: activeFilter,
       promoterAssignment: isUniform ? {
         isNewPromoter: true,
         promoterName: '',
