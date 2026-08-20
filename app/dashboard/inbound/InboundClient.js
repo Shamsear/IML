@@ -173,8 +173,12 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   // State array for receipt items queue
   const [items, setItems] = useState(initialItems || []);
 
+  const initializedRef = useRef(false);
   // Initialize selected products from URL search parameter "productIds"
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     const urlIds = searchParams.get('productIds')?.split(',').filter(Boolean) || [];
     if (urlIds.length > 0) {
       const urlItems = urlIds.map((id, idx) => {
@@ -215,7 +219,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
       setItems([createEmptyInboundItem(0)]);
     }
     // else: keep the initialItems already loaded from useState
-  }, [searchParams, products, brands]);
+  }, [searchParams, products, brands, initialItems]);
 
   // Prefill receivedBy and globalNotes from initialItems on edit or copy
   useEffect(() => {
