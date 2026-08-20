@@ -258,14 +258,6 @@ export default function StaffClient({ initialStaff, stores }) {
             Allocate promoter uniforms and caps, track active store placements, working periods, and manage returns.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => router.push('/dashboard/staff/assign')}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer"
-          >
-            <Shirt size={14} /> <span>Issue Uniform / Add Promoter</span>
-          </button>
-        </div>
       </header>
 
       {/* Summary KPI Cards */}
