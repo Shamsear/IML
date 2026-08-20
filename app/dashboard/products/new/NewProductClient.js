@@ -1267,40 +1267,38 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                           <span className="text-[10px] text-text-secondary">If enabled, you will be required to record manufacture and expiry dates when inbounding or receiving stock of this product.</span>
                         </div>
 
-                          {/* Uniform Size Selector */}
-                          {item.category?.toUpperCase() === 'UNIFORM' && (
-                            <div className="flex flex-col gap-1.5 mt-3 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-                              <label className="text-xs font-semibold text-text-secondary">Uniform Size *</label>
-                              <select
-                                value={item.size || ''}
-                                onChange={(e) => {
-                                  const newSize = e.target.value;
-                                  updateItemField(idx, 'size', newSize);
-                                  // Auto-update product name
-                                  if (item.name) {
-                                    const baseName = item.name.replace(/\s*\((XS|S|M|L|XL|XXL|XXXL)\)\s*$/i, '').trim();
-                                    const newName = newSize ? `${baseName} (${newSize})` : baseName;
-                                    updateItemField(idx, 'name', newName);
-                                  }
-                                }}
-                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
-                                required={item.category?.toUpperCase() === 'UNIFORM'}
-                              >
-                                <option value="">Select Size</option>
-                                <option value="XS">X-Small (XS)</option>
-                                <option value="S">Small (S)</option>
-                                <option value="M">Medium (M)</option>
-                                <option value="L">Large (L)</option>
-                                <option value="XL">X-Large (XL)</option>
-                                <option value="XXL">XX-Large (XXL)</option>
-                                <option value="XXXL">XXX-Large (XXXL)</option>
-                              </select>
-                              <span className="text-[10px] text-accent mt-0.5">Size will be automatically added to product name</span>
-                            </div>
-                          )}
-                        </div>
+                        {/* Uniform Size Selector */}
+                        {item.category?.toUpperCase() === 'UNIFORM' && (
+                          <div className="flex flex-col gap-1.5 mt-3 p-3 bg-accent/5 border border-accent/20 rounded-lg sm:col-span-2">
+                            <label className="text-xs font-semibold text-text-secondary">Uniform Size *</label>
+                            <select
+                              value={item.size || ''}
+                              onChange={(e) => {
+                                const newSize = e.target.value;
+                                updateItemField(idx, 'size', newSize);
+                                // Auto-update product name
+                                if (item.name) {
+                                  const baseName = item.name.replace(/\s*\((XS|S|M|L|XL|XXL|XXXL)\)\s*$/i, '').trim();
+                                  const newName = newSize ? `${baseName} (${newSize})` : baseName;
+                                  updateItemField(idx, 'name', newName);
+                                }
+                              }}
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+                              required={item.category?.toUpperCase() === 'UNIFORM'}
+                            >
+                              <option value="">Select Size</option>
+                              <option value="XS">X-Small (XS)</option>
+                              <option value="S">Small (S)</option>
+                              <option value="M">Medium (M)</option>
+                              <option value="L">Large (L)</option>
+                              <option value="XL">X-Large (XL)</option>
+                              <option value="XXL">XX-Large (XXL)</option>
+                              <option value="XXXL">XXX-Large (XXXL)</option>
+                            </select>
+                            <span className="text-[10px] text-accent mt-0.5">Size will be automatically added to product name</span>
+                          </div>
+                        )}
 
-                        {/* Image Upload */}
                         <div className="flex flex-col gap-1.5 sm:col-span-2 mt-1">
                           <label className="text-xs font-semibold text-text-secondary">Product Image</label>
                           <div className="flex items-center gap-4 border border-border border-dashed p-4 rounded-xl bg-surface-elevated/20">
