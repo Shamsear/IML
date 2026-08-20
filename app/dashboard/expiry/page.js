@@ -70,6 +70,7 @@ export default async function ExpiryPage() {
       const receivedQty = tx.quantity;
       const outboundQty = outboundFromBatch._sum.quantity || 0;
       const returnedQty = returnsToWarehouse._sum.quantity || 0;
+      // Current warehouse stock = received - outbound + returned
       const remainingBatchStock = receivedQty - outboundQty + returnedQty;
 
       return {
@@ -94,7 +95,8 @@ export default async function ExpiryPage() {
     })
   );
 
-  // Filter out fully outbounded batches (remaining stock <= 0)
+  // Filter out batches with no stock currently in warehouse (remaining stock <= 0)
+  // This shows only items currently in the warehouse
   const activeBatches = batches.filter((batch) => batch.remainingBatchStock > 0);
 
   return <ExpiryClient initialBatches={activeBatches} />;
