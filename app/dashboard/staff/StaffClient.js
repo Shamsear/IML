@@ -878,7 +878,7 @@ export default function StaffClient({ initialStaff, stores }) {
             </div>
 
             {/* Body */}
-            <div className="p-6 overflow-y-auto flex flex-col gap-5 flex-1">
+            <div className="p-6 overflow-y-auto flex flex-col gap-5">
               {/* Placement Card */}
               <div className="bg-surface-elevated/40 border border-border rounded-xl p-4 flex justify-between items-center text-xs">
                 <div>

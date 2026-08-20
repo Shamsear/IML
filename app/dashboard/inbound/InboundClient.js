@@ -1870,7 +1870,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             </div>
             
             {cameraPermissionStatus !== 'granted' ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center gap-4 flex-1">
+              <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
                 {cameraPermissionStatus === 'prompt' ? (
                   <>
                     <Loader2 size={32} className="animate-spin text-primary" />
@@ -1906,7 +1906,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[300px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden min-h-[300px]">
                 <div className="relative overflow-hidden rounded-xl border border-border bg-black flex items-center justify-center">
                   <div id="camera-reader-element" className="w-full h-full"></div>
                 </div>

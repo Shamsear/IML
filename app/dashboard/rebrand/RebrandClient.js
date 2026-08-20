@@ -1402,7 +1402,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
               </div>
             </div>
             {cameraPermissionStatus !== 'granted' ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center gap-4 flex-1">
+              <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
                 {cameraPermissionStatus === 'prompt' ? (
                   <>
                     <Loader2 size={32} className="animate-spin text-primary" />

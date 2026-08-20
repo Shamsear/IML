@@ -964,7 +964,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
             
             {cameraPermissionStatus !== 'granted' ? (
               // Full-screen modal content for prompt/denied states
-              <div className="flex flex-col items-center justify-center py-10 text-center gap-4 flex-1">
+              <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
                 {cameraPermissionStatus === 'prompt' ? (
                   <>
                     <Loader2 size={32} className="animate-spin text-primary" />
@@ -1001,7 +1001,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
               </div>
             ) : (
               // Responsive Split Grid when granted
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch overflow-y-auto sm:overflow-hidden flex-1 min-h-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch overflow-y-auto sm:overflow-hidden min-h-[300px]">
                 
                 {/* Left Column: Camera Viewport */}
                 <div className="flex flex-col gap-2 min-h-[260px] sm:min-h-0 justify-center">
@@ -1012,7 +1012,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                 </div>
 
                 {/* Right Column: Scanned list status logs */}
-                <div className="flex flex-col gap-3 min-h-[160px] sm:min-h-0 sm:overflow-hidden flex-1">
+                <div className="flex flex-col gap-3 min-h-[160px] sm:min-h-0 sm:overflow-hidden">
                   {isBulkScan ? (
                     <div className="flex-1 flex flex-col gap-2 p-3 bg-surface-elevated border border-border/65 rounded-lg overflow-hidden">
                       <div className="flex justify-between items-center flex-shrink-0">
