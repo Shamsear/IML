@@ -938,6 +938,8 @@ export async function createBulkProducts(formData) {
             : null; // Will be generated using proper format in transaction
         })(),
         notes: formData.get(`item_${i}_inbound_${j}_notes`) || 'Auto-received initial stock',
+        manufactureDate: formData.get(`item_${i}_inbound_${j}_manufactureDate`) || null,
+        expiryDate: formData.get(`item_${i}_inbound_${j}_expiryDate`) || null,
       });
     }
 
@@ -1106,6 +1108,8 @@ export async function createBulkProducts(formData) {
                 deliveryNote: finalDeliveryNote,
                 notes: entry.notes || 'Auto-received initial stock',
                 receivedBy: entry.receivedBy || null,
+                manufactureDate: entry.manufactureDate ? new Date(entry.manufactureDate) : null,
+                expiryDate: entry.expiryDate ? new Date(entry.expiryDate) : null,
               }
             });
 

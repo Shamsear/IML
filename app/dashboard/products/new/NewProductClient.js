@@ -166,6 +166,8 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
     rangeMode: false,
     rangeStart: '',
     rangeEnd: '',
+    manufactureDate: '',
+    expiryDate: '',
   });
 
   // Helper to construct a blank product item configuration for bulk creation
@@ -789,6 +791,8 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
               formData.append(`item_${idx}_inbound_${j}_receivedBy`, inb.receivedBy || '');
               formData.append(`item_${idx}_inbound_${j}_deliveryNote`, inb.deliveryNote || 'INITIAL_STOCK');
               formData.append(`item_${idx}_inbound_${j}_notes`, inb.notes || 'Auto-received initial stock');
+              formData.append(`item_${idx}_inbound_${j}_manufactureDate`, inb.manufactureDate || '');
+              formData.append(`item_${idx}_inbound_${j}_expiryDate`, inb.expiryDate || '');
             });
           }
 
@@ -1481,16 +1485,42 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                     </div>
 
                                     {item.productType === 'NORMAL' ? (
-                                      <div className="flex flex-col gap-1.5">
-                                        <label className="text-xs font-bold text-text-secondary">Initial Quantity</label>
-                                        <input
-                                          type="number"
-                                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                                          value={inb.initialQty}
-                                          onChange={(e) => updateInboundField(idx, subIdx, 'initialQty', e.target.value)}
-                                          placeholder="e.g. 50"
-                                        />
-                                      </div>
+                                      <>
+                                        <div className="flex flex-col gap-1.5">
+                                          <label className="text-xs font-bold text-text-secondary">Initial Quantity</label>
+                                          <input
+                                            type="number"
+                                            className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                            value={inb.initialQty}
+                                            onChange={(e) => updateInboundField(idx, subIdx, 'initialQty', e.target.value)}
+                                            placeholder="e.g. 50"
+                                          />
+                                        </div>
+                                        {item.trackExpiry && (
+                                          <>
+                                            <div className="flex flex-col gap-1.5">
+                                              <label className="text-xs font-bold text-text-secondary">Manufacture Date</label>
+                                              <input
+                                                type="date"
+                                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                                value={inb.manufactureDate || ''}
+                                                onChange={(e) => updateInboundField(idx, subIdx, 'manufactureDate', e.target.value)}
+                                                required={item.trackExpiry}
+                                              />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                              <label className="text-xs font-bold text-text-secondary">Expiry Date</label>
+                                              <input
+                                                type="date"
+                                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                                value={inb.expiryDate || ''}
+                                                onChange={(e) => updateInboundField(idx, subIdx, 'expiryDate', e.target.value)}
+                                                required={item.trackExpiry}
+                                              />
+                                            </div>
+                                          </>
+                                        )}
+                                      </>
                                     ) : (
                                       <div className="flex flex-col gap-1.5 sm:col-span-2">
                                         <div className="flex items-center justify-between pb-1">
