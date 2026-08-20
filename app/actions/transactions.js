@@ -64,6 +64,32 @@ export async function getTransactions(filters = {}) {
       { product: { name: { contains: searchString, mode: 'insensitive' } } }
     ];
   }
+
+  const [transactions, totalCount] = await Promise.all([
+    prisma.inventoryTransaction.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            isSerialized: true,
+            brandId: true,
+            brand: { select: { name: true } },
+            imageUrl: true,
+          }
+        }
+      }
+    }),
+    prisma.inventoryTransaction.count({ where })
+  ]);
+
+  return { transactions, totalCount };
+}
+
 // 3. Create a transaction (Receive, Issue, Return, Damage)
 export async function createTransaction(data) {
   await checkAuth();
@@ -80,6 +106,7 @@ export async function createTransaction(data) {
     deliveryStatus,
     notes,
     receivedBy,
+    transactionDate,
     barcodes = [], // Used for serialized products
   } = data;
 
@@ -101,7 +128,6 @@ export async function createTransaction(data) {
     }
   }
 
-  // Handle transaction inside a secure Prisma Transaction block
   const transaction = await prisma.$transaction(async (tx) => {
     // A. Create the core ledger transaction
     const lastRecord = await tx.inventoryTransaction.findFirst({
@@ -134,6 +160,7 @@ export async function createTransaction(data) {
         deliveryStatus,
         notes,
         receivedBy,
+        timestamp: transactionDate ? new Date(transactionDate) : undefined,
       },
     });
 
@@ -150,7 +177,6 @@ export async function createTransaction(data) {
 
     // B. Handle Serialized Barcode Updates
     if (product.isSerialized && barcodes.length > 0) {
-      // Find serials globally to give descriptive mismatches
       const globalSerials = await tx.productSerialNumber.findMany({
         where: {
           barcode: { in: barcodes },
@@ -211,7 +237,7 @@ export async function createTransaction(data) {
     }
 
     return invTx;
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/transactions');
@@ -228,7 +254,7 @@ export async function processRebrand(data) {
     newProductId,
     quantity,
     notes,
-    barcodes = [], // Array of objects: { oldBarcode: string, newBarcode: string, newSecondary: string }
+    barcodes = [],
   } = data;
 
   if (!oldProductId || !newProductId) throw new Error('Both old and new products are required');
@@ -308,22 +334,6 @@ export async function processRebrand(data) {
           barcode: item.newBarcode.trim(),
           secondaryBarcode: item.newSecondary ? item.newSecondary.trim() : null,
           currentLocationType: 'WAREHOUSE',
-          status: 'AVAILABLE',
-          replacesId: matchingOld.id
-        };
-      });
-
-      await tx.productSerialNumber.createMany({
-        data: newSerialsData,
-        skipDuplicates: true
-      });
-    }
-  });
-
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/transactions');
-}
-
 // 5. Query active stock of a store
 export async function getStoreInventory(storeId) {
   await checkAuth();
