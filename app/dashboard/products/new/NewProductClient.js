@@ -66,6 +66,71 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
     isBulkScanRef.current = isBulkScan;
   }, [isBulkScan]);
 
+  // Image Cropping Modal states
+  const [croppingIdx, setCroppingIdx] = useState(null);
+  const [cropSrc, setCropSrc] = useState('');
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropX, setCropX] = useState(0);
+  const [cropY, setCropY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [cropDimensions, setCropDimensions] = useState({ width: 320, height: 320 });
+  const [originalFile, setOriginalFile] = useState(null);
+  const cropImageRef = useRef(null);
+  const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
+
+  const handleDrag = (dx, dy) => {
+    setCropX(prev => {
+      const next = prev + dx;
+      const maxOffset = Math.max(0, (cropDimensions.width * cropZoom - 320) / 2);
+      return Math.min(maxOffset, Math.max(-maxOffset, next));
+    });
+    setCropY(prev => {
+      const next = prev + dy;
+      const maxOffset = Math.max(0, (cropDimensions.height * cropZoom - 320) / 2);
+      return Math.min(maxOffset, Math.max(-maxOffset, next));
+    });
+  };
+
+  const handleSaveCrop = () => {
+    if (croppingIdx === null || !originalFile || !cropImageRef.current) return;
+
+    const img = cropImageRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = 500;
+    canvas.height = 500;
+    const ctx = canvas.getContext('2d');
+
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+
+    const centerX = (320 - cropDimensions.width * cropZoom) / 2;
+    const centerY = (320 - cropDimensions.height * cropZoom) / 2;
+
+    const sx = - (centerX + cropX) / (cropDimensions.width * cropZoom) * imgWidth;
+    const sy = - (centerY + cropY) / (cropDimensions.height * cropZoom) * imgHeight;
+    const sw = (320 / (cropDimensions.width * cropZoom)) * imgWidth;
+    const sh = (320 / (cropDimensions.height * cropZoom)) * imgHeight;
+
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 500, 500);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const croppedFile = new File([blob], originalFile.name, {
+          type: originalFile.type,
+          lastModified: Date.now()
+        });
+
+        updateItemField(croppingIdx, 'imageFile', croppedFile);
+        updateItemField(croppingIdx, 'imagePreview', URL.createObjectURL(croppedFile));
+
+        setCroppingIdx(null);
+        setCropSrc('');
+        setOriginalFile(null);
+      }
+    }, originalFile.type || 'image/jpeg', 0.95);
+  };
+
   // Load saved mobile session on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1135,7 +1200,12 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                           <div className="flex items-center gap-4 border border-border border-dashed p-4 rounded-xl bg-surface-elevated/20">
                             {item.imagePreview || item.imageUrl ? (
                               <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
-                                <img src={item.imagePreview || item.imageUrl} alt="Preview" className="w-full h-full object-contain" />
+                                <img 
+                                  src={item.imagePreview || item.imageUrl} 
+                                  alt="Preview" 
+                                  className="w-full h-full object-contain cursor-zoom-in hover:brightness-95 transition-all duration-200" 
+                                  onClick={() => setLightboxImage({ url: item.imagePreview || item.imageUrl, name: item.name || 'Cropped Preview' })}
+                                />
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1161,8 +1231,12 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                 onChange={(e) => {
                                   const file = e.target.files[0];
                                   if (file) {
-                                    updateItemField(idx, 'imageFile', file);
-                                    updateItemField(idx, 'imagePreview', URL.createObjectURL(file));
+                                    setOriginalFile(file);
+                                    setCropSrc(URL.createObjectURL(file));
+                                    setCroppingIdx(idx);
+                                    setCropZoom(1);
+                                    setCropX(0);
+                                    setCropY(0);
                                   }
                                 }}
                                 className="hidden"
@@ -1647,6 +1721,181 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                 <span className="text-[11px] font-bold text-text-secondary uppercase">Waiting for mobile scans...</span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Image Cropping Modal */}
+      {croppingIdx !== null && (
+        <div className="fixed inset-0 bg-black/85 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 animate-slide-down">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-display font-extrabold text-sm text-text-primary uppercase tracking-wider">Crop Product Image</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setCroppingIdx(null);
+                  setCropSrc('');
+                  setOriginalFile(null);
+                }}
+                className="text-text-muted hover:text-text-primary transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Viewport container */}
+            <div className="flex justify-center items-center py-2 bg-surface-elevated/40 rounded-xl border border-border/60">
+              <div 
+                className="w-[320px] h-[320px] overflow-hidden relative border border-border rounded-lg bg-black cursor-grab active:cursor-grabbing select-none"
+                onMouseDown={(e) => {
+                  setIsDragging(true);
+                  setDragStart({ x: e.clientX, y: e.clientY });
+                }}
+                onMouseMove={(e) => {
+                  if (!isDragging) return;
+                  const dx = e.clientX - dragStart.x;
+                  const dy = e.clientY - dragStart.y;
+                  setDragStart({ x: e.clientX, y: e.clientY });
+                  handleDrag(dx, dy);
+                }}
+                onMouseUp={() => setIsDragging(false)}
+                onMouseLeave={() => setIsDragging(false)}
+                onTouchStart={(e) => {
+                  if (e.touches[0]) {
+                    setIsDragging(true);
+                    setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (!isDragging || !e.touches[0]) return;
+                  const dx = e.touches[0].clientX - dragStart.x;
+                  const dy = e.touches[0].clientY - dragStart.y;
+                  setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+                  handleDrag(dx, dy);
+                }}
+                onTouchEnd={() => setIsDragging(false)}
+              >
+                <img
+                  ref={cropImageRef}
+                  src={cropSrc}
+                  alt="Crop Target"
+                  className="max-w-none pointer-events-none absolute"
+                  style={{
+                    width: `${cropDimensions.width * cropZoom}px`,
+                    height: `${cropDimensions.height * cropZoom}px`,
+                    left: `calc(50% + ${cropX}px)`,
+                    top: `calc(50% + ${cropY}px)`,
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                  onLoad={(e) => {
+                    const img = e.target;
+                    const w = img.naturalWidth;
+                    const h = img.naturalHeight;
+                    let renderW, renderH;
+                    if (w > h) {
+                      renderH = 320;
+                      renderW = (w / h) * 320;
+                    } else {
+                      renderW = 320;
+                      renderH = (h / w) * 320;
+                    }
+                    setCropDimensions({ width: renderW, height: renderH });
+                  }}
+                />
+                {/* Viewport Frame Guidelines overlay */}
+                <div className="absolute inset-0 border-2 border-primary/20 pointer-events-none rounded-lg">
+                  {/* Grid guidelines */}
+                  <div className="absolute inset-x-0 top-1/3 h-px bg-white/20 border-dashed"></div>
+                  <div className="absolute inset-x-0 top-2/3 h-px bg-white/20 border-dashed"></div>
+                  <div className="absolute inset-y-0 left-1/3 w-px bg-white/20 border-dashed"></div>
+                  <div className="absolute inset-y-0 left-2/3 w-px bg-white/20 border-dashed"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Slider controls */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs font-semibold text-text-secondary">
+                <span>Zoom Level</span>
+                <span className="font-mono text-primary font-bold">x{cropZoom.toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.05"
+                value={cropZoom}
+                onChange={(e) => {
+                  const nextZoom = parseFloat(e.target.value);
+                  setCropZoom(nextZoom);
+                  // Readjust offsets if they exceed new bounds
+                  const maxOffsetX = Math.max(0, (cropDimensions.width * nextZoom - 320) / 2);
+                  const maxOffsetY = Math.max(0, (cropDimensions.height * nextZoom - 320) / 2);
+                  setCropX(prev => Math.min(maxOffsetX, Math.max(-maxOffsetX, prev)));
+                  setCropY(prev => Math.min(maxOffsetY, Math.max(-maxOffsetY, prev)));
+                }}
+                className="w-full h-1.5 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+
+            <span className="text-[10px] text-text-muted text-center leading-relaxed">
+              Drag the image to position and adjust the slider to zoom. The final picture will be saved as a square 1:1 catalog image.
+            </span>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-3 border-t border-border pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setCroppingIdx(null);
+                  setCropSrc('');
+                  setOriginalFile(null);
+                }}
+                className="px-4 py-2 text-xs font-semibold bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveCrop}
+                className="px-4 py-2 text-xs font-bold bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors shadow-sm"
+              >
+                Crop &amp; Save Image
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            type="button"
+            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxImage(null);
+            }}
+          >
+            <X size={20} />
+          </button>
+          
+          <div 
+            className="relative max-w-4xl max-h-[80vh] flex flex-col items-center gap-4 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={lightboxImage.url} 
+              alt={lightboxImage.name} 
+              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/15 animate-scale-up"
+            />
+            <span className="text-white text-sm font-semibold tracking-wide text-center">
+              {lightboxImage.name}
+            </span>
           </div>
         </div>
       )}

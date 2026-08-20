@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Package, Search, Filter, Printer, Download, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles } from 'lucide-react';
+import { Package, Search, Filter, Printer, Download, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, X } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
 
 export default function ReportsClient({ initialProducts, brands }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
@@ -259,11 +260,25 @@ export default function ReportsClient({ initialProducts, brands }) {
                 {paginatedProducts.map(p => (
                   <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors print:hover:bg-transparent">
                     <td className="py-3.5 pr-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-text-primary print:font-bold whitespace-nowrap">{p.name}</span>
-                        <span className="text-[10px] text-text-muted mt-0.5 font-mono print:text-[8px] whitespace-nowrap">
-                          SKU: {p.itemCode || '---'}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        {p.imageUrl ? (
+                          <img 
+                            src={p.imageUrl} 
+                            alt={p.name} 
+                            className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200 print:w-6 print:h-6"
+                            onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 print:hidden">
+                            <Package size={15} />
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-text-primary print:font-bold whitespace-nowrap">{p.name}</span>
+                          <span className="text-[10px] text-text-muted mt-0.5 font-mono print:text-[8px] whitespace-nowrap">
+                            SKU: {p.itemCode || '---'}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">{p.brand?.name}</td>
@@ -320,6 +335,38 @@ export default function ReportsClient({ initialProducts, brands }) {
         )}
       </div>
 
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none print:hidden"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            type="button"
+            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxImage(null);
+            }}
+          >
+            <X size={20} />
+          </button>
+          
+          <div 
+            className="relative max-w-4xl max-h-[80vh] flex flex-col items-center gap-4 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={lightboxImage.url} 
+              alt={lightboxImage.name} 
+              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/15 animate-scale-up"
+            />
+            <span className="text-white text-sm font-semibold tracking-wide text-center">
+              {lightboxImage.name}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

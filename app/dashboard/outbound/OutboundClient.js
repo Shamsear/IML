@@ -35,6 +35,14 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
+  const [transactionDate, setTransactionDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
 
   // Destination (To) states - Default to STORE unless specified
   const [toType, setToType] = useState(initialDestinationType);
@@ -201,11 +209,20 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
 
   // Prefill globalNotes from initialItems on edit or copy
   useEffect(() => {
-    if (initialItems && initialItems.length > 0 && initialItems[0].notes) {
-      if (initialItems[0].notes.includes(' | ')) {
-        setGlobalNotes(initialItems[0].notes.split(' | ')[0]);
-      } else {
-        setGlobalNotes(initialItems[0].notes);
+    if (initialItems && initialItems.length > 0) {
+      if (initialItems[0].notes) {
+        if (initialItems[0].notes.includes(' | ')) {
+          setGlobalNotes(initialItems[0].notes.split(' | ')[0]);
+        } else {
+          setGlobalNotes(initialItems[0].notes);
+        }
+      }
+      if (initialItems[0].timestamp) {
+        const d = new Date(initialItems[0].timestamp);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        setTransactionDate(`${year}-${month}-${day}`);
       }
     }
   }, [initialItems]);
@@ -634,6 +651,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       toEntityId: toId,
       deliverySupervisorId: deliverySupervisorId || null,
       globalNotes: globalNotes || '',
+      transactionDate: transactionDate || null,
       items: itemsPayload
     };
 
@@ -698,7 +716,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           <span>Dispatch Destination Details</span>
         </h3>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Destination Category</label>
             <CustomSelect
@@ -760,7 +778,20 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                 </div>
               </div>
             )}
-          <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2">
+          </div>
+          
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-text-secondary">Transaction Date</label>
+            <input
+              type="date"
+              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+              value={transactionDate}
+              onChange={(e) => setTransactionDate(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5 sm:col-span-3 mt-2">
             <label className="text-xs font-semibold text-text-secondary">Delivery Note Global Remarks</label>
             <input
               type="text"
@@ -1003,10 +1034,16 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                     onClick={() => handleExpandItem(idx)}
                     className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/10 transition-colors"
                   >
-                    <div className="min-w-0 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                        {idx + 1}
-                      </div>
+                    <div className="min-w-0 flex items-center gap-3.5">
+                      {selectedProd?.imageUrl ? (
+                        <div className="w-11 h-11 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
+                          <img src={selectedProd.imageUrl} alt="Product" className="w-full h-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="w-11 h-11 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                          <Camera size={18} />
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <span className="font-semibold text-sm text-text-primary block truncate">
                           {selectedProd ? `${selectedProd.brand.name} - ${selectedProd.name}` : <span className="text-text-muted italic">Select product...</span>}
@@ -1134,14 +1171,30 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                             />
                         </div>
                         {selectedProd && (
-                          <div className="flex items-center gap-2 mt-1 flex-wrap animate-fade-in">
-                            <span className="text-[10px] font-bold text-text-secondary uppercase">Product Status:</span>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${selectedProd.isReturnable ? 'bg-success/10 text-success border-success/20' : 'bg-surface-elevated/40 text-text-secondary border-border'}`}>
-                              {selectedProd.isReturnable ? 'Returnable' : 'Non-Returnable'}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${selectedProd.isDisposable ? 'bg-warning/10 text-warning border-warning/20' : 'bg-surface-elevated/40 text-text-secondary border-border'}`}>
-                              {selectedProd.isDisposable ? 'Disposable' : 'Non-Disposable'}
-                            </span>
+                          <div className="flex flex-col gap-2.5 mt-1 animate-fade-in">
+                            {selectedProd.imageUrl && (
+                              <div className="flex items-center gap-3 border border-border p-2 rounded-xl bg-surface-elevated/20 w-fit">
+                                <img 
+                                  src={selectedProd.imageUrl} 
+                                  alt={selectedProd.name} 
+                                  className="w-12 h-12 rounded-lg object-contain bg-[#fcfbfa] border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                  onClick={() => setLightboxImage({ url: selectedProd.imageUrl, name: selectedProd.name })}
+                                />
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-xs font-bold text-text-primary truncate max-w-[200px]">{selectedProd.name}</span>
+                                  <span className="text-[10px] text-text-secondary mt-0.5 font-mono">SKU: {selectedProd.itemCode || '---'}</span>
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-bold text-text-secondary uppercase">Product Status:</span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${selectedProd.isReturnable ? 'bg-success/10 text-success border-success/20' : 'bg-surface-elevated/40 text-text-secondary border-border'}`}>
+                                {selectedProd.isReturnable ? 'Returnable' : 'Non-Returnable'}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${selectedProd.isDisposable ? 'bg-warning/10 text-warning border-warning/20' : 'bg-surface-elevated/40 text-text-secondary border-border'}`}>
+                                {selectedProd.isDisposable ? 'Disposable' : 'Non-Disposable'}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1483,6 +1536,39 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            type="button"
+            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxImage(null);
+            }}
+          >
+            <X size={20} />
+          </button>
+          
+          <div 
+            className="relative max-w-4xl max-h-[80vh] flex flex-col items-center gap-4 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={lightboxImage.url} 
+              alt={lightboxImage.name} 
+              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/15 animate-scale-up"
+            />
+            <span className="text-white text-sm font-semibold tracking-wide text-center">
+              {lightboxImage.name}
+            </span>
           </div>
         </div>
       )}

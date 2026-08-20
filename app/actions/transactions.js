@@ -64,31 +64,6 @@ export async function getTransactions(filters = {}) {
       { product: { name: { contains: searchString, mode: 'insensitive' } } }
     ];
   }
-
-  const [transactions, totalCount] = await Promise.all([
-    prisma.inventoryTransaction.findMany({
-      where,
-      orderBy: { timestamp: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            isSerialized: true,
-            brandId: true,
-            brand: { select: { name: true } },
-          }
-        }
-      }
-    }),
-    prisma.inventoryTransaction.count({ where })
-  ]);
-
-  return { transactions, totalCount };
-}
-
 // 3. Create a transaction (Receive, Issue, Return, Damage)
 export async function createTransaction(data) {
   await checkAuth();
@@ -472,6 +447,7 @@ export async function createBulkIssueTransactions(payload) {
     toEntityId,
     deliverySupervisorId,
     globalNotes = '',
+    transactionDate, // Custom transaction date/time
     items = [], // Array of { productId, quantity, barcodes, notes }
   } = payload;
 
@@ -612,6 +588,7 @@ export async function createBulkIssueTransactions(payload) {
           })(),
           deliveryStatus: 'Delivered',
           deliverySupervisorId: deliverySupervisorId || null,
+          timestamp: transactionDate ? new Date(transactionDate) : undefined,
         },
       });
 
@@ -675,6 +652,7 @@ export async function createBulkReceiveTransactions(formData) {
   const toEntityId = formData.get('toEntityId') || null;
   const receivedBy = formData.get('receivedBy') || null;
   const globalNotes = formData.get('globalNotes') || '';
+  const transactionDate = formData.get('transactionDate') || null;
   const itemsJson = formData.get('items');
   const items = JSON.parse(itemsJson || '[]');
 
@@ -829,6 +807,7 @@ export async function createBulkReceiveTransactions(formData) {
           expiryDate: expiryDate ? new Date(expiryDate) : null,
           deliveryStatus: 'Delivered',
           receivedBy,
+          timestamp: transactionDate ? new Date(transactionDate) : undefined,
         },
       });
 
@@ -1640,6 +1619,7 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
     toEntityId,
     deliverySupervisorId,
     globalNotes = '',
+    transactionDate, // Custom transaction date/time
     items = [],
   } = payload;
 
@@ -1723,6 +1703,7 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
           deliveryNote, // Reuse existing!
           deliverySupervisorId: deliverySupervisorId || null,
           deliveryStatus: 'Delivered',
+          timestamp: transactionDate ? new Date(transactionDate) : undefined,
         }
       });
 
@@ -1780,6 +1761,7 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
   const toEntityId = formData.get('toEntityId');
   const receivedBy = formData.get('receivedBy') || null;
   const globalNotes = formData.get('globalNotes') || '';
+  const transactionDate = formData.get('transactionDate') || null;
   const itemsJson = formData.get('items');
   const items = JSON.parse(itemsJson || '[]');
 
@@ -1871,6 +1853,7 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
             return itemNote;
           })(),
           deliveryNote, // Reuse existing!
+          timestamp: transactionDate ? new Date(transactionDate) : undefined,
         }
       });
 

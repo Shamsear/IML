@@ -34,6 +34,14 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
+  const [transactionDate, setTransactionDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
 
   // Brand filter for product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
@@ -190,6 +198,13 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         } else {
           setGlobalNotes(initialItems[0].notes);
         }
+      }
+      if (initialItems[0].timestamp) {
+        const d = new Date(initialItems[0].timestamp);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        setTransactionDate(`${year}-${month}-${day}`);
       }
     }
   }, [initialItems]);
@@ -671,6 +686,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     formData.append('toEntityId', '');
     formData.append('receivedBy', receivedBy || '');
     formData.append('globalNotes', globalNotes || '');
+    formData.append('transactionDate', transactionDate || '');
 
     // Map items to payload
     const itemsPayload = items.map((item, idx) => {
@@ -791,7 +807,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           <span>Inbound Shipment Details</span>
         </h3>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
           <div className="flex flex-col gap-1.5 relative">
             <label className="text-xs font-semibold text-text-secondary">Supplier (From)</label>
             <div className="relative">
@@ -858,7 +874,18 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-text-secondary">Transaction Date</label>
+            <input
+              type="date"
+              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+              value={transactionDate}
+              onChange={(e) => setTransactionDate(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5 sm:col-span-3">
             <label className="text-xs font-semibold text-text-secondary">Delivery Note Global Remarks</label>
             <input
               type="text"
@@ -1149,6 +1176,20 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                             }
                             required
                           />
+                          {selectedProd?.imageUrl && (
+                            <div className="mt-2.5 flex items-center gap-3 border border-border p-2 rounded-xl bg-surface-elevated/20 w-fit">
+                              <img 
+                                src={selectedProd.imageUrl} 
+                                alt={selectedProd.name} 
+                                className="w-12 h-12 rounded-lg object-contain bg-[#fcfbfa] border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                onClick={() => setLightboxImage({ url: selectedProd.imageUrl, name: selectedProd.name })}
+                              />
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-xs font-bold text-text-primary truncate max-w-[200px]">{selectedProd.name}</span>
+                                <span className="text-[10px] text-text-secondary mt-0.5 font-mono">SKU: {selectedProd.itemCode || '---'}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -1895,6 +1936,39 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 <span className="text-[11px] font-bold text-text-secondary uppercase">Waiting for mobile scans...</span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            type="button"
+            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxImage(null);
+            }}
+          >
+            <X size={20} />
+          </button>
+          
+          <div 
+            className="relative max-w-4xl max-h-[80vh] flex flex-col items-center gap-4 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={lightboxImage.url} 
+              alt={lightboxImage.name} 
+              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/15 animate-scale-up"
+            />
+            <span className="text-white text-sm font-semibold tracking-wide text-center">
+              {lightboxImage.name}
+            </span>
           </div>
         </div>
       )}

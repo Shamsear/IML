@@ -25,6 +25,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
 
   const [name, setName] = useState('');
   const [brandId, setBrandId] = useState(brands[0]?.id || '');
@@ -796,7 +797,11 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                                 <img 
                                   src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
                                   alt={product.name} 
-                                  className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0"
+                                  className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLightboxImage({ url: product.imageUrl, name: product.name });
+                                  }}
                                   onError={(e) => {
                                     if (e.target.src !== product.imageUrl) {
                                       e.target.src = product.imageUrl;
@@ -1026,6 +1031,39 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
           </div>
         )}
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            type="button"
+            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxImage(null);
+            }}
+          >
+            <X size={20} />
+          </button>
+          
+          <div 
+            className="relative max-w-4xl max-h-[80vh] flex flex-col items-center gap-4 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={lightboxImage.url} 
+              alt={lightboxImage.name} 
+              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/15 animate-scale-up"
+            />
+            <span className="text-white text-sm font-semibold tracking-wide text-center">
+              {lightboxImage.name}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   </div>
   );
