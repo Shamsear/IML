@@ -277,6 +277,7 @@ export async function getBrandPortalDetails(secretKey) {
           name: true,
           itemCode: true,
           category: true,
+          imageUrl: true,
           isSerialized: true,
           transactions: {
             select: {
