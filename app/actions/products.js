@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { uploadToImageKit } from '@/lib/imagekit';
+import { generateCustomRef } from './transactions';
 
 async function saveFile(file) {
   return uploadToImageKit(file);
@@ -676,7 +677,7 @@ export async function createBulkProducts(formData) {
           const val = formData.get(`item_${i}_inbound_${j}_deliveryNote`);
           return (val && val.trim() && val !== 'INITIAL_STOCK')
             ? val.trim()
-            : `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
+            : null; // Will be generated using proper format in transaction
         })(),
         notes: formData.get(`item_${i}_inbound_${j}_notes`) || 'Auto-received initial stock',
       });
@@ -796,6 +797,11 @@ export async function createBulkProducts(formData) {
             }
             const txId = `TX-${String(lastTxNum + 1).padStart(5, '0')}`;
             
+            // Generate delivery note using proper format if not provided
+            const finalDeliveryNote = (entry.deliveryNote && entry.deliveryNote.trim() && entry.deliveryNote !== 'INITIAL_STOCK')
+              ? entry.deliveryNote.trim()
+              : await generateCustomRef(tx, 'REC', bName || 'General');
+            
             // Log transaction
             await tx.inventoryTransaction.create({
               data: {
@@ -807,9 +813,7 @@ export async function createBulkProducts(formData) {
                 toEntityType: 'WAREHOUSE',
                 toEntityId: 'MAIN',
                 quantity: entry.qty,
-                deliveryNote: (entry.deliveryNote && entry.deliveryNote.trim() && entry.deliveryNote !== 'INITIAL_STOCK')
-                  ? entry.deliveryNote.trim()
-                  : `DN-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`,
+                deliveryNote: finalDeliveryNote,
                 notes: entry.notes || 'Auto-received initial stock',
                 receivedBy: entry.receivedBy || null,
               }

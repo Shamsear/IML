@@ -12,8 +12,31 @@ async function checkAuth() {
   if (!session) throw new Error('Unauthorized');
 }
 
-async function generateCustomRef(tx, type, brandName, customDate = null) {
-  const cleanBrand = brandName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 3) || 'gen';
+export function parseTransactionDate(dateStr) {
+  if (!dateStr) return undefined;
+  if (typeof dateStr !== 'string') return new Date(dateStr);
+  
+  if (dateStr.includes('T') || dateStr.includes(':')) {
+    return new Date(dateStr);
+  }
+  
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      const d = new Date();
+      d.setFullYear(year, month - 1, day);
+      return d;
+    }
+  }
+  return new Date(dateStr);
+}
+
+export async function generateCustomRef(tx, type, brandName, customDate = null) {
+  const cleanBrand = brandName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 3) || 'GEN';
+  const typeCode = type.toUpperCase();
   
   const dateObj = customDate ? new Date(customDate) : new Date();
   const day = String(dateObj.getDate()).padStart(2, '0');
@@ -21,7 +44,8 @@ async function generateCustomRef(tx, type, brandName, customDate = null) {
   const year = String(dateObj.getFullYear()).slice(-2);
   const dateStr = `${day}${month}${year}`;
 
-  const prefix = `${type}-brand(${cleanBrand})-date(${dateStr})-`;
+  // Format: TYPE-BRD-DDMMYY-NNN  e.g. REC-SAD-200826-001
+  const prefix = `${typeCode}-${cleanBrand}-${dateStr}-`;
   
   const existing = await tx.inventoryTransaction.findMany({
     where: {
@@ -139,6 +163,9 @@ export async function createTransaction(data) {
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
+    include: {
+      brand: { select: { name: true } }
+    }
   });
 
   if (!product) throw new Error('Product not found');
@@ -167,6 +194,18 @@ export async function createTransaction(data) {
     }
     const txId = `TRAN-${String(nextNum).padStart(5, '0')}`;
 
+    // Generate proper delivery note for RECEIVE and RETURN transactions
+    let finalDeliveryNote = deliveryNote;
+    if ((transactionType === 'RECEIVE' || transactionType === 'RETURN') && (!deliveryNote || !deliveryNote.trim())) {
+      const brandName = product.brand?.name || 'General';
+      const typeCode = transactionType === 'RETURN' ? 'RTN' : 'REC';
+      finalDeliveryNote = await generateCustomRef(tx, typeCode, brandName, transactionDate);
+    } else if (deliveryNote && deliveryNote.trim()) {
+      finalDeliveryNote = deliveryNote.trim();
+    } else {
+      finalDeliveryNote = null;
+    }
+
     const invTx = await tx.inventoryTransaction.create({
       data: {
         id: txId,
@@ -177,13 +216,11 @@ export async function createTransaction(data) {
         toEntityType,
         toEntityId: toEntityId || null,
         quantity,
-        deliveryNote: (transactionType === 'RECEIVE' || transactionType === 'RETURN')
-          ? (deliveryNote && deliveryNote.trim() ? deliveryNote.trim() : `${transactionType === 'RETURN' ? 'RET' : 'DN'}-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`)
-          : (deliveryNote || null),
+        deliveryNote: finalDeliveryNote,
         deliveryStatus,
         notes,
         receivedBy,
-        timestamp: transactionDate ? new Date(transactionDate) : undefined,
+        timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
       },
     });
 
@@ -622,7 +659,7 @@ export async function createBulkIssueTransactions(payload) {
     }
 
     for (const [brandName, brandItems] of Object.entries(itemsByBrand)) {
-      const deliveryNote = await generateCustomRef(tx, 'dn', brandName, transactionDate);
+      const deliveryNote = await generateCustomRef(tx, 'DEL', brandName, transactionDate);
 
       for (let idx = 0; idx < brandItems.length; idx++) {
         const item = brandItems[idx];
@@ -656,7 +693,7 @@ export async function createBulkIssueTransactions(payload) {
             })(),
             deliveryStatus: 'Delivered',
             deliverySupervisorId: deliverySupervisorId || null,
-            timestamp: transactionDate ? new Date(transactionDate) : undefined,
+            timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
           },
         });
 
@@ -681,9 +718,16 @@ export async function createBulkIssueTransactions(payload) {
             existingStaffId,
             storeId,
             allocatedItems = [],
-            workingPeriod = '',
+            workingPeriod: rawWorkingPeriod = '',
+            startDate,
+            endDate,
             notes: promoterNotes = ''
           } = promoterAssignment;
+
+          let workingPeriod = rawWorkingPeriod;
+          if (!workingPeriod && startDate && endDate) {
+            workingPeriod = `${startDate} to ${endDate}`;
+          }
 
           let finalStaffId = existingStaffId;
 
@@ -913,7 +957,7 @@ export async function createBulkReceiveTransactions(formData) {
     });
 
     for (const [brandName, brandGroup] of Object.entries(itemsByBrand)) {
-      const deliveryNote = await generateCustomRef(tx, 'recieved', brandName, transactionDate);
+      const deliveryNote = await generateCustomRef(tx, 'RCV', brandName, transactionDate);
 
       for (const { item, idx } of brandGroup) {
         let { productId, quantity, barcodes = [], notes, manufactureDate, expiryDate, isNewProduct } = item;
@@ -994,7 +1038,7 @@ export async function createBulkReceiveTransactions(formData) {
             expiryDate: expiryDate ? new Date(expiryDate) : null,
             deliveryStatus: 'Delivered',
             receivedBy,
-            timestamp: transactionDate ? new Date(transactionDate) : undefined,
+            timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
           },
         });
 
@@ -1070,9 +1114,14 @@ export async function createBulkDamageTransactions(payload) {
 
       const product = await tx.product.findUnique({
         where: { id: productId },
+        include: { brand: { select: { name: true } } },
       });
 
       if (!product) throw new Error(`Product not found for ID: ${productId}`);
+
+      const brandName = product.brand?.name || 'General';
+      const typeCode = resolvedType === 'LOST' ? 'LOS' : 'DAM';
+      const deliveryNote = await generateCustomRef(tx, typeCode, brandName);
 
       // Verify stock levels for bulk (non-serialized) products
       if (!product.isSerialized && fromEntityType) {
@@ -1115,10 +1164,11 @@ export async function createBulkDamageTransactions(payload) {
           quantity,
           notes: notes || `Bulk ${resolvedType.toLowerCase()} logged`,
           deliveryStatus: 'Delivered',
+          deliveryNote,
         },
       });
 
-      // B. Link serialized serials and mark as DAMAGED
+      // B. Link serialized serials and mark as DAMAGED/LOST
       if (product.isSerialized && barcodes.length > 0) {
         const dbSerials = await tx.productSerialNumber.findMany({
           where: {
@@ -1140,7 +1190,7 @@ export async function createBulkDamageTransactions(payload) {
           }
         }
 
-        // Bulk mark serial records as DAMAGED or LOST (1 write)
+        // Bulk mark serial records as DAMAGED or LOST
         await tx.productSerialNumber.updateMany({
           where: {
             id: { in: dbSerials.map(s => s.id) }
@@ -1152,7 +1202,7 @@ export async function createBulkDamageTransactions(payload) {
           }
         });
 
-        // Bulk insert the transaction-serial mappings (1 write)
+        // Bulk insert the transaction-serial mappings
         await tx.transactionSerialNumber.createMany({
           data: dbSerials.map(serial => ({
             transactionId: invTx.id,
@@ -1762,7 +1812,7 @@ export async function processOutboundReturns(returnsPayload) {
           include: { brand: { select: { name: true } } }
         });
         const brandName = product?.brand?.name || 'General';
-        const deliveryNote = await generateCustomRef(tx, 'return', brandName);
+        const deliveryNote = await generateCustomRef(tx, 'RET', brandName);
 
         // 2. Create RETURN transaction to return stock to Warehouse
         await tx.inventoryTransaction.create({
@@ -1802,7 +1852,7 @@ export async function processOutboundReturns(returnsPayload) {
           include: { brand: { select: { name: true } } }
         });
         const brandName = product?.brand?.name || 'General';
-        const deliveryNote = await generateCustomRef(tx, 'used', brandName);
+        const deliveryNote = await generateCustomRef(tx, 'USD', brandName);
 
         await tx.inventoryTransaction.create({
           data: {
@@ -1959,7 +2009,7 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
           deliveryNote,
           deliverySupervisorId: deliverySupervisorId || null,
           deliveryStatus: 'Delivered',
-          timestamp: transactionDate ? new Date(transactionDate) : undefined,
+          timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
         }
       });
 
@@ -2085,31 +2135,8 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
             lowStockAlert: prodLowStockAlert ? parseInt(prodLowStockAlert, 10) : 0,
             imageUrl: imageUrl,
           }
-        });
-        productId = newProduct.id;
-      }
-
-      const product = await tx.product.findUnique({ where: { id: productId } });
-      if (!product) throw new Error(`Product not found`);
-
-      const invTx = await tx.inventoryTransaction.create({
-        data: {
-          productId,
-          transactionType: 'RECEIVE',
-          fromEntityType,
-          fromEntityId: fromEntityId || null,
-          toEntityType,
-          toEntityId: toEntityId || null,
-          quantity,
-          notes: (() => {
-            const itemNote = notes || `Bulk receive from ${fromEntityType}`;
-            if (idx === 0 && globalNotes) {
-              return `${globalNotes.trim()} | ${itemNote.trim()}`;
-            }
-            return itemNote;
-          })(),
           deliveryNote, // Reuse existing!
-          timestamp: transactionDate ? new Date(transactionDate) : undefined,
+          timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
         }
       });
 

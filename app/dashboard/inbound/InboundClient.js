@@ -730,7 +730,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     try {
       if (editMode && existingDn) {
         await updateBulkReceiveTransactions(existingDn, formData);
-        setSuccessMsg(`Delivery note ${existingDn} updated successfully!`);
+        setSuccessMsg(`Receive note ${existingDn} updated successfully!`);
         setTimeout(() => {
           router.push('/dashboard/inbound');
         }, 1500);
@@ -886,13 +886,13 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           </div>
 
           <div className="flex flex-col gap-1.5 sm:col-span-3">
-            <label className="text-xs font-semibold text-text-secondary">Delivery Note Global Remarks</label>
+            <label className="text-xs font-semibold text-text-secondary">Receive Note Global Remarks</label>
             <input
               type="text"
               className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               value={globalNotes}
               onChange={(e) => setGlobalNotes(e.target.value)}
-              placeholder="Global remark visible at the top of the Delivery Note PDF..."
+              placeholder="Global remark visible at the top of the Receive Note PDF..."
             />
           </div>
         </div>

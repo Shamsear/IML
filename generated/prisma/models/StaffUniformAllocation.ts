@@ -49,6 +49,7 @@ export type StaffUniformAllocationMinAggregateOutputType = {
   givenDate: Date | null
   returnDate: Date | null
   notes: string | null
+  ref: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -66,6 +67,7 @@ export type StaffUniformAllocationMaxAggregateOutputType = {
   givenDate: Date | null
   returnDate: Date | null
   notes: string | null
+  ref: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -84,6 +86,7 @@ export type StaffUniformAllocationCountAggregateOutputType = {
   givenDate: number
   returnDate: number
   notes: number
+  ref: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -113,6 +116,7 @@ export type StaffUniformAllocationMinAggregateInputType = {
   givenDate?: true
   returnDate?: true
   notes?: true
+  ref?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -130,6 +134,7 @@ export type StaffUniformAllocationMaxAggregateInputType = {
   givenDate?: true
   returnDate?: true
   notes?: true
+  ref?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -148,6 +153,7 @@ export type StaffUniformAllocationCountAggregateInputType = {
   givenDate?: true
   returnDate?: true
   notes?: true
+  ref?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -253,6 +259,7 @@ export type StaffUniformAllocationGroupByOutputType = {
   givenDate: Date
   returnDate: Date | null
   notes: string | null
+  ref: string | null
   createdAt: Date
   updatedAt: Date
   _count: StaffUniformAllocationCountAggregateOutputType | null
@@ -294,6 +301,7 @@ export type StaffUniformAllocationWhereInput = {
   givenDate?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
   returnDate?: Prisma.DateTimeNullableFilter<"StaffUniformAllocation"> | Date | string | null
   notes?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
+  ref?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   createdAt?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
   staff?: Prisma.XOR<Prisma.StaffScalarRelationFilter, Prisma.StaffWhereInput>
@@ -315,6 +323,7 @@ export type StaffUniformAllocationOrderByWithRelationInput = {
   givenDate?: Prisma.SortOrder
   returnDate?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
+  ref?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   staff?: Prisma.StaffOrderByWithRelationInput
@@ -339,6 +348,7 @@ export type StaffUniformAllocationWhereUniqueInput = Prisma.AtLeast<{
   givenDate?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
   returnDate?: Prisma.DateTimeNullableFilter<"StaffUniformAllocation"> | Date | string | null
   notes?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
+  ref?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   createdAt?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
   staff?: Prisma.XOR<Prisma.StaffScalarRelationFilter, Prisma.StaffWhereInput>
@@ -360,6 +370,7 @@ export type StaffUniformAllocationOrderByWithAggregationInput = {
   givenDate?: Prisma.SortOrder
   returnDate?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
+  ref?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.StaffUniformAllocationCountOrderByAggregateInput
@@ -386,6 +397,7 @@ export type StaffUniformAllocationScalarWhereWithAggregatesInput = {
   givenDate?: Prisma.DateTimeWithAggregatesFilter<"StaffUniformAllocation"> | Date | string
   returnDate?: Prisma.DateTimeNullableWithAggregatesFilter<"StaffUniformAllocation"> | Date | string | null
   notes?: Prisma.StringNullableWithAggregatesFilter<"StaffUniformAllocation"> | string | null
+  ref?: Prisma.StringNullableWithAggregatesFilter<"StaffUniformAllocation"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"StaffUniformAllocation"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"StaffUniformAllocation"> | Date | string
 }
@@ -401,6 +413,7 @@ export type StaffUniformAllocationCreateInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   staff: Prisma.StaffCreateNestedOneWithoutAllocationsInput
@@ -422,6 +435,7 @@ export type StaffUniformAllocationUncheckedCreateInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -437,6 +451,7 @@ export type StaffUniformAllocationUpdateInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   staff?: Prisma.StaffUpdateOneRequiredWithoutAllocationsNestedInput
@@ -458,6 +473,7 @@ export type StaffUniformAllocationUncheckedUpdateInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -476,6 +492,7 @@ export type StaffUniformAllocationCreateManyInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -491,6 +508,7 @@ export type StaffUniformAllocationUpdateManyMutationInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -509,6 +527,7 @@ export type StaffUniformAllocationUncheckedUpdateManyInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -537,6 +556,7 @@ export type StaffUniformAllocationCountOrderByAggregateInput = {
   givenDate?: Prisma.SortOrder
   returnDate?: Prisma.SortOrder
   notes?: Prisma.SortOrder
+  ref?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -559,6 +579,7 @@ export type StaffUniformAllocationMaxOrderByAggregateInput = {
   givenDate?: Prisma.SortOrder
   returnDate?: Prisma.SortOrder
   notes?: Prisma.SortOrder
+  ref?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -576,6 +597,7 @@ export type StaffUniformAllocationMinOrderByAggregateInput = {
   givenDate?: Prisma.SortOrder
   returnDate?: Prisma.SortOrder
   notes?: Prisma.SortOrder
+  ref?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -734,6 +756,7 @@ export type StaffUniformAllocationCreateWithoutSupervisorInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   staff: Prisma.StaffCreateNestedOneWithoutAllocationsInput
@@ -753,6 +776,7 @@ export type StaffUniformAllocationUncheckedCreateWithoutSupervisorInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -800,6 +824,7 @@ export type StaffUniformAllocationScalarWhereInput = {
   givenDate?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
   returnDate?: Prisma.DateTimeNullableFilter<"StaffUniformAllocation"> | Date | string | null
   notes?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
+  ref?: Prisma.StringNullableFilter<"StaffUniformAllocation"> | string | null
   createdAt?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"StaffUniformAllocation"> | Date | string
 }
@@ -815,6 +840,7 @@ export type StaffUniformAllocationCreateWithoutStoreInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   staff: Prisma.StaffCreateNestedOneWithoutAllocationsInput
@@ -834,6 +860,7 @@ export type StaffUniformAllocationUncheckedCreateWithoutStoreInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -875,6 +902,7 @@ export type StaffUniformAllocationCreateWithoutStaffInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   store: Prisma.StoreCreateNestedOneWithoutAllocationsInput
@@ -894,6 +922,7 @@ export type StaffUniformAllocationUncheckedCreateWithoutStaffInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -937,6 +966,7 @@ export type StaffUniformAllocationCreateManySupervisorInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -952,6 +982,7 @@ export type StaffUniformAllocationUpdateWithoutSupervisorInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   staff?: Prisma.StaffUpdateOneRequiredWithoutAllocationsNestedInput
@@ -971,6 +1002,7 @@ export type StaffUniformAllocationUncheckedUpdateWithoutSupervisorInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -988,6 +1020,7 @@ export type StaffUniformAllocationUncheckedUpdateManyWithoutSupervisorInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1005,6 +1038,7 @@ export type StaffUniformAllocationCreateManyStoreInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1020,6 +1054,7 @@ export type StaffUniformAllocationUpdateWithoutStoreInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   staff?: Prisma.StaffUpdateOneRequiredWithoutAllocationsNestedInput
@@ -1039,6 +1074,7 @@ export type StaffUniformAllocationUncheckedUpdateWithoutStoreInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1056,6 +1092,7 @@ export type StaffUniformAllocationUncheckedUpdateManyWithoutStoreInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1073,6 +1110,7 @@ export type StaffUniformAllocationCreateManyStaffInput = {
   givenDate?: Date | string
   returnDate?: Date | string | null
   notes?: string | null
+  ref?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1088,6 +1126,7 @@ export type StaffUniformAllocationUpdateWithoutStaffInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   store?: Prisma.StoreUpdateOneRequiredWithoutAllocationsNestedInput
@@ -1107,6 +1146,7 @@ export type StaffUniformAllocationUncheckedUpdateWithoutStaffInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1124,6 +1164,7 @@ export type StaffUniformAllocationUncheckedUpdateManyWithoutStaffInput = {
   givenDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1144,6 +1185,7 @@ export type StaffUniformAllocationSelect<ExtArgs extends runtime.Types.Extension
   givenDate?: boolean
   returnDate?: boolean
   notes?: boolean
+  ref?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   staff?: boolean | Prisma.StaffDefaultArgs<ExtArgs>
@@ -1165,6 +1207,7 @@ export type StaffUniformAllocationSelectCreateManyAndReturn<ExtArgs extends runt
   givenDate?: boolean
   returnDate?: boolean
   notes?: boolean
+  ref?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   staff?: boolean | Prisma.StaffDefaultArgs<ExtArgs>
@@ -1186,6 +1229,7 @@ export type StaffUniformAllocationSelectUpdateManyAndReturn<ExtArgs extends runt
   givenDate?: boolean
   returnDate?: boolean
   notes?: boolean
+  ref?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   staff?: boolean | Prisma.StaffDefaultArgs<ExtArgs>
@@ -1207,11 +1251,12 @@ export type StaffUniformAllocationSelectScalar = {
   givenDate?: boolean
   returnDate?: boolean
   notes?: boolean
+  ref?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type StaffUniformAllocationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "staffId" | "storeId" | "uniformQty" | "capQty" | "uniformReturned" | "capReturned" | "allocatedItems" | "workingPeriod" | "supervisorId" | "givenDate" | "returnDate" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["staffUniformAllocation"]>
+export type StaffUniformAllocationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "staffId" | "storeId" | "uniformQty" | "capQty" | "uniformReturned" | "capReturned" | "allocatedItems" | "workingPeriod" | "supervisorId" | "givenDate" | "returnDate" | "notes" | "ref" | "createdAt" | "updatedAt", ExtArgs["result"]["staffUniformAllocation"]>
 export type StaffUniformAllocationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   staff?: boolean | Prisma.StaffDefaultArgs<ExtArgs>
   store?: boolean | Prisma.StoreDefaultArgs<ExtArgs>
@@ -1249,6 +1294,7 @@ export type $StaffUniformAllocationPayload<ExtArgs extends runtime.Types.Extensi
     givenDate: Date
     returnDate: Date | null
     notes: string | null
+    ref: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["staffUniformAllocation"]>
@@ -1690,6 +1736,7 @@ export interface StaffUniformAllocationFieldRefs {
   readonly givenDate: Prisma.FieldRef<"StaffUniformAllocation", 'DateTime'>
   readonly returnDate: Prisma.FieldRef<"StaffUniformAllocation", 'DateTime'>
   readonly notes: Prisma.FieldRef<"StaffUniformAllocation", 'String'>
+  readonly ref: Prisma.FieldRef<"StaffUniformAllocation", 'String'>
   readonly createdAt: Prisma.FieldRef<"StaffUniformAllocation", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"StaffUniformAllocation", 'DateTime'>
 }

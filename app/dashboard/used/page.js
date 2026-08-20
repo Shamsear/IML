@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function UsedPage() {
-  const [rawTransactions, stores] = await Promise.all([
+  const [rawTransactions, stores, pastUsed] = await Promise.all([
     prisma.inventoryTransaction.findMany({
       where: {
         transactionType: { in: ['ISSUE', 'OUTBOUND'] },
@@ -23,13 +23,21 @@ export default async function UsedPage() {
       orderBy: { timestamp: 'desc' },
     }),
     prisma.store.findMany({ select: { id: true, name: true } }),
+    prisma.inventoryTransaction.findMany({
+      where: { transactionType: 'USED' },
+      include: {
+        product: { select: { id: true, name: true, brand: { select: { name: true } } } }
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 100
+    })
   ]);
 
   const transactions = rawTransactions.filter(t => (t.quantity - (t.returnedQty || 0)) > 0);
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <UsedClient transactions={transactions} stores={stores} />
+      <UsedClient transactions={transactions} stores={stores} pastUsed={pastUsed} />
     </Suspense>
   );
 }

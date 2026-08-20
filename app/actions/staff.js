@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 import { generateId } from '@/lib/idGenerator';
+import { generateCustomRef } from '@/app/actions/transactions';
 
 async function checkAuth() {
   const session = await getServerSession(authOptions);
@@ -118,39 +119,46 @@ export async function allocateUniform(formData) {
     }
   });
 
+export async function deleteAllocation(allocationId) {
+  await checkAuth();
+
+  await prisma.staffUniformAllocation.delete({
+    where: { id: allocationId }
+  });
+
   revalidatePath('/dashboard/staff');
 }
 
 export async function returnUniformItem(allocationId, payload, notes = '') {
   await checkAuth();
 
-  const allocation = await prisma.staffUniformAllocation.findUnique({
-    where: { id: allocationId }
-  });
+  await prisma.$transaction(async (tx) => {
+    const allocation = await tx.staffUniformAllocation.findUnique({
+      where: { id: allocationId }
+    });
 
-  if (!allocation) throw new Error('Allocation record not found');
+    if (!allocation) throw new Error('Allocation record not found');
 
-  // Payload format: { legacyUniform: boolean, legacyCap: boolean, itemIds: string[] }
-  // Backwards compatibility with old 'both', 'uniform', 'cap' strings
-  let isLegacyUniform = false;
-  let isLegacyCap = false;
-  let itemIdsToReturn = [];
+    // Payload format: { legacyUniform: boolean, legacyCap: boolean, itemIds: string[] }
+    // Backwards compatibility with old 'both', 'uniform', 'cap' strings
+    let isLegacyUniform = false;
+    let isLegacyCap = false;
+    let itemIdsToReturn = [];
 
-  if (typeof payload === 'string') {
-    isLegacyUniform = payload === 'uniform' || payload === 'both';
-    isLegacyCap = payload === 'cap' || payload === 'both';
-  } else if (payload) {
-    isLegacyUniform = !!payload.legacyUniform;
-    isLegacyCap = !!payload.legacyCap;
-    itemIdsToReturn = payload.itemIds || [];
-  }
+    if (typeof payload === 'string') {
+      isLegacyUniform = payload === 'uniform' || payload === 'both';
+      isLegacyCap = payload === 'cap' || payload === 'both';
+    } else if (payload) {
+      isLegacyUniform = !!payload.legacyUniform;
+      isLegacyCap = !!payload.legacyCap;
+      itemIdsToReturn = payload.itemIds || [];
+    }
 
-  const data = {};
-  if (isLegacyUniform) data.uniformReturned = true;
-  if (isLegacyCap) data.capReturned = true;
+    const data = {};
+    if (isLegacyUniform) data.uniformReturned = true;
+    if (isLegacyCap) data.capReturned = true;
 
-  // Handle dynamic items
-  if (itemIdsToReturn.length > 0) {
+    // Handle dynamic items
     let currentItems = [];
     if (allocation.allocatedItems) {
       if (typeof allocation.allocatedItems === 'string') {
@@ -159,42 +167,75 @@ export async function returnUniformItem(allocationId, payload, notes = '') {
         currentItems = allocation.allocatedItems;
       }
     }
-    
-    const updatedItems = currentItems.map(item => {
-      if (itemIdsToReturn.includes(item.id)) {
-        return { ...item, returned: true, returnedAt: new Date().toISOString() };
+
+    if (itemIdsToReturn.length > 0) {
+      const newlyReturnedItems = currentItems.filter(item => 
+        itemIdsToReturn.includes(item.id) && !item.returned
+      );
+
+      for (const retItem of newlyReturnedItems) {
+        if (retItem.productId) {
+          const prod = await tx.product.findUnique({
+            where: { id: retItem.productId },
+            include: { brand: { select: { name: true } } }
+          });
+          if (prod) {
+            const brandName = prod.brand?.name || 'General';
+            const ref = await generateCustomRef(tx, 'RET', brandName);
+            await tx.inventoryTransaction.create({
+              data: {
+                productId: retItem.productId,
+                transactionType: 'RETURN',
+                fromEntityType: 'STORE',
+                fromEntityId: allocation.storeId,
+                toEntityType: 'WAREHOUSE',
+                toEntityId: null,
+                quantity: parseInt(retItem.qty, 10) || 1,
+                notes: `Returned Uniform via promoter tracking return flow. Allocation: ${allocation.id}. Promoter: ${allocation.staffId}. ${notes || ''}`,
+                deliveryStatus: 'Delivered',
+                deliveryNote: ref
+              }
+            });
+          }
+        }
       }
-      return item;
+
+      const updatedItems = currentItems.map(item => {
+        if (itemIdsToReturn.includes(item.id)) {
+          return { ...item, returned: true, returnedAt: new Date().toISOString() };
+        }
+        return item;
+      });
+      data.allocatedItems = updatedItems;
+    }
+
+    // Calculate if fully returned
+    const willBeUniformReturned = data.uniformReturned ?? allocation.uniformReturned;
+    const willBeCapReturned = data.capReturned ?? allocation.capReturned;
+    
+    let allItemsReturned = true;
+    if (data.allocatedItems) {
+      allItemsReturned = data.allocatedItems.every(i => i.returned);
+    } else if (allocation.allocatedItems) {
+      let currentItems = typeof allocation.allocatedItems === 'string' ? JSON.parse(allocation.allocatedItems) : allocation.allocatedItems;
+      allItemsReturned = Array.isArray(currentItems) ? currentItems.every(i => i.returned) : true;
+    }
+
+    const legacyDone = (allocation.uniformQty === 0 || willBeUniformReturned) && (allocation.capQty === 0 || willBeCapReturned);
+
+    if (legacyDone && allItemsReturned) {
+      data.returnDate = new Date();
+    }
+
+    if (notes) {
+      data.notes = allocation.notes ? `${allocation.notes} | Return Notes: ${notes}` : notes;
+    }
+
+    await tx.staffUniformAllocation.update({
+      where: { id: allocationId },
+      data,
     });
-    data.allocatedItems = updatedItems;
-  }
-
-  // Calculate if fully returned
-  const willBeUniformReturned = data.uniformReturned ?? allocation.uniformReturned;
-  const willBeCapReturned = data.capReturned ?? allocation.capReturned;
-  
-  let allItemsReturned = true;
-  if (data.allocatedItems) {
-    allItemsReturned = data.allocatedItems.every(i => i.returned);
-  } else if (allocation.allocatedItems) {
-    let currentItems = typeof allocation.allocatedItems === 'string' ? JSON.parse(allocation.allocatedItems) : allocation.allocatedItems;
-    allItemsReturned = Array.isArray(currentItems) ? currentItems.every(i => i.returned) : true;
-  }
-
-  const legacyDone = (allocation.uniformQty === 0 || willBeUniformReturned) && (allocation.capQty === 0 || willBeCapReturned);
-
-  if (legacyDone && allItemsReturned) {
-    data.returnDate = new Date();
-  }
-
-  if (notes) {
-    data.notes = allocation.notes ? `${allocation.notes} | Return Notes: ${notes}` : notes;
-  }
-
-  await prisma.staffUniformAllocation.update({
-    where: { id: allocationId },
-    data,
-  });
+  }, { timeout: 20000 });
 
   revalidatePath('/dashboard/staff');
 }
@@ -329,17 +370,45 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
     where: { id: { in: allocationIds } }
   });
 
-  await prisma.$transaction(
-    allocations.map(alloc => {
-      let updatedItems = [];
+  await prisma.$transaction(async (tx) => {
+    for (const alloc of allocations) {
+      let currentItems = [];
       if (alloc.allocatedItems) {
-        let currentItems = typeof alloc.allocatedItems === 'string' ? JSON.parse(alloc.allocatedItems) : alloc.allocatedItems;
-        if (Array.isArray(currentItems)) {
-          updatedItems = currentItems.map(item => ({ ...item, returned: true, returnedAt: item.returnedAt || new Date().toISOString() }));
+        currentItems = typeof alloc.allocatedItems === 'string' ? JSON.parse(alloc.allocatedItems) : alloc.allocatedItems;
+      }
+      let updatedItems = [];
+      if (Array.isArray(currentItems)) {
+        const unreturned = currentItems.filter(item => !item.returned);
+        for (const retItem of unreturned) {
+          if (retItem.productId) {
+            const prod = await tx.product.findUnique({
+              where: { id: retItem.productId },
+              include: { brand: { select: { name: true } } }
+            });
+            if (prod) {
+              const brandName = prod.brand?.name || 'General';
+              const ref = await generateCustomRef(tx, 'RET', brandName);
+              await tx.inventoryTransaction.create({
+                data: {
+                  productId: retItem.productId,
+                  transactionType: 'RETURN',
+                  fromEntityType: 'STORE',
+                  fromEntityId: alloc.storeId,
+                  toEntityType: 'WAREHOUSE',
+                  toEntityId: null,
+                  quantity: parseInt(retItem.qty, 10) || 1,
+                  notes: `Bulk Returned Uniform via promoter tracking return flow. Allocation: ${alloc.id}. Promoter: ${alloc.staffId}. ${notes || ''}`,
+                  deliveryStatus: 'Delivered',
+                  deliveryNote: ref
+                }
+              });
+            }
+          }
         }
+        updatedItems = currentItems.map(item => ({ ...item, returned: true, returnedAt: item.returnedAt || new Date().toISOString() }));
       }
 
-      return prisma.staffUniformAllocation.update({
+      await tx.staffUniformAllocation.update({
         where: { id: alloc.id },
         data: {
           uniformReturned: true,
@@ -349,9 +418,8 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
           notes: notes ? (alloc.notes ? `${alloc.notes} | Bulk Return: ${notes}` : `Bulk Return: ${notes}`) : undefined
         }
       });
-    }),
-    { timeout: 20000 }
-  );
+    }
+  }, { timeout: 30000 });
 
   revalidatePath('/dashboard/staff');
 }

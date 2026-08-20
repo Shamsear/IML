@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Package, Search, Store, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List } from 'lucide-react';
+import { Package, Search, Store, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
+import TransactionActions from '@/components/TransactionActions';
 
-export default function ReturnsClient({ transactions, stores }) {
+export default function ReturnsClient({ transactions, stores, pastReturns = [] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -34,7 +35,7 @@ export default function ReturnsClient({ transactions, stores }) {
     return matchDN && matchStore;
   }), [transactions, searchDN, searchStore]);
 
-  // --- Grouping by Delivery Note ---
+  // --- Grouping by Return Note ---
   const deliveryNoteGroups = useMemo(() => {
     const groups = {};
     filteredTransactions.forEach(tx => {
@@ -122,28 +123,34 @@ export default function ReturnsClient({ transactions, stores }) {
         </button>
         <button onClick={() => changeTab('grouped')}
           className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'grouped' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
-          <ChevronDown size={15} /> By Delivery Note
+          <ChevronDown size={15} /> By Return Note
+        </button>
+        <button onClick={() => changeTab('history')}
+          className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'history' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
+          <History size={15} /> Returns History (Undo)
         </button>
       </div>
 
       <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
         {/* Filters */}
-        <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Store size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <select value={searchStore} onChange={(e) => setSearchStore(e.target.value)}
-              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
-              <option value="">All Stores</option>
-              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+        {activeTab !== 'history' && (
+          <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Store size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+              <select value={searchStore} onChange={(e) => setSearchStore(e.target.value)}
+                className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
+                <option value="">All Stores</option>
+                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="relative flex-1">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input type="text" placeholder="Search Return Note..." value={searchDN}
+                onChange={(e) => setSearchDN(e.target.value)}
+                className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold font-mono" />
+            </div>
           </div>
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input type="text" placeholder="Search Delivery Note..." value={searchDN}
-              onChange={(e) => setSearchDN(e.target.value)}
-              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold font-mono" />
-          </div>
-        </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col">
 
@@ -199,13 +206,13 @@ export default function ReturnsClient({ transactions, stores }) {
             </div>
           )}
 
-          {/* ── TAB: BY DELIVERY NOTE ── */}
+          {/* ── TAB: BY RETURN NOTE ── */}
           {activeTab === 'grouped' && (
             <div className="flex flex-col divide-y divide-border">
               {deliveryNoteGroups.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
                   <Package size={48} className="opacity-20" />
-                  <span className="font-semibold">No returnable delivery notes found.</span>
+                  <span className="font-semibold">No returnable return notes found.</span>
                 </div>
               ) : deliveryNoteGroups.map(group => {
                 const isExpanded = !!expandedGroups[group.dn];
@@ -286,19 +293,67 @@ export default function ReturnsClient({ transactions, stores }) {
             </div>
           )}
 
-          {/* Footer */}
-          <div className="p-4 border-t border-border bg-surface flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex flex-col">
-              {error && <div className="text-danger text-xs font-bold flex items-center gap-1.5 mb-1 bg-danger/10 px-2 py-1 rounded"><AlertCircle size={14} /> {error}</div>}
-              {success && <div className="text-success text-xs font-bold flex items-center gap-1.5 mb-1 bg-success/10 px-2 py-1 rounded"><CheckCircle2 size={14} /> {success}</div>}
-              <span className="text-xs font-semibold text-text-secondary">{selectedCount} item(s) selected for return.</span>
+          {/* ── TAB: RETURNS HISTORY ── */}
+          {activeTab === 'history' && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-text-secondary border-collapse">
+                <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
+                  <tr>
+                    <th className="py-3 px-5">Date</th>
+                    <th className="py-3 px-5">Product</th>
+                    <th className="py-3 px-5">Returned From</th>
+                    <th className="py-3 px-5 text-center">Returned Qty</th>
+                    <th className="py-3 px-5">Remarks</th>
+                    <th className="py-3 px-5 text-right">Actions / Undo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {pastReturns.length === 0 ? (
+                    <tr><td colSpan="6" className="py-12 text-center text-text-muted">
+                      <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returns logs found.</span></div>
+                    </td></tr>
+                  ) : pastReturns.map(tx => {
+                    const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
+                    return (
+                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
+                        <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
+                          {new Date(tx.timestamp).toLocaleString('en-AE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="py-3 px-5 font-semibold text-text-primary whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-primary font-bold">{tx.product?.name}</span>
+                            <span className="text-[10px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-5 font-semibold text-xs text-text-secondary">{fromStore}</td>
+                        <td className="py-3 px-5 text-center font-mono font-bold text-success">+{tx.quantity}</td>
+                        <td className="py-3 px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
+                        <td className="py-3 px-5 text-right whitespace-nowrap">
+                          <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <button type="submit" disabled={isSubmitting || selectedCount === 0}
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover disabled:bg-primary/50 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center">
-              {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-              <span>Confirm Return</span>
-            </button>
-          </div>
+          )}
+
+          {/* Footer */}
+          {activeTab !== 'history' && (
+            <div className="p-4 border-t border-border bg-surface flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col">
+                {error && <div className="text-danger text-xs font-bold flex items-center gap-1.5 mb-1 bg-danger/10 px-2 py-1 rounded"><AlertCircle size={14} /> {error}</div>}
+                {success && <div className="text-success text-xs font-bold flex items-center gap-1.5 mb-1 bg-success/10 px-2 py-1 rounded"><CheckCircle2 size={14} /> {success}</div>}
+                <span className="text-xs font-semibold text-text-secondary">{selectedCount} item(s) selected for return.</span>
+              </div>
+              <button type="submit" disabled={isSubmitting || selectedCount === 0}
+                className="px-6 py-2.5 bg-primary hover:bg-primary-hover disabled:bg-primary/50 text-white font-bold text-sm rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center">
+                {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                <span>Confirm Return</span>
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

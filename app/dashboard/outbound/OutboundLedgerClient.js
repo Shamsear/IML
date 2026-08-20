@@ -96,7 +96,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <CopyDeliveryNoteButton type="outbound" />
+          <CopyDeliveryNoteButton type="outbound" noteType="Delivery" />
           <Link 
             href="/dashboard/outbound/new" 
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"

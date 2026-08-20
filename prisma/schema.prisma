@@ -148,6 +148,7 @@ model StaffUniformAllocation {
   givenDate       DateTime  @default(now())
   returnDate      DateTime?
   notes           String?
+  ref             String?   // e.g. UNF-SAD-200826-001
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

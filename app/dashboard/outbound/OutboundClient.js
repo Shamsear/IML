@@ -154,7 +154,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         promoterShirtSize: 'Medium',
         existingStaffId: '',
         storeId: '',
-        allocatedItems: [{ id: `init-${Date.now()}`, type: defaultProduct.name || '', size: 'Medium', qty: '1' }],
+        allocatedItems: [{ id: `init-${Date.now()}`, type: defaultProduct.name || '', size: 'Medium', qty: '1', productId: defaultProduct.id }],
         startDate: '',
         endDate: '',
         notes: '',
@@ -293,7 +293,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           promoterShirtSize: 'Medium',
           existingStaffId: '',
           storeId: '',
-          allocatedItems: [{ id: `init-${Date.now()}`, type: prod.name || '', size: 'Medium', qty: '1' }],
+          allocatedItems: [{ id: `init-${Date.now()}`, type: prod.name || '', size: 'Medium', qty: '1', productId: prod.id }],
           startDate: '',
           endDate: '',
           notes: '',
@@ -723,8 +723,9 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           setLoading(false);
           return;
         }
-        if (!pa.storeId) {
-          updateItemField(i, 'error', 'Please select an outlet store placement for the promoter');
+        pa.storeId = toId;
+        if (!pa.storeId || toType !== 'STORE') {
+          updateItemField(i, 'error', 'Please select a valid destination Store at the top of the page for this uniform dispatch.');
           handleExpandItem(i);
           setLoading(false);
           return;
@@ -1404,17 +1405,6 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                   placeholder="Select size..."
                                 />
                               </div>
-
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-text-secondary">Assigned Store Placement</label>
-                                <CustomSelect
-                                  options={stores.map(s => ({ value: s.id, label: s.name }))}
-                                  value={item.promoterAssignment.storeId}
-                                  onChange={(val) => updatePromoterAssignmentField(idx, 'storeId', val)}
-                                  placeholder="Choose outlet store..."
-                                  required
-                                />
-                              </div>
                             </div>
 
                             {/* Assigned Uniform Items */}
@@ -1491,7 +1481,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const nextItems = [...item.promoterAssignment.allocatedItems, { id: `item-${Date.now()}-${Math.random()}`, type: selectedProd?.name || '', size: 'Medium', qty: '1' }];
+                                  const nextItems = [...item.promoterAssignment.allocatedItems, { id: `item-${Date.now()}-${Math.random()}`, type: selectedProd?.name || '', size: 'Medium', qty: '1', productId: selectedProd?.id }];
                                   updatePromoterAssignmentField(idx, 'allocatedItems', nextItems);
                                 }}
                                 className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline w-fit mt-1"

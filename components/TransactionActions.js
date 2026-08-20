@@ -5,14 +5,20 @@ import { Edit2, Trash2, Loader2, X, CopyPlus } from 'lucide-react';
 import { deleteTransaction } from '@/app/actions/transactions';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getTransactionNoteName } from '@/lib/transactionHelpers';
 
-export default function TransactionActions({ txId, deliveryNote, notes, showDeliveryNote, copyType = 'inbound' }) {
+export default function TransactionActions({ txId, deliveryNote, notes, showDeliveryNote, copyType = 'inbound', transactionType = null }) {
   const router = useRouter();
 
   // Delete state
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  // Determine note name based on type
+  const noteName = transactionType 
+    ? getTransactionNoteName(transactionType, deliveryNote)
+    : (copyType === 'inbound' ? 'Receive Note' : copyType === 'outbound' ? 'Delivery Note' : 'Note');
 
   const handleOpenDelete = (e) => {
     e.stopPropagation();
@@ -48,7 +54,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
             <Edit2 size={13} />
           </Link>
           <span className="tooltip-box tooltip-left">
-            {deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? "Edit entire Delivery Note" : "Edit transaction"}
+            {deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : "Edit transaction"}
           </span>
         </div>
         <div className="has-tooltip">
@@ -63,7 +69,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
             <CopyPlus size={13} />
           </Link>
           <span className="tooltip-box tooltip-left">
-            {deliveryNote ? `Duplicate full delivery note` : `Duplicate transaction`}
+            {deliveryNote ? `Duplicate full ${noteName.toLowerCase()}` : `Duplicate transaction`}
           </span>
         </div>
         <div className="has-tooltip">
@@ -74,7 +80,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
           >
             <Trash2 size={13} />
           </button>
-          <span className="tooltip-box tooltip-left">Delete transaction record</span>
+          <span className="tooltip-box tooltip-left">Undo / Delete transaction</span>
         </div>
       </div>
 
@@ -88,7 +94,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-5 border-b border-border bg-surface flex items-center justify-between">
-              <h3 className="font-display font-extrabold text-lg text-text-primary">Delete Transaction</h3>
+              <h3 className="font-display font-extrabold text-lg text-text-primary">Undo / Delete Transaction</h3>
               <button
                 onClick={() => setDeleteOpen(false)}
                 className="text-text-muted hover:text-text-primary transition-colors p-1"
@@ -99,7 +105,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
 
             <div className="p-6 bg-surface flex flex-col gap-4">
               <p className="text-sm text-text-secondary leading-relaxed">
-                Are you sure you want to delete this transaction? This action cannot be undone and will permanently remove this record from the ledger.
+                Are you sure you want to undo/delete this transaction? This action will permanently remove this record from the ledger and revert any associated stock changes.
               </p>
 
               {deleteError && (
@@ -125,7 +131,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
                 className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-danger hover:bg-danger-hover disabled:bg-danger/50 text-white font-bold text-sm rounded-lg shadow-sm transition-all"
               >
                 {deleting && <Loader2 size={16} className="animate-spin" />}
-                <span>{deleting ? 'Deleting...' : 'Delete Permanently'}</span>
+                <span>{deleting ? 'Processing...' : 'Confirm Undo / Delete'}</span>
               </button>
             </div>
           </div>

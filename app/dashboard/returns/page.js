@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function ReturnsPage() {
-  const [rawTransactions, stores] = await Promise.all([
+  const [rawTransactions, stores, pastReturns] = await Promise.all([
     prisma.inventoryTransaction.findMany({
       where: {
         transactionType: { in: ['ISSUE', 'OUTBOUND'] },
@@ -18,18 +18,29 @@ export default async function ReturnsPage() {
         ]
       },
       include: {
-        product: { select: { id: true, name: true, isReturnable: true, isDisposable: true, isSerialized: true } }
+        product: { select: { id: true, name: true, isReturnable: true, isDisposable: true, isSerialized: true, category: true } }
       },
       orderBy: { timestamp: 'desc' },
     }),
     prisma.store.findMany({ select: { id: true, name: true } }),
+    prisma.inventoryTransaction.findMany({
+      where: { transactionType: 'RETURN' },
+      include: {
+        product: { select: { id: true, name: true, brand: { select: { name: true } } } }
+      },
+      orderBy: { timestamp: 'desc' },
+      take: 100
+    })
   ]);
 
-  const transactions = rawTransactions.filter(t => (t.quantity - (t.returnedQty || 0)) > 0);
+  const transactions = rawTransactions.filter(t => 
+    (t.quantity - (t.returnedQty || 0)) > 0 &&
+    (!t.product?.category || !t.product.category.toUpperCase().includes('UNIFORM'))
+  );
 
   return (
     <Suspense fallback={<div>Loading Returns...</div>}>
-      <ReturnsClient transactions={transactions} stores={stores} />
+      <ReturnsClient transactions={transactions} stores={stores} pastReturns={pastReturns} />
     </Suspense>
   );
 }

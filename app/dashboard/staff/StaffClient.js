@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteStaff, returnUniformItem, bulkReturnUniformItems } from '@/app/actions/staff';
+import { deleteStaff, returnUniformItem, bulkReturnUniformItems, deleteAllocation } from '@/app/actions/staff';
 import { 
   Users, Plus, Trash2, Phone, Shirt, Search, Loader2, 
   CheckCircle, Building2, Inbox, Calendar, Edit2, AlertCircle, X
@@ -140,6 +140,20 @@ export default function StaffClient({ initialStaff, stores }) {
       setLoading(false); 
     }
   };
+
+  const handleAllocationDelete = async (id) => {
+    if (!confirm('Undo / Delete this uniform allocation record?')) return;
+    setLoading(true);
+    try {
+      await deleteAllocation(id);
+      router.refresh();
+    } catch (err) {
+      alert(err.message || 'Failed to delete allocation.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [returnItemsState, setReturnItemsState] = useState({ legacyUniform: false, legacyCap: false, itemIds: [] });
   const [availableReturnItems, setAvailableReturnItems] = useState({ legacyUniform: false, legacyCap: false, items: [] });
 
@@ -535,7 +549,7 @@ export default function StaffClient({ initialStaff, stores }) {
                               </div>
                             </td>
                             <td className="py-3.5 px-5 text-xs text-text-secondary font-mono whitespace-nowrap">
-                              {new Date(alloc.givenDate).toLocaleDateString()}
+                              {new Date(alloc.givenDate).toLocaleString('en-AE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </td>
                             <td className="py-3.5 px-5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1.5 justify-end">
@@ -561,10 +575,20 @@ export default function StaffClient({ initialStaff, stores }) {
                                     <span className="tooltip-box tooltip-left">Mark items as returned or used</span>
                                   </div>
                                 ) : (
-                                  <span className="text-[10px] font-bold text-success uppercase tracking-wider block pr-2">
+                                  <span className="text-[10px] font-bold text-success uppercase tracking-wider block pr-2 animate-pulse">
                                     Fully Returned
                                   </span>
                                 )}
+                                <div className="has-tooltip">
+                                  <button
+                                    onClick={() => handleAllocationDelete(alloc.id)}
+                                    className="p-1.5 bg-danger/10 hover:bg-danger text-danger hover:text-white rounded transition-all cursor-pointer flex items-center justify-center"
+                                    type="button"
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                  <span className="tooltip-box tooltip-left">Undo / Delete allocation</span>
+                                </div>
                               </div>
                             </td>
                           </tr>

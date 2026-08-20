@@ -26,10 +26,10 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
   const [productFilter, setProductFilter] = useState('');
   const [brandId, setBrandId] = useState(''); // '' = all brands
 
-  // Search filter for Delivery Notes Tab
+  // Search filter for Receive Notes Tab
   const [dnSearch, setDnSearch] = useState('');
 
-  // Expand state for Delivery Notes
+  // Expand state for Receive Notes
   const [expandedDn, setExpandedDn] = useState({});
 
   const toggleDnExpand = (dnKey) => {
@@ -50,7 +50,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
     return [{ value: '', label: 'All Brands' }, ...Object.entries(map).map(([id, name]) => ({ value: id, label: name })).sort((a, b) => a.label.localeCompare(b.label))];
   }, [transactions]);
 
-  // Group by Delivery Note + Source Entity ID
+  // Group by Receive Note + Source Entity ID
   const deliveryNotesGroups = useMemo(() => {
     const groups = {};
     (transactions || []).forEach(tx => {
@@ -105,7 +105,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <CopyDeliveryNoteButton type="inbound" />
+          <CopyDeliveryNoteButton type="inbound" noteType="Receive" />
           <Link 
             href="/dashboard/inbound/new" 
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
@@ -128,7 +128,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'delivery_notes' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'}`}
           onClick={() => changeTab('delivery_notes')}
         >
-          Grouped Delivery Notes
+          Grouped Receive Notes
         </button>
       </div>
 
@@ -173,7 +173,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                         <th className="py-3 px-5">Type</th>
                         <th className="py-3 px-5">Source / Supplier</th>
                         <th className="py-3 px-5 text-center">Quantity</th>
-                        <th className="py-3 px-5">Delivery Note</th>
+                        <th className="py-3 px-5">Receive Note</th>
                         <th className="py-3 px-5">Remarks</th>
                         <th className="py-3 px-5 text-right">Actions</th>
                       </tr>
@@ -215,7 +215,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                                   >
                                     {tx.deliveryNote}
                                   </Link>
-                                  <span className="tooltip-box">Download Delivery Note PDF</span>
+                                  <span className="tooltip-box">Download Receive Note PDF</span>
                                 </div>
                               ) : (
                                 <span>---</span>
@@ -264,7 +264,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input
                 type="text"
-                placeholder="Search Delivery Notes or Suppliers..."
+                placeholder="Search Receive Notes or Suppliers..."
                 className="w-full pl-9 pr-4 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors"
                 value={dnSearch}
                 onChange={e => setDnSearch(e.target.value)}
@@ -276,7 +276,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
             {filteredGroups.length === 0 ? (
               <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted bg-surface rounded-xl border border-border">
                 <FileText size={48} className="text-text-muted" />
-                <h3 className="font-display font-bold text-lg text-text-primary">No Delivery Notes found</h3>
+                <h3 className="font-display font-bold text-lg text-text-primary">No Receive Notes found</h3>
               </div>
             ) : (
               filteredGroups.map(group => {

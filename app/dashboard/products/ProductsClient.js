@@ -999,7 +999,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Delivery Note (Optional)</label>
+                <label className="text-xs font-semibold text-text-secondary">Receive Note (Optional)</label>
                 <input 
                   type="text" 
                   className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" 

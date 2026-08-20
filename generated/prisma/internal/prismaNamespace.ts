@@ -1460,6 +1460,7 @@ export const StaffUniformAllocationScalarFieldEnum = {
   givenDate: 'givenDate',
   returnDate: 'returnDate',
   notes: 'notes',
+  ref: 'ref',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
