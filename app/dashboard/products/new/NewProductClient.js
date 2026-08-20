@@ -180,6 +180,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
     stockCap: '',
     isReturnable: false,
     isDisposable: false,
+    trackExpiry: false,
     isPublic: true,
     includeInbound: false, // Default is false (catalog details only)
     inbounds: [createEmptyInboundEntry(0)], // List of inbound shipments
@@ -238,6 +239,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
               stockCap: product.stockCap ? product.stockCap.toString() : '',
               isReturnable: product.isReturnable,
               isDisposable: product.isDisposable,
+              trackExpiry: product.trackExpiry,
               isPublic: product.isPublic,
               includeInbound: false,
               inbounds: [createEmptyInboundEntry(0)],
@@ -743,6 +745,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
         formData.append('stockCap', item.stockCap || '');
         formData.append('isReturnable', item.isReturnable ? 'true' : 'false');
         formData.append('isDisposable', item.isDisposable ? 'true' : 'false');
+        formData.append('trackExpiry', item.trackExpiry ? 'true' : 'false');
         formData.append('isPublic', item.isPublic ? 'true' : 'false');
         formData.append('rack', item.rack || '');
         formData.append('shelf', item.shelf || '');
@@ -767,6 +770,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
           formData.append(`item_${idx}_stockCap`, item.stockCap || '');
           formData.append(`item_${idx}_isReturnable`, item.isReturnable ? 'true' : 'false');
           formData.append(`item_${idx}_isDisposable`, item.isDisposable ? 'true' : 'false');
+          formData.append(`item_${idx}_trackExpiry`, item.trackExpiry ? 'true' : 'false');
           formData.append(`item_${idx}_isPublic`, item.isPublic ? 'true' : 'false');
           formData.append(`item_${idx}_rack`, item.rack || '');
           formData.append(`item_${idx}_shelf`, item.shelf || '');
@@ -1245,6 +1249,23 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                               <span>Uniform (Always Returnable)</span>
                             </label>
                           </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2">
+                          <label className="text-xs font-semibold text-text-secondary">Expiry Date Tracking</label>
+                          <div className="flex items-center gap-6 mt-1">
+                            <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                              <input 
+                                type="checkbox" 
+                                className="custom-checkbox"
+                                checked={item.trackExpiry}
+                                onChange={(e) => updateItemField(idx, 'trackExpiry', e.target.checked)}
+                              />
+                              <span className="text-primary font-bold">Enable Expiry Date Tracking for this product</span>
+                            </label>
+                          </div>
+                          <span className="text-[10px] text-text-secondary">If enabled, you will be required to record manufacture and expiry dates when inbounding or receiving stock of this product.</span>
+                        </div>
 
                           {/* Uniform Size Selector */}
                           {item.category?.toUpperCase() === 'UNIFORM' && (

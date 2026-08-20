@@ -688,6 +688,7 @@ export async function createBulkProducts(formData) {
     const productType = formData.get(`item_${i}_productType`) || 'NORMAL';
     const stockCap = formData.get(`item_${i}_stockCap`);
     const isReturnable = formData.get(`item_${i}_isReturnable`) === 'true';
+    const trackExpiry = formData.get(`item_${i}_trackExpiry`) === 'true';
     const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
     const rack = formData.get(`item_${i}_rack`) || null;
     const shelf = formData.get(`item_${i}_shelf`) || null;
@@ -727,6 +728,7 @@ export async function createBulkProducts(formData) {
       productType,
       stockCap,
       isReturnable,
+      trackExpiry,
       isPublic,
       rack,
       shelf,
@@ -829,6 +831,7 @@ export async function createBulkProducts(formData) {
           rack: item.rack || null,
           shelf: item.shelf || null,
           isReturnable: !!item.isReturnable,
+          trackExpiry: !!item.trackExpiry,
           isPublic: item.isPublic !== false,
           isSerialized,
           stockCap: item.stockCap ? parseInt(item.stockCap, 10) : null,

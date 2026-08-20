@@ -991,7 +991,7 @@ export async function createBulkReceiveTransactions(formData) {
 
         if (isNewProduct) {
           // Register the product inline!
-          const { prodName, prodType, prodBrandId, prodCategory, prodSize, prodItemCode, prodLowStockAlert = '10', prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
+          const { prodName, prodType, prodBrandId, prodCategory, prodSize, prodItemCode, prodLowStockAlert = '10', prodIsReturnable, prodIsDisposable, prodRack, prodShelf, prodTrackExpiry } = item;
 
           const brandObj = await tx.brand.findUnique({
             where: { id: prodBrandId },
@@ -1033,6 +1033,7 @@ export async function createBulkReceiveTransactions(formData) {
               lowStockAlert: parseInt(prodLowStockAlert, 10) || 10,
               isReturnable: !!prodIsReturnable,
               isDisposable: !!prodIsDisposable,
+              trackExpiry: !!prodTrackExpiry,
               imageUrl,
             }
           });
