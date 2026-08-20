@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Package, Search, Store, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History } from 'lucide-react';
+import { Package, Search, Store, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, FileText } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
 
@@ -161,17 +161,18 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
                     <th className="py-3 px-5 w-10"></th>
-                    <th className="py-3 px-5">Date &amp; DN</th>
+                    <th className="py-3 px-5">Date</th>
                     <th className="py-3 px-5">Store</th>
                     <th className="py-3 px-5">Product</th>
                     <th className="py-3 px-5 text-right">Available</th>
                     <th className="py-3 px-5 w-32">Return Qty</th>
+                    <th className="py-3 px-5">Return Note</th>
                     <th className="py-3 px-5">Remarks</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {filteredTransactions.length === 0 ? (
-                    <tr><td colSpan="7" className="py-12 text-center text-text-muted">
+                    <tr><td colSpan="8" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returnable items found.</span></div>
                     </td></tr>
                   ) : filteredTransactions.map(tx => {
@@ -183,7 +184,6 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                         <td className="py-3 px-5"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
                         <td className="py-3 px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                          <div className="font-mono text-xs text-text-muted mt-0.5">{tx.deliveryNote || 'No DN'}</div>
                         </td>
                         <td className="py-3 px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
                         <td className="py-3 px-5 font-semibold text-primary max-w-[200px] truncate" title={tx.product?.name}>{tx.product?.name}</td>
@@ -192,6 +192,21 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                           <input type="number" min="1" max={remainingQty} disabled={!isSelected}
                             value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
                             className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
+                        </td>
+                        <td className="py-3 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
+                          {tx.deliveryNote ? (
+                            <a
+                              href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold has-tooltip"
+                            >
+                              {tx.deliveryNote}
+                              <span className="tooltip-box">Download Return Note PDF</span>
+                            </a>
+                          ) : (
+                            <span className="text-text-muted">---</span>
+                          )}
                         </td>
                         <td className="py-3 px-5">
                           <input type="text" placeholder="Optional notes..." disabled={!isSelected}
@@ -239,10 +254,22 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                           </p>
                         </div>
                       </div>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
-                        className={`flex-shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${allSelected ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated/60'}`}>
-                        {allSelected ? 'Deselect All' : 'Select All'}
-                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <a
+                          href={`/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId}&dn=${group.dn}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors"
+                        >
+                          <FileText size={14} />
+                          PDF
+                        </a>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${allSelected ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated/60'}`}>
+                          {allSelected ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Expanded Items */}

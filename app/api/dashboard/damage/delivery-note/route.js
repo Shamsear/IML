@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getStoreInventory } from '@/app/actions/transactions';
 import React from 'react';
 import { 
   Document, Page, Text, View, StyleSheet, renderToStream, Image
@@ -71,19 +70,6 @@ const pdfStyles = StyleSheet.create({
     width: '40%',
     alignItems: 'flex-end',
   },
-  logoTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#991b1b',
-    marginTop: 4,
-  },
-  logoTagline: {
-    fontSize: 8,
-    fontStyle: 'italic',
-    color: '#4b5563',
-  },
-
-  // Metadata Box (Bordered 2 columns)
   metaBox: {
     borderWidth: 1,
     borderColor: '#000000',
@@ -114,8 +100,6 @@ const pdfStyles = StyleSheet.create({
     fontWeight: 'bold',
     flex: 1,
   },
-
-  // Table
   table: {
     borderWidth: 1,
     borderColor: '#000000',
@@ -132,7 +116,6 @@ const pdfStyles = StyleSheet.create({
   thDesc: { width: '56%', paddingLeft: 5, fontWeight: 'bold', fontSize: 9, borderRightWidth: 1, borderRightColor: '#000000' },
   thQty: { width: '12%', textAlign: 'center', fontWeight: 'bold', fontSize: 9, borderRightWidth: 1, borderRightColor: '#000000' },
   thRemarks: { width: '24%', paddingLeft: 5, fontWeight: 'bold', fontSize: 9 },
-
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -144,8 +127,6 @@ const pdfStyles = StyleSheet.create({
   tdDesc: { width: '56%', paddingLeft: 5, fontSize: 8, fontWeight: 'bold', borderRightWidth: 1, borderRightColor: '#000000' },
   tdQty: { width: '12%', textAlign: 'center', fontSize: 8, fontWeight: 'bold', borderRightWidth: 1, borderRightColor: '#000000' },
   tdRemarks: { width: '24%', paddingLeft: 5, fontSize: 8 },
-
-  // Footer Box
   footerBox: {
     borderWidth: 1,
     borderColor: '#000000',
@@ -172,7 +153,7 @@ const pdfStyles = StyleSheet.create({
   },
 });
 
-const DeliveryNoteDocument = ({ supplierName, brandName, inventory, dateStr, docNo, receiverName, contactDetails, notes }) => {
+const DamageNoteDocument = ({ brandName, inventory, dateStr, docNo, notes }) => {
   const totalTableRows = 28;
   const rows = Array.from({ length: totalTableRows }, (_, idx) => inventory[idx] || null);
 
@@ -182,7 +163,7 @@ const DeliveryNoteDocument = ({ supplierName, brandName, inventory, dateStr, doc
         <View style={pdfStyles.outerContainer}>
           <View style={pdfStyles.topSection}>
             {/* Title */}
-            <Text style={pdfStyles.docTitle}>RECEIVE NOTE</Text>
+            <Text style={pdfStyles.docTitle}>DAMAGE NOTE</Text>
 
             {/* Header Info Row */}
             <View style={pdfStyles.headerRow}>
@@ -211,11 +192,7 @@ const DeliveryNoteDocument = ({ supplierName, brandName, inventory, dateStr, doc
                 </View>
                 <View style={pdfStyles.metaRow}>
                   <Text style={pdfStyles.metaLabel}>Brand :-</Text>
-                  <Text style={pdfStyles.metaVal}>{brandName || 'Sadia'}</Text>
-                </View>
-                <View style={pdfStyles.metaRow}>
-                  <Text style={pdfStyles.metaLabel}>Supplier Name :-</Text>
-                  <Text style={pdfStyles.metaVal}>{supplierName}</Text>
+                  <Text style={pdfStyles.metaVal}>{brandName || 'N/A'}</Text>
                 </View>
                 <View style={pdfStyles.metaRow}>
                   <Text style={pdfStyles.metaLabel}>Notes :-</Text>
@@ -231,14 +208,6 @@ const DeliveryNoteDocument = ({ supplierName, brandName, inventory, dateStr, doc
                 <View style={pdfStyles.metaRow}>
                   <Text style={pdfStyles.metaLabel}>Document No :-</Text>
                   <Text style={pdfStyles.metaVal}>{docNo}</Text>
-                </View>
-                <View style={pdfStyles.metaRow}>
-                  <Text style={pdfStyles.metaLabel}>Receiver Name :-</Text>
-                  <Text style={pdfStyles.metaVal}>{receiverName || ''}</Text>
-                </View>
-                <View style={pdfStyles.metaRow}>
-                  <Text style={pdfStyles.metaLabel}>Contact Details :-</Text>
-                  <Text style={pdfStyles.metaVal}>{contactDetails || ''}</Text>
                 </View>
               </View>
             </View>
@@ -280,15 +249,15 @@ const DeliveryNoteDocument = ({ supplierName, brandName, inventory, dateStr, doc
             <View style={pdfStyles.signatureRow}>
               <View style={pdfStyles.signatureCol}>
                 <Text style={pdfStyles.dashedText}>------------------------</Text>
-                <Text style={pdfStyles.signatureLabel}>PREPARED BY</Text>
+                <Text style={pdfStyles.signatureLabel}>REPORTED BY</Text>
               </View>
               <View style={pdfStyles.signatureCol}>
                 <Text style={pdfStyles.dashedText}>------------------------</Text>
-                <Text style={pdfStyles.signatureLabel}>CHECKED BY</Text>
+                <Text style={pdfStyles.signatureLabel}>VERIFIED BY</Text>
               </View>
               <View style={pdfStyles.signatureCol}>
                 <Text style={pdfStyles.dashedText}>------------------------</Text>
-                <Text style={pdfStyles.signatureLabel}>RECEIVED BY</Text>
+                <Text style={pdfStyles.signatureLabel}>AUTHORIZED BY</Text>
               </View>
             </View>
           </View>
@@ -299,7 +268,6 @@ const DeliveryNoteDocument = ({ supplierName, brandName, inventory, dateStr, doc
 };
 
 export async function GET(request) {
-  // 1. Authenticate user
   const session = await getServerSession(authOptions);
   if (!session) {
     return new NextResponse('Unauthorized', { status: 401 });
@@ -307,7 +275,7 @@ export async function GET(request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const dateQuery = searchParams.get('date'); // YYYY-MM-DD
+    const dateQuery = searchParams.get('date');
     const brandIdQuery = searchParams.get('brandId');
     const dnQuery = searchParams.get('dn');
 
@@ -315,29 +283,18 @@ export async function GET(request) {
       return new NextResponse('Missing required parameters: date, brandId, dn', { status: 400 });
     }
 
-    let inventory = [];
-    let docNo = dnQuery;
-    let dateStr = '';
-    let brandName = '';
-    let receiverName = session.user.name || 'Warehouse Staff';
-    let contactDetails = '';
-    let notes = '';
-    let supplierName = '';
-
     // Fetch Brand Info
     const brandObj = await prisma.brand.findUnique({ where: { id: brandIdQuery } });
-    if (brandObj) {
-      brandName = brandObj.name;
-    }
+    const brandName = brandObj?.name || 'N/A';
 
-    // Query specific receive transactions
+    // Query damage transactions
     const dayStart = new Date(`${dateQuery}T00:00:00.000Z`);
     const dayEnd = new Date(`${dateQuery}T23:59:59.999Z`);
 
     const txs = await prisma.inventoryTransaction.findMany({
       where: {
-        transactionType: { in: ['RECEIVE', 'RETURN'] },
-        deliveryNote: dnQuery,
+        transactionType: 'DAMAGE',
+        deliveryNote: dnQuery === 'UNASSIGNED' ? null : dnQuery,
         timestamp: {
           gte: dayStart,
           lte: dayEnd,
@@ -346,106 +303,72 @@ export async function GET(request) {
           brandId: brandIdQuery,
         }
       },
-      select: {
-        id: true,
-        notes: true,
-        quantity: true,
-        fromEntityId: true,
-        product: {
-          select: {
-            id: true,
-            name: true,
-            itemCode: true,
-            category: true,
-            isSerialized: true,
-          }
-        },
+      include: {
+        product: true,
         serialNumbers: {
-          select: {
-            serialNumber: {
-              select: {
-                barcode: true
-              }
-            }
+          include: {
+            serialNumber: true
           }
         }
       }
     });
 
     if (txs.length === 0) {
-      return new NextResponse('No matching inbound receipts found for specified filter.', { status: 404 });
+      return new NextResponse('No matching damage transactions found.', { status: 404 });
     }
 
-    if (txs[0]?.notes) {
-      notes = txs[0].notes.includes(' | ') ? txs[0].notes.split(' | ')[0] : txs[0].notes;
-    }
-    if (txs[0]?.fromEntityId) {
-      supplierName = txs[0].fromEntityId;
-    }
+    const notes = txs[0]?.notes?.split(' | ')[0] || '';
 
-    // Group transactions by product ID to build consolidated list
+    // Group by product
     const productGroups = {};
     for (const tx of txs) {
       const prod = tx.product;
-      const parsedItemNotes = tx.notes && tx.notes.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
+      const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
+      
       if (!productGroups[prod.id]) {
         productGroups[prod.id] = {
-          productId: prod.id,
           name: prod.name,
-          itemCode: prod.itemCode,
-          category: prod.category,
           isSerialized: prod.isSerialized,
           quantity: 0,
           serials: [],
           notes: parsedItemNotes
         };
       }
+      
       productGroups[prod.id].quantity += tx.quantity;
+      
       if (prod.isSerialized && tx.serialNumbers) {
-        for (const sNum of tx.serialNumbers) {
-          productGroups[prod.id].serials.push({
-            barcode: sNum.serialNumber.barcode
-          });
-        }
+        tx.serialNumbers.forEach(sn => {
+          productGroups[prod.id].serials.push({ barcode: sn.serialNumber.barcode });
+        });
       }
     }
 
-    inventory = Object.values(productGroups);
-
+    const inventory = Object.values(productGroups);
+    const docNo = dnQuery === 'UNASSIGNED' ? `IML-DAM-${dateQuery.replace(/-/g, '')}` : dnQuery;
+    
     const parts = dateQuery.split('-');
-    dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    const dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
 
-    // Fill to 28 rows
-    const maxRows = 28;
-    const rows = [...inventory];
-    while (rows.length < maxRows) {
-      rows.push(null);
-    }
-
-    // 5. Render react-pdf document to a stream
     const pdfStream = await renderToStream(
-      <DeliveryNoteDocument 
-        supplierName={supplierName} 
+      <DamageNoteDocument 
         brandName={brandName}
         inventory={inventory} 
         dateStr={dateStr} 
         docNo={docNo}
-        receiverName={receiverName}
-        contactDetails={contactDetails}
         notes={notes}
       />
     );
 
-    // 6. Return PDF stream — inline so browser shows preview, user can download from there
     return new NextResponse(pdfStream, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="IML-Inbound-DeliveryNote-${dateStr}.pdf"`,
+        'Content-Disposition': `inline; filename="IML-DamageNote-${brandName.replace(/\s+/g, '_')}.pdf"`,
       },
     });
 
   } catch (error) {
-    console.error('[PDF Generation Error]:', error);
+    console.error('[Damage PDF Generation Error]:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

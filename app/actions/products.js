@@ -355,6 +355,7 @@ export async function updateProduct(id, formData) {
   const brandId = formData.get('brandId');
   const itemCode = formData.get('itemCode') || null;
   const category = formData.get('category') || null;
+  const size = formData.get('size') || null;
   const imageFile = formData.get('imageFile');
   let imageUrl = formData.get('imageUrl') || null;
 
@@ -382,6 +383,7 @@ export async function updateProduct(id, formData) {
       brandId,
       itemCode,
       category,
+      size,
       imageUrl,
       rack,
       shelf,
@@ -658,6 +660,7 @@ export async function createBulkProducts(formData) {
     const brandId = formData.get(`item_${i}_brandId`);
     const itemCode = formData.get(`item_${i}_itemCode`) || null;
     const category = formData.get(`item_${i}_category`) || 'Stands';
+    const size = formData.get(`item_${i}_size`) || null;
     const productType = formData.get(`item_${i}_productType`) || 'NORMAL';
     const stockCap = formData.get(`item_${i}_stockCap`);
     const isReturnable = formData.get(`item_${i}_isReturnable`) === 'true';
@@ -696,6 +699,7 @@ export async function createBulkProducts(formData) {
       brandId,
       itemCode,
       category,
+      size,
       productType,
       stockCap,
       isReturnable,
@@ -768,6 +772,7 @@ export async function createBulkProducts(formData) {
           brandId: item.brandId,
           itemCode: item.itemCode ? item.itemCode.trim() : null,
           category: item.category || 'Stands',
+          size: item.size || null,
           imageUrl: item.imageUrl || null,
           rack: item.rack || null,
           shelf: item.shelf || null,

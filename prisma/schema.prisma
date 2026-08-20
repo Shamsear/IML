@@ -51,6 +51,7 @@ model Product {
   itemCode       String?   @unique
   name           String    // e.g. "Sadia Yellow T-Shirt (Large)"
   category       String?   
+  size           String?   // For uniforms: XS, S, M, L, XL, XXL, XXXL
   imageUrl       String?
   rack           String?
   shelf          String?

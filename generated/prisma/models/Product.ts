@@ -40,6 +40,7 @@ export type ProductMinAggregateOutputType = {
   itemCode: string | null
   name: string | null
   category: string | null
+  size: string | null
   imageUrl: string | null
   rack: string | null
   shelf: string | null
@@ -59,6 +60,7 @@ export type ProductMaxAggregateOutputType = {
   itemCode: string | null
   name: string | null
   category: string | null
+  size: string | null
   imageUrl: string | null
   rack: string | null
   shelf: string | null
@@ -78,6 +80,7 @@ export type ProductCountAggregateOutputType = {
   itemCode: number
   name: number
   category: number
+  size: number
   imageUrl: number
   rack: number
   shelf: number
@@ -107,6 +110,7 @@ export type ProductMinAggregateInputType = {
   itemCode?: true
   name?: true
   category?: true
+  size?: true
   imageUrl?: true
   rack?: true
   shelf?: true
@@ -126,6 +130,7 @@ export type ProductMaxAggregateInputType = {
   itemCode?: true
   name?: true
   category?: true
+  size?: true
   imageUrl?: true
   rack?: true
   shelf?: true
@@ -145,6 +150,7 @@ export type ProductCountAggregateInputType = {
   itemCode?: true
   name?: true
   category?: true
+  size?: true
   imageUrl?: true
   rack?: true
   shelf?: true
@@ -251,6 +257,7 @@ export type ProductGroupByOutputType = {
   itemCode: string | null
   name: string
   category: string | null
+  size: string | null
   imageUrl: string | null
   rack: string | null
   shelf: string | null
@@ -293,6 +300,7 @@ export type ProductWhereInput = {
   itemCode?: Prisma.StringNullableFilter<"Product"> | string | null
   name?: Prisma.StringFilter<"Product"> | string
   category?: Prisma.StringNullableFilter<"Product"> | string | null
+  size?: Prisma.StringNullableFilter<"Product"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   rack?: Prisma.StringNullableFilter<"Product"> | string | null
   shelf?: Prisma.StringNullableFilter<"Product"> | string | null
@@ -315,6 +323,7 @@ export type ProductOrderByWithRelationInput = {
   itemCode?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
+  size?: Prisma.SortOrderInput | Prisma.SortOrder
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   rack?: Prisma.SortOrderInput | Prisma.SortOrder
   shelf?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -340,6 +349,7 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   brandId?: Prisma.StringFilter<"Product"> | string
   name?: Prisma.StringFilter<"Product"> | string
   category?: Prisma.StringNullableFilter<"Product"> | string | null
+  size?: Prisma.StringNullableFilter<"Product"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   rack?: Prisma.StringNullableFilter<"Product"> | string | null
   shelf?: Prisma.StringNullableFilter<"Product"> | string | null
@@ -362,6 +372,7 @@ export type ProductOrderByWithAggregationInput = {
   itemCode?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
+  size?: Prisma.SortOrderInput | Prisma.SortOrder
   imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   rack?: Prisma.SortOrderInput | Prisma.SortOrder
   shelf?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -389,6 +400,7 @@ export type ProductScalarWhereWithAggregatesInput = {
   itemCode?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   name?: Prisma.StringWithAggregatesFilter<"Product"> | string
   category?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
+  size?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   imageUrl?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   rack?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   shelf?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
@@ -407,6 +419,7 @@ export type ProductCreateInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -429,6 +442,7 @@ export type ProductUncheckedCreateInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -449,6 +463,7 @@ export type ProductUpdateInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -471,6 +486,7 @@ export type ProductUncheckedUpdateInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -492,6 +508,7 @@ export type ProductCreateManyInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -510,6 +527,7 @@ export type ProductUpdateManyMutationInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -529,6 +547,7 @@ export type ProductUncheckedUpdateManyInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -558,6 +577,7 @@ export type ProductCountOrderByAggregateInput = {
   itemCode?: Prisma.SortOrder
   name?: Prisma.SortOrder
   category?: Prisma.SortOrder
+  size?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
   rack?: Prisma.SortOrder
   shelf?: Prisma.SortOrder
@@ -581,6 +601,7 @@ export type ProductMaxOrderByAggregateInput = {
   itemCode?: Prisma.SortOrder
   name?: Prisma.SortOrder
   category?: Prisma.SortOrder
+  size?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
   rack?: Prisma.SortOrder
   shelf?: Prisma.SortOrder
@@ -600,6 +621,7 @@ export type ProductMinOrderByAggregateInput = {
   itemCode?: Prisma.SortOrder
   name?: Prisma.SortOrder
   category?: Prisma.SortOrder
+  size?: Prisma.SortOrder
   imageUrl?: Prisma.SortOrder
   rack?: Prisma.SortOrder
   shelf?: Prisma.SortOrder
@@ -705,6 +727,7 @@ export type ProductCreateWithoutBrandInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -725,6 +748,7 @@ export type ProductUncheckedCreateWithoutBrandInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -775,6 +799,7 @@ export type ProductScalarWhereInput = {
   itemCode?: Prisma.StringNullableFilter<"Product"> | string | null
   name?: Prisma.StringFilter<"Product"> | string
   category?: Prisma.StringNullableFilter<"Product"> | string | null
+  size?: Prisma.StringNullableFilter<"Product"> | string | null
   imageUrl?: Prisma.StringNullableFilter<"Product"> | string | null
   rack?: Prisma.StringNullableFilter<"Product"> | string | null
   shelf?: Prisma.StringNullableFilter<"Product"> | string | null
@@ -793,6 +818,7 @@ export type ProductCreateWithoutSerialNumbersInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -814,6 +840,7 @@ export type ProductUncheckedCreateWithoutSerialNumbersInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -849,6 +876,7 @@ export type ProductUpdateWithoutSerialNumbersInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -870,6 +898,7 @@ export type ProductUncheckedUpdateWithoutSerialNumbersInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -889,6 +918,7 @@ export type ProductCreateWithoutTransactionsInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -910,6 +940,7 @@ export type ProductUncheckedCreateWithoutTransactionsInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -945,6 +976,7 @@ export type ProductUpdateWithoutTransactionsInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -966,6 +998,7 @@ export type ProductUncheckedUpdateWithoutTransactionsInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -985,6 +1018,7 @@ export type ProductCreateManyBrandInput = {
   itemCode?: string | null
   name: string
   category?: string | null
+  size?: string | null
   imageUrl?: string | null
   rack?: string | null
   shelf?: string | null
@@ -1003,6 +1037,7 @@ export type ProductUpdateWithoutBrandInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1023,6 +1058,7 @@ export type ProductUncheckedUpdateWithoutBrandInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1043,6 +1079,7 @@ export type ProductUncheckedUpdateManyWithoutBrandInput = {
   itemCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  size?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rack?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shelf?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1102,6 +1139,7 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   itemCode?: boolean
   name?: boolean
   category?: boolean
+  size?: boolean
   imageUrl?: boolean
   rack?: boolean
   shelf?: boolean
@@ -1125,6 +1163,7 @@ export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   itemCode?: boolean
   name?: boolean
   category?: boolean
+  size?: boolean
   imageUrl?: boolean
   rack?: boolean
   shelf?: boolean
@@ -1145,6 +1184,7 @@ export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   itemCode?: boolean
   name?: boolean
   category?: boolean
+  size?: boolean
   imageUrl?: boolean
   rack?: boolean
   shelf?: boolean
@@ -1165,6 +1205,7 @@ export type ProductSelectScalar = {
   itemCode?: boolean
   name?: boolean
   category?: boolean
+  size?: boolean
   imageUrl?: boolean
   rack?: boolean
   shelf?: boolean
@@ -1178,7 +1219,7 @@ export type ProductSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "itemCode" | "name" | "category" | "imageUrl" | "rack" | "shelf" | "isReturnable" | "isDisposable" | "trackExpiry" | "isPublic" | "isSerialized" | "stockCap" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "brandId" | "itemCode" | "name" | "category" | "size" | "imageUrl" | "rack" | "shelf" | "isReturnable" | "isDisposable" | "trackExpiry" | "isPublic" | "isSerialized" | "stockCap" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
 export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   brand?: boolean | Prisma.BrandDefaultArgs<ExtArgs>
   transactions?: boolean | Prisma.Product$transactionsArgs<ExtArgs>
@@ -1205,6 +1246,7 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     itemCode: string | null
     name: string
     category: string | null
+    size: string | null
     imageUrl: string | null
     rack: string | null
     shelf: string | null
@@ -1647,6 +1689,7 @@ export interface ProductFieldRefs {
   readonly itemCode: Prisma.FieldRef<"Product", 'String'>
   readonly name: Prisma.FieldRef<"Product", 'String'>
   readonly category: Prisma.FieldRef<"Product", 'String'>
+  readonly size: Prisma.FieldRef<"Product", 'String'>
   readonly imageUrl: Prisma.FieldRef<"Product", 'String'>
   readonly rack: Prisma.FieldRef<"Product", 'String'>
   readonly shelf: Prisma.FieldRef<"Product", 'String'>

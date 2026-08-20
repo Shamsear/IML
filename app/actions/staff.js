@@ -119,6 +119,9 @@ export async function allocateUniform(formData) {
     }
   });
 
+  revalidatePath('/dashboard/staff');
+}
+
 export async function deleteAllocation(allocationId) {
   await checkAuth();
 

@@ -26,10 +26,12 @@ export default async function LossPage({ searchParams }) {
         fromEntityId: true,
         timestamp: true,
         notes: true,
+        deliveryNote: true,
         product: {
           select: {
             id: true,
             name: true,
+            brandId: true,
             brand: { select: { name: true } }
           }
         }
@@ -94,6 +96,7 @@ export default async function LossPage({ searchParams }) {
                   <th className="py-3 px-5">Product Details</th>
                   <th className="py-3 px-5">Lost From</th>
                   <th className="py-3 px-5 text-center">Quantity</th>
+                  <th className="py-3 px-5">Loss Note</th>
                   <th className="py-3 px-5">Remarks</th>
                   <th className="py-3 px-5 text-right">Actions</th>
                 </tr>
@@ -120,6 +123,21 @@ export default async function LossPage({ searchParams }) {
                       <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary">{sourceName}</td>
                       <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-warning">
                         -{tx.quantity}
+                      </td>
+                      <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
+                        {tx.deliveryNote ? (
+                          <a
+                            href={`/api/dashboard/loss/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold has-tooltip"
+                          >
+                            {tx.deliveryNote}
+                            <span className="tooltip-box">Download Loss Note PDF</span>
+                          </a>
+                        ) : (
+                          <span className="text-text-muted">---</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
                       <td className="py-3.5 px-5 text-right">

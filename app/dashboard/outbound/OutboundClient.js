@@ -151,13 +151,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         isNewPromoter: true,
         promoterName: '',
         promoterPhone: '',
-        promoterShirtSize: 'Medium',
         existingStaffId: '',
-        storeId: '',
-        allocatedItems: [{ id: `init-${Date.now()}`, type: defaultProduct.name || '', size: 'Medium', qty: '1', productId: defaultProduct.id }],
-        startDate: '',
-        endDate: '',
-        notes: '',
       } : null
     };
   };
@@ -290,13 +284,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           isNewPromoter: true,
           promoterName: '',
           promoterPhone: '',
-          promoterShirtSize: 'Medium',
           existingStaffId: '',
-          storeId: '',
-          allocatedItems: [{ id: `init-${Date.now()}`, type: prod.name || '', size: 'Medium', qty: '1', productId: prod.id }],
-          startDate: '',
-          endDate: '',
-          notes: '',
         } : null
       };
     }));
@@ -723,6 +711,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           setLoading(false);
           return;
         }
+        // Auto-assign store from target
         pa.storeId = toId;
         if (!pa.storeId || toType !== 'STORE') {
           updateItemField(i, 'error', 'Please select a valid destination Store at the top of the page for this uniform dispatch.');
@@ -730,21 +719,8 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           setLoading(false);
           return;
         }
-        for (let j = 0; j < pa.allocatedItems.length; j++) {
-          const uItem = pa.allocatedItems[j];
-          if (!uItem.type.trim()) {
-            updateItemField(i, 'error', `Uniform item type is required at line ${j + 1}`);
-            handleExpandItem(i);
-            setLoading(false);
-            return;
-          }
-          if (!uItem.qty || parseInt(uItem.qty, 10) <= 0) {
-            updateItemField(i, 'error', `Uniform item quantity must be greater than 0 at line ${j + 1}`);
-            handleExpandItem(i);
-            setLoading(false);
-            return;
-          }
-        }
+        // Auto-assign size from product
+        pa.promoterShirtSize = prod.size || 'Medium';
       }
     }
 
@@ -1315,12 +1291,12 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       </div>
 
                       {selectedProd?.category?.toUpperCase() === 'UNIFORM' ? (
-                        /* UNIFORM DESIGN FLOW */
+                        /* UNIFORM SIMPLIFIED FLOW */
                         item.promoterAssignment && (
                           <div className="sm:col-span-2 flex flex-col gap-5 mt-4 bg-primary/5 p-5 border border-primary/10 rounded-2xl animate-slide-down">
                             <h4 className="text-xs font-bold text-primary uppercase tracking-wider pb-1 border-b border-primary/20 flex items-center gap-1.5">
                               <Shirt size={14} />
-                              <span>Promoter Assignment Details</span>
+                              <span>Promoter Assignment</span>
                             </h4>
                             
                             {/* Choose promoter type: New or Existing */}
@@ -1351,7 +1327,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                               {item.promoterAssignment.isNewPromoter ? (
                                 <>
                                   <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs font-semibold text-text-secondary">Full Name</label>
+                                    <label className="text-xs font-semibold text-text-secondary">Full Name *</label>
                                     <input
                                       type="text"
                                       className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
@@ -1374,9 +1350,12 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                 </>
                               ) : (
                                 <div className="flex flex-col gap-1.5 sm:col-span-2">
-                                  <label className="text-xs font-semibold text-text-secondary">Select Promoter</label>
+                                  <label className="text-xs font-semibold text-text-secondary">Select Promoter *</label>
                                   <CustomSelect
-                                    options={staffList.map(s => ({ value: s.id, label: `${s.name} (${s.phone || 'No phone'})` }))}
+                                    options={staffList.map(s => ({ 
+                                      value: s.id, 
+                                      label: `${s.name} (${s.phone || 'No phone'}) - Size: ${s.shirtSize || 'M'}` 
+                                    }))}
                                     value={item.promoterAssignment.existingStaffId}
                                     onChange={(val) => {
                                       const selectedStaff = staffList.find(s => s.id === val);
@@ -1385,9 +1364,6 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                         existingStaffId: val,
                                         promoterName: selectedStaff?.name || '',
                                         promoterPhone: selectedStaff?.phone || '',
-                                        promoterShirtSize: selectedStaff?.shirtSize || 'Medium',
-                                        storeId: selectedStaff?.storeId || item.promoterAssignment.storeId,
-                                        allocatedItems: item.promoterAssignment.allocatedItems
                                       });
                                     }}
                                     placeholder="-- Choose Promoter --"
@@ -1395,100 +1371,19 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                   />
                                 </div>
                               )}
-
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-text-secondary">Shirt Size</label>
-                                <CustomSelect
-                                  options={['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'].map(s => ({ value: s, label: s }))}
-                                  value={item.promoterAssignment.promoterShirtSize}
-                                  onChange={(val) => updatePromoterAssignmentField(idx, 'promoterShirtSize', val)}
-                                  placeholder="Select size..."
-                                />
-                              </div>
                             </div>
 
-                            {/* Assigned Uniform Items */}
-                            <div className="flex flex-col gap-3 mt-2 bg-surface/50 p-4 border border-border rounded-xl">
-                              <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Assigned Uniform Items</span>
-                              
-                              <div className="flex flex-col gap-3">
-                                {item.promoterAssignment.allocatedItems.map((uItem, uIdx) => (
-                                  <div key={uItem.id} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end bg-surface p-3 border border-border rounded-lg shadow-sm">
-                                    <div className="flex flex-col gap-1.5 sm:col-span-2">
-                                      <label className="text-[10px] font-bold text-text-secondary uppercase">Item Type</label>
-                                      <input
-                                        type="text"
-                                        className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none"
-                                        value={uItem.type}
-                                        onChange={(e) => {
-                                          const updatedItems = [...item.promoterAssignment.allocatedItems];
-                                          updatedItems[uIdx].type = e.target.value;
-                                          updatePromoterAssignmentField(idx, 'allocatedItems', updatedItems);
-                                        }}
-                                        placeholder="e.g. Chef Hat, Abaya"
-                                        required
-                                      />
-                                    </div>
-                                    <div className="flex flex-col gap-1.5">
-                                      <label className="text-[10px] font-bold text-text-secondary uppercase">Size</label>
-                                      <select
-                                        className="w-full bg-surface text-text-primary border border-border rounded-md px-2 py-1.5 text-xs focus:outline-none"
-                                        value={uItem.size}
-                                        onChange={(e) => {
-                                          const updatedItems = [...item.promoterAssignment.allocatedItems];
-                                          updatedItems[uIdx].size = e.target.value;
-                                          updatePromoterAssignmentField(idx, 'allocatedItems', updatedItems);
-                                        }}
-                                      >
-                                        {['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'].map(sz => (
-                                          <option key={sz} value={sz}>{sz}</option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex flex-col gap-1.5 flex-1">
-                                        <label className="text-[10px] font-bold text-text-secondary uppercase">Qty</label>
-                                        <input
-                                          type="number"
-                                          className="w-full bg-surface text-text-primary border border-border rounded-md px-2 py-1 text-xs focus:outline-none"
-                                          value={uItem.qty}
-                                          onChange={(e) => {
-                                            const updatedItems = [...item.promoterAssignment.allocatedItems];
-                                            updatedItems[uIdx].qty = e.target.value;
-                                            updatePromoterAssignmentField(idx, 'allocatedItems', updatedItems);
-                                          }}
-                                          min="1"
-                                          required
-                                        />
-                                      </div>
-                                      {item.promoterAssignment.allocatedItems.length > 1 && (
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const updatedItems = item.promoterAssignment.allocatedItems.filter((_, i) => i !== uIdx);
-                                            updatePromoterAssignmentField(idx, 'allocatedItems', updatedItems);
-                                          }}
-                                          className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors mt-5 flex-shrink-0"
-                                        >
-                                          <Trash2 size={13} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
+                            {/* Info Box */}
+                            <div className="bg-accent/5 border border-accent/20 rounded-lg p-3 flex items-start gap-2 text-xs">
+                              <Info size={14} className="text-accent flex-shrink-0 mt-0.5" />
+                              <div className="text-accent">
+                                <p className="font-semibold mb-1">Auto-assigned information:</p>
+                                <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                                  <li><strong>Store:</strong> {stores.find(s => s.id === toId)?.name || 'Target store from outbound'}</li>
+                                  <li><strong>Uniform Size:</strong> {selectedProd?.size || 'As per product'}</li>
+                                  <li><strong>Quantity:</strong> As entered below</li>
+                                </ul>
                               </div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextItems = [...item.promoterAssignment.allocatedItems, { id: `item-${Date.now()}-${Math.random()}`, type: selectedProd?.name || '', size: 'Medium', qty: '1', productId: selectedProd?.id }];
-                                  updatePromoterAssignmentField(idx, 'allocatedItems', nextItems);
-                                }}
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline w-fit mt-1"
-                              >
-                                <Plus size={12} />
-                                <span>Add Another Item</span>
-                              </button>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

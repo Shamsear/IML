@@ -118,6 +118,7 @@ export const ProductScalarFieldEnum = {
   itemCode: 'itemCode',
   name: 'name',
   category: 'category',
+  size: 'size',
   imageUrl: 'imageUrl',
   rack: 'rack',
   shelf: 'shelf',

@@ -12,7 +12,8 @@ async function checkAuth() {
   if (!session) throw new Error('Unauthorized');
 }
 
-export function parseTransactionDate(dateStr) {
+// Helper function - non-async utility
+function parseTransactionDate(dateStr) {
   if (!dateStr) return undefined;
   if (typeof dateStr !== 'string') return new Date(dateStr);
   
@@ -2135,10 +2136,18 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
             lowStockAlert: prodLowStockAlert ? parseInt(prodLowStockAlert, 10) : 0,
             imageUrl: imageUrl,
           }
-          deliveryNote, // Reuse existing!
-          timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
-        }
+        });
+        productId = newProduct.id;
+      }
+
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+        include: { brand: { select: { name: true } } }
       });
+
+      if (!product) {
+        throw new Error(`Product not found for ID: ${productId}`);
+      }
 
       if (product.isSerialized) {
         if (barcodes.length !== quantity) {
