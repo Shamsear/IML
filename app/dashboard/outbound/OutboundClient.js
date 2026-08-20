@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2, UserCheck, Tag, Copy } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2, UserCheck, Tag, Copy, Shirt } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/actions/transactions';
 import { createSupervisor } from '@/app/actions/supervisors';
@@ -29,7 +29,7 @@ const playBeep = () => {
   }
 };
 
-function OutboundFormContent({ products, stores, supervisors, directSellers = [], initialItems = null, initialDestinationType = 'STORE', initialDestinationId = '', brands = [], initialDeliverySupervisorId = '', editMode = false, existingDn = '' }) {
+function OutboundFormContent({ products, stores, supervisors, directSellers = [], initialItems = null, initialDestinationType = 'STORE', initialDestinationId = '', brands = [], initialDeliverySupervisorId = '', editMode = false, existingDn = '', staffList = [] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -131,20 +131,36 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   }, []);
 
   // Helper to construct empty dispatch item configuration
-  const createEmptyOutboundItem = (index = 0) => ({
-    id: `temp-${Date.now()}-${index}`,
-    productId: products[0]?.id || '',
-    quantity: products[0]?.isSerialized ? 0 : 1,
-    selectedBarcodes: [],
-    availableBarcodes: [],
-    notes: '',
-    rangeStart: '',
-    rangeEnd: '',
-    rangeMode: false,
-    isExpanded: true,
-    error: '',
-    brandFilter: 'ALL',
-  });
+  const createEmptyOutboundItem = (index = 0) => {
+    const defaultProduct = products[0];
+    const isUniform = defaultProduct?.category?.toUpperCase() === 'UNIFORM';
+    return {
+      id: `temp-${Date.now()}-${index}`,
+      productId: defaultProduct?.id || '',
+      quantity: defaultProduct?.isSerialized ? 0 : 1,
+      selectedBarcodes: [],
+      availableBarcodes: [],
+      notes: '',
+      rangeStart: '',
+      rangeEnd: '',
+      rangeMode: false,
+      isExpanded: true,
+      error: '',
+      brandFilter: 'ALL',
+      promoterAssignment: isUniform ? {
+        isNewPromoter: true,
+        promoterName: '',
+        promoterPhone: '',
+        promoterShirtSize: 'Medium',
+        existingStaffId: '',
+        storeId: '',
+        allocatedItems: [{ id: `init-${Date.now()}`, type: defaultProduct.name || '', size: 'Medium', qty: '1' }],
+        startDate: '',
+        endDate: '',
+        notes: '',
+      } : null
+    };
+  };
 
   // State array for outbound items queue
   const [items, setItems] = useState(() => {
@@ -235,9 +251,30 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
     }));
   };
 
+  const updatePromoterAssignmentField = (idx, field, value) => {
+    setItems(prev => prev.map((item, i) => {
+      if (i !== idx) return item;
+      const updatedAssignment = {
+        ...item.promoterAssignment,
+        [field]: value
+      };
+      // If we are updating allocatedItems, recalculate total quantity
+      let nextQuantity = item.quantity;
+      if (field === 'allocatedItems') {
+        nextQuantity = value.reduce((sum, u) => sum + (parseInt(u.qty, 10) || 0), 0);
+      }
+      return {
+        ...item,
+        promoterAssignment: updatedAssignment,
+        quantity: nextQuantity
+      };
+    }));
+  };
+
   // Helper to handle product selection and load available barcodes
   const handleProductChange = async (idx, val) => {
     const prod = products.find(p => p.id === val);
+    const isUniform = prod?.category?.toUpperCase() === 'UNIFORM';
     
     setItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
@@ -249,6 +286,18 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         availableBarcodes: [],
         rangeStart: '',
         rangeEnd: '',
+        promoterAssignment: isUniform ? {
+          isNewPromoter: true,
+          promoterName: '',
+          promoterPhone: '',
+          promoterShirtSize: 'Medium',
+          existingStaffId: '',
+          storeId: '',
+          allocatedItems: [{ id: `init-${Date.now()}`, type: prod.name || '', size: 'Medium', qty: '1' }],
+          startDate: '',
+          endDate: '',
+          notes: '',
+        } : null
       };
     }));
 
@@ -654,15 +703,59 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         setLoading(false);
         return;
       }
+      if (prod?.category?.toUpperCase() === 'UNIFORM') {
+        const pa = item.promoterAssignment;
+        if (!pa) {
+          updateItemField(i, 'error', 'Promoter assignment details are missing');
+          handleExpandItem(i);
+          setLoading(false);
+          return;
+        }
+        if (pa.isNewPromoter && !pa.promoterName.trim()) {
+          updateItemField(i, 'error', 'Promoter name is required for registration');
+          handleExpandItem(i);
+          setLoading(false);
+          return;
+        }
+        if (!pa.isNewPromoter && !pa.existingStaffId) {
+          updateItemField(i, 'error', 'Please choose an existing promoter');
+          handleExpandItem(i);
+          setLoading(false);
+          return;
+        }
+        if (!pa.storeId) {
+          updateItemField(i, 'error', 'Please select an outlet store placement for the promoter');
+          handleExpandItem(i);
+          setLoading(false);
+          return;
+        }
+        for (let j = 0; j < pa.allocatedItems.length; j++) {
+          const uItem = pa.allocatedItems[j];
+          if (!uItem.type.trim()) {
+            updateItemField(i, 'error', `Uniform item type is required at line ${j + 1}`);
+            handleExpandItem(i);
+            setLoading(false);
+            return;
+          }
+          if (!uItem.qty || parseInt(uItem.qty, 10) <= 0) {
+            updateItemField(i, 'error', `Uniform item quantity must be greater than 0 at line ${j + 1}`);
+            handleExpandItem(i);
+            setLoading(false);
+            return;
+          }
+        }
+      }
     }
 
     const itemsPayload = items.map(item => {
       const prod = products.find(p => p.id === item.productId);
+      const isUniform = prod?.category?.toUpperCase() === 'UNIFORM';
       return {
         productId: item.productId,
         quantity: prod?.isSerialized ? item.selectedBarcodes.length : parseInt(item.quantity, 10),
         barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
-        notes: item.notes
+        notes: item.notes,
+        ...(isUniform ? { promoterAssignment: item.promoterAssignment } : {})
       };
     });
 
@@ -1220,134 +1313,360 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                         )}
                       </div>
 
-                      {/* Quantity Input */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-text-secondary">Quantity to Dispatch</label>
-                        <input
-                          type="number"
-                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/40"
-                          value={item.quantity}
-                          onChange={(e) => updateItemField(idx, 'quantity', e.target.value)}
-                          disabled={selectedProd?.isSerialized}
-                          placeholder={selectedProd?.isSerialized ? 'Select serial numbers below' : 'e.g. 50'}
-                          required
-                        />
-                        {selectedProd?.isSerialized && (
-                          <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected serial numbers.</span>
-                        )}
-                        {!selectedProd?.isSerialized && selectedProd && parseInt(item.quantity, 10) > selectedProd.warehouseStock && (
-                          <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse">
-                            ⚠️ Warning: Quantity ({item.quantity}) exceeds available warehouse stock ({selectedProd.warehouseStock} units)!
-                          </span>
-                        )}
-                        {!selectedProd?.isSerialized && selectedProd && parseInt(item.quantity, 10) <= 0 && (
-                          <span className="text-[10px] font-semibold text-danger mt-1">
-                            ⚠️ Warning: Quantity must be greater than 0.
-                          </span>
-                        )}
-                      </div>
+                      {selectedProd?.category?.toUpperCase() === 'UNIFORM' ? (
+                        /* UNIFORM DESIGN FLOW */
+                        item.promoterAssignment && (
+                          <div className="sm:col-span-2 flex flex-col gap-5 mt-4 bg-primary/5 p-5 border border-primary/10 rounded-2xl animate-slide-down">
+                            <h4 className="text-xs font-bold text-primary uppercase tracking-wider pb-1 border-b border-primary/20 flex items-center gap-1.5">
+                              <Shirt size={14} />
+                              <span>Promoter Assignment Details</span>
+                            </h4>
+                            
+                            {/* Choose promoter type: New or Existing */}
+                            <div className="flex gap-4">
+                              <label className="inline-flex items-center gap-2 text-xs font-bold text-text-primary cursor-pointer select-none">
+                                <input 
+                                  type="radio" 
+                                  name={`promoter-type-${item.id}`}
+                                  checked={item.promoterAssignment.isNewPromoter}
+                                  onChange={() => updatePromoterAssignmentField(idx, 'isNewPromoter', true)}
+                                  className="accent-primary"
+                                />
+                                <span>Register a New Promoter</span>
+                              </label>
+                              <label className="inline-flex items-center gap-2 text-xs font-bold text-text-primary cursor-pointer select-none">
+                                <input 
+                                  type="radio" 
+                                  name={`promoter-type-${item.id}`}
+                                  checked={!item.promoterAssignment.isNewPromoter}
+                                  onChange={() => updatePromoterAssignmentField(idx, 'isNewPromoter', false)}
+                                  className="accent-primary"
+                                />
+                                <span>Choose Existing Promoter</span>
+                              </label>
+                            </div>
 
-                      {/* Notes / Remarks */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-text-secondary">Item Notes / Remarks</label>
-                        <input
-                          type="text"
-                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
-                          value={item.notes}
-                          onChange={(e) => updateItemField(idx, 'notes', e.target.value)}
-                          placeholder="e.g. For marketing stands (Optional)"
-                        />
-                      </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {item.promoterAssignment.isNewPromoter ? (
+                                <>
+                                  <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-text-secondary">Full Name</label>
+                                    <input
+                                      type="text"
+                                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                      value={item.promoterAssignment.promoterName}
+                                      onChange={(e) => updatePromoterAssignmentField(idx, 'promoterName', e.target.value)}
+                                      placeholder="e.g. Saima Ijaz"
+                                      required
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-text-secondary">Phone Number</label>
+                                    <input
+                                      type="text"
+                                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                      value={item.promoterAssignment.promoterPhone}
+                                      onChange={(e) => updatePromoterAssignmentField(idx, 'promoterPhone', e.target.value)}
+                                      placeholder="e.g. 0501234567"
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                  <label className="text-xs font-semibold text-text-secondary">Select Promoter</label>
+                                  <CustomSelect
+                                    options={staffList.map(s => ({ value: s.id, label: `${s.name} (${s.phone || 'No phone'})` }))}
+                                    value={item.promoterAssignment.existingStaffId}
+                                    onChange={(val) => {
+                                      const selectedStaff = staffList.find(s => s.id === val);
+                                      updateItemField(idx, 'promoterAssignment', {
+                                        ...item.promoterAssignment,
+                                        existingStaffId: val,
+                                        promoterName: selectedStaff?.name || '',
+                                        promoterPhone: selectedStaff?.phone || '',
+                                        promoterShirtSize: selectedStaff?.shirtSize || 'Medium',
+                                        storeId: selectedStaff?.storeId || item.promoterAssignment.storeId,
+                                        allocatedItems: item.promoterAssignment.allocatedItems
+                                      });
+                                    }}
+                                    placeholder="-- Choose Promoter --"
+                                    required
+                                  />
+                                </div>
+                              )}
 
-                      {/* Serial selection section (only for serialized items) */}
-                      {selectedProd?.isSerialized && (
-                        <div className="sm:col-span-2 flex flex-col gap-3 mt-2 bg-surface-elevated/20 p-4 border border-border rounded-xl">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Serial Barcodes ({item.selectedBarcodes.length} chosen)</span>
-                            <div className="flex items-center gap-2">
-                              {/* Range mode toggle */}
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-text-secondary">Shirt Size</label>
+                                <CustomSelect
+                                  options={['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'].map(s => ({ value: s, label: s }))}
+                                  value={item.promoterAssignment.promoterShirtSize}
+                                  onChange={(val) => updatePromoterAssignmentField(idx, 'promoterShirtSize', val)}
+                                  placeholder="Select size..."
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-text-secondary">Assigned Store Placement</label>
+                                <CustomSelect
+                                  options={stores.map(s => ({ value: s.id, label: s.name }))}
+                                  value={item.promoterAssignment.storeId}
+                                  onChange={(val) => updatePromoterAssignmentField(idx, 'storeId', val)}
+                                  placeholder="Choose outlet store..."
+                                  required
+                                />
+                              </div>
+                            </div>
+
+                            {/* Assigned Uniform Items */}
+                            <div className="flex flex-col gap-3 mt-2 bg-surface/50 p-4 border border-border rounded-xl">
+                              <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Assigned Uniform Items</span>
+                              
+                              <div className="flex flex-col gap-3">
+                                {item.promoterAssignment.allocatedItems.map((uItem, uIdx) => (
+                                  <div key={uItem.id} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end bg-surface p-3 border border-border rounded-lg shadow-sm">
+                                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                                      <label className="text-[10px] font-bold text-text-secondary uppercase">Item Type</label>
+                                      <input
+                                        type="text"
+                                        className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none"
+                                        value={uItem.type}
+                                        onChange={(e) => {
+                                          const updatedItems = [...item.promoterAssignment.allocatedItems];
+                                          updatedItems[uIdx].type = e.target.value;
+                                          updatePromoterAssignmentField(idx, 'allocatedItems', updatedItems);
+                                        }}
+                                        placeholder="e.g. Chef Hat, Abaya"
+                                        required
+                                      />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                      <label className="text-[10px] font-bold text-text-secondary uppercase">Size</label>
+                                      <select
+                                        className="w-full bg-surface text-text-primary border border-border rounded-md px-2 py-1.5 text-xs focus:outline-none"
+                                        value={uItem.size}
+                                        onChange={(e) => {
+                                          const updatedItems = [...item.promoterAssignment.allocatedItems];
+                                          updatedItems[uIdx].size = e.target.value;
+                                          updatePromoterAssignmentField(idx, 'allocatedItems', updatedItems);
+                                        }}
+                                      >
+                                        {['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'].map(sz => (
+                                          <option key={sz} value={sz}>{sz}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex flex-col gap-1.5 flex-1">
+                                        <label className="text-[10px] font-bold text-text-secondary uppercase">Qty</label>
+                                        <input
+                                          type="number"
+                                          className="w-full bg-surface text-text-primary border border-border rounded-md px-2 py-1 text-xs focus:outline-none"
+                                          value={uItem.qty}
+                                          onChange={(e) => {
+                                            const updatedItems = [...item.promoterAssignment.allocatedItems];
+                                            updatedItems[uIdx].qty = e.target.value;
+                                            updatePromoterAssignmentField(idx, 'allocatedItems', updatedItems);
+                                          }}
+                                          min="1"
+                                          required
+                                        />
+                                      </div>
+                                      {item.promoterAssignment.allocatedItems.length > 1 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updatedItems = item.promoterAssignment.allocatedItems.filter((_, i) => i !== uIdx);
+                                            updatePromoterAssignmentField(idx, 'allocatedItems', updatedItems);
+                                          }}
+                                          className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors mt-5 flex-shrink-0"
+                                        >
+                                          <Trash2 size={13} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
                               <button
                                 type="button"
-                                onClick={() => updateItemField(idx, 'rangeMode', !item.rangeMode)}
-                                className={`px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer transition-all border
-                                  ${item.rangeMode 
-                                    ? 'bg-primary text-white border-primary' 
-                                    : 'bg-surface border-border hover:bg-surface-elevated text-text-primary'}
-                                `}
+                                onClick={() => {
+                                  const nextItems = [...item.promoterAssignment.allocatedItems, { id: `item-${Date.now()}-${Math.random()}`, type: selectedProd?.name || '', size: 'Medium', qty: '1' }];
+                                  updatePromoterAssignmentField(idx, 'allocatedItems', nextItems);
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline w-fit mt-1"
                               >
-                                {item.rangeMode ? 'Switch to Barcode Picker' : 'Switch to Range Select'}
+                                <Plus size={12} />
+                                <span>Add Another Item</span>
                               </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-text-secondary">Campaign Start Date</label>
+                                <input
+                                  type="date"
+                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                  value={item.promoterAssignment.startDate}
+                                  onChange={(e) => updatePromoterAssignmentField(idx, 'startDate', e.target.value)}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-text-secondary">Campaign End Date</label>
+                                <input
+                                  type="date"
+                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                  value={item.promoterAssignment.endDate}
+                                  onChange={(e) => updatePromoterAssignmentField(idx, 'endDate', e.target.value)}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                              <label className="text-xs font-semibold text-text-secondary">Remarks / Delivery Notes</label>
+                              <input
+                                type="text"
+                                className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                value={item.promoterAssignment.notes}
+                                onChange={(e) => updatePromoterAssignmentField(idx, 'notes', e.target.value)}
+                                placeholder="e.g. Returned clean, special request notes..."
+                              />
                             </div>
                           </div>
+                        )
+                      ) : (
+                        /* STANDARD NON-UNIFORM FLOW */
+                        <>
+                          {/* Quantity Input */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Quantity to Dispatch</label>
+                            <input
+                              type="number"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/40"
+                              value={item.quantity}
+                              onChange={(e) => updateItemField(idx, 'quantity', e.target.value)}
+                              disabled={selectedProd?.isSerialized}
+                              placeholder={selectedProd?.isSerialized ? 'Select serial numbers below' : 'e.g. 50'}
+                              required
+                            />
+                            {selectedProd?.isSerialized && (
+                              <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected serial numbers.</span>
+                            )}
+                            {!selectedProd?.isSerialized && selectedProd && parseInt(item.quantity, 10) > selectedProd.warehouseStock && (
+                              <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse">
+                                ⚠️ Warning: Quantity ({item.quantity}) exceeds available warehouse stock ({selectedProd.warehouseStock} units)!
+                              </span>
+                            )}
+                            {!selectedProd?.isSerialized && selectedProd && parseInt(item.quantity, 10) <= 0 && (
+                              <span className="text-[10px] font-semibold text-danger mt-1">
+                                ⚠️ Warning: Quantity must be greater than 0.
+                              </span>
+                            )}
+                          </div>
 
-                          {/* Range Builder Mode */}
-                          {item.rangeMode ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end p-3 bg-surface border border-border rounded-lg animate-fade-in">
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold text-text-secondary uppercase">Start Barcode</label>
-                                <input
-                                  type="text"
-                                  className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none"
-                                  value={item.rangeStart}
-                                  onChange={(e) => updateItemField(idx, 'rangeStart', e.target.value)}
-                                  placeholder="e.g. SN-0001"
-                                />
+                          {/* Notes / Remarks */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Item Notes / Remarks</label>
+                            <input
+                              type="text"
+                              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                              value={item.notes}
+                              onChange={(e) => updateItemField(idx, 'notes', e.target.value)}
+                              placeholder="e.g. For marketing stands (Optional)"
+                            />
+                          </div>
+
+                          {/* Serial selection section (only for serialized items) */}
+                          {selectedProd?.isSerialized && (
+                            <div className="sm:col-span-2 flex flex-col gap-3 mt-2 bg-surface-elevated/20 p-4 border border-border rounded-xl">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Serial Barcodes ({item.selectedBarcodes.length} chosen)</span>
+                                <div className="flex items-center gap-2">
+                                  {/* Range mode toggle */}
+                                  <button
+                                    type="button"
+                                    onClick={() => updateItemField(idx, 'rangeMode', !item.rangeMode)}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer transition-all border
+                                      ${item.rangeMode 
+                                        ? 'bg-primary text-white border-primary' 
+                                        : 'bg-surface border-border hover:bg-surface-elevated text-text-primary'}
+                                    `}
+                                  >
+                                    {item.rangeMode ? 'Switch to Barcode Picker' : 'Switch to Range Select'}
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex flex-col gap-1">
-                                <label className="text-[10px] font-bold text-text-secondary uppercase">End Barcode</label>
-                                <input
-                                  type="text"
-                                  className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none"
-                                  value={item.rangeEnd}
-                                  onChange={(e) => updateItemField(idx, 'rangeEnd', e.target.value)}
-                                  placeholder="e.g. SN-0100"
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleApplyRange(idx)}
-                                className="w-full py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-md transition-all cursor-pointer border border-primary h-fit"
-                              >
-                                Apply Range
-                              </button>
-                            </div>
-                          ) : (
-                            /* Serial selector grid */
-                            <div className="flex flex-col gap-2">
-                              {item.availableBarcodes.length === 0 ? (
-                                <div className="p-4 text-center text-xs text-text-muted">
-                                  No available serials in WAREHOUSE for this product.
+
+                              {/* Range Builder Mode */}
+                              {item.rangeMode ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end p-3 bg-surface border border-border rounded-lg animate-fade-in">
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-[10px] font-bold text-text-secondary uppercase">Start Barcode</label>
+                                    <input
+                                      type="text"
+                                      className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none"
+                                      value={item.rangeStart}
+                                      onChange={(e) => updateItemField(idx, 'rangeStart', e.target.value)}
+                                      placeholder="e.g. SN-0001"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-[10px] font-bold text-text-secondary uppercase">End Barcode</label>
+                                    <input
+                                      type="text"
+                                      className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none"
+                                      value={item.rangeEnd}
+                                      onChange={(e) => updateItemField(idx, 'rangeEnd', e.target.value)}
+                                      placeholder="e.g. SN-0100"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApplyRange(idx)}
+                                    className="w-full py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-md transition-all cursor-pointer border border-primary h-fit"
+                                  >
+                                    Apply Range
+                                  </button>
                                 </div>
                               ) : (
-                                <div className="max-h-48 overflow-y-auto border border-border bg-surface rounded-lg p-2.5 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                  {item.availableBarcodes.map((bc) => {
-                                    const isSel = item.selectedBarcodes.includes(bc.barcode);
-                                    return (
-                                      <button
-                                        key={bc.id}
-                                        type="button"
-                                        onClick={() => {
-                                          const nextSel = isSel 
-                                            ? item.selectedBarcodes.filter(b => b !== bc.barcode) 
-                                            : [...item.selectedBarcodes, bc.barcode];
-                                          updateItemField(idx, 'selectedBarcodes', nextSel);
-                                          updateItemField(idx, 'quantity', nextSel.length);
-                                        }}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-left transition-all border cursor-pointer
-                                          ${isSel 
-                                            ? 'bg-primary/10 border-primary text-primary shadow-sm' 
-                                            : 'bg-surface border-border text-text-secondary hover:bg-surface-elevated/40'}
-                                        `}
-                                      >
-                                        {bc.barcode}
-                                      </button>
-                                    );
-                                  })}
+                                /* Serial selector grid */
+                                <div className="flex flex-col gap-2">
+                                  {item.availableBarcodes.length === 0 ? (
+                                    <div className="p-4 text-center text-xs text-text-muted">
+                                      No available serials in WAREHOUSE for this product.
+                                    </div>
+                                  ) : (
+                                    <div className="max-h-48 overflow-y-auto border border-border bg-surface rounded-lg p-2.5 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                      {item.availableBarcodes.map((bc) => {
+                                        const isSel = item.selectedBarcodes.includes(bc.barcode);
+                                        return (
+                                          <button
+                                            key={bc.id}
+                                            type="button"
+                                            onClick={() => {
+                                              const nextSel = isSel 
+                                                ? item.selectedBarcodes.filter(b => b !== bc.barcode) 
+                                                : [...item.selectedBarcodes, bc.barcode];
+                                              updateItemField(idx, 'selectedBarcodes', nextSel);
+                                              updateItemField(idx, 'quantity', nextSel.length);
+                                            }}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-left transition-all border cursor-pointer
+                                              ${isSel 
+                                                ? 'bg-primary/10 border-primary text-primary shadow-sm' 
+                                                : 'bg-surface border-border text-text-secondary hover:bg-surface-elevated/40'}
+                                            `}
+                                          >
+                                            {bc.barcode}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
                           )}
-                        </div>
+                        </>
                       )}
                     </div>
 

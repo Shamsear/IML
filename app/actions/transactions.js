@@ -626,8 +626,15 @@ export async function createBulkIssueTransactions(payload) {
 
       for (let idx = 0; idx < brandItems.length; idx++) {
         const item = brandItems[idx];
-        const { productId, quantity, barcodes = [], notes } = item;
+        const { productId, quantity, barcodes = [], notes, promoterAssignment } = item;
         const product = productsMap.get(productId);
+
+        let finalToEntityType = toEntityType;
+        let finalToEntityId = toEntityId;
+        if (promoterAssignment && promoterAssignment.storeId) {
+          finalToEntityType = 'STORE';
+          finalToEntityId = promoterAssignment.storeId;
+        }
 
         // A. Create core transaction
         const invTx = await tx.inventoryTransaction.create({
@@ -636,8 +643,8 @@ export async function createBulkIssueTransactions(payload) {
             transactionType: 'ISSUE',
             fromEntityType,
             fromEntityId: fromEntityId || null,
-            toEntityType,
-            toEntityId: toEntityId || null,
+            toEntityType: finalToEntityType,
+            toEntityId: finalToEntityId || null,
             quantity,
             deliveryNote,
             notes: (() => {
@@ -653,15 +660,107 @@ export async function createBulkIssueTransactions(payload) {
           },
         });
 
-        if (toEntityType === 'STORE' && toEntityId) {
+        if (finalToEntityType === 'STORE' && finalToEntityId) {
           await tx.brand.update({
             where: { id: product.brandId },
             data: {
               stores: {
-                connect: { id: toEntityId }
+                connect: { id: finalToEntityId }
               }
             }
           });
+        }
+
+        // Handle promoter allocation if attached to item
+        if (promoterAssignment) {
+          const {
+            isNewPromoter,
+            promoterName,
+            promoterPhone = '',
+            promoterShirtSize = 'Medium',
+            existingStaffId,
+            storeId,
+            allocatedItems = [],
+            workingPeriod = '',
+            notes: promoterNotes = ''
+          } = promoterAssignment;
+
+          let finalStaffId = existingStaffId;
+
+          if (isNewPromoter) {
+            if (!promoterName) throw new Error('Promoter name is required for registration');
+            
+            // Generate staff ID inside tx
+            const staffRecords = await tx.staff.findMany({
+              where: { id: { startsWith: 'STAF' } },
+              select: { id: true }
+            });
+            let maxStaffNum = 0;
+            for (const r of staffRecords) {
+              const parts = r.id.split('-');
+              const numPart = parts[parts.length - 1];
+              const parsed = parseInt(numPart, 10);
+              if (!isNaN(parsed) && parsed > maxStaffNum) {
+                maxStaffNum = parsed;
+              }
+            }
+            const nextStaffNum = maxStaffNum + 1;
+            const staffIdVal = `STAF-${String(nextStaffNum).padStart(3, '0')}`;
+
+            const newStaff = await tx.staff.create({
+              data: {
+                id: staffIdVal,
+                name: promoterName,
+                phone: promoterPhone,
+                shirtSize: promoterShirtSize,
+                storeId: storeId || null,
+              }
+            });
+            finalStaffId = newStaff.id;
+          } else {
+            if (!existingStaffId) throw new Error('Please select an existing promoter or register a new one');
+            
+            if (storeId) {
+              await tx.staff.update({
+                where: { id: existingStaffId },
+                data: { storeId }
+              });
+            }
+          }
+
+          if (storeId) {
+            // Generate allocation ID inside tx
+            const allocRecords = await tx.staffUniformAllocation.findMany({
+              where: { id: { startsWith: 'ALOC' } },
+              select: { id: true }
+            });
+            let maxAllocNum = 0;
+            for (const r of allocRecords) {
+              const parts = r.id.split('-');
+              const numPart = parts[parts.length - 1];
+              const parsed = parseInt(numPart, 10);
+              if (!isNaN(parsed) && parsed > maxAllocNum) {
+                maxAllocNum = parsed;
+              }
+            }
+            const nextAllocNum = maxAllocNum + 1;
+            const allocIdVal = `ALOC-${String(nextAllocNum).padStart(5, '0')}`;
+
+            await tx.staffUniformAllocation.create({
+              data: {
+                id: allocIdVal,
+                staffId: finalStaffId,
+                storeId,
+                uniformQty: 0,
+                capQty: 0,
+                uniformReturned: false,
+                capReturned: false,
+                allocatedItems,
+                workingPeriod,
+                notes: promoterNotes || null,
+              }
+            });
+          }
         }
 
         // B. Link serialized serials
