@@ -1329,7 +1329,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                   }}
                                   onFocus={() => setActiveCategorySuggestionsTarget(idx)}
                                   onBlur={() => setTimeout(() => setActiveCategorySuggestionsTarget(null), 250)}
-                                  disabled={item.prodType !== 'NORMAL'}
+                                  disabled={item.prodType !== 'NORMAL' || item.prodCategory?.toUpperCase() === 'UNIFORM'}
                                   placeholder="e.g. Materials"
                                 />
                                 {activeCategorySuggestionsTarget === idx && getFilteredCategories(item.prodCategory).length > 0 && (
@@ -1385,50 +1385,73 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               />
                             </div>
 
-                            <div className="flex flex-col gap-1.5 sm:col-span-2 mt-4">
-                              <label className="text-xs font-semibold text-text-secondary">Returnable / Disposable Status</label>
-                              <div className="flex items-center gap-6 mt-1 flex-wrap">
-                                <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
-                                  <input 
-                                    type="radio" 
-                                    name={`prod-status-${idx}`}
-                                    className="custom-radio"
-                                    checked={!item.prodIsReturnable && !item.prodIsDisposable}
-                                    onChange={() => {
-                                      updateItemField(idx, 'prodIsReturnable', false);
-                                      updateItemField(idx, 'prodIsDisposable', false);
-                                    }}
-                                  />
-                                  <span>Standard (Neither)</span>
-                                </label>
-                                <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
-                                  <input 
-                                    type="radio" 
-                                    name={`prod-status-${idx}`}
-                                    className="custom-radio"
-                                    checked={item.prodIsReturnable}
-                                    onChange={() => {
-                                      updateItemField(idx, 'prodIsReturnable', true);
-                                      updateItemField(idx, 'prodIsDisposable', false);
-                                    }}
-                                  />
-                                  <span>Returnable</span>
-                                </label>
-                                <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
-                                  <input 
-                                    type="radio" 
-                                    name={`prod-status-${idx}`}
-                                    className="custom-radio"
-                                    checked={item.prodIsDisposable}
-                                    onChange={() => {
-                                      updateItemField(idx, 'prodIsReturnable', false);
-                                      updateItemField(idx, 'prodIsDisposable', true);
-                                    }}
-                                  />
-                                  <span>Disposable (Single Use)</span>
-                                </label>
-                              </div>
-                            </div>
+                             <div className="flex flex-col gap-1.5 sm:col-span-2 mt-4">
+                               <label className="text-xs font-semibold text-text-secondary">Returnable / Disposable Status</label>
+                               <div className="flex items-center gap-6 mt-1 flex-wrap">
+                                 <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                   <input 
+                                     type="radio" 
+                                     name={`prod-status-${idx}`}
+                                     className="custom-radio"
+                                     checked={!item.prodIsReturnable && !item.prodIsDisposable && item.prodCategory?.toUpperCase() !== 'UNIFORM'}
+                                     onChange={() => {
+                                       updateItemField(idx, 'prodIsReturnable', false);
+                                       updateItemField(idx, 'prodIsDisposable', false);
+                                       if (item.prodCategory?.toUpperCase() === 'UNIFORM') {
+                                         updateItemField(idx, 'prodCategory', 'Stands');
+                                       }
+                                     }}
+                                   />
+                                   <span>Standard (Neither)</span>
+                                 </label>
+                                 <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                   <input 
+                                     type="radio" 
+                                     name={`prod-status-${idx}`}
+                                     className="custom-radio"
+                                     checked={item.prodIsReturnable && item.prodCategory?.toUpperCase() !== 'UNIFORM'}
+                                     onChange={() => {
+                                       updateItemField(idx, 'prodIsReturnable', true);
+                                       updateItemField(idx, 'prodIsDisposable', false);
+                                       if (item.prodCategory?.toUpperCase() === 'UNIFORM') {
+                                         updateItemField(idx, 'prodCategory', 'Stands');
+                                       }
+                                     }}
+                                   />
+                                   <span>Returnable</span>
+                                 </label>
+                                 <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                   <input 
+                                     type="radio" 
+                                     name={`prod-status-${idx}`}
+                                     className="custom-radio"
+                                     checked={item.prodIsDisposable && item.prodCategory?.toUpperCase() !== 'UNIFORM'}
+                                     onChange={() => {
+                                       updateItemField(idx, 'prodIsReturnable', false);
+                                       updateItemField(idx, 'prodIsDisposable', true);
+                                       if (item.prodCategory?.toUpperCase() === 'UNIFORM') {
+                                         updateItemField(idx, 'prodCategory', 'Stands');
+                                       }
+                                     }}
+                                   />
+                                   <span>Disposable (Single Use)</span>
+                                 </label>
+                                 <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                   <input 
+                                     type="radio" 
+                                     name={`prod-status-${idx}`}
+                                     className="custom-radio"
+                                     checked={item.prodCategory?.toUpperCase() === 'UNIFORM'}
+                                     onChange={() => {
+                                       updateItemField(idx, 'prodIsReturnable', true);
+                                       updateItemField(idx, 'prodIsDisposable', false);
+                                       updateItemField(idx, 'prodCategory', 'UNIFORM');
+                                     }}
+                                   />
+                                   <span>Uniform (Always Returnable)</span>
+                                 </label>
+                               </div>
+                             </div>
 
                             {/* Image Upload Area */}
                             <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2">

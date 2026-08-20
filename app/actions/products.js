@@ -759,7 +759,7 @@ export async function createBulkProducts(formData) {
       }
 
       // 1. Create Product
-      const isSerialized = item.productType !== 'NORMAL';
+      const isSerialized = item.productType !== 'NORMAL' && item.productType !== 'UNIFORM';
       const prod = await tx.product.create({
         data: {
           id: prodId,

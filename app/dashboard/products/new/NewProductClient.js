@@ -1093,7 +1093,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                               }}
                               onFocus={() => setActiveCategorySuggestionsTarget(idx)}
                               onBlur={() => setTimeout(() => setActiveCategorySuggestionsTarget(null), 250)}
-                              disabled={item.productType !== 'NORMAL'}
+                              disabled={item.productType !== 'NORMAL' || item.category?.toUpperCase() === 'UNIFORM'}
                               placeholder="e.g. Stands"
                             />
                             {activeCategorySuggestionsTarget === idx && getFilteredCategories(item.category).length > 0 && (
@@ -1157,10 +1157,13 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                 type="radio" 
                                 name={`status-${idx}`}
                                 className="custom-radio"
-                                checked={!item.isReturnable && !item.isDisposable}
+                                checked={!item.isReturnable && !item.isDisposable && item.category?.toUpperCase() !== 'UNIFORM'}
                                 onChange={() => {
                                   updateItemField(idx, 'isReturnable', false);
                                   updateItemField(idx, 'isDisposable', false);
+                                  if (item.category?.toUpperCase() === 'UNIFORM') {
+                                    updateItemField(idx, 'category', 'Stands');
+                                  }
                                 }}
                               />
                               <span>Standard (Neither)</span>
@@ -1170,10 +1173,13 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                 type="radio" 
                                 name={`status-${idx}`}
                                 className="custom-radio"
-                                checked={item.isReturnable}
+                                checked={item.isReturnable && item.category?.toUpperCase() !== 'UNIFORM'}
                                 onChange={() => {
                                   updateItemField(idx, 'isReturnable', true);
                                   updateItemField(idx, 'isDisposable', false);
+                                  if (item.category?.toUpperCase() === 'UNIFORM') {
+                                    updateItemField(idx, 'category', 'Stands');
+                                  }
                                 }}
                               />
                               <span>Returnable</span>
@@ -1183,13 +1189,30 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                 type="radio" 
                                 name={`status-${idx}`}
                                 className="custom-radio"
-                                checked={item.isDisposable}
+                                checked={item.isDisposable && item.category?.toUpperCase() !== 'UNIFORM'}
                                 onChange={() => {
                                   updateItemField(idx, 'isReturnable', false);
                                   updateItemField(idx, 'isDisposable', true);
+                                  if (item.category?.toUpperCase() === 'UNIFORM') {
+                                    updateItemField(idx, 'category', 'Stands');
+                                  }
                                 }}
                               />
                               <span>Disposable (Single Use)</span>
+                            </label>
+                            <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                              <input 
+                                type="radio" 
+                                name={`status-${idx}`}
+                                className="custom-radio"
+                                checked={item.category?.toUpperCase() === 'UNIFORM'}
+                                onChange={() => {
+                                  updateItemField(idx, 'isReturnable', true);
+                                  updateItemField(idx, 'isDisposable', false);
+                                  updateItemField(idx, 'category', 'UNIFORM');
+                                }}
+                              />
+                              <span>Uniform (Always Returnable)</span>
                             </label>
                           </div>
                         </div>
