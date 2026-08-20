@@ -192,7 +192,7 @@ export default function ExpiryClient({ initialBatches }) {
                   <th className="py-3 px-5">Mfg Date</th>
                   <th className="py-3 px-5">Expiry Date</th>
                   <th className="py-3 px-5">Shelf Status</th>
-                  <th className="py-3 px-5 text-center">Warehouse Stock</th>
+                  <th className="py-3 px-5 text-center">Batch Stock</th>
                   <th className="py-3 px-5 text-right">Actions</th>
                 </tr>
               </thead>
@@ -233,23 +233,22 @@ export default function ExpiryClient({ initialBatches }) {
                               <Package size={16} />
                             </div>
                           )}
-                          <div>
-                            <span className="font-semibold text-sm block">{batch.productName}</span>
-                            <span className="text-[11px] text-text-muted mt-0.5">Brand: {batch.productBrand} • {batch.productCategory}</span>
+                          <div className="min-w-0">
+                            <span className="font-semibold text-sm block truncate">{batch.productName}</span>
+                            <span className="text-[11px] text-text-muted mt-0.5 block whitespace-nowrap">Brand: {batch.productBrand} • {batch.productCategory}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-5 font-mono text-xs font-semibold text-text-secondary">{batch.deliveryNote}</td>
-                      <td className="py-3.5 px-5 text-xs text-text-secondary font-medium">{batch.supplier}</td>
-                      <td className="py-3.5 px-5 text-xs text-text-secondary">
-                        <div>{rcvDateStr}</div>
-                        <span className="text-[10px] text-text-muted">Qty: {batch.receivedQty}</span>
+                      <td className="py-3.5 px-5 font-mono text-xs font-semibold text-text-secondary whitespace-nowrap">{batch.deliveryNote}</td>
+                      <td className="py-3.5 px-5 text-xs text-text-secondary font-medium whitespace-nowrap">{batch.supplier}</td>
+                      <td className="py-3.5 px-5 text-xs text-text-secondary whitespace-nowrap">
+                        {rcvDateStr} <span className="text-[10px] text-text-muted">(Qty: {batch.receivedQty})</span>
                       </td>
-                      <td className="py-3.5 px-5 text-xs text-text-secondary">{mfgDateStr}</td>
-                      <td className="py-3.5 px-5 text-xs font-semibold text-text-secondary">{expDateStr}</td>
-                      <td className="py-3.5 px-5">{statusBadge}</td>
+                      <td className="py-3.5 px-5 text-xs text-text-secondary whitespace-nowrap">{mfgDateStr}</td>
+                      <td className="py-3.5 px-5 text-xs font-semibold text-text-secondary whitespace-nowrap">{expDateStr}</td>
+                      <td className="py-3.5 px-5 whitespace-nowrap">{statusBadge}</td>
                       <td className="py-3.5 px-5 text-center font-mono font-bold text-sm text-primary">
-                        {batch.currentProductStock}
+                        {batch.remainingBatchStock}
                       </td>
                       <td className="py-3.5 px-5 text-right">
                         <Link

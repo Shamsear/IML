@@ -37,60 +37,66 @@ export default async function ExpiryPage() {
     },
   });
 
-  // Calculate current stock levels of these products to help the user know if the batch is still in stock
-  const productIds = Array.from(new Set(transactions.map((tx) => tx.productId)));
+  // For each batch (RECEIVE transaction), calculate how much has been outbounded FROM that specific batch
+  // We'll use deliveryNote + productId to track batch-level movements
+  const batches = await Promise.all(
+    transactions.map(async (tx) => {
+      // Calculate total outbound from this specific batch (matching deliveryNote and product)
+      const outboundFromBatch = await prisma.inventoryTransaction.aggregate({
+        where: {
+          deliveryNote: tx.deliveryNote,
+          productId: tx.productId,
+          fromEntityType: 'WAREHOUSE',
+          transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+        },
+        _sum: {
+          quantity: true,
+        },
+      });
 
-  const [inboundAgg, outboundAgg] = await Promise.all([
-    prisma.inventoryTransaction.groupBy({
-      by: ['productId'],
-      where: {
-        productId: { in: productIds },
-        toEntityType: 'WAREHOUSE',
-      },
-      _sum: {
-        quantity: true,
-      },
-    }),
-    prisma.inventoryTransaction.groupBy({
-      by: ['productId'],
-      where: {
-        productId: { in: productIds },
-        fromEntityType: 'WAREHOUSE',
-      },
-      _sum: {
-        quantity: true,
-      },
-    }),
-  ]);
+      // Calculate returns back to warehouse for this batch
+      const returnsToWarehouse = await prisma.inventoryTransaction.aggregate({
+        where: {
+          deliveryNote: tx.deliveryNote,
+          productId: tx.productId,
+          toEntityType: 'WAREHOUSE',
+          transactionType: 'RETURN',
+        },
+        _sum: {
+          quantity: true,
+        },
+      });
 
-  const stockMap = {};
-  productIds.forEach((id) => {
-    const inQty = inboundAgg.find((a) => a.productId === id)?._sum.quantity || 0;
-    const outQty = outboundAgg.find((a) => a.productId === id)?._sum.quantity || 0;
-    stockMap[id] = inQty - outQty;
-  });
+      const receivedQty = tx.quantity;
+      const outboundQty = outboundFromBatch._sum.quantity || 0;
+      const returnedQty = returnsToWarehouse._sum.quantity || 0;
+      const remainingBatchStock = receivedQty - outboundQty + returnedQty;
 
-  // Map transactions to batch objects
-  const batches = transactions.map((tx) => {
-    return {
-      id: tx.id,
-      productId: tx.productId,
-      productName: tx.product.name,
-      productCategory: tx.product.category,
-      productBrand: tx.product.brand?.name || 'No Brand',
-      productImage: tx.product.imageUrl,
-      isSerialized: tx.product.isSerialized,
-      deliveryNote: tx.deliveryNote || 'N/A',
-      supplier: tx.fromEntityId || 'Unknown Supplier',
-      receivedQty: tx.quantity,
-      currentProductStock: stockMap[tx.productId] || 0,
-      receivedDate: tx.timestamp,
-      manufactureDate: tx.manufactureDate,
-      expiryDate: tx.expiryDate,
-      availableSerials: [],
-    };
-  });
+      return {
+        id: tx.id,
+        productId: tx.productId,
+        productName: tx.product.name,
+        productCategory: tx.product.category,
+        productBrand: tx.product.brand?.name || 'No Brand',
+        productImage: tx.product.imageUrl,
+        isSerialized: tx.product.isSerialized,
+        deliveryNote: tx.deliveryNote || 'N/A',
+        supplier: tx.fromEntityId || 'Unknown Supplier',
+        receivedQty: receivedQty,
+        outboundedQty: outboundQty,
+        returnedQty: returnedQty,
+        remainingBatchStock: remainingBatchStock,
+        receivedDate: tx.timestamp,
+        manufactureDate: tx.manufactureDate,
+        expiryDate: tx.expiryDate,
+        availableSerials: [],
+      };
+    })
+  );
 
-  return <ExpiryClient initialBatches={batches} />;
+  // Filter out fully outbounded batches (remaining stock <= 0)
+  const activeBatches = batches.filter((batch) => batch.remainingBatchStock > 0);
+
+  return <ExpiryClient initialBatches={activeBatches} />;
 }
 

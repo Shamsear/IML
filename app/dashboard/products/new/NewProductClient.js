@@ -55,6 +55,9 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
   const [activeCategorySuggestionsTarget, setActiveCategorySuggestionsTarget] = useState(null); // idx
   const [activeSupplierSuggestionsTarget, setActiveSupplierSuggestionsTarget] = useState(null); // { itemIdx, inboundIdx }
   const [activeReceiverSuggestionsTarget, setActiveReceiverSuggestionsTarget] = useState(null); // { itemIdx, inboundIdx }
+  const [highlightedCategoryIdx, setHighlightedCategoryIdx] = useState(-1);
+  const [highlightedSupplierIdx, setHighlightedSupplierIdx] = useState(-1);
+  const [highlightedReceiverIdx, setHighlightedReceiverIdx] = useState(-1);
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -1128,9 +1131,40 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                               onChange={(e) => {
                                 updateItemField(idx, 'category', e.target.value);
                                 setActiveCategorySuggestionsTarget(idx);
+                                setHighlightedCategoryIdx(0);
                               }}
-                              onFocus={() => setActiveCategorySuggestionsTarget(idx)}
-                              onBlur={() => setTimeout(() => setActiveCategorySuggestionsTarget(null), 250)}
+                              onFocus={() => {
+                                setActiveCategorySuggestionsTarget(idx);
+                                setHighlightedCategoryIdx(0);
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => {
+                                  setActiveCategorySuggestionsTarget(null);
+                                  setHighlightedCategoryIdx(-1);
+                                }, 250);
+                              }}
+                              onKeyDown={(e) => {
+                                const filtered = getFilteredCategories(item.category);
+                                if (filtered.length === 0) return;
+
+                                if (e.key === 'ArrowDown') {
+                                  e.preventDefault();
+                                  setHighlightedCategoryIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                                } else if (e.key === 'ArrowUp') {
+                                  e.preventDefault();
+                                  setHighlightedCategoryIdx(prev => Math.max(prev - 1, 0));
+                                } else if (e.key === 'Enter') {
+                                  if (highlightedCategoryIdx >= 0 && highlightedCategoryIdx < filtered.length) {
+                                    e.preventDefault();
+                                    updateItemField(idx, 'category', filtered[highlightedCategoryIdx]);
+                                    setActiveCategorySuggestionsTarget(null);
+                                    setHighlightedCategoryIdx(-1);
+                                  }
+                                } else if (e.key === 'Escape') {
+                                  setActiveCategorySuggestionsTarget(null);
+                                  setHighlightedCategoryIdx(-1);
+                                }
+                              }}
                               disabled={item.productType !== 'NORMAL' || item.category?.toUpperCase() === 'UNIFORM'}
                               placeholder="e.g. Stands"
                             />
@@ -1140,7 +1174,9 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                   <button
                                     key={catIdx}
                                     type="button"
-                                    className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                    className={`w-full text-left px-3 py-2 text-xs transition-colors border-b border-border last:border-0 font-medium font-semibold ${
+                                      catIdx === highlightedCategoryIdx ? 'bg-primary/10 text-primary' : 'hover:bg-surface-elevated text-text-primary'
+                                    }`}
                                     onClick={() => {
                                       updateItemField(idx, 'category', cat);
                                       setActiveCategorySuggestionsTarget(null);
@@ -1423,9 +1459,40 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                           onChange={(e) => {
                                             updateInboundField(idx, subIdx, 'fromId', e.target.value);
                                             setActiveSupplierSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                            setHighlightedSupplierIdx(0);
                                           }}
-                                          onFocus={() => setActiveSupplierSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx })}
-                                          onBlur={() => setTimeout(() => setActiveSupplierSuggestionsTarget(null), 250)}
+                                          onFocus={() => {
+                                            setActiveSupplierSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                            setHighlightedSupplierIdx(0);
+                                          }}
+                                          onBlur={() => {
+                                            setTimeout(() => {
+                                              setActiveSupplierSuggestionsTarget(null);
+                                              setHighlightedSupplierIdx(-1);
+                                            }, 250);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            const filtered = getFilteredSuppliers(inb.fromId);
+                                            if (filtered.length === 0) return;
+
+                                            if (e.key === 'ArrowDown') {
+                                              e.preventDefault();
+                                              setHighlightedSupplierIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                                            } else if (e.key === 'ArrowUp') {
+                                              e.preventDefault();
+                                              setHighlightedSupplierIdx(prev => Math.max(prev - 1, 0));
+                                            } else if (e.key === 'Enter') {
+                                              if (highlightedSupplierIdx >= 0 && highlightedSupplierIdx < filtered.length) {
+                                                e.preventDefault();
+                                                updateInboundField(idx, subIdx, 'fromId', filtered[highlightedSupplierIdx]);
+                                                setActiveSupplierSuggestionsTarget(null);
+                                                setHighlightedSupplierIdx(-1);
+                                              }
+                                            } else if (e.key === 'Escape') {
+                                              setActiveSupplierSuggestionsTarget(null);
+                                              setHighlightedSupplierIdx(-1);
+                                            }
+                                          }}
                                           placeholder="Supplier Name"
                                           required
                                         />
@@ -1435,7 +1502,9 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                               <button
                                                 key={sIdx}
                                                 type="button"
-                                                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                                className={`w-full text-left px-3 py-2 text-xs transition-colors border-b border-border last:border-0 font-medium font-semibold ${
+                                                  sIdx === highlightedSupplierIdx ? 'bg-primary/10 text-primary' : 'hover:bg-surface-elevated text-text-primary'
+                                                }`}
                                                 onClick={() => {
                                                   updateInboundField(idx, subIdx, 'fromId', sup);
                                                   setActiveSupplierSuggestionsTarget(null);
