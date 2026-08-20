@@ -11,7 +11,7 @@ Update "Delivery Note" terminology to be context-specific based on transaction t
 |-----------------|-----------|--------------|
 | RECEIVE | **Receive Note** | `REC-SAM-200826-001` |
 | RETURN | **Return Note** | `RTN-APP-200826-003` |
-| ISSUE (to store) | **Delivery Note** | `DEL-LGE-200826-005` |
+| ISSUE (to store) | **Delivery Note** | `DN-LGE-200826-005` |
 | LOST | **Loss Note** | `LOS-SON-200826-002` |
 | DAMAGE | **Damage Note** | `DAM-HUA-200826-001` |
 | USED | **Usage Note** | `USE-SAM-200826-004` |

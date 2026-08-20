@@ -70,7 +70,7 @@ Delivery notes can be accessed from **3 different locations** in the system:
 ### Automatic Generation
 When you create an outbound dispatch to a store, the system:
 1. Auto-generates a delivery note number (format: `{TYPE}-{BRAND}-{DDMMYY}-{NNN}`)
-   - Example: `DEL-SAM-200826-001` (First Samsung delivery on Aug 20, 2026)
+   - Example: `DN-SAM-200826-001` (First Samsung delivery on Aug 20, 2026)
 2. Records it with the transaction
 3. Makes it available for PDF download
 

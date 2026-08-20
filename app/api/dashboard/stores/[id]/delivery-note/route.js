@@ -454,7 +454,7 @@ export async function GET(request, { params }) {
       const yyyy = dateObj.getFullYear();
       dateStr = `${dd}-${mm}-${yyyy}`;
       const timeHash = dateObj.getTime().toString().slice(-4);
-      docNo = `IML-${brandName || 'SADIA'}-DEL-${dateStr}-${timeHash}`;
+      docNo = `IML-${brandName || 'SADIA'}-DN-${dateStr}-${timeHash}`;
     }
 
     // 5. Render react-pdf document to a stream

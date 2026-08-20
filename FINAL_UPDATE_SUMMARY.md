@@ -20,7 +20,7 @@ OUT-SAM-200826-001 (Inconsistent)
 ```
 REC-SAM-200826-001  (Receive - Samsung - Aug 20, 2026 - #1)
 RTN-APP-200826-003  (Return - Apple - Aug 20, 2026 - #3)
-DEL-LGE-200826-005  (Delivery - LG - Aug 20, 2026 - #5)
+DN-LGE-200826-005   (Delivery - LG - Aug 20, 2026 - #5)
 LOS-SON-200826-002  (Loss - Sony - Aug 20, 2026 - #2)
 DAM-HUA-200826-001  (Damage - Huawei - Aug 20, 2026 - #1)
 ```
@@ -31,7 +31,7 @@ DAM-HUA-200826-001  (Damage - Huawei - Aug 20, 2026 - #1)
 |-------------|------|------------|------------|
 | Receive/Inbound | `REC` | `DN-random` | `REC-{BRAND}-{DATE}-{SEQ}` |
 | Return | `RTN` | `RET-random` | `RTN-{BRAND}-{DATE}-{SEQ}` |
-| Delivery/Outbound | `DEL` | `OUT-{BRAND}` | `DEL-{BRAND}-{DATE}-{SEQ}` |
+| Delivery/Outbound | `DN` | `OUT-{BRAND}` | `DN-{BRAND}-{DATE}-{SEQ}` |
 | Loss | `LOS` | `LST-{BRAND}` | `LOS-{BRAND}-{DATE}-{SEQ}` |
 | Damage | `DAM` | `DMG-{BRAND}` | `DAM-{BRAND}-{DATE}-{SEQ}` |
 
@@ -44,7 +44,7 @@ DAM-HUA-200826-001  (Damage - Huawei - Aug 20, 2026 - #1)
    - ✅ Updated `generateCustomRef()` function
    - ✅ Changed RECEIVE: `DN-random` → `REC-{BRAND}-{DATE}-{SEQ}`
    - ✅ Changed RETURN: `RET-random` → `RTN-{BRAND}-{DATE}-{SEQ}`
-   - ✅ Changed Outbound: `OUT` → `DEL`
+   - ✅ Changed Outbound: `OUT` → `DN`
    - ✅ Changed Loss: `LST` → `LOS`
    - ✅ Changed Damage: `DMG` → `DAM`
    - ✅ Added brand fetching with `.include({ brand: true })`
@@ -164,8 +164,8 @@ DAM-HUA-200826-001  (Damage - Huawei - Aug 20, 2026 - #1)
 
 ### Outbound Pages
 - **Term:** Delivery Note
-- **Code:** `DEL-{BRAND}-{DATE}-{SEQ}`
-- **Example:** `DEL-APP-200826-005`
+- **Code:** `DN-{BRAND}-{DATE}-{SEQ}`
+- **Example:** `DN-APP-200826-005`
 
 ### Returns Pages
 - **Term:** Return Note
@@ -211,7 +211,7 @@ Create test transactions to verify:
 - [ ] Create Apple product → `REC-APP-{DATE}-001`
 - [ ] Manual RECEIVE → `REC-{BRAND}-{DATE}-{SEQ}`
 - [ ] Manual RETURN → `RTN-{BRAND}-{DATE}-{SEQ}`
-- [ ] Outbound dispatch → `DEL-{BRAND}-{DATE}-{SEQ}`
+- [ ] Outbound dispatch → `DN-{BRAND}-{DATE}-{SEQ}`
 - [ ] Report loss → `LOS-{BRAND}-{DATE}-{SEQ}`
 - [ ] Report damage → `DAM-{BRAND}-{DATE}-{SEQ}`
 
@@ -269,7 +269,7 @@ import { getTransactionNoteName } from '@/lib/transactionHelpers';
 const noteName = getTransactionNoteName('RECEIVE', 'REC-SAM-200826-001');
 // Result: "Receive Note"
 
-const noteName2 = getTransactionNoteName('ISSUE', 'DEL-APP-200826-005');
+const noteName = getTransactionNoteName('ISSUE', 'DN-APP-200826-005');
 // Result: "Delivery Note"
 ```
 
@@ -398,7 +398,7 @@ node scripts/migrate-transaction-codes.mjs
 **Example Codes:**
 - Receive: `REC-SAM-200826-001`
 - Return: `RTN-APP-200826-003`
-- Delivery: `DEL-LGE-200826-005`
+- Delivery: `DN-LGE-200826-005`
 - Loss: `LOS-SON-200826-002`
 - Damage: `DAM-HUA-200826-001`
 

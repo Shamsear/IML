@@ -140,7 +140,7 @@ Similar updates for `/app/dashboard/used/`
 |-------------|------|---------|-----------|
 | Receive | `REC` | `REC-SAM-200826-001` | Receive Note |
 | Return | `RTN` | `RTN-APP-200826-003` | Return Note |
-| Delivery/Outbound | `DEL` | `DEL-LGE-200826-005` | Delivery Note |
+| Delivery/Outbound | `DEL` | `DN-LGE-200826-005` | Delivery Note |
 | Loss | `LOS` | `LOS-SON-200826-002` | Loss Note |
 | Damage | `DAM` | `DAM-HUA-200826-001` | Damage Note |
 | Issue | `ISU` | `ISU-SAM-200826-008` | Issue Note |
@@ -211,7 +211,7 @@ Before marking as complete:
 - [ ] Create Apple product → `REC-APP-{DATE}-001`
 - [ ] Manual receive → `REC-{BRAND}-{DATE}-{SEQ}`
 - [ ] Manual return → `RTN-{BRAND}-{DATE}-{SEQ}`
-- [ ] Outbound dispatch → `DEL-{BRAND}-{DATE}-{SEQ}`
+- [ ] Outbound dispatch → `DN-{BRAND}-{DATE}-{SEQ}`
 - [ ] Report loss → `LOS-{BRAND}-{DATE}-{SEQ}`
 - [ ] Report damage → `DAM-{BRAND}-{DATE}-{SEQ}`
 

@@ -8,10 +8,19 @@
  * Run: node scripts/migrate-transaction-codes.mjs
  */
 
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import fs from 'fs';
+const env = fs.readFileSync('.env', 'utf8');
+const dbUrlMatch = env.match(/DATABASE_URL="([^"]+)"/);
+const databaseUrl = dbUrlMatch ? dbUrlMatch[1] : null;
+process.env.DATABASE_URL = databaseUrl;
 
-const prisma = new PrismaClient();
+import { PrismaClient } from '../generated/prisma/client.ts';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
+
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 // Helper function to generate new code format
 function generateNewCode(type, brandCode, date, sequence) {
@@ -74,7 +83,7 @@ async function migrateCodes() {
       } else if (tx.transactionType === 'RETURN') {
         typeCode = 'RTN';
       } else if (tx.transactionType === 'ISSUE') {
-        typeCode = 'DEL';
+        typeCode = 'DN';
       } else if (tx.transactionType === 'LOST') {
         typeCode = 'LOS';
       } else if (tx.transactionType === 'DAMAGE') {
@@ -183,7 +192,7 @@ async function migrateCodes() {
       const typeName = {
         'REC': 'Receive',
         'RTN': 'Return',
-        'DEL': 'Delivery',
+        'DN': 'Delivery',
         'LOS': 'Loss',
         'DAM': 'Damage',
         'TXN': 'Other'
@@ -196,6 +205,7 @@ async function migrateCodes() {
     throw error;
   } finally {
     await prisma.$disconnect();
+    await pool.end();
   }
 }
 

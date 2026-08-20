@@ -12,7 +12,7 @@ All transaction codes now use the standardized format: **`{TYPE}-{BRAND}-{DDMMYY
 |-------------|------|---------|
 | **Receive/Inbound** | `REC` | `REC-SAM-200826-001` |
 | **Return** | `RTN` | `RTN-APP-200826-003` |
-| **Delivery/Outbound** | `DEL` | `DEL-LGE-200826-005` |
+| **Delivery/Outbound** | `DEL` | `DN-LGE-200826-005` |
 | **Loss** | `LOS` | `LOS-SON-200826-002` |
 | **Damage** | `DAM` | `DAM-HUA-200826-001` |
 | **Issue** | `ISU` | `ISU-SAM-200826-008` |
@@ -51,7 +51,7 @@ All transaction codes now use the standardized format: **`{TYPE}-{BRAND}-{DDMMYY
   - Updated test scenarios
   
 - ✅ `/DELIVERY_NOTES_GUIDE.md`
-  - Updated format example from `OUT-` to `DEL-`
+  - Updated format example from `OUT-` to `DN-`
 
 ---
 
@@ -86,7 +86,7 @@ await generateCustomRef(tx, 'OUT', brandName, transactionDate)
 
 // ✅ NEW
 await generateCustomRef(tx, 'DEL', brandName, transactionDate)
-// Result: DEL-LGE-200826-005
+// Result: DN-LGE-200826-005
 ```
 
 #### Loss:
@@ -154,7 +154,7 @@ export async function generateCustomRef(tx, type, brandName, customDate = null) 
 - Example for Samsung on Aug 20, 2026:
   - `REC-SAM-200826-001` (first receive)
   - `REC-SAM-200826-002` (second receive)
-  - `DEL-SAM-200826-001` (first delivery - different counter)
+  - `DN-SAM-200826-001` (first delivery - different counter)
   - `LOS-SAM-200826-001` (first loss - different counter)
 
 ### 3. Brand Code Extraction
@@ -199,7 +199,7 @@ export async function generateCustomRef(tx, type, brandName, customDate = null) 
 6. **Outbound Dispatch**
    - Product: Any LG product
    - Destination: Store
-   - Expected Code: `DEL-LGE-200826-001`
+   - Expected Code: `DN-LGE-200826-001`
 
 7. **Report Loss**
    - Product: Any Sony product
@@ -216,7 +216,7 @@ export async function generateCustomRef(tx, type, brandName, customDate = null) 
 ### Easy Identification
 Just by looking at the code, admin knows:
 - `REC-SAM-200826-015` → "15th Samsung received on Aug 20"
-- `DEL-APP-200826-008` → "8th Apple delivery on Aug 20"
+- `DN-APP-200826-008` → "8th Apple delivery on Aug 20"
 - `DAM-LGE-200826-003` → "3rd LG damage on Aug 20"
 
 ### Searchable
@@ -270,6 +270,6 @@ All code locations updated and tested. The system now generates proper transacti
 **Example Codes:**
 - `REC-SAM-200826-001` - Receive
 - `RTN-APP-200826-003` - Return
-- `DEL-LGE-200826-005` - Delivery
+- `DN-LGE-200826-005` - Delivery
 - `LOS-SON-200826-002` - Loss
 - `DAM-HUA-200826-001` - Damage

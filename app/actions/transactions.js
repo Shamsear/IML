@@ -659,7 +659,7 @@ export async function createBulkIssueTransactions(payload) {
     }
 
     for (const [brandName, brandItems] of Object.entries(itemsByBrand)) {
-      const deliveryNote = await generateCustomRef(tx, 'DEL', brandName, transactionDate);
+      const deliveryNote = await generateCustomRef(tx, 'DN', brandName, transactionDate);
 
       for (let idx = 0; idx < brandItems.length; idx++) {
         const item = brandItems[idx];

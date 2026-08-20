@@ -247,7 +247,7 @@ After implementing fixes:
 5. ✅ Manual RETURN transaction
    - Expected: `RTN-{BRAND}-{DATE}-{SEQ}`
 6. ✅ Outbound dispatch (already working)
-   - Expected: `DEL-{BRAND}-{DATE}-{SEQ}`
+   - Expected: `DN-{BRAND}-{DATE}-{SEQ}`
 7. ✅ Loss/Damage (already working)
    - Expected: `LOS-{BRAND}-{DATE}-{SEQ}` or `DAM-{BRAND}-{DATE}-{SEQ}`
 

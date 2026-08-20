@@ -22,7 +22,7 @@ All transaction codes follow this pattern:
 - **`INB`** - Inbound Transfer (items transferred in from other locations)
 
 ### Outbound Operations
-- **`DEL`** - Delivery (outbound dispatches, items delivered to stores/customers)
+- **`DN`** - Delivery Note (outbound dispatches, items delivered to stores/customers)
 - **`ISU`** - Issue (items issued to departments)
 
 ### Internal Operations
@@ -79,9 +79,9 @@ INB-SON-200826-007  → 7th Sony inbound transfer on Aug 20, 2026
 
 ### Outbound Examples
 ```
-DEL-SAM-200826-004  → 4th Samsung delivery on Aug 20, 2026
+DN-SAM-200826-004   → 4th Samsung delivery on Aug 20, 2026
 ISU-APP-200826-015  → 15th Apple issue on Aug 20, 2026
-DEL-HUA-200826-002  → 2nd Huawei delivery on Aug 20, 2026
+DN-HUA-200826-002   → 2nd Huawei delivery on Aug 20, 2026
 ```
 
 ### Internal Examples
@@ -117,7 +117,7 @@ QTN-LGE-200826-002  → 2nd LG item quarantined today
 
 Example: On Aug 20, 2026:
 - `REC-SAM-200826-001` (first Samsung received)
-- `DEL-SAM-200826-001` (first Samsung delivery - different counter)
+- `DN-SAM-200826-001` (first Samsung delivery - different counter)
 - `REC-APP-200826-001` (first Apple received - different brand)
 
 ### Code Uniqueness
