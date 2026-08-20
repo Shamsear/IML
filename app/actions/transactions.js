@@ -22,7 +22,7 @@ export async function getStockAtLocation(productId, entityType, entityId) {
     where: {
       productId,
       toEntityType: entityType,
-      toEntityId: entityId || null,
+      ...(entityType === 'WAREHOUSE' ? {} : { toEntityId: entityId || null }),
     },
     _sum: { quantity: true },
   });
@@ -32,7 +32,7 @@ export async function getStockAtLocation(productId, entityType, entityId) {
     where: {
       productId,
       fromEntityType: entityType,
-      fromEntityId: entityId || null,
+      ...(entityType === 'WAREHOUSE' ? {} : { fromEntityId: entityId || null }),
     },
     _sum: { quantity: true },
   });
@@ -511,7 +511,7 @@ export async function createBulkIssueTransactions(payload) {
         where: {
           productId: { in: bulkProductIds },
           toEntityType: fromEntityType,
-          toEntityId: fromEntityId || null,
+          ...(fromEntityType === 'WAREHOUSE' ? {} : { toEntityId: fromEntityId || null }),
         },
         _sum: { quantity: true },
       }),
@@ -520,7 +520,7 @@ export async function createBulkIssueTransactions(payload) {
         where: {
           productId: { in: bulkProductIds },
           fromEntityType: fromEntityType,
-          fromEntityId: fromEntityId || null,
+          ...(fromEntityType === 'WAREHOUSE' ? {} : { fromEntityId: fromEntityId || null }),
         },
         _sum: { quantity: true },
       })
@@ -1694,11 +1694,19 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
 
       if (!product.isSerialized && fromEntityType && fromEntityType !== 'SUPPLIER') {
         const inboundSum = await tx.inventoryTransaction.aggregate({
-          where: { productId, toEntityType: fromEntityType, toEntityId: fromEntityId || null },
+          where: {
+            productId,
+            toEntityType: fromEntityType,
+            ...(fromEntityType === 'WAREHOUSE' ? {} : { toEntityId: fromEntityId || null })
+          },
           _sum: { quantity: true },
         });
         const outboundSum = await tx.inventoryTransaction.aggregate({
-          where: { productId, fromEntityType: fromEntityType, fromEntityId: fromEntityId || null },
+          where: {
+            productId,
+            fromEntityType: fromEntityType,
+            ...(fromEntityType === 'WAREHOUSE' ? {} : { fromEntityId: fromEntityId || null })
+          },
           _sum: { quantity: true },
         });
         const inQty = inboundSum._sum.quantity || 0;

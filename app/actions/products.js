@@ -565,7 +565,7 @@ export async function getProductStockAtLocation(productId, locationType, locatio
       where: {
         productId,
         toEntityType: locationType,
-        toEntityId: locationId || null,
+        ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
       },
       _sum: { quantity: true },
     }),
@@ -573,7 +573,7 @@ export async function getProductStockAtLocation(productId, locationType, locatio
       where: {
         productId,
         fromEntityType: locationType,
-        fromEntityId: locationId || null,
+        ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
       },
       _sum: { quantity: true },
     })
