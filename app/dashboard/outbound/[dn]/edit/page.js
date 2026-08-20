@@ -2,6 +2,7 @@ import { getProductsSlim } from '@/app/actions/products';
 import { getStores } from '@/app/actions/stores';
 import { getBrands } from '@/app/actions/brands';
 import { getSupervisors } from '@/app/actions/supervisors';
+import { getStaff } from '@/app/actions/staff';
 import { getTransactionsByDeliveryNote, getRecentDirectSellers } from '@/app/actions/transactions';
 import OutboundClient from '../../OutboundClient';
 import { notFound } from 'next/navigation';
@@ -21,6 +22,7 @@ export default async function EditOutboundPage({ params }) {
     brands,
     supervisors,
     directSellers,
+    staff,
     initialItems
   ] = await Promise.all([
     getProductsSlim(),
@@ -28,6 +30,7 @@ export default async function EditOutboundPage({ params }) {
     getBrands(),
     getSupervisors(),
     getRecentDirectSellers(),
+    getStaff(),
     getTransactionsByDeliveryNote(decodedDn)
   ]);
 
@@ -53,6 +56,7 @@ export default async function EditOutboundPage({ params }) {
       brands={brands}
       directSellers={directSellers}
       supervisors={supervisors}
+      staffList={staff}
       initialItems={issueItems}
       initialDestinationType={initialDestinationType}
       initialDestinationId={initialDestinationId}

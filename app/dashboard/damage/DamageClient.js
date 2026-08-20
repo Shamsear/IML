@@ -750,7 +750,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                         .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
                         .map(p => ({
                           value: p.id,
-                          label: `${p.name} (${p.brand?.name || 'No Brand'})`,
+                          label: p.name,
                           imageUrl: p.imageUrl,
                           warehouseStock: p.warehouseStock,
                           disabled: items.filter((_, i) => i !== index).map(it => it.productId).filter(Boolean).includes(p.id)

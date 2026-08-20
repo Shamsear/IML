@@ -760,7 +760,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
             <CustomSelect
               options={sourceProducts
                 .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
-                .map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
+                .map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
               value={sourceProductId}
               onChange={(val) => setSourceProductId(val)}
               placeholder="Select Source Product..."
@@ -819,7 +819,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                     p.name?.toUpperCase().includes('SIM') ||
                     p.name?.toUpperCase().includes('ROUTER')
                   )
-                ).map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'No Brand'})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
+                ).map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
                 value={targetProductId}
                 onChange={(val) => setTargetProductId(val)}
                 placeholder="Select Target Product..."
@@ -971,7 +971,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                   className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary"
                   value={prodItemCode}
                   onChange={(e) => setProdItemCode(e.target.value)}
-                  placeholder="e.g. SKU-OOR-GOLD"
+                  placeholder="Auto-generated if empty"
                 />
               </div>
 

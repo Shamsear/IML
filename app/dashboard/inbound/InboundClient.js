@@ -127,6 +127,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     prodType: 'NORMAL',
     prodBrandId: brands[0]?.id || '',
     prodCategory: 'General',
+    prodSize: '',
     prodItemCode: '',
     prodLowStockAlert: '10',
     prodIsReturnable: false,
@@ -168,6 +169,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           prodType: 'NORMAL',
           prodBrandId: brands[0]?.id || '',
           prodCategory: 'General',
+          prodSize: '',
           prodItemCode: '',
           prodLowStockAlert: '10',
           prodIsReturnable: false,
@@ -716,6 +718,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         prodType: item.prodType,
         prodBrandId: item.prodBrandId,
         prodCategory: item.prodCategory,
+        prodSize: item.prodSize,
         prodItemCode: item.prodItemCode,
         prodLowStockAlert: item.prodLowStockAlert,
         prodIsReturnable: item.prodIsReturnable,
@@ -1162,7 +1165,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
                               .map(p => ({
                                 value: p.id,
-                                label: `${p.brand?.name} - ${p.name} (${p.category})`,
+                                label: `${p.name} (${p.category})`,
                                 imageUrl: p.imageUrl,
                                 warehouseStock: p.warehouseStock,
                                 disabled: items.filter((_, i) => i !== idx).map(it => it.productId).filter(Boolean).includes(p.id)
@@ -1282,6 +1285,13 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                 className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-elevated/40"
                                 value={item.prodName}
                                 onChange={(e) => updateItemField(idx, 'prodName', e.target.value)}
+                                onBlur={(e) => {
+                                  if (item.prodCategory?.toUpperCase() === 'UNIFORM' && item.prodSize && item.prodName) {
+                                    const baseName = item.prodName.replace(/\s*\((XS|S|M|L|XL|XXL|XXXL)\)\s*$/i, '').trim();
+                                    const newName = `${baseName} (${item.prodSize})`;
+                                    if (item.prodName !== newName) updateItemField(idx, 'prodName', newName);
+                                  }
+                                }}
                                 disabled={item.prodType === 'SIM' && item.prodAutoGenName}
                                 placeholder={item.prodType === 'SIM' && item.prodAutoGenName ? "Complete store fields above to generate name..." : "e.g. Promo Stand"}
                                 required
@@ -1312,7 +1322,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                 className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                                 value={item.prodItemCode}
                                 onChange={(e) => updateItemField(idx, 'prodItemCode', e.target.value)}
-                                placeholder="e.g. SKU-100223"
+                                placeholder="Auto-generated if empty"
                               />
                             </div>
 
@@ -1452,6 +1462,36 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                  </label>
                                </div>
                              </div>
+
+                            {item.prodCategory?.toUpperCase() === 'UNIFORM' && (
+                              <div className="flex flex-col gap-1.5 mt-3 p-3 bg-accent/5 border border-accent/20 rounded-lg sm:col-span-2">
+                                <label className="text-xs font-semibold text-text-secondary">Uniform Size *</label>
+                                <select
+                                  value={item.prodSize || ''}
+                                  onChange={(e) => {
+                                    const newSize = e.target.value;
+                                    updateItemField(idx, 'prodSize', newSize);
+                                    if (item.prodName) {
+                                      const baseName = item.prodName.replace(/\s*\((XS|S|M|L|XL|XXL|XXXL)\)\s*$/i, '').trim();
+                                      const newName = newSize ? `${baseName} (${newSize})` : baseName;
+                                      updateItemField(idx, 'prodName', newName);
+                                    }
+                                  }}
+                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+                                  required={item.prodCategory?.toUpperCase() === 'UNIFORM'}
+                                >
+                                  <option value="">Select Size</option>
+                                  <option value="XS">X-Small (XS)</option>
+                                  <option value="S">Small (S)</option>
+                                  <option value="M">Medium (M)</option>
+                                  <option value="L">Large (L)</option>
+                                  <option value="XL">X-Large (XL)</option>
+                                  <option value="XXL">XX-Large (XXL)</option>
+                                  <option value="XXXL">XXX-Large (XXXL)</option>
+                                </select>
+                                <span className="text-[10px] text-accent mt-0.5">Size will be automatically added to product name</span>
+                              </div>
+                            )}
 
                             {/* Image Upload Area */}
                             <div className="flex flex-col gap-1.5 sm:col-span-2 mt-2">

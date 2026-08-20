@@ -5,6 +5,33 @@ import { generateId } from '@/lib/idGenerator';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+
+async function generateSkuCode(tx, brandName, categoryName) {
+  const brandPrefix = (brandName || 'GEN').substring(0, 3).toUpperCase();
+  const catPrefix = (categoryName || 'GEN').substring(0, 3).toUpperCase();
+  const prefix = `${brandPrefix}-${catPrefix}`;
+  
+  if (!tx.prefixCache) tx.prefixCache = {};
+  if (tx.prefixCache[prefix] === undefined) {
+    const existing = await tx.product.findMany({
+      where: { itemCode: { startsWith: `${prefix}-` } },
+      select: { itemCode: true }
+    });
+    let max = 0;
+    for (const p of existing) {
+      if (p.itemCode) {
+        const match = p.itemCode.match(/-(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > max) max = num;
+        }
+      }
+    }
+    tx.prefixCache[prefix] = max;
+  }
+  tx.prefixCache[prefix]++;
+  return `${prefix}-${String(tx.prefixCache[prefix]).padStart(4, '0')}`;
+}
 import { uploadToImageKit } from '@/lib/imagekit';
 
 async function checkAuth() {
@@ -966,7 +993,7 @@ export async function createBulkReceiveTransactions(formData) {
 
         if (isNewProduct) {
           // Register the product inline!
-          const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert = '10', prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
+          const { prodName, prodType, prodBrandId, prodCategory, prodSize, prodItemCode, prodLowStockAlert = '10', prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
 
           const brandObj = await tx.brand.findUnique({
             where: { id: prodBrandId },
@@ -988,6 +1015,11 @@ export async function createBulkReceiveTransactions(formData) {
 
           const imageUrl = imageUrlsMap.get(idx) || null;
 
+          let itemCodeToSave = prodItemCode ? prodItemCode.trim() : null;
+          if (!itemCodeToSave) {
+            itemCodeToSave = await generateSkuCode(tx, bName, prodCategory || 'General');
+          }
+
           product = await tx.product.create({
             data: {
               id: newProductId,
@@ -996,7 +1028,8 @@ export async function createBulkReceiveTransactions(formData) {
               productType: prodType,
               brandId: prodBrandId,
               category: prodCategory || 'General',
-              itemCode: prodItemCode || '',
+              size: prodSize || null,
+              itemCode: itemCodeToSave,
               rack: prodRack || null,
               shelf: prodShelf || null,
               lowStockAlert: parseInt(prodLowStockAlert, 10) || 10,
@@ -1298,12 +1331,23 @@ export async function createBulkRebrandTransactions(formData) {
     const newProdId = `PROD-${String(lastProdNum + 1).padStart(5, '0')}`;
 
     // Create the brand-new target catalog product
+    const brandObj = await prisma.brand.findUnique({
+      where: { id: prodBrandId },
+      select: { name: true }
+    });
+    const bName = brandObj?.name || '';
+    
+    let itemCodeToSave = prodItemCode ? prodItemCode.trim() : null;
+    if (!itemCodeToSave) {
+      itemCodeToSave = await generateSkuCode(prisma, bName, prodCategory || 'General');
+    }
+
     const newProduct = await prisma.product.create({
       data: {
         id: newProdId,
         name: prodName.trim(),
         brandId: prodBrandId,
-        itemCode: prodItemCode ? prodItemCode.trim() : null,
+        itemCode: itemCodeToSave,
         category: prodCategory,
         imageUrl: newImageUrl,
         isReturnable: prodIsReturnable,
@@ -2119,15 +2163,27 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
       let { isNewProduct, productId, quantity, barcodes = [], notes, manufactureDate, expiryDate } = item;
 
       if (isNewProduct) {
-        const { prodName, prodType, prodBrandId, prodCategory, prodItemCode, prodLowStockAlert, prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
+        const { prodName, prodType, prodBrandId, prodCategory, prodSize, prodItemCode, prodLowStockAlert, prodIsReturnable, prodIsDisposable, prodRack, prodShelf } = item;
         let imageUrl = null;
+        const brand = await tx.brand.findUnique({
+          where: { id: prodBrandId },
+          select: { name: true }
+        });
+        const bName = brand?.name || '';
+        
+        let itemCodeToSave = prodItemCode ? prodItemCode.trim() : null;
+        if (!itemCodeToSave) {
+          itemCodeToSave = await generateSkuCode(tx, bName, prodCategory || 'General');
+        }
+
         const newProduct = await tx.product.create({
           data: {
             name: prodName,
             type: prodType,
             brandId: prodBrandId,
             category: prodCategory || null,
-            itemCode: prodItemCode || null,
+            size: prodSize || null,
+            itemCode: itemCodeToSave,
             rack: prodRack || null,
             shelf: prodShelf || null,
             isSerialized: (prodType === 'SIM' || prodType === 'ROUTER'),

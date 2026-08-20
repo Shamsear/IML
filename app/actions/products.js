@@ -106,6 +106,7 @@ export async function getProductsSlim() {
         imageUrl: true,
         isReturnable: true,
         isDisposable: true,
+        size: true,
         rack: true,
         shelf: true,
         brand: { select: { id: true, name: true, rack: true, shelf: true } }
@@ -211,12 +212,35 @@ export async function createProduct(formData) {
   // 1. Create product row
   const id = await generateId('product', 'PROD', 3);
 
+  let itemCodeToSave = itemCode ? itemCode.trim() : null;
+  if (!itemCodeToSave) {
+    const brandPrefix = (brand.name || 'GEN').substring(0, 3).toUpperCase();
+    const catPrefix = (category || 'GEN').substring(0, 3).toUpperCase();
+    const prefix = `${brandPrefix}-${catPrefix}`;
+    
+    const existing = await prisma.product.findMany({
+      where: { itemCode: { startsWith: `${prefix}-` } },
+      select: { itemCode: true }
+    });
+    let max = 0;
+    for (const p of existing) {
+      if (p.itemCode) {
+        const match = p.itemCode.match(/-(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > max) max = num;
+        }
+      }
+    }
+    itemCodeToSave = `${prefix}-${String(max + 1).padStart(4, '0')}`;
+  }
+
   const product = await prisma.product.create({
     data: {
       id,
       name: formattedName,
       brandId,
-      itemCode,
+      itemCode: itemCodeToSave,
       category,
       imageUrl,
       rack,
@@ -763,6 +787,34 @@ export async function createBulkProducts(formData) {
         }
       }
 
+      let itemCodeToSave = item.itemCode ? item.itemCode.trim() : null;
+      if (!itemCodeToSave) {
+        const brandPrefix = (bName || 'GEN').substring(0, 3).toUpperCase();
+        const catPrefix = (item.category || 'GEN').substring(0, 3).toUpperCase();
+        const prefix = `${brandPrefix}-${catPrefix}`;
+        
+        if (!tx.prefixCache) tx.prefixCache = {};
+        if (tx.prefixCache[prefix] === undefined) {
+          const existing = await tx.product.findMany({
+            where: { itemCode: { startsWith: `${prefix}-` } },
+            select: { itemCode: true }
+          });
+          let max = 0;
+          for (const p of existing) {
+            if (p.itemCode) {
+              const match = p.itemCode.match(/-(\d+)$/);
+              if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > max) max = num;
+              }
+            }
+          }
+          tx.prefixCache[prefix] = max;
+        }
+        tx.prefixCache[prefix]++;
+        itemCodeToSave = `${prefix}-${String(tx.prefixCache[prefix]).padStart(4, '0')}`;
+      }
+
       // 1. Create Product
       const isSerialized = item.productType !== 'NORMAL' && item.productType !== 'UNIFORM';
       const prod = await tx.product.create({
@@ -770,7 +822,7 @@ export async function createBulkProducts(formData) {
           id: prodId,
           name: formattedName,
           brandId: item.brandId,
-          itemCode: item.itemCode ? item.itemCode.trim() : null,
+          itemCode: itemCodeToSave,
           category: item.category || 'Stands',
           size: item.size || null,
           imageUrl: item.imageUrl || null,

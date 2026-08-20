@@ -1247,7 +1247,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                               .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
                               .map(p => ({
                                 value: p.id,
-                                label: `${p.brand?.name} - ${p.name} (${p.category})`,
+                                label: `${p.name} (${p.category})`,
                                 imageUrl: p.imageUrl,
                                 warehouseStock: p.warehouseStock,
                                 disabled: items.filter((_, i) => i !== idx).map(it => it.productId).filter(Boolean).includes(p.id)
@@ -1801,7 +1801,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   );
 }
 
-export default function OutboundClient({ products, stores, supervisors, directSellers = [], brands = [], initialItems, initialDestinationType, initialDestinationId, initialDeliverySupervisorId, editMode = false, existingDn = '' }) {
+export default function OutboundClient({ products, stores, supervisors, directSellers = [], brands = [], initialItems, initialDestinationType, initialDestinationId, initialDeliverySupervisorId, editMode = false, existingDn = '', staffList = [] }) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -1820,6 +1820,7 @@ export default function OutboundClient({ products, stores, supervisors, directSe
         initialDeliverySupervisorId={initialDeliverySupervisorId}
         editMode={editMode}
         existingDn={existingDn}
+        staffList={staffList}
       />
     </Suspense>
   );

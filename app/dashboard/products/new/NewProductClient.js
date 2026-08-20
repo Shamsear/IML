@@ -1049,6 +1049,13 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                             className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-elevated/40"
                             value={item.name}
                             onChange={(e) => updateItemField(idx, 'name', e.target.value)}
+                            onBlur={(e) => {
+                              if (item.category?.toUpperCase() === 'UNIFORM' && item.size && item.name) {
+                                const baseName = item.name.replace(/\s*\((XS|S|M|L|XL|XXL|XXXL)\)\s*$/i, '').trim();
+                                const newName = `${baseName} (${item.size})`;
+                                if (item.name !== newName) updateItemField(idx, 'name', newName);
+                              }
+                            }}
                             disabled={item.productType === 'SIM' && item.autoGenName}
                             placeholder={item.productType === 'SIM' && item.autoGenName ? "Complete store fields above to generate name..." : "e.g. Promo Counter"}
                             required
@@ -1079,7 +1086,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                             className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                             value={item.itemCode}
                             onChange={(e) => updateItemField(idx, 'itemCode', e.target.value)}
-                            placeholder="e.g. SKU-12345 (Optional)"
+                            placeholder="Auto-generated if empty (e.g. SAD-UNI-0001)"
                           />
                         </div>
 
@@ -1228,8 +1235,8 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                 onChange={(e) => {
                                   const newSize = e.target.value;
                                   updateItemField(idx, 'size', newSize);
-                                  // Auto-update product name if autoGenName is true
-                                  if (item.autoGenName && item.name) {
+                                  // Auto-update product name
+                                  if (item.name) {
                                     const baseName = item.name.replace(/\s*\((XS|S|M|L|XL|XXL|XXXL)\)\s*$/i, '').trim();
                                     const newName = newSize ? `${baseName} (${newSize})` : baseName;
                                     updateItemField(idx, 'name', newName);
