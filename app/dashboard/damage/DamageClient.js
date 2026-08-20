@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkDamageTransactions } from '@/app/actions/transactions';
-import { getAvailableBarcodes, getProductStockAtLocation } from '@/app/actions/products';
+import { getAvailableBarcodes, getProductStockAtLocation, getProductBatchesAtLocation } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
@@ -80,18 +80,31 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   const lastScannedTimeRef = useRef(0);
 
   // Initialize selected products from URL search parameter "productIds" or initialItems
+  const initializedRef = useRef(false);
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     const initRows = async () => {
       let initialItemsList = [];
       if (initialItems) {
-        initialItemsList = initialItems.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          selectedBarcodes: item.barcodes || [],
-          availableBarcodes: [],
-          currentStock: 0,
-          notes: item.notes || ''
-        }));
+        initialItemsList = initialItems.map((item, idx) => {
+          const prod = products.find(p => p.id === item.productId);
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            selectedBarcodes: item.barcodes || [],
+            availableBarcodes: [],
+            currentStock: 0,
+            notes: item.notes || '',
+            availableBatches: [],
+            selectedBatches: prod?.trackExpiry && !prod?.isSerialized ? [{
+              manufactureDate: item.manufactureDate,
+              expiryDate: item.expiryDate,
+              quantity: item.quantity
+            }] : []
+          };
+        });
       } else {
         const urlIds = searchParams.get('productIds')?.split(',').filter(Boolean) || [];
         if (urlIds.length > 0) {
@@ -103,7 +116,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
               selectedBarcodes: [],
               availableBarcodes: [],
               currentStock: prod?.warehouseStock || 0,
-              notes: ''
+              notes: '',
+              availableBatches: [],
+              selectedBatches: []
             };
           });
         } else {
@@ -115,7 +130,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
             selectedBarcodes: [],
             availableBarcodes: [],
             currentStock: prod?.warehouseStock || 0,
-            notes: ''
+            notes: '',
+            availableBatches: [],
+            selectedBatches: []
           }];
         }
       }
@@ -129,7 +146,11 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           try {
             const available = prod.isSerialized ? await getAvailableBarcodes(item.productId, fromType, fromId || null) : [];
             const stock = prod.isSerialized ? available.length : (fromType === 'WAREHOUSE' ? prod.warehouseStock : await getProductStockAtLocation(item.productId, fromType, fromId || null));
-            setItems(prev => prev.map((x, idx) => idx === i ? { ...x, availableBarcodes: available || [], currentStock: stock } : x));
+            let batches = [];
+            if (prod.trackExpiry && !prod.isSerialized) {
+              batches = await getProductBatchesAtLocation(item.productId, fromType, fromId || null);
+            }
+            setItems(prev => prev.map((x, idx) => idx === i ? { ...x, availableBarcodes: available || [], currentStock: stock, availableBatches: batches } : x));
           } catch (e) {
             console.error(e);
           }
@@ -138,7 +159,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     };
 
     initRows();
-  }, [searchParams, products]);
+  }, [searchParams, products, initialItems]);
 
   // Effect to reload available barcodes and stock counts when location changes
   useEffect(() => {
@@ -147,6 +168,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         const prod = products.find(p => p.id === item.productId);
         let available = [];
         let currentStock = 0;
+        let batches = [];
         
         if (prod) {
           if (prod.isSerialized) {
@@ -163,6 +185,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
               } else {
                 currentStock = await getProductStockAtLocation(item.productId, fromType, fromId || null);
               }
+              if (prod.trackExpiry) {
+                batches = await getProductBatchesAtLocation(item.productId, fromType, fromId || null);
+              }
             } catch (e) {
               console.error(e);
             }
@@ -174,7 +199,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           availableBarcodes: available || [],
           selectedBarcodes: [],
           quantity: prod?.isSerialized ? 0 : 1,
-          currentStock
+          currentStock,
+          availableBatches: batches || [],
+          selectedBatches: []
         };
       }));
       setItems(updated);
@@ -188,9 +215,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   const handleAddRow = async () => {
     const defaultId = products[0]?.id || '';
     const prod = products.find(p => p.id === defaultId);
-    const newIdx = items.length;
     let available = [];
     let currentStock = prod?.warehouseStock || 0;
+    let batches = [];
 
     if (prod) {
       if (prod.isSerialized) {
@@ -207,6 +234,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           } else {
             currentStock = await getProductStockAtLocation(defaultId, fromType, fromId || null);
           }
+          if (prod.trackExpiry) {
+            batches = await getProductBatchesAtLocation(defaultId, fromType, fromId || null);
+          }
         } catch (e) {
           console.error(e);
         }
@@ -219,7 +249,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       selectedBarcodes: [], 
       availableBarcodes: available || [], 
       currentStock,
-      notes: '' 
+      notes: '',
+      availableBatches: batches || [],
+      selectedBatches: []
     }]);
   };
 
@@ -246,6 +278,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     const prod = products.find(p => p.id === productId);
     let available = [];
     let currentStock = 0;
+    let batches = [];
 
     if (prod) {
       if (prod.isSerialized) {
@@ -262,6 +295,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           } else {
             currentStock = await getProductStockAtLocation(productId, fromType, fromId || null);
           }
+          if (prod.trackExpiry) {
+            batches = await getProductBatchesAtLocation(productId, fromType, fromId || null);
+          }
         } catch (e) {
           console.error(e);
         }
@@ -275,7 +311,9 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       selectedBarcodes: [],
       availableBarcodes: available || [],
       currentStock,
-      notes: ''
+      notes: '',
+      availableBatches: batches || [],
+      selectedBatches: []
     } : x));
   };
 
@@ -502,7 +540,15 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         setLoading(false);
         return;
       }
-      if (!prod?.isSerialized) {
+      if (prod?.trackExpiry && !prod?.isSerialized) {
+        const selected = item.selectedBatches || [];
+        const totalSelected = selected.reduce((sum, b) => sum + b.quantity, 0);
+        if (totalSelected <= 0) {
+          setError(`Please specify quantities for at least one batch of ${prod.name}`);
+          setLoading(false);
+          return;
+        }
+      } else if (!prod?.isSerialized) {
         const qty = parseInt(item.quantity, 10);
         if (qty <= 0 || isNaN(qty)) {
           setError(`Quantity for ${prod.name} must be greater than 0`);
@@ -517,15 +563,30 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       }
     }
 
-    const itemsPayload = items.map(item => {
+    const itemsPayload = [];
+    for (const item of items) {
       const prod = products.find(p => p.id === item.productId);
-      return {
-        productId: item.productId,
-        quantity: prod?.isSerialized ? item.selectedBarcodes.length : item.quantity,
-        barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
-        notes: item.notes
-      };
-    });
+      if (prod?.trackExpiry && !prod?.isSerialized) {
+        const selected = item.selectedBatches || [];
+        selected.forEach(batch => {
+          itemsPayload.push({
+            productId: item.productId,
+            quantity: batch.quantity,
+            barcodes: [],
+            manufactureDate: batch.manufactureDate,
+            expiryDate: batch.expiryDate,
+            notes: item.notes
+          });
+        });
+      } else {
+        itemsPayload.push({
+          productId: item.productId,
+          quantity: prod?.isSerialized ? item.selectedBarcodes.length : item.quantity,
+          barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
+          notes: item.notes
+        });
+      }
+    }
 
     try {
       await createBulkDamageTransactions({
@@ -770,7 +831,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                           label: p.name,
                           imageUrl: p.imageUrl,
                           warehouseStock: p.warehouseStock,
-                          disabled: items.filter((_, i) => i !== index).map(it => it.productId).filter(Boolean).includes(p.id)
+                          disabled: p.isSerialized && items.filter((_, i) => i !== index).map(it => it.productId).filter(Boolean).includes(p.id)
                         }))}
                       value={item.productId}
                       onChange={(id) => handleProductChange(index, id)}
@@ -799,14 +860,18 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                            max={item.currentStock || 0}
                            value={item.quantity}
                            onChange={(e) => handleFieldChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
+                           disabled={selectedProd?.trackExpiry}
                            required 
                          />
-                         {item.quantity > (item.currentStock || 0) && (
+                         {selectedProd?.trackExpiry && (
+                           <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected batch quantities below.</span>
+                         )}
+                         {!selectedProd?.trackExpiry && item.quantity > (item.currentStock || 0) && (
                            <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse block">
                              ⚠️ Warning: Quantity exceeds available stock ({item.currentStock || 0})!
                            </span>
                          )}
-                         {item.quantity <= 0 && (
+                         {!selectedProd?.trackExpiry && item.quantity <= 0 && (
                            <span className="text-[10px] font-semibold text-danger mt-1 block">
                              ⚠️ Warning: Quantity must be greater than 0.
                            </span>
@@ -914,6 +979,91 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                     placeholder="e.g. Scratched panel, Damaged packaging..."
                   />
                 </div>
+
+                {/* Expiry Batch selection section */}
+                {selectedProd?.trackExpiry && !selectedProd?.isSerialized && (
+                  <div className="flex flex-col gap-3 mt-2 bg-surface p-4 border border-border rounded-lg">
+                    <label className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Quantities by Expiry Batch</label>
+                    <div className="flex flex-col gap-2">
+                      {(!item.availableBatches || item.availableBatches.length === 0) ? (
+                        <div className="text-xs text-text-muted italic p-2 bg-surface border border-border rounded-lg">
+                          No available stock batches found at this location for this product.
+                        </div>
+                      ) : (
+                        item.availableBatches.map((batch, bIdx) => {
+                          const mDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString() : 'N/A';
+                          const eDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A';
+                          const now = new Date();
+                          const isExpired = batch.expiryDate && new Date(batch.expiryDate) < now;
+
+                          const selectedQty = item.selectedBatches?.find(b => 
+                            b.manufactureDate === batch.manufactureDate && 
+                            b.expiryDate === batch.expiryDate
+                          )?.quantity || '';
+
+                          return (
+                            <div key={bIdx} className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface border border-border rounded-xl shadow-sm">
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-text-primary">Expires: {eDateStr}</span>
+                                  {isExpired && (
+                                    <span className="px-1.5 py-0.5 text-[8px] font-bold bg-danger/10 text-danger rounded uppercase">Expired</span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-text-secondary">Mfg: {mDateStr} | Available: <strong className="text-primary">{batch.quantity} units</strong></span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold text-text-secondary uppercase">Qty:</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={batch.quantity}
+                                  className="w-20 bg-surface border border-border rounded px-2.5 py-1 text-xs text-center focus:outline-none focus:border-primary font-bold text-text-primary"
+                                  value={selectedQty}
+                                  placeholder="0"
+                                  onChange={(e) => {
+                                    const enteredVal = e.target.value;
+                                    const valInt = parseInt(enteredVal, 10) || 0;
+                                    const cappedVal = Math.min(valInt, batch.quantity);
+                                    
+                                    const currentSelected = item.selectedBatches || [];
+                                    const existingIdx = currentSelected.findIndex(b => 
+                                      b.manufactureDate === batch.manufactureDate && 
+                                      b.expiryDate === batch.expiryDate
+                                    );
+
+                                    let nextSelected = [...currentSelected];
+                                    if (existingIdx !== -1) {
+                                      if (cappedVal > 0) {
+                                        nextSelected[existingIdx] = { ...nextSelected[existingIdx], quantity: cappedVal };
+                                      } else {
+                                        nextSelected = nextSelected.filter((_, i) => i !== existingIdx);
+                                      }
+                                    } else if (cappedVal > 0) {
+                                      nextSelected.push({
+                                        manufactureDate: batch.manufactureDate,
+                                        expiryDate: batch.expiryDate,
+                                        quantity: cappedVal
+                                      });
+                                    }
+
+                                    const totalQty = nextSelected.reduce((sum, b) => sum + b.quantity, 0);
+                                    
+                                    setItems(prev => prev.map((x, idx) => idx === index ? {
+                                      ...x,
+                                      selectedBatches: nextSelected,
+                                      quantity: totalQty
+                                    } : x));
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

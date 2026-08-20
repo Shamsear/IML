@@ -77,8 +77,8 @@ export async function getProducts() {
       productId: true,
       transactionType: true,
       quantity: true,
+      manufactureDate: true,
       expiryDate: true,
-      timestamp: true,
       fromEntityType: true,
       toEntityType: true,
     },
@@ -90,31 +90,38 @@ export async function getProducts() {
     const now = new Date();
     expiryProducts.forEach(prodId => {
       const prodTxs = expiryTransactions.filter(tx => tx.productId === prodId);
-      const inbounds = prodTxs.filter(tx => tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType));
-      const outbounds = prodTxs.filter(tx => tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType));
+      const batches = {};
 
-      let totalOut = outbounds.reduce((sum, tx) => sum + tx.quantity, 0);
+      prodTxs.forEach(tx => {
+        const mDateStr = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
+        const eDateStr = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
+        const key = `${mDateStr}|${eDateStr}`;
+
+        if (!batches[key]) {
+          batches[key] = {
+            expiryDate: tx.expiryDate,
+            quantity: 0
+          };
+        }
+
+        if (tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType)) {
+          batches[key].quantity += tx.quantity;
+        } else if (tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType)) {
+          batches[key].quantity -= tx.quantity;
+        }
+      });
+
       let availableQty = 0;
-
-      for (const inbound of inbounds) {
-        let remainingInboundQty = inbound.quantity;
-        if (totalOut > 0) {
-          if (totalOut >= remainingInboundQty) {
-            totalOut -= remainingInboundQty;
-            remainingInboundQty = 0;
-          } else {
-            remainingInboundQty -= totalOut;
-            totalOut = 0;
-          }
-        }
-        if (remainingInboundQty > 0) {
-          const isExpired = inbound.expiryDate && new Date(inbound.expiryDate) < now;
+      Object.values(batches).forEach(b => {
+        if (b.quantity > 0) {
+          const isExpired = b.expiryDate && new Date(b.expiryDate) < now;
           if (!isExpired) {
-            availableQty += remainingInboundQty;
+            availableQty += b.quantity;
           }
         }
-      }
-      expiryStockMap[prodId] = availableQty;
+      });
+
+      expiryStockMap[prodId] = Math.max(0, availableQty);
     });
   }
 
@@ -212,8 +219,8 @@ export async function getProductsSlim() {
       productId: true,
       transactionType: true,
       quantity: true,
+      manufactureDate: true,
       expiryDate: true,
-      timestamp: true,
       fromEntityType: true,
       toEntityType: true,
     },
@@ -225,31 +232,38 @@ export async function getProductsSlim() {
     const now = new Date();
     expiryProducts.forEach(prodId => {
       const prodTxs = expiryTransactions.filter(tx => tx.productId === prodId);
-      const inbounds = prodTxs.filter(tx => tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType));
-      const outbounds = prodTxs.filter(tx => tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType));
+      const batches = {};
 
-      let totalOut = outbounds.reduce((sum, tx) => sum + tx.quantity, 0);
+      prodTxs.forEach(tx => {
+        const mDateStr = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
+        const eDateStr = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
+        const key = `${mDateStr}|${eDateStr}`;
+
+        if (!batches[key]) {
+          batches[key] = {
+            expiryDate: tx.expiryDate,
+            quantity: 0
+          };
+        }
+
+        if (tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType)) {
+          batches[key].quantity += tx.quantity;
+        } else if (tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType)) {
+          batches[key].quantity -= tx.quantity;
+        }
+      });
+
       let availableQty = 0;
-
-      for (const inbound of inbounds) {
-        let remainingInboundQty = inbound.quantity;
-        if (totalOut > 0) {
-          if (totalOut >= remainingInboundQty) {
-            totalOut -= remainingInboundQty;
-            remainingInboundQty = 0;
-          } else {
-            remainingInboundQty -= totalOut;
-            totalOut = 0;
-          }
-        }
-        if (remainingInboundQty > 0) {
-          const isExpired = inbound.expiryDate && new Date(inbound.expiryDate) < now;
+      Object.values(batches).forEach(b => {
+        if (b.quantity > 0) {
+          const isExpired = b.expiryDate && new Date(b.expiryDate) < now;
           if (!isExpired) {
-            availableQty += remainingInboundQty;
+            availableQty += b.quantity;
           }
         }
-      }
-      expiryStockMap[prodId] = availableQty;
+      });
+
+      expiryStockMap[prodId] = Math.max(0, availableQty);
     });
   }
 
@@ -763,62 +777,86 @@ export async function getProductStockAtLocation(productId, locationType, locatio
     return Math.max(0, inQty - outQty);
   }
 
-  // Calculate using FIFO to deduct expired items
-  const inbounds = await prisma.inventoryTransaction.findMany({
-    where: {
-      productId,
-      toEntityType: locationType,
-      ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
-      transactionType: { in: ['RECEIVE', 'RETURN', 'REBRAND_IN'] }
-    },
-    select: {
-      quantity: true,
-      expiryDate: true,
-      timestamp: true
-    },
-    orderBy: { timestamp: 'asc' }
-  });
-
-  const outbounds = await prisma.inventoryTransaction.findMany({
-    where: {
-      productId,
-      fromEntityType: locationType,
-      ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
-      transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] }
-    },
-    select: {
-      quantity: true,
-      timestamp: true
-    },
-    orderBy: { timestamp: 'asc' }
-  });
-
-  let totalOut = outbounds.reduce((sum, tx) => sum + tx.quantity, 0);
-  let availableQty = 0;
+  // Expiry tracking enabled - calculate sum of available non-expired batches
+  const batches = await getProductBatchesAtLocation(productId, locationType, locationId);
   const now = new Date();
-
-  for (const inbound of inbounds) {
-    let remainingInboundQty = inbound.quantity;
-
-    if (totalOut > 0) {
-      if (totalOut >= remainingInboundQty) {
-        totalOut -= remainingInboundQty;
-        remainingInboundQty = 0;
-      } else {
-        remainingInboundQty -= totalOut;
-        totalOut = 0;
-      }
-    }
-
-    if (remainingInboundQty > 0) {
-      const isExpired = inbound.expiryDate && new Date(inbound.expiryDate) < now;
-      if (!isExpired) {
-        availableQty += remainingInboundQty;
-      }
+  let availableQty = 0;
+  for (const batch of batches) {
+    const isExpired = batch.expiryDate && new Date(batch.expiryDate) < now;
+    if (!isExpired) {
+      availableQty += batch.quantity;
     }
   }
 
-  return availableQty;
+  return Math.max(0, availableQty);
+}
+
+// Fetch available stock batches at a specific location for bulk products tracking expiry
+export async function getProductBatchesAtLocation(productId, locationType, locationId = null) {
+  await checkAuth();
+
+  const [inbounds, outbounds] = await Promise.all([
+    prisma.inventoryTransaction.findMany({
+      where: {
+        productId,
+        toEntityType: locationType,
+        ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
+        transactionType: { in: ['RECEIVE', 'RETURN', 'REBRAND_IN'] }
+      },
+      select: {
+        quantity: true,
+        manufactureDate: true,
+        expiryDate: true
+      }
+    }),
+    prisma.inventoryTransaction.findMany({
+      where: {
+        productId,
+        fromEntityType: locationType,
+        ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
+        transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] }
+      },
+      select: {
+        quantity: true,
+        manufactureDate: true,
+        expiryDate: true
+      }
+    })
+  ]);
+
+  const batches = {};
+
+  inbounds.forEach(tx => {
+    const mDateStr = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
+    const eDateStr = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
+    const key = `${mDateStr}|${eDateStr}`;
+
+    if (!batches[key]) {
+      batches[key] = {
+        manufactureDate: tx.manufactureDate,
+        expiryDate: tx.expiryDate,
+        quantity: 0
+      };
+    }
+    batches[key].quantity += tx.quantity;
+  });
+
+  outbounds.forEach(tx => {
+    const mDateStr = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
+    const eDateStr = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
+    const key = `${mDateStr}|${eDateStr}`;
+
+    if (!batches[key]) {
+      batches[key] = {
+        manufactureDate: tx.manufactureDate,
+        expiryDate: tx.expiryDate,
+        quantity: 0
+      };
+    }
+    batches[key].quantity -= tx.quantity;
+  });
+
+  return Object.values(batches).filter(b => b.quantity > 0);
 }
 
 // Find a product and its location availability details by serial barcode

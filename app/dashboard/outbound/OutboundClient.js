@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/actions/transactions';
 import { createSupervisor } from '@/app/actions/supervisors';
 import CustomSelect from '@/components/CustomSelect';
-import { getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
+import { getAvailableBarcodes, findProductByBarcode, getProductBatchesAtLocation } from '@/app/actions/products';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
 const playBeep = () => {
@@ -181,7 +181,9 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         promoterName: '',
         promoterPhone: '',
         existingStaffId: '',
-      } : null
+      } : null,
+      availableBatches: [],
+      selectedBatches: []
     };
   };
 
@@ -198,8 +200,12 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
     return [];
   });
 
+  const initializedRef = useRef(false);
   // Initialize selected products from URL search parameter "productIds"
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     const urlIds = searchParams.get('productIds')?.split(',').filter(Boolean) || [];
     const initRows = async () => {
       let activeItems = [];
@@ -218,6 +224,8 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
             rangeMode: false,
             isExpanded: idx === 0,
             error: '',
+            availableBatches: [],
+            selectedBatches: []
           };
         });
         setItems(activeItems);
@@ -225,10 +233,24 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         activeItems = [createEmptyOutboundItem(0)];
         setItems(activeItems);
       } else {
-        activeItems = items;
+        activeItems = initialItems.map((item, idx) => {
+          const prod = products.find(p => p.id === item.productId);
+          return {
+            ...item,
+            id: item.id || `temp-${Date.now()}-${idx}`,
+            isExpanded: idx === 0,
+            availableBatches: [],
+            selectedBatches: prod?.trackExpiry && !prod?.isSerialized ? [{
+              manufactureDate: item.manufactureDate,
+              expiryDate: item.expiryDate,
+              quantity: item.quantity
+            }] : []
+          };
+        });
+        setItems(activeItems);
       }
 
-      // Load available barcodes for serialized items on mount
+      // Load available barcodes / batches on mount
       for (let i = 0; i < activeItems.length; i++) {
         const item = activeItems[i];
         const prod = products.find(p => p.id === item.productId);
@@ -236,6 +258,13 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           try {
             const available = await getAvailableBarcodes(item.productId, 'WAREHOUSE', null);
             setItems(prev => prev.map((x, idx) => idx === i ? { ...x, availableBarcodes: available || [] } : x));
+          } catch (e) {
+            console.error(e);
+          }
+        } else if (prod?.trackExpiry && !prod?.isSerialized) {
+          try {
+            const batches = await getProductBatchesAtLocation(item.productId, 'WAREHOUSE', null);
+            setItems(prev => prev.map((x, idx) => idx === i ? { ...x, availableBatches: batches || [] } : x));
           } catch (e) {
             console.error(e);
           }
@@ -316,7 +345,9 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           promoterName: '',
           promoterPhone: '',
           existingStaffId: '',
-        } : null
+        } : null,
+        availableBatches: [],
+        selectedBatches: []
       };
     }));
 
@@ -324,6 +355,13 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       try {
         const available = await getAvailableBarcodes(val, 'WAREHOUSE', null);
         setItems(prev => prev.map((item, i) => i === idx ? { ...item, availableBarcodes: available || [] } : item));
+      } catch (e) {
+        console.error(e);
+      }
+    } else if (prod?.trackExpiry) {
+      try {
+        const batches = await getProductBatchesAtLocation(val, 'WAREHOUSE', null);
+        setItems(prev => prev.map((item, i) => i === idx ? { ...item, availableBatches: batches || [], selectedBatches: [] } : item));
       } catch (e) {
         console.error(e);
       }
@@ -698,15 +736,24 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         setLoading(false);
         return;
       }
-      if (!prod?.isSerialized && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
-        updateItemField(i, 'error', 'Quantity must be greater than 0');
-        handleExpandItem(i);
-        setLoading(false);
-        return;
-      }
-      if (!prod?.isSerialized) {
+      if (prod?.trackExpiry && !prod?.isSerialized) {
+        const selected = item.selectedBatches || [];
+        const totalSelected = selected.reduce((sum, b) => sum + b.quantity, 0);
+        if (totalSelected <= 0) {
+          updateItemField(i, 'error', `Please specify quantities for at least one batch of ${prod.name}`);
+          handleExpandItem(i);
+          setLoading(false);
+          return;
+        }
+      } else if (!prod?.isSerialized) {
+        if (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10))) {
+          updateItemField(i, 'error', 'Quantity must be greater than 0');
+          handleExpandItem(i);
+          setLoading(false);
+          return;
+        }
         const qty = parseInt(item.quantity, 10);
-        const originalItem = (initialItems && editMode) ? initialItems.find(x => x.productId === item.productId) : null;
+        const originalItem = (initialItems && editMode) ? initialItems[i] : null;
         const originalQty = originalItem ? originalItem.quantity : 0;
         const stock = (prod?.warehouseStock || 0) + originalQty;
         if (qty > stock) {
@@ -715,8 +762,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           setLoading(false);
           return;
         }
-      }
-      if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
+      } else if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
         updateItemField(i, 'error', `Please select at least one barcode for ${prod.name}`);
         handleExpandItem(i);
         setLoading(false);
@@ -755,17 +801,34 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       }
     }
 
-    const itemsPayload = items.map(item => {
+    const itemsPayload = [];
+    for (const item of items) {
       const prod = products.find(p => p.id === item.productId);
       const isUniform = prod?.category?.toUpperCase() === 'UNIFORM';
-      return {
-        productId: item.productId,
-        quantity: prod?.isSerialized ? item.selectedBarcodes.length : parseInt(item.quantity, 10),
-        barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
-        notes: item.notes,
-        ...(isUniform ? { promoterAssignment: item.promoterAssignment } : {})
-      };
-    });
+
+      if (prod?.trackExpiry && !prod?.isSerialized) {
+        const selected = item.selectedBatches || [];
+        selected.forEach(batch => {
+          itemsPayload.push({
+            productId: item.productId,
+            quantity: batch.quantity,
+            barcodes: [],
+            manufactureDate: batch.manufactureDate,
+            expiryDate: batch.expiryDate,
+            notes: item.notes,
+            ...(isUniform ? { promoterAssignment: item.promoterAssignment } : {})
+          });
+        });
+      } else {
+        itemsPayload.push({
+          productId: item.productId,
+          quantity: prod?.isSerialized ? item.selectedBarcodes.length : parseInt(item.quantity, 10),
+          barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
+          notes: item.notes,
+          ...(isUniform ? { promoterAssignment: item.promoterAssignment } : {})
+        });
+      }
+    }
 
     const payload = {
       fromEntityType: 'WAREHOUSE',
@@ -1298,7 +1361,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                 label: `${p.name} (${p.category})`,
                                 imageUrl: p.imageUrl,
                                 warehouseStock: p.warehouseStock,
-                                disabled: items.filter((_, i) => i !== idx).map(it => it.productId).filter(Boolean).includes(p.id)
+                                disabled: p.isSerialized && items.filter((_, i) => i !== idx).map(it => it.productId).filter(Boolean).includes(p.id)
                               }))}
                             value={item.productId}
                             onChange={(val) => handleProductChange(idx, val)}
@@ -1478,14 +1541,17 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                               className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/40"
                               value={item.quantity}
                               onChange={(e) => updateItemField(idx, 'quantity', e.target.value)}
-                              disabled={selectedProd?.isSerialized}
-                              placeholder={selectedProd?.isSerialized ? 'Select serial numbers below' : 'e.g. 50'}
+                              disabled={selectedProd?.isSerialized || selectedProd?.trackExpiry}
+                              placeholder={selectedProd?.isSerialized ? 'Select serial numbers below' : selectedProd?.trackExpiry ? 'Select batches below' : 'e.g. 50'}
                               required
                             />
                             {selectedProd?.isSerialized && (
                               <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected serial numbers.</span>
                             )}
-                            {!selectedProd?.isSerialized && selectedProd && parseInt(item.quantity, 10) > selectedProd.warehouseStock && (
+                            {selectedProd?.trackExpiry && !selectedProd?.isSerialized && (
+                              <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected batch quantities below.</span>
+                            )}
+                            {!selectedProd?.isSerialized && !selectedProd?.trackExpiry && selectedProd && parseInt(item.quantity, 10) > selectedProd.warehouseStock && (
                               <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse">
                                 ⚠️ Warning: Quantity ({item.quantity}) exceeds available warehouse stock ({selectedProd.warehouseStock} units)!
                               </span>
@@ -1508,6 +1574,88 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                               placeholder="e.g. For marketing stands (Optional)"
                             />
                           </div>
+
+                          {/* Expiry Batch selection section */}
+                          {selectedProd?.trackExpiry && !selectedProd?.isSerialized && (
+                            <div className="sm:col-span-2 flex flex-col gap-3 mt-2 bg-surface-elevated/20 p-4 border border-border rounded-xl">
+                              <label className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Quantities by Expiry Batch</label>
+                              <div className="flex flex-col gap-2">
+                                {(!item.availableBatches || item.availableBatches.length === 0) ? (
+                                  <div className="text-xs text-text-muted italic p-2 bg-surface border border-border rounded-lg">
+                                    No available non-expired stock batches found at WAREHOUSE for this product.
+                                  </div>
+                                ) : (
+                                  item.availableBatches.map((batch, bIdx) => {
+                                    const mDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString() : 'N/A';
+                                    const eDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A';
+                                    const now = new Date();
+                                    const isExpired = batch.expiryDate && new Date(batch.expiryDate) < now;
+                                    
+                                    if (isExpired) return null;
+
+                                    const selectedQty = item.selectedBatches?.find(b => 
+                                      b.manufactureDate === batch.manufactureDate && 
+                                      b.expiryDate === batch.expiryDate
+                                    )?.quantity || '';
+
+                                    return (
+                                      <div key={bIdx} className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface border border-border rounded-xl shadow-sm">
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="text-xs font-bold text-text-primary">Expires: {eDateStr}</span>
+                                          <span className="text-[10px] text-text-secondary">Mfg: {mDateStr} | Available: <strong className="text-primary">{batch.quantity} units</strong></span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <label className="text-[10px] font-bold text-text-secondary uppercase">Qty:</label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max={batch.quantity}
+                                            className="w-20 bg-surface border border-border rounded px-2.5 py-1 text-xs text-center focus:outline-none focus:border-primary font-bold text-text-primary"
+                                            value={selectedQty}
+                                            placeholder="0"
+                                            onChange={(e) => {
+                                              const enteredVal = e.target.value;
+                                              const valInt = parseInt(enteredVal, 10) || 0;
+                                              const cappedVal = Math.min(valInt, batch.quantity);
+                                              
+                                              const currentSelected = item.selectedBatches || [];
+                                              const existingIdx = currentSelected.findIndex(b => 
+                                                b.manufactureDate === batch.manufactureDate && 
+                                                b.expiryDate === batch.expiryDate
+                                              );
+
+                                              let nextSelected = [...currentSelected];
+                                              if (existingIdx !== -1) {
+                                                if (cappedVal > 0) {
+                                                  nextSelected[existingIdx] = { ...nextSelected[existingIdx], quantity: cappedVal };
+                                                } else {
+                                                  nextSelected = nextSelected.filter((_, i) => i !== existingIdx);
+                                                }
+                                              } else if (cappedVal > 0) {
+                                                nextSelected.push({
+                                                  manufactureDate: batch.manufactureDate,
+                                                  expiryDate: batch.expiryDate,
+                                                  quantity: cappedVal
+                                                });
+                                              }
+
+                                              const totalQty = nextSelected.reduce((sum, b) => sum + b.quantity, 0);
+                                              
+                                              setItems(prev => prev.map((x, i) => i === idx ? {
+                                                ...x,
+                                                selectedBatches: nextSelected,
+                                                quantity: totalQty
+                                              } : x));
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Serial selection section (only for serialized items) */}
                           {selectedProd?.isSerialized && (

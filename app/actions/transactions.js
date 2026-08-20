@@ -720,6 +720,8 @@ export async function createBulkIssueTransactions(payload) {
             deliveryStatus: 'Delivered',
             deliverySupervisorId: deliverySupervisorId || null,
             timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
+            manufactureDate: item.manufactureDate ? parseTransactionDate(item.manufactureDate) : null,
+            expiryDate: item.expiryDate ? parseTransactionDate(item.expiryDate) : null,
           },
         });
 
@@ -1199,6 +1201,8 @@ export async function createBulkDamageTransactions(payload) {
           notes: notes ? notes.trim() : null,
           deliveryStatus: 'Delivered',
           deliveryNote,
+          manufactureDate: item.manufactureDate ? parseTransactionDate(item.manufactureDate) : null,
+          expiryDate: item.expiryDate ? parseTransactionDate(item.expiryDate) : null,
         },
       });
 
@@ -1872,6 +1876,8 @@ export async function processOutboundReturns(returnsPayload) {
             notes: `Auto-generated Return from Outbound ${transactionId}. ${notes || ''}`,
             deliveryStatus: 'Delivered',
             deliveryNote,
+            manufactureDate: originalTx.manufactureDate,
+            expiryDate: originalTx.expiryDate,
           }
         });
 
@@ -1911,6 +1917,8 @@ export async function processOutboundReturns(returnsPayload) {
             notes: `Marked as Used from Outbound ${transactionId}. ${notes || ''}`,
             deliveryStatus: 'Delivered',
             deliveryNote,
+            manufactureDate: originalTx.manufactureDate,
+            expiryDate: originalTx.expiryDate,
           }
         });
       } else {
