@@ -1204,7 +1204,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                 label: `${p.name} (${p.category})`,
                                 imageUrl: p.imageUrl,
                                 warehouseStock: p.warehouseStock,
-                                disabled: items.filter((_, i) => i !== idx).map(it => it.productId).filter(Boolean).includes(p.id)
+                                disabled: p.isSerialized && items.filter((_, i) => i !== idx).map(it => it.productId).filter(Boolean).includes(p.id)
                               }))}
                             value={item.productId}
                             onChange={(val) => updateItemField(idx, 'productId', val)}
