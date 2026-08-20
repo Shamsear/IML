@@ -499,10 +499,10 @@ export default function StaffClient({ initialStaff, stores }) {
                                 <span className="truncate max-w-[160px] font-semibold text-text-primary">{alloc.store?.name || 'Unknown Store'}</span>
                               </div>
                             </td>
-                            <td className="py-3.5 px-5 whitespace-nowrap min-w-[200px]">
-                              <div className="flex flex-col gap-2 max-h-[80px] overflow-y-auto pr-2">
+                            <td className="py-3.5 px-5 min-w-[250px]">
+                              <div className="flex flex-col gap-1.5">
                                 {alloc.uniformQty > 0 && (
-                                  <div className="flex items-center justify-between gap-3 text-xs">
+                                  <div className="flex items-center justify-between gap-3 text-xs whitespace-nowrap">
                                     <span className="font-semibold text-text-primary">{alloc.uniformQty}x Shirt (Legacy)</span>
                                     {alloc.uniformReturned ? (
                                       <span className="px-1.5 py-0.5 bg-success/15 text-success text-[9px] font-bold rounded">Returned</span>
@@ -512,7 +512,7 @@ export default function StaffClient({ initialStaff, stores }) {
                                   </div>
                                 )}
                                 {alloc.capQty > 0 && (
-                                  <div className="flex items-center justify-between gap-3 text-xs">
+                                  <div className="flex items-center justify-between gap-3 text-xs whitespace-nowrap">
                                     <span className="font-semibold text-text-primary">{alloc.capQty}x Cap (Legacy)</span>
                                     {alloc.capReturned ? (
                                       <span className="px-1.5 py-0.5 bg-success/15 text-success text-[9px] font-bold rounded">Returned</span>
@@ -522,7 +522,7 @@ export default function StaffClient({ initialStaff, stores }) {
                                   </div>
                                 )}
                                 {items.map((item, idx) => (
-                                  <div key={item.id || idx} className="flex items-center justify-between gap-3 text-xs border-t border-border/30 pt-1.5 first:border-0 first:pt-0">
+                                  <div key={item.id || idx} className="flex items-center justify-between gap-3 text-xs whitespace-nowrap">
                                     <span className="font-semibold text-text-primary">{item.qty}x {item.type} <span className="text-text-muted">({item.size})</span></span>
                                     {item.returned ? (
                                       <span className="px-1.5 py-0.5 bg-success/15 text-success text-[9px] font-bold rounded">
