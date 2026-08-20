@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, Filter } from 'lucide-react';
+import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, Filter, X } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function BrandPortalClient({ brand }) {
@@ -10,6 +10,7 @@ export default function BrandPortalClient({ brand }) {
   const [logSearchQuery, setLogSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('ALL'); // 'ALL', 'RECEIVE', 'ISSUE', 'DAMAGE'
   const [activeSection, setActiveSection] = useState('catalog'); // 'catalog', 'logs'
+  const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
 
   // Pagination States
   const [productPage, setProductPage] = useState(0);
@@ -178,7 +179,8 @@ export default function BrandPortalClient({ brand }) {
               <img 
                 src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
                 alt={brand.name} 
-                className="w-16 h-16 rounded-xl object-contain bg-[#fcfbfa] p-1.5 border border-border"
+                className="w-16 h-16 rounded-xl object-contain bg-[#fcfbfa] p-1.5 border border-border cursor-pointer hover:border-primary transition-all"
+                onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
                 onError={(e) => {
                   if (e.target.src !== brand.imageUrl) {
                     e.target.src = brand.imageUrl;
@@ -367,7 +369,8 @@ export default function BrandPortalClient({ brand }) {
                                   <img 
                                     src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
                                     alt={p.name} 
-                                    className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0"
+                                    className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border cursor-pointer hover:border-primary transition-all flex-shrink-0"
+                                    onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
                                     onError={(e) => {
                                       if (e.target.src !== p.imageUrl) {
                                         e.target.src = p.imageUrl;
@@ -623,6 +626,38 @@ export default function BrandPortalClient({ brand }) {
         )}
 
       </div>
+
+      {/* Lightbox / Image Preview */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in print:hidden"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div 
+            className="bg-surface border border-border rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl relative animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-border flex justify-between items-center bg-surface-elevated/45">
+              <h3 className="font-display font-bold text-sm text-text-primary truncate max-w-[80%]">
+                {lightboxImage.name}
+              </h3>
+              <button 
+                onClick={() => setLightboxImage(null)}
+                className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 flex justify-center bg-surface-elevated/20 max-h-[60vh] overflow-y-auto">
+              <img 
+                src={lightboxImage.url} 
+                alt={lightboxImage.name} 
+                className="max-w-full max-h-[50vh] object-contain rounded-xl shadow-md border border-border"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
