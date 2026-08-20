@@ -24,6 +24,7 @@ export default async function ExpiryPage() {
           category: true,
           itemCode: true,
           isSerialized: true,
+          warehouseStock: true, // Get current warehouse stock from Product
           brand: {
             select: {
               name: true,
@@ -37,74 +38,48 @@ export default async function ExpiryPage() {
     },
   });
 
-  // For each batch (RECEIVE transaction), calculate remaining stock in warehouse
-  const batches = await Promise.all(
-    transactions.map(async (tx) => {
-      // For batch-level tracking, we need to track by the specific RECEIVE transaction
-      // But outbound transactions don't necessarily reference the original receive DN
-      // So we calculate at product level for the warehouse
-      
-      // Get total warehouse stock for this product (all batches combined)
-      const [inboundTotal, outboundTotal] = await Promise.all([
-        prisma.inventoryTransaction.aggregate({
-          where: {
-            productId: tx.productId,
-            toEntityType: 'WAREHOUSE',
-            transactionType: { in: ['RECEIVE', 'RETURN'] },
-          },
-          _sum: { quantity: true },
-        }),
-        prisma.inventoryTransaction.aggregate({
-          where: {
-            productId: tx.productId,
-            fromEntityType: 'WAREHOUSE',
-            transactionType: { in: ['ISSUE', 'OUTBOUND'] },
-          },
-          _sum: { quantity: true },
-        }),
-      ]);
+  // Map transactions to batch objects
+  // Group by product and show only products with warehouse stock > 0
+  const productBatchMap = new Map();
+  
+  transactions.forEach((tx) => {
+    const productId = tx.productId;
+    const warehouseStock = tx.product.warehouseStock || 0;
+    
+    // Only process if product has stock in warehouse
+    if (warehouseStock > 0) {
+      // Keep track of earliest expiry batch per product
+      if (!productBatchMap.has(productId) || 
+          (tx.expiryDate && productBatchMap.get(productId).expiryDate && 
+           new Date(tx.expiryDate) < new Date(productBatchMap.get(productId).expiryDate))) {
+        productBatchMap.set(productId, {
+          id: tx.id,
+          productId: tx.productId,
+          productName: tx.product.name,
+          productCategory: tx.product.category,
+          productBrand: tx.product.brand?.name || 'No Brand',
+          productImage: tx.product.imageUrl,
+          isSerialized: tx.product.isSerialized,
+          deliveryNote: tx.deliveryNote || 'N/A',
+          supplier: tx.fromEntityId || 'Unknown Supplier',
+          receivedQty: tx.quantity,
+          remainingBatchStock: warehouseStock, // Current warehouse stock from Product table
+          receivedDate: tx.timestamp,
+          manufactureDate: tx.manufactureDate,
+          expiryDate: tx.expiryDate,
+          availableSerials: [],
+        });
+      }
+    }
+  });
 
-      const totalWarehouseStock = (inboundTotal._sum.quantity || 0) - (outboundTotal._sum.quantity || 0);
-
-      return {
-        id: tx.id,
-        productId: tx.productId,
-        productName: tx.product.name,
-        productCategory: tx.product.category,
-        productBrand: tx.product.brand?.name || 'No Brand',
-        productImage: tx.product.imageUrl,
-        isSerialized: tx.product.isSerialized,
-        deliveryNote: tx.deliveryNote || 'N/A',
-        supplier: tx.fromEntityId || 'Unknown Supplier',
-        receivedQty: tx.quantity,
-        remainingBatchStock: totalWarehouseStock, // Show total product warehouse stock
-        receivedDate: tx.timestamp,
-        manufactureDate: tx.manufactureDate,
-        expiryDate: tx.expiryDate,
-        availableSerials: [],
-      };
-    })
-  );
-
-  // Filter: only show batches where the product still has stock in warehouse
-  // AND remove duplicate products (keep earliest expiry date per product)
-  const productMap = new Map();
-  batches
-    .filter(batch => batch.remainingBatchStock > 0)
+  const activeBatches = Array.from(productBatchMap.values())
     .sort((a, b) => {
       // Sort by expiry date (earliest first)
       if (!a.expiryDate) return 1;
       if (!b.expiryDate) return -1;
       return new Date(a.expiryDate) - new Date(b.expiryDate);
-    })
-    .forEach(batch => {
-      // Keep only the earliest expiry batch per product
-      if (!productMap.has(batch.productId)) {
-        productMap.set(batch.productId, batch);
-      }
     });
-
-  const activeBatches = Array.from(productMap.values());
 
   return <ExpiryClient initialBatches={activeBatches} />;
 }
