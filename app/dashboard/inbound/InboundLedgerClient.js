@@ -170,6 +170,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
                         <th className="py-3 px-5">Date</th>
                         <th className="py-3 px-5">Product Details</th>
+                        <th className="py-3 px-5">SKU</th>
                         <th className="py-3 px-5">Type</th>
                         <th className="py-3 px-5">Source / Supplier</th>
                         <th className="py-3 px-5 text-center">Quantity</th>
@@ -198,6 +199,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                                 <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
                               </div>
                             </td>
+                            <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
                             <td className="py-3.5 px-5 whitespace-nowrap">
                               <span className={`badge text-[10px] ${tx.transactionType === 'RECEIVE' ? 'bg-success/10 border-success/20 text-success' : 'bg-info/10 border-info/20 text-info'}`}>
                                 {tx.transactionType}
@@ -349,6 +351,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                           <thead>
                             <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                               <th className="py-2.5 px-5 pl-14">Product Name</th>
+                              <th className="py-2.5 px-5">SKU</th>
                               <th className="py-2.5 px-5">Brand</th>
                               <th className="py-2.5 px-5 text-center">Quantity</th>
                               <th className="py-2.5 px-5 text-right">Actions</th>
@@ -358,6 +361,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                             {group.items.map(tx => (
                               <tr key={tx.id} className="hover:bg-surface-elevated/40 transition-colors">
                                 <td className="py-3 px-5 pl-14 font-medium text-xs">{tx.product.name}</td>
+                                <td className="py-3 px-5 text-xs font-mono text-text-secondary">{tx.product.itemCode || '---'}</td>
                                 <td className="py-3 px-5 text-xs text-text-secondary">{tx.product.brand.name}</td>
                                 <td className="py-3 px-5 text-center font-mono text-xs font-bold text-success">+{tx.quantity}</td>
                                 <td className="py-3 px-5 text-right">

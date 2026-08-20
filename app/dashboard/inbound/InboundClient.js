@@ -788,7 +788,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
       </div>
       {/* Page Header */}
       <header className="flex items-center gap-4 pb-5 border-b border-border">
-        <Link href="/dashboard/inbound" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
+        <Link href="/dashboard/inbound" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors">
           <ArrowLeft size={16} />
         </Link>
         <div>
@@ -832,7 +832,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 value={fromId}
                 onChange={(e) => { setFromId(e.target.value); setShowSupplierSuggestions(true); }}
                 onFocus={() => setShowSupplierSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSupplierSuggestions(false), 250)}
+                    onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const next = e.target.nextElementSibling; if (next && next.tagName === 'DIV') { const btns = next.querySelectorAll('button'); if (btns.length > 0) btns[0].focus(); } } }}
+                onBlur={(e) => { if (e.relatedTarget && e.relatedTarget.getAttribute('data-smart') === 'true') return; setTimeout(() => setShowSupplierSuggestions(false), 250); }}
                 placeholder="e.g. Sadia Supplier"
                 required
               />
@@ -841,8 +842,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                   {filteredSupplierSuggestions.map((name, idx) => (
                     <button
                       key={idx}
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium"
+                      type="button" data-smart="true" onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const btns = Array.from(e.target.parentElement.querySelectorAll('button')); const idx = btns.indexOf(e.target); if (e.key === 'ArrowDown' && idx < btns.length - 1) btns[idx + 1].focus(); else if (e.key === 'ArrowUp') { if (idx > 0) btns[idx - 1].focus(); else e.target.parentElement.previousElementSibling?.focus(); } } }} 
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium"
                       onClick={() => {
                         setFromId(name);
                         setShowSupplierSuggestions(false);
@@ -875,7 +876,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                     <button
                       key={idx}
                       type="button"
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium"
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium"
                       onClick={() => {
                         setReceivedBy(name);
                         setShowSuggestions(false);
@@ -985,7 +986,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 {!item.isExpanded && (
                   <div 
                     onClick={() => handleExpandItem(idx)}
-                    className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/10 transition-colors"
+                    className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/10 transition-colors"
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
                       {item.isNewProduct ? (
@@ -1053,7 +1054,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                           <button
                             type="button"
                             onClick={() => handleExpandItem(idx)}
-                            className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
+                            className="p-1.5 hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-md transition-colors"
                           >
                             <Edit2 size={13} />
                           </button>
@@ -1360,7 +1361,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                       <button
                                         key={catIdx}
                                         type="button"
-                                        className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                        className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
                                         onClick={() => {
                                           updateItemField(idx, 'prodCategory', cat);
                                           setActiveCategorySuggestionsTarget(null);
@@ -1545,7 +1546,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                   />
                                   <label
                                     htmlFor={`inline-image-${item.id}`}
-                                    className="px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 inline-flex items-center gap-1.5 w-fit border-dashed"
+                                    className="px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 inline-flex items-center gap-1.5 w-fit border-dashed"
                                   >
                                     <span>Browse Picture</span>
                                   </label>
@@ -1720,7 +1721,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                       setActiveScanTarget({ itemIdx: idx, field: 'list' });
                                       handleOpenMobileScanner();
                                     }}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
                                   >
                                     <Smartphone size={10} /> <span>Companion Sync</span>
                                   </button>
@@ -1822,7 +1823,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         </button>
         {/* Action triggers */}
         <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-border">
-          <Link href="/dashboard/inbound" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
+          <Link href="/dashboard/inbound" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
             Cancel
           </Link>
           <button 
@@ -1858,7 +1859,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 <div className="has-tooltip">
                   <button 
                     type="button" 
-                    className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                    className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
                     onClick={() => setIsCameraOpen(false)}
                   >
                     <X size={16} />
@@ -1981,7 +1982,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
               </h3>
               <button 
                 type="button" 
-                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
                 onClick={() => setIsMobileModalOpen(false)}
               >
                 <X size={16} />

@@ -335,7 +335,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
       {/* Header */}
       <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-border">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/brands" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors flex-shrink-0">
+          <Link href="/dashboard/brands" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors flex-shrink-0">
             <ArrowLeft size={16} />
           </Link>
           
@@ -371,11 +371,11 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         </div>
         
         <div className="flex flex-wrap lg:justify-end items-center gap-2">
-          <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setStoreToConnect(''); setError(''); setActiveModal('connectStore'); }}>
+          <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setStoreToConnect(''); setError(''); setActiveModal('connectStore'); }}>
             <LinkIcon size={14} />
             <span>Link Outlet</span>
           </button>
-          <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setNewStoreName(''); setNewStoreLocation(''); setError(''); setActiveModal('createStore'); }}>
+          <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setNewStoreName(''); setNewStoreLocation(''); setError(''); setActiveModal('createStore'); }}>
             <Store size={14} />
             <span>Register &amp; Link Outlet</span>
           </button>
@@ -384,7 +384,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
             className={`inline-flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-semibold transition-all duration-200 ${
               showPortalAccess 
                 ? 'bg-primary/10 border-primary/20 text-primary' 
-                : 'bg-surface border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary'
+                : 'bg-surface border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary'
             }`} 
             onClick={() => setShowPortalAccess(!showPortalAccess)}
           >
@@ -429,7 +429,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
             <button
               type="button"
               onClick={handleCopyLink}
-              className="flex-1 sm:flex-initial px-3 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200"
+              className="flex-1 sm:flex-initial px-3 py-1.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200"
             >
               {copied ? 'Copied!' : 'Copy Link'}
             </button>
@@ -495,7 +495,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                   {paginatedProducts.map(product => {
                     const stock = calculateStock(product.transactions);
                     return (
-                      <tr key={product.id} className="hover:bg-surface-elevated/20 transition-colors">
+                      <tr key={product.id} className="hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/20 transition-colors">
                         <td className="py-3.5 pl-4 pr-0 w-8 text-center">
                           <input 
                             type="checkbox" 
@@ -633,7 +633,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     type="button"
                     disabled={currentPage === 0}
                     onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
-                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
                   >
                     Previous
                   </button>
@@ -641,7 +641,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     type="button"
                     disabled={currentPage === totalPages - 1}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
-                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
                   >
                     Next
                   </button>
@@ -691,7 +691,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[400px] shadow-lg flex flex-col gap-4 animate-slide-down">
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-display font-bold text-lg text-text-primary">Connect Store</h3>
-              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setActiveModal(null)}>
+              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" onClick={() => setActiveModal(null)}>
                 <X size={18} />
               </button>
             </div>
@@ -721,7 +721,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[420px] shadow-lg flex flex-col gap-4 animate-slide-down">
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-display font-bold text-lg text-text-primary">Register &amp; Link Store</h3>
-              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setActiveModal(null)}>
+              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" onClick={() => setActiveModal(null)}>
                 <X size={18} />
               </button>
             </div>
@@ -760,7 +760,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[500px] shadow-lg flex flex-col gap-4 animate-slide-down">
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-display font-bold text-lg text-text-primary">Add Brand Product</h3>
-              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setActiveModal(null)}>
+              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" onClick={() => setActiveModal(null)}>
                 <X size={18} />
               </button>
             </div>
@@ -828,7 +828,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                       value={productCategory}
                       onChange={(e) => { setProductCategory(e.target.value); setShowCategorySuggestions(true); }}
                       onFocus={() => setShowCategorySuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 250)}
+                    onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const next = e.target.nextElementSibling; if (next && next.tagName === 'DIV') { const btns = next.querySelectorAll('button'); if (btns.length > 0) btns[0].focus(); } } }}
+                      onBlur={(e) => { if (e.relatedTarget && e.relatedTarget.getAttribute('data-smart') === 'true') return; setTimeout(() => setShowCategorySuggestions(false), 250); }}
                       placeholder="Category"
                     />
                     {showCategorySuggestions && (() => {
@@ -845,8 +846,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                         })().map((cat, catIdx) => (
                           <button
                             key={catIdx}
-                            type="button"
-                            className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                            type="button" data-smart="true" onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const btns = Array.from(e.target.parentElement.querySelectorAll('button')); const idx = btns.indexOf(e.target); if (e.key === 'ArrowDown' && idx < btns.length - 1) btns[idx + 1].focus(); else if (e.key === 'ArrowUp') { if (idx > 0) btns[idx - 1].focus(); else e.target.parentElement.previousElementSibling?.focus(); } } }} 
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
                             onClick={() => {
                               setProductCategory(cat);
                               setShowCategorySuggestions(false);
@@ -917,7 +918,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                 <h3 className="font-display font-bold text-lg text-text-primary">Manage Barcodes: {selectedProduct.name}</h3>
                 <p className="text-xs text-text-secondary mt-0.5">Import and lookup barcodes.</p>
               </div>
-              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setActiveModal(null)}>
+              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" onClick={() => setActiveModal(null)}>
                 <X size={18} />
               </button>
             </div>
@@ -1014,7 +1015,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     </thead>
                     <tbody className="divide-y divide-border font-mono text-text-primary">
                       {serialsList.map(s => (
-                        <tr key={s.id} className="hover:bg-surface-elevated/40">
+                        <tr key={s.id} className="hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/40">
                           <td className="p-2.5"><code>{s.barcode}</code></td>
                           <td className="p-2.5">{s.currentLocationType}</td>
                           <td className="p-2.5 text-center">

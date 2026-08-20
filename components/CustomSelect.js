@@ -100,6 +100,12 @@ export default function CustomSelect({
     close();
   }, [onChange, close]);
 
+  useEffect(() => {
+    if (isOpen && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [isOpen]);
+
   // ── Auto-scroll highlighted item into view ───────────────────────────────
   useEffect(() => {
     if (highlightedIndex < 0 || !itemRefs.current[highlightedIndex]) return;

@@ -31,6 +31,7 @@ export default async function LossPage({ searchParams }) {
           select: {
             id: true,
             name: true,
+            itemCode: true,
             brandId: true,
             brand: { select: { name: true } }
           }
@@ -94,6 +95,7 @@ export default async function LossPage({ searchParams }) {
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
                   <th className="py-3 px-5">Date</th>
                   <th className="py-3 px-5">Product Details</th>
+                  <th className="py-3 px-5">SKU</th>
                   <th className="py-3 px-5">Lost From</th>
                   <th className="py-3 px-5 text-center">Quantity</th>
                   <th className="py-3 px-5">Loss Note</th>
@@ -120,6 +122,7 @@ export default async function LossPage({ searchParams }) {
                           <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
                         </div>
                       </td>
+                      <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
                       <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary">{sourceName}</td>
                       <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-warning">
                         -{tx.quantity}
@@ -175,3 +178,4 @@ export default async function LossPage({ searchParams }) {
     </div>
   );
 }
+

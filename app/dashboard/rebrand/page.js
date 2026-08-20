@@ -24,6 +24,7 @@ export default async function RebrandPage({ searchParams }) {
           select: {
             id: true,
             name: true,
+            itemCode: true,
             brand: { select: { name: true } }
           }
         },
@@ -86,6 +87,7 @@ export default async function RebrandPage({ searchParams }) {
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
                   <th className="py-3 px-5">Date</th>
                   <th className="py-3 px-5">Product Details</th>
+                  <th className="py-3 px-5">SKU</th>
                   <th className="py-3 px-5">Action Type</th>
                   <th className="py-3 px-5 text-center">Quantity</th>
                   <th className="py-3 px-5">Associated Serials / Barcodes</th>
@@ -114,6 +116,7 @@ export default async function RebrandPage({ searchParams }) {
                           <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
                         </div>
                       </td>
+                      <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
                       <td className="py-3.5 px-5 whitespace-nowrap">
                         <span className={`badge text-[10px] ${
                           tx.transactionType === 'REBRAND_IN' 
@@ -190,3 +193,4 @@ export default async function RebrandPage({ searchParams }) {
     </div>
   );
 }
+

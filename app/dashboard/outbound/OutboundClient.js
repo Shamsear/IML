@@ -778,7 +778,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       </div>
       {/* Page Header */}
       <header className="flex items-center gap-4 pb-5 border-b border-border">
-        <Link href="/dashboard/outbound" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
+        <Link href="/dashboard/outbound" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors">
           <ArrowLeft size={16} />
         </Link>
         <div>
@@ -844,7 +844,8 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                     value={toId}
                     onChange={(e) => { setToId(e.target.value); setShowDirectSellerSuggestions(true); }}
                     onFocus={() => setShowDirectSellerSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowDirectSellerSuggestions(false), 250)}
+                    onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const next = e.target.nextElementSibling; if (next && next.tagName === 'DIV') { const btns = next.querySelectorAll('button'); if (btns.length > 0) btns[0].focus(); } } }}
+                    onBlur={(e) => { if (e.relatedTarget && e.relatedTarget.getAttribute('data-smart') === 'true') return; setTimeout(() => setShowDirectSellerSuggestions(false), 250); }}
                     placeholder="Type or select direct seller name"
                     className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                     required
@@ -859,8 +860,8 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       })().map((ds, idx) => (
                         <button
                           key={idx}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                          type="button" data-smart="true" onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const btns = Array.from(e.target.parentElement.querySelectorAll('button')); const idx = btns.indexOf(e.target); if (e.key === 'ArrowDown' && idx < btns.length - 1) btns[idx + 1].focus(); else if (e.key === 'ArrowUp') { if (idx > 0) btns[idx - 1].focus(); else e.target.parentElement.previousElementSibling?.focus(); } } }} 
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
                           onClick={() => {
                             setToId(ds);
                             setShowDirectSellerSuggestions(false);
@@ -1049,7 +1050,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                     console.error(e);
                   }
                 }}
-                className="inline-flex items-center gap-1 px-4 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded-lg text-xs font-bold cursor-pointer transition-all"
+                className="inline-flex items-center gap-1 px-4 py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded-lg text-xs font-bold cursor-pointer transition-all"
               >
                 <Smartphone size={13} />
                 <span>Pair Phone Companion</span>
@@ -1127,7 +1128,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                 {!item.isExpanded && (
                   <div 
                     onClick={() => handleExpandItem(idx)}
-                    className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/10 transition-colors"
+                    className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/10 transition-colors"
                   >
                     <div className="min-w-0 flex items-center gap-3.5">
                       {selectedProd?.imageUrl ? (
@@ -1172,7 +1173,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                           <button
                             type="button"
                             onClick={() => handleExpandItem(idx)}
-                            className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors"
+                            className="p-1.5 hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-md transition-colors"
                           >
                             <Edit2 size={14} />
                           </button>
@@ -1478,7 +1479,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                     className={`px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer transition-all border
                                       ${item.rangeMode 
                                         ? 'bg-primary text-white border-primary' 
-                                        : 'bg-surface border-border hover:bg-surface-elevated text-text-primary'}
+                                        : 'bg-surface border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary'}
                                     `}
                                   >
                                     {item.rangeMode ? 'Switch to Barcode Picker' : 'Switch to Range Select'}
@@ -1542,7 +1543,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                             className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-left transition-all border cursor-pointer
                                               ${isSel 
                                                 ? 'bg-primary/10 border-primary text-primary shadow-sm' 
-                                                : 'bg-surface border-border text-text-secondary hover:bg-surface-elevated/40'}
+                                                : 'bg-surface border-border text-text-secondary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/40'}
                                             `}
                                           >
                                             {bc.barcode}
@@ -1580,7 +1581,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           <button
             type="button"
             onClick={handleAddNewItem}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border border-dashed hover:bg-surface-elevated text-text-primary rounded-xl text-xs font-bold cursor-pointer transition-all hover:border-primary"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border border-dashed hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded-xl text-xs font-bold cursor-pointer transition-all hover:border-primary"
           >
             <Plus size={14} className="text-primary" />
             <span>Add Another Item to Dispatch</span>
@@ -1592,7 +1593,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           <button 
             type="button" 
             onClick={() => router.back()} 
-            className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200"
+            className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200"
             disabled={loading}
           >
             Cancel
@@ -1627,7 +1628,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                 <div className="has-tooltip">
                   <button 
                     type="button" 
-                    className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                    className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
                     onClick={() => setIsCameraOpen(false)}
                   >
                     <X size={16} />
@@ -1747,7 +1748,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
               </h3>
               <button 
                 type="button" 
-                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
                 onClick={() => setIsMobileModalOpen(false)}
               >
                 <X size={16} />

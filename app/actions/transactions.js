@@ -146,6 +146,7 @@ export async function getTransactions(filters = {}) {
           select: {
             id: true,
             name: true,
+            itemCode: true,
             isSerialized: true,
             brandId: true,
             brand: { select: { name: true } },
@@ -452,6 +453,7 @@ export async function getStoreInventory(storeId) {
       product: {
         select: {
           name: true,
+            itemCode: true,
           isSerialized: true,
           brand: { select: { name: true } }
         }
@@ -2260,3 +2262,4 @@ export async function getRecentDirectSellers() {
   });
   return transactions.map(t => t.toEntityId).filter(Boolean);
 }
+

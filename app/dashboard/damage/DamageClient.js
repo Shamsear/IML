@@ -558,7 +558,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       <header className="flex items-center gap-4 pb-5 border-b border-border">
         <Link
           href={lockedType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
-          className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors"
         >
           <ArrowLeft size={16} />
         </Link>
@@ -671,7 +671,8 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                       value={fromId}
                       onChange={(e) => { setFromId(e.target.value); setShowDirectSellerSuggestions(true); }}
                       onFocus={() => setShowDirectSellerSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowDirectSellerSuggestions(false), 250)}
+                    onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const next = e.target.nextElementSibling; if (next && next.tagName === 'DIV') { const btns = next.querySelectorAll('button'); if (btns.length > 0) btns[0].focus(); } } }}
+                      onBlur={(e) => { if (e.relatedTarget && e.relatedTarget.getAttribute('data-smart') === 'true') return; setTimeout(() => setShowDirectSellerSuggestions(false), 250); }}
                       placeholder="Type or select seller/staff name"
                       className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold"
                       required
@@ -686,8 +687,8 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                         })().map((ds, idx) => (
                           <button
                             key={idx}
-                            type="button"
-                            className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium"
+                            type="button" data-smart="true" onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const btns = Array.from(e.target.parentElement.querySelectorAll('button')); const idx = btns.indexOf(e.target); if (e.key === 'ArrowDown' && idx < btns.length - 1) btns[idx + 1].focus(); else if (e.key === 'ArrowUp') { if (idx > 0) btns[idx - 1].focus(); else e.target.parentElement.previousElementSibling?.focus(); } } }} 
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium"
                             onClick={() => {
                               setFromId(ds);
                               setShowDirectSellerSuggestions(false);
@@ -826,7 +827,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                         <div className="flex gap-1 flex-shrink-0">
                           <button
                             type="button"
-                            className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
+                            className="px-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
                             onClick={() => { setActiveCameraRow(index); setIsCameraOpen(true); }}
                             title="Scan via PC Webcam"
                           >
@@ -836,7 +837,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                           
                           <button
                             type="button"
-                            className="px-2.5 bg-surface border border-border hover:bg-surface-elevated rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
+                            className="px-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
                             onClick={() => handleOpenMobileScanner(index)}
                             title="Pair Wireless Mobile phone camera"
                           >
@@ -905,7 +906,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-5 border-t border-border">
           <button 
             type="button" 
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" 
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" 
             onClick={handleAddRow}
           >
             <Plus size={15} /> 
@@ -913,7 +914,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           </button>
 
           <div className="flex items-center gap-3">
-            <Link href="/dashboard/damage" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
+            <Link href="/dashboard/damage" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
               Cancel
             </Link>
             <button 
@@ -953,7 +954,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
 
                 <button 
                   type="button" 
-                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
                   onClick={() => { setIsCameraOpen(false); setActiveCameraRow(null); }}
                 >
                   <X size={16} />
@@ -1071,7 +1072,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
               <h3 className="font-display font-bold text-sm text-text-primary">Pair Mobile Barcode Scanner</h3>
               <button 
                 type="button" 
-                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
+                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
                 onClick={() => { setIsMobileModalOpen(false); setActiveCameraRow(null); }}
               >
                 <X size={16} />

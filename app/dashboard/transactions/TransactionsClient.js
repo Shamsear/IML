@@ -172,6 +172,7 @@ export default function TransactionsClient({
                   <thead>
                     <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
                       <th className="pb-3 pr-4">Product Details</th>
+                      <th className="pb-3 px-4">SKU</th>
                       <th className="pb-3 px-4">Transaction Type</th>
                       <th className="pb-3 px-4">Source / From</th>
                       <th className="pb-3 px-4">Destination / To</th>
@@ -193,6 +194,9 @@ export default function TransactionsClient({
                               </span>
                             )}
                           </div>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs text-text-secondary">
+                          {tx.product.itemCode || '---'}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className={`badge ${

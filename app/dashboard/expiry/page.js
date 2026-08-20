@@ -22,6 +22,7 @@ export default async function ExpiryPage() {
           name: true,
           imageUrl: true,
           category: true,
+          itemCode: true,
           isSerialized: true,
           brand: {
             select: {
@@ -92,3 +93,4 @@ export default async function ExpiryPage() {
 
   return <ExpiryClient initialBatches={batches} />;
 }
+
