@@ -275,8 +275,51 @@ export default function ReportsClient({ initialProducts, brands }) {
         </div>
       </div>
 
-      {/* Main Stock Report Table */}
-      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm print:p-0 print:border-0 print:shadow-none">
+      {/* Mobile Card View */}
+      {filteredProducts.length === 0 ? (
+        <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm text-center py-12 text-sm text-text-secondary italic">
+          No products match the selected filters.
+        </div>
+      ) : (
+        <div className="md:hidden flex flex-col gap-3 print:hidden">
+          {paginatedProducts.map(p => (
+            <div key={p.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {p.imageUrl ? (
+                    <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-lg object-contain bg-background p-0.5 border border-border flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
+                  )}
+                  <div className="min-w-0">
+                    <span className="font-semibold text-sm text-text-primary block truncate">{p.name}</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-text-muted">{p.brand?.name}</span>
+                      <span className="badge bg-surface-elevated text-text-secondary border border-border text-[9px]">{p.category || '---'}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{p.stock.total}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-2 border-t border-border/50">
+                <div><span className="text-text-muted block">Warehouse</span><span className="font-mono font-bold text-sm">{p.stock.warehouse}</span></div>
+                <div><span className="text-text-muted block">Issued</span><span className="font-mono font-bold text-sm">{p.stock.issued}</span></div>
+                <div><span className="text-text-muted block">Used</span><span className="font-mono font-bold text-sm">{p.stock.used}</span></div>
+              </div>
+              {(p.stock.damage > 0 || p.stock.lost > 0 || p.stock.withClient > 0) && (
+                <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                  {p.stock.damage > 0 && <div><span className="text-text-muted block">Damage</span><span className="font-mono font-bold text-sm text-danger">{p.stock.damage}</span></div>}
+                  {p.stock.lost > 0 && <div><span className="text-text-muted block">Lost</span><span className="font-mono font-bold text-sm text-danger">{p.stock.lost}</span></div>}
+                  {p.stock.withClient > 0 && <div><span className="text-text-muted block">Client</span><span className="font-mono font-bold text-sm text-primary">{p.stock.withClient}</span></div>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-surface border border-border rounded-xl p-5 shadow-sm print:p-0 print:border-0 print:shadow-none">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12 text-sm text-text-secondary italic">
             No products match the selected filters.
@@ -352,39 +395,40 @@ export default function ReportsClient({ initialProducts, brands }) {
             </table>
           </div>
 
-          {/* Reports Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs mt-4 rounded-lg print:hidden">
-              <span className="text-text-muted">
-                Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{" "}
-                <strong className="text-text-primary">
-                  {Math.min((currentPage + 1) * itemsPerPage, filteredProducts.length)}
-                </strong> of{" "}
-                <strong className="text-text-primary">{filteredProducts.length}</strong> products
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  disabled={currentPage === 0}
-                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
-                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  disabled={currentPage === totalPages - 1}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
-                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-            )}
           </>
         )}
       </div>
+
+      {/* Shared Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
+          <span className="text-text-muted">
+            Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{' '}
+            <strong className="text-text-primary">
+              {Math.min((currentPage + 1) * itemsPerPage, filteredProducts.length)}
+            </strong> of{' '}
+            <strong className="text-text-primary">{filteredProducts.length}</strong> products
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={currentPage === 0}
+              onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              disabled={currentPage === totalPages - 1}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox Modal */}
       {lightboxImage && (
