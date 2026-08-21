@@ -546,6 +546,26 @@ body {
   animation: tooltip-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Tooltips in sidebar footer: show above the button */
+.sidebar-footer .has-tooltip .tooltip-box {
+  bottom: auto;
+  top: auto;
+  bottom: 100%;
+  transform: translateX(-50%) translateY(-4px);
+}
+.sidebar-footer .has-tooltip .tooltip-box::after {
+  top: auto;
+  bottom: 100%;
+  border-color: transparent transparent var(--text-primary) transparent;
+}
+.sidebar-footer .has-tooltip:hover .tooltip-box {
+  animation: tooltip-fade-in-up 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes tooltip-fade-in-up {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 @keyframes tooltip-fade-in {
   from {
     opacity: 0;
