@@ -214,7 +214,7 @@ export default function BrandPortalClient({ brand }) {
               <img 
                 src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
                 alt={brand.name} 
-                className="w-16 h-16 rounded-xl object-contain bg-[#fcfbfa] p-1.5 border border-border cursor-pointer hover:border-primary transition-all"
+                className="w-16 h-16 rounded-xl object-contain bg-[#fcfbfa] p-1.5 border border-border cursor-pointer hover:border-primary transition-colors"
                 onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
                 onError={(e) => {
                   if (e.target.src !== brand.imageUrl) {
@@ -488,7 +488,7 @@ export default function BrandPortalClient({ brand }) {
                         type="button"
                         disabled={productPage === 0}
                         onClick={() => setProductPage(prev => Math.max(0, prev - 1))}
-                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-all duration-150"
+                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
                       >
                         Prev
                       </button>
@@ -496,7 +496,7 @@ export default function BrandPortalClient({ brand }) {
                         type="button"
                         disabled={productPage === totalProductPages - 1}
                         onClick={() => setProductPage(prev => Math.min(totalProductPages - 1, prev + 1))}
-                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-all duration-150"
+                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
                       >
                         Next
                       </button>
@@ -642,7 +642,7 @@ export default function BrandPortalClient({ brand }) {
                     type="button"
                     disabled={logPage === 0}
                     onClick={() => setLogPage(prev => Math.max(0, prev - 1))}
-                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-all duration-150"
+                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
                   >
                     Prev
                   </button>
@@ -650,7 +650,7 @@ export default function BrandPortalClient({ brand }) {
                     type="button"
                     disabled={logPage === totalLogPages - 1}
                     onClick={() => setLogPage(prev => Math.min(totalLogPages - 1, prev + 1))}
-                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-all duration-150"
+                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
                   >
                     Next
                   </button>
@@ -664,13 +664,15 @@ export default function BrandPortalClient({ brand }) {
 
       {/* Lightbox / Image Preview */}
       {lightboxImage && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in print:hidden"
+        <div            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in print:hidden"
           onClick={() => setLightboxImage(null)}
         >
           <div 
             className="bg-surface border border-border rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl relative animate-scale-up"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image preview"
           >
             <div className="p-4 border-b border-border flex justify-between items-center bg-surface-elevated/45">
               <h3 className="font-display font-bold text-sm text-text-primary truncate max-w-[80%]">
@@ -679,6 +681,7 @@ export default function BrandPortalClient({ brand }) {
               <button 
                 onClick={() => setLightboxImage(null)}
                 className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg transition-colors"
+                aria-label="Close lightbox"
               >
                 <X size={16} />
               </button>

@@ -115,6 +115,9 @@ export default function GlobalSearch() {
             className="glass-panel" 
             style={styles.modal} 
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Quick search"
           >
             <div style={styles.inputContainer}>
               <Search size={20} style={{ color: 'var(--accent-primary)' }} />
@@ -142,13 +145,21 @@ export default function GlobalSearch() {
                   {flatResults.map((item, index) => {
                     const isSelected = index === selectedIndex;
                     return (
-                      <div
+                      <button
                         key={`${item.type}-${item.id}`}
                         onClick={() => navigateToItem(item)}
                         onMouseEnter={() => setSelectedIndex(index)}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
                         style={{
                           ...styles.item,
-                          ...(isSelected ? styles.selectedItem : {})
+                          width: '100%',
+                          border: 'none',
+                          background: isSelected ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+                          borderLeft: isSelected ? '3px solid var(--accent-primary)' : '3px solid transparent',
+                          paddingLeft: 'calc(1rem - 3px)',
+                          ...(isSelected ? {} : {})
                         }}
                       >
                         <div style={styles.itemMeta}>
@@ -161,7 +172,7 @@ export default function GlobalSearch() {
                         }}>
                           {item.type.toUpperCase()}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

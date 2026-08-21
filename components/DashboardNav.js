@@ -100,7 +100,7 @@ export default function DashboardNav({ collapsed }) {
                 <Link 
                   key={item.href} 
                   href={item.href} 
-                  className={`flex items-center gap-3 rounded-lg text-sm font-semibold transition-all duration-200 group relative
+                  className={`flex items-center gap-3 rounded-lg text-sm font-semibold transition-colors duration-200 group relative
                     ${collapsed ? 'justify-center p-2.5 has-tooltip' : 'px-3 py-2.5'}
                     ${isActive 
                       ? 'text-primary bg-primary/10 border-l-2 border-primary rounded-l-none' 

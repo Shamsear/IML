@@ -273,7 +273,7 @@ export default function ScanCompanionClient({ session }) {
               const overlay = document.createElement('div');
               overlay.className = 'custom-scan-overlay absolute inset-0 pointer-events-none flex items-center justify-center z-10';
               overlay.innerHTML = `
-                <div class="w-[250px] h-[250px] border-2 border-white/30 rounded-lg relative overflow-hidden transition-all duration-300">
+                <div class="w-[250px] h-[250px] border-2 border-white/30 rounded-lg relative overflow-hidden transition-transform duration-300">
                   <div class="absolute top-0 left-0 right-0 h-0.5 bg-success shadow-[0_0_8px_#10b981] animate-scanner-laser"></div>
                   <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-success"></div>
                   <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-success"></div>
@@ -377,7 +377,7 @@ export default function ScanCompanionClient({ session }) {
             <button
               type="button"
               onClick={() => setCameraPermissionStatus('prompt')}
-              className="w-full max-w-xs px-6 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all"
+              className="w-full max-w-xs px-6 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-colors"
             >
               Start Camera Scanner
             </button>
@@ -501,7 +501,7 @@ export default function ScanCompanionClient({ session }) {
                 <button
                   type="button"
                   onClick={handleCycleCamera}
-                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold shadow-sm transition-all"
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold shadow-sm transition-colors"
                 >
                   <Camera size={14} className="text-primary animate-pulse" />
                   <span>Switch Camera ({currentCameraIdx + 1}/{cameras.length}: {cameras[currentCameraIdx]?.label || 'Lens'})</span>

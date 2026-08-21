@@ -34,7 +34,7 @@ export default function Error({ error, reset }) {
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full mt-2 font-sans">
           <button
             onClick={() => reset()}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-colors cursor-pointer"
           >
             <RefreshCw size={14} />
             <span>Try Again</span>
@@ -42,7 +42,7 @@ export default function Error({ error, reset }) {
           
           <Link
             href="/dashboard"
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-xl text-xs font-bold transition-colors cursor-pointer"
           >
             <Home size={14} />
             <span>Go to Dashboard</span>

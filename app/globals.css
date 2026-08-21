@@ -92,7 +92,7 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .glass-panel-interactive:hover {
@@ -109,7 +109,7 @@ body {
   gap: 0.5rem;
   font-weight: 600;
   border-radius: var(--radius-sm);
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
   cursor: pointer;
   border: 1px solid transparent;
   outline: none;
@@ -168,7 +168,7 @@ body {
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   outline: none;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .input-field:focus {
   border-color: var(--accent-primary);
@@ -287,7 +287,7 @@ body {
   border-radius: var(--radius-xs) !important;
   cursor: pointer !important;
   margin: 4px !important;
-  transition: all 0.2s ease !important;
+  transition: background-color 0.2s ease !important;
   box-shadow: var(--shadow-sm) !important;
 }
 #camera-reader-element button:hover {
@@ -371,7 +371,7 @@ body {
   border-radius: var(--radius-xs) !important;
   cursor: pointer !important;
   margin: 4px !important;
-  transition: all 0.2s ease !important;
+  transition: background-color 0.2s ease !important;
   box-shadow: var(--shadow-sm) !important;
 }
 #mobile-reader-element button:hover {
@@ -430,7 +430,7 @@ body {
   height: 16px;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
   vertical-align: middle;
 }
@@ -588,4 +588,38 @@ body {
 .has-tooltip:hover .tooltip-box.tooltip-left {
   display: block;
   animation: tooltip-fade-in-left 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ============================================================
+   REDUCED MOTION — disable all decorative animations
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-in,
+  .animate-slide-down,
+  .animate-scale-up,
+  .animate-scanner-laser,
+  .animate-reverse-spin,
+  .animate-loader-slide,
+  .animate-pulse,
+  .animate-pulse-once,
+  .animate-spin {
+    animation: none !important;
+  }
+
+  .has-tooltip:hover .tooltip-box,
+  .has-tooltip:hover .tooltip-box.tooltip-right,
+  .has-tooltip:hover .tooltip-box.tooltip-left {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
 }

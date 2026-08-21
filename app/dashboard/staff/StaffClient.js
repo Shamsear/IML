@@ -375,7 +375,7 @@ export default function StaffClient({ initialStaff, stores }) {
                   </button>
                   <button
                     onClick={() => setSelectedAllocIds([])}
-                    className="px-3.5 py-1.5 bg-surface hover:bg-surface-elevated text-text-secondary rounded-lg text-xs font-semibold border border-border transition-all cursor-pointer"
+                    className="px-3.5 py-1.5 bg-surface hover:bg-surface-elevated text-text-secondary rounded-lg text-xs font-semibold border border-border transition-colors cursor-pointer"
                   >
                     Cancel Selection
                   </button>
@@ -556,7 +556,7 @@ export default function StaffClient({ initialStaff, stores }) {
                                 <div className="has-tooltip">
                                   <button
                                     onClick={() => router.push(`/dashboard/staff/assign?id=${alloc.id}`)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold transition-all cursor-pointer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold transition-colors cursor-pointer"
                                     type="button"
                                   >
                                     <Edit2 size={10} /> <span>Edit</span>
@@ -567,7 +567,7 @@ export default function StaffClient({ initialStaff, stores }) {
                                   <div className="has-tooltip">
                                     <button
                                       onClick={() => openSingleReturnModal(alloc)}
-                                      className="px-2 py-1 bg-success hover:bg-success-hover text-white rounded text-[10px] font-bold transition-all cursor-pointer"
+                                      className="px-2 py-1 bg-success hover:bg-success-hover text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
                                       type="button"
                                     >
                                       Return / Mark Used

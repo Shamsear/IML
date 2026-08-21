@@ -1446,7 +1446,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                           alert("Camera access is still blocked. Please enable it in site settings.");
                         }
                       }}
-                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-all"
+                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-colors"
                     >
                       Enable Camera Access
                     </button>

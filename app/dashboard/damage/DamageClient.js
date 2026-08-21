@@ -859,7 +859,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                       <div className="flex flex-col gap-1.5 w-full">
                          <input 
                            type="number" 
-                           className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
+                           className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200" 
                            min={1} 
                            max={item.currentStock || 0}
                            value={item.quantity}
@@ -903,7 +903,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
                           value={scanInputs[index] || ''}
                           onChange={(e) => setScanInputs(prev => ({ ...prev, [index]: e.target.value }))}
                           onKeyDown={(e) => handleScanInputKeyDown(e, index, item.availableBarcodes, item.selectedBarcodes)}
@@ -977,7 +977,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                   <label className="text-xs font-semibold text-text-secondary">Item Specific Remarks / Notes</label>
                   <input 
                     type="text" 
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
+                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200" 
                     value={item.notes}
                     onChange={(e) => handleFieldChange(index, 'notes', e.target.value)}
                     placeholder="e.g. Scratched panel, Damaged packaging..."
@@ -1076,7 +1076,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-5 border-t border-border">
           <button 
             type="button" 
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" 
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200" 
             onClick={handleAddRow}
           >
             <Plus size={15} /> 
@@ -1084,12 +1084,12 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           </button>
 
           <div className="flex items-center gap-3">
-            <Link href="/dashboard/damage" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
+            <Link href="/dashboard/damage" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200">
               Cancel
             </Link>
             <button 
               type="submit" 
-              className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ${
+              className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors shadow duration-200 ${
                 reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : 'bg-danger hover:bg-danger/90'
               }`}
               disabled={loading || items.length === 0}
@@ -1162,7 +1162,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                           alert("Camera access is still blocked. Please enable it in your browser address bar site settings.");
                         }
                       }}
-                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all"
+                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-colors"
                     >
                       Enable Camera Access
                     </button>

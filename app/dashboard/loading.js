@@ -4,7 +4,7 @@ export default function DashboardLoading() {
   return (
     <div className="w-full min-h-[60vh] flex items-center justify-center p-6">
       {/* Glassmorphic Loader Container */}
-      <div className="relative bg-surface/40 backdrop-blur-md border border-border/60 rounded-2xl p-8 max-w-[360px] w-full shadow-2xl flex flex-col items-center gap-5 text-center transition-all duration-300">
+      <div className="relative bg-surface/40 backdrop-blur-md border border-border/60 rounded-2xl p-8 max-w-[360px] w-full shadow-2xl flex flex-col items-center gap-5 text-center transition-opacity duration-300">
         
         {/* Modern Double Orbit Spinner */}
         <div className="relative w-16 h-16 flex items-center justify-center">

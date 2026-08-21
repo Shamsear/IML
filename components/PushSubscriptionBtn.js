@@ -110,13 +110,13 @@ export default function PushSubscriptionBtn() {
 
   return (
     <div style={styles.container}>
-      {subscription ? (
-        <button 
+      {subscription ? (          <button 
           onClick={unsubscribeUser} 
           className="btn btn-secondary" 
           style={{ ...styles.btn, ...styles.activeBtn }}
           disabled={loading}
           title="Disable Push Alerts"
+          aria-label="Disable Push Alerts"
         >
           {loading ? (
             <Loader2 size={16} className="animate-spin" />
@@ -131,6 +131,7 @@ export default function PushSubscriptionBtn() {
           style={styles.btn}
           disabled={loading}
           title="Enable Push Alerts"
+          aria-label="Enable Push Alerts"
         >
           {loading ? (
             <Loader2 size={16} className="animate-spin" />

@@ -1,116 +1,30 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { generateId } from '@/lib/idGenerator';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-
-async function generateSkuCode(tx, brandName, categoryName) {
-  const brandPrefix = (brandName || 'GEN').substring(0, 3).toUpperCase();
-  const catPrefix = (categoryName || 'GEN').substring(0, 3).toUpperCase();
-  const prefix = `${brandPrefix}-${catPrefix}`;
-  
-  if (!tx.prefixCache) tx.prefixCache = {};
-  if (tx.prefixCache[prefix] === undefined) {
-    const existing = await tx.product.findMany({
-      where: { itemCode: { startsWith: `${prefix}-` } },
-      select: { itemCode: true }
-    });
-    let max = 0;
-    for (const p of existing) {
-      if (p.itemCode) {
-        const match = p.itemCode.match(/-(\d+)$/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > max) max = num;
-        }
-      }
-    }
-    tx.prefixCache[prefix] = max;
-  }
-  tx.prefixCache[prefix]++;
-  return `${prefix}-${String(tx.prefixCache[prefix]).padStart(4, '0')}`;
-}
 import { uploadToImageKit } from '@/lib/imagekit';
 
+import { requireAuth } from '@/lib/auth-guard';
+import {
+  generateTxId,
+  generateSkuCode,
+  generateCustomRef,
+  parseTransactionDate,
+  mergeNotes,
+  getStockAtLocation,
+  batchGetStock,
+  validateSerials,
+  computeSerialStatus,
+  bulkUpdateSerials,
+  linkSerialsToTransaction,
+  processSerials,
+} from '@/lib/ledger';
+
+// Re-export for backward compatibility (used by staff.js, products.js)
+export { generateCustomRef, getStockAtLocation, parseTransactionDate };
+
 async function checkAuth() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error('Unauthorized');
-}
-
-// Helper function - non-async utility
-function parseTransactionDate(dateStr) {
-  if (!dateStr) return undefined;
-  if (typeof dateStr !== 'string') return new Date(dateStr);
-  
-  if (dateStr.includes('T') && !dateStr.includes('Z') && !dateStr.match(/[+-]\d{2}:\d{2}$/)) {
-    // UAE time is UTC+4
-    const hasSeconds = (dateStr.match(/:/g) || []).length > 1;
-    return new Date(dateStr + (hasSeconds ? '' : ':00') + '+04:00');
-  }
-  
-  if (dateStr.includes('T') || dateStr.includes(':')) {
-    return new Date(dateStr);
-  }
-  
-  return new Date(dateStr + 'T12:00:00+04:00');
-}
-
-export async function generateCustomRef(tx, type, brandName, customDate = null) {
-  const cleanBrand = brandName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 3) || 'GEN';
-  const typeCode = type.toUpperCase();
-  
-  const dateObj = customDate ? new Date(customDate) : new Date();
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const year = String(dateObj.getFullYear()).slice(-2);
-  const dateStr = `${day}${month}${year}`;
-
-  // Format: TYPE-BRD-DDMMYY-NNN  e.g. REC-SAD-200826-001
-  const prefix = `${typeCode}-${cleanBrand}-${dateStr}-`;
-  
-  const existing = await tx.inventoryTransaction.findMany({
-    where: {
-      deliveryNote: { startsWith: prefix }
-    },
-    select: { deliveryNote: true },
-    distinct: ['deliveryNote']
-  });
-
-  const nextNum = existing.length + 1;
-  const suffix = String(nextNum).padStart(3, '0');
-  return `${prefix}${suffix}`;
-}
-
-// 1. Calculate stock at a specific location for bulk products
-export async function getStockAtLocation(productId, entityType, entityId) {
-  await checkAuth();
-
-  // Inbound stock
-  const inbound = await prisma.inventoryTransaction.aggregate({
-    where: {
-      productId,
-      toEntityType: entityType,
-      ...(entityType === 'WAREHOUSE' ? {} : { toEntityId: entityId || null }),
-    },
-    _sum: { quantity: true },
-  });
-
-  // Outbound stock
-  const outbound = await prisma.inventoryTransaction.aggregate({
-    where: {
-      productId,
-      fromEntityType: entityType,
-      ...(entityType === 'WAREHOUSE' ? {} : { fromEntityId: entityId || null }),
-    },
-    _sum: { quantity: true },
-  });
-
-  const inQty = inbound._sum.quantity || 0;
-  const outQty = outbound._sum.quantity || 0;
-
-  return inQty - outQty;
+  await requireAuth();
 }
 
 // 2. Fetch all transactions
@@ -204,19 +118,7 @@ export async function createTransaction(data) {
 
   const transaction = await prisma.$transaction(async (tx) => {
     // A. Create the core ledger transaction
-    const lastRecord = await tx.inventoryTransaction.findFirst({
-      where: { id: { startsWith: 'TRAN' } },
-      orderBy: { id: 'desc' },
-      select: { id: true }
-    });
-    let nextNum = 1;
-    if (lastRecord) {
-      const parts = lastRecord.id.split('-');
-      const numPart = parts[parts.length - 1];
-      const parsed = parseInt(numPart, 10);
-      if (!isNaN(parsed)) nextNum = parsed + 1;
-    }
-    const txId = `TRAN-${String(nextNum).padStart(5, '0')}`;
+    const txId = await generateTxId(tx, 'inventoryTransaction', 'TRAN', 5);
 
     // Generate proper delivery note for RECEIVE and RETURN transactions
     let finalDeliveryNote = deliveryNote;
@@ -261,62 +163,10 @@ export async function createTransaction(data) {
 
     // B. Handle Serialized Barcode Updates
     if (product.isSerialized && barcodes.length > 0) {
-      const globalSerials = await tx.productSerialNumber.findMany({
-        where: {
-          barcode: { in: barcodes },
-        },
-        include: {
-          product: { select: { name: true } }
-        }
-      });
-
-      const foundBarcodes = globalSerials.map(s => s.barcode);
-      const missingBarcodes = barcodes.filter(b => !foundBarcodes.includes(b));
-      if (missingBarcodes.length > 0) {
-        throw new Error(`Some barcodes could not be found in the database: ${missingBarcodes.join(', ')}`);
-      }
-
-      const mismatchedSerials = globalSerials.filter(s => s.productId !== productId);
-      if (mismatchedSerials.length > 0) {
-        const mismatches = mismatchedSerials.map(s => `"${s.barcode}" (belongs to product "${s.product.name}")`).join(', ');
-        throw new Error(`Some barcodes belong to different products: ${mismatches}`);
-      }
-
-      const dbSerials = globalSerials.filter(s => s.productId === productId);
-
-      // Check serial states for outbound transactions
-      if (fromEntityType) {
-        const invalidSerials = dbSerials.filter(
-          (s) => s.currentLocationType !== fromEntityType || s.currentLocationId !== fromEntityId
-        );
-        if (invalidSerials.length > 0) {
-          throw new Error(`Some selected barcodes are not present at the source location (${fromEntityType}).`);
-        }
-      }
-
-      // Update location and status on the serial number rows in bulk (1 write)
-      let nextStatus = 'AVAILABLE';
-      if (transactionType === 'DAMAGE') nextStatus = 'DAMAGED';
-      else if (transactionType === 'LOST') nextStatus = 'LOST';
-      else if (toEntityType === 'CLIENT' || toEntityType === 'STAFF' || toEntityType === 'DIRECT') nextStatus = 'USED';
-
-      await tx.productSerialNumber.updateMany({
-        where: {
-          id: { in: dbSerials.map(s => s.id) }
-        },
-        data: {
-          currentLocationType: toEntityType || null,
-          currentLocationId: toEntityId || null,
-          status: nextStatus,
-        }
-      });
-
-      // Link the serials to this transaction log in bulk (1 write)
-      await tx.transactionSerialNumber.createMany({
-        data: dbSerials.map(serial => ({
-          transactionId: invTx.id,
-          serialNumberId: serial.id,
-        }))
+      await processSerials(tx, barcodes, productId, transactionType, { entityType: toEntityType, entityId: toEntityId }, invTx.id, {
+        fromEntityType,
+        fromEntityId,
+        direction: fromEntityType ? 'outbound' : 'inbound',
       });
     }
 
@@ -352,15 +202,7 @@ export async function processRebrand(data) {
   if (!oldProduct || !newProduct) throw new Error('Products not found');
 
   if (!oldProduct.isSerialized) {
-    const inbound = await prisma.inventoryTransaction.aggregate({
-      where: { productId: oldProductId, toEntityType: 'WAREHOUSE' },
-      _sum: { quantity: true },
-    });
-    const outbound = await prisma.inventoryTransaction.aggregate({
-      where: { productId: oldProductId, fromEntityType: 'WAREHOUSE' },
-      _sum: { quantity: true },
-    });
-    const currentStock = (inbound._sum.quantity || 0) - (outbound._sum.quantity || 0);
+    const currentStock = await getStockAtLocation(oldProductId, 'WAREHOUSE', null);
     if (currentStock < quantity) {
       throw new Error(`Insufficient stock for rebranding. Current warehouse stock is ${currentStock}, requested ${quantity}.`);
     }
@@ -586,37 +428,9 @@ export async function createBulkIssueTransactions(payload) {
     })
     .map(item => item.productId);
 
-  const stockMap = new Map();
-  if (bulkProductIds.length > 0 && fromEntityType && fromEntityType !== 'SUPPLIER') {
-    const [inboundSums, outboundSums] = await Promise.all([
-      prisma.inventoryTransaction.groupBy({
-        by: ['productId'],
-        where: {
-          productId: { in: bulkProductIds },
-          toEntityType: fromEntityType,
-          ...(fromEntityType === 'WAREHOUSE' ? {} : { toEntityId: fromEntityId || null }),
-        },
-        _sum: { quantity: true },
-      }),
-      prisma.inventoryTransaction.groupBy({
-        by: ['productId'],
-        where: {
-          productId: { in: bulkProductIds },
-          fromEntityType: fromEntityType,
-          ...(fromEntityType === 'WAREHOUSE' ? {} : { fromEntityId: fromEntityId || null }),
-        },
-        _sum: { quantity: true },
-      })
-    ]);
-
-    inboundSums.forEach(s => {
-      stockMap.set(s.productId, (s._sum.quantity || 0));
-    });
-    outboundSums.forEach(s => {
-      const current = stockMap.get(s.productId) || 0;
-      stockMap.set(s.productId, current - (s._sum.quantity || 0));
-    });
-  }
+  const stockMap = (bulkProductIds.length > 0 && fromEntityType && fromEntityType !== 'SUPPLIER')
+    ? await batchGetStock(bulkProductIds, fromEntityType, fromEntityId)
+    : new Map();
 
   // Validate stocks in-memory
   for (const item of items) {
@@ -835,17 +649,30 @@ export async function createBulkIssueTransactions(payload) {
           }
         }
 
-        // B. Link serialized serials
+        // B. Link serialized serials (with in-tx re-verification for concurrency safety)
         if (product.isSerialized && barcodes.length > 0) {
-          const itemSerials = barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+          // Re-fetch serials inside the transaction to catch any concurrent movements
+          const itemSerials = await tx.productSerialNumber.findMany({
+            where: { barcode: { in: barcodes }, productId }
+          });
+          const foundBarcodes = new Set(itemSerials.map(s => s.barcode));
+          const missing = barcodes.filter(b => !foundBarcodes.has(b));
+          if (missing.length > 0) {
+            throw new Error(`Barcodes moved or missing (concurrent edit?): ${missing.join(', ')}`);
+          }
+          const invalidLocation = itemSerials.filter(
+            s => s.currentLocationType !== fromEntityType || s.currentLocationId !== fromEntityId
+          );
+          if (invalidLocation.length > 0) {
+            throw new Error(`Some barcodes are no longer at the source location (concurrent edit?)`);
+          }
+
           let nextStatus = 'AVAILABLE';
           if (toEntityType === 'CLIENT' || toEntityType === 'STAFF' || toEntityType === 'DIRECT') nextStatus = 'USED';
 
           // Bulk update location and status (1 write)
           await tx.productSerialNumber.updateMany({
-            where: {
-              id: { in: itemSerials.map(s => s.id) }
-            },
+            where: { id: { in: itemSerials.map(s => s.id) } },
             data: {
               currentLocationType: toEntityType || null,
               currentLocationId: toEntityId || null,
@@ -1161,28 +988,7 @@ export async function createBulkDamageTransactions(payload) {
 
       // Verify stock levels for bulk (non-serialized) products
       if (!product.isSerialized && fromEntityType) {
-        const inboundSum = await tx.inventoryTransaction.aggregate({
-          where: {
-            productId,
-            toEntityType: fromEntityType,
-            toEntityId: fromEntityId || null,
-          },
-          _sum: { quantity: true },
-        });
-
-        const outboundSum = await tx.inventoryTransaction.aggregate({
-          where: {
-            productId,
-            fromEntityType: fromEntityType,
-            fromEntityId: fromEntityId || null,
-          },
-          _sum: { quantity: true },
-        });
-
-        const inQty = inboundSum._sum.quantity || 0;
-        const outQty = outboundSum._sum.quantity || 0;
-        const currentStock = inQty - outQty;
-
+        const currentStock = await getStockAtLocation(productId, fromEntityType, fromEntityId);
         if (currentStock < quantity) {
           throw new Error(`Insufficient stock for product "${product.name}". Current stock at ${fromEntityType} is ${currentStock}, requested ${quantity}.`);
         }
@@ -1996,37 +1802,9 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
     }
 
     // 2. CHECK STOCK & CREATE NEW TRANSACTIONS
-    const stockMap = new Map();
-    if (bulkProductIds.length > 0 && fromEntityType && fromEntityType !== 'SUPPLIER') {
-      const [inboundSums, outboundSums] = await Promise.all([
-        tx.inventoryTransaction.groupBy({
-          by: ['productId'],
-          where: {
-            productId: { in: bulkProductIds },
-            toEntityType: fromEntityType,
-            ...(fromEntityType === 'WAREHOUSE' ? {} : { toEntityId: fromEntityId || null }),
-          },
-          _sum: { quantity: true },
-        }),
-        tx.inventoryTransaction.groupBy({
-          by: ['productId'],
-          where: {
-            productId: { in: bulkProductIds },
-            fromEntityType: fromEntityType,
-            ...(fromEntityType === 'WAREHOUSE' ? {} : { fromEntityId: fromEntityId || null }),
-          },
-          _sum: { quantity: true },
-        })
-      ]);
-
-      inboundSums.forEach(s => {
-        stockMap.set(s.productId, (s._sum.quantity || 0));
-      });
-      outboundSums.forEach(s => {
-        const current = stockMap.get(s.productId) || 0;
-        stockMap.set(s.productId, current - (s._sum.quantity || 0));
-      });
-    }
+    const stockMap = (bulkProductIds.length > 0 && fromEntityType && fromEntityType !== 'SUPPLIER')
+      ? await batchGetStock(bulkProductIds, fromEntityType, fromEntityId)
+      : new Map();
 
     const createdTxs = [];
     for (let idx = 0; idx < items.length; idx++) {

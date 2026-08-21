@@ -978,7 +978,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       }
                     }}
                     placeholder="Type or select direct seller name"
-                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                     required
                   />
                   {showDirectSellerSuggestions && (() => {
@@ -1025,7 +1025,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
             <label className="text-xs font-semibold text-text-secondary">Delivery Note Global Remarks</label>
             <input
               type="text"
-              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               value={globalNotes}
               onChange={(e) => setGlobalNotes(e.target.value)}
               placeholder="Global remark visible at the top of the Delivery Note PDF..."
@@ -1062,7 +1062,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       value={newSupName}
                       onChange={e => setNewSupName(e.target.value)}
                       placeholder="Supervisor name"
-                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -1083,7 +1083,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       value={newSupEmail}
                       onChange={e => setNewSupEmail(e.target.value)}
                       placeholder="email@example.com"
-                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                     />
                   </div>
                 </div>
@@ -1183,7 +1183,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                     console.error(e);
                   }
                 }}
-                className="inline-flex items-center gap-1 px-4 py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded-lg text-xs font-bold cursor-pointer transition-all"
+                className="inline-flex items-center gap-1 px-4 py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded-lg text-xs font-bold cursor-pointer transition-colors"
               >
                 <Smartphone size={13} />
                 <span>Pair Phone Companion</span>
@@ -1191,7 +1191,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
               <button
                 type="button"
                 onClick={() => setIsCameraOpen(true)}
-                className="inline-flex items-center gap-1 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold cursor-pointer transition-all"
+                className="inline-flex items-center gap-1 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold cursor-pointer transition-colors"
               >
                 <Camera size={13} />
                 <span>Camera Scan</span>
@@ -1885,7 +1885,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                           alert("Camera access is still blocked. Please enable it in site settings.");
                         }
                       }}
-                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-all"
+                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-colors"
                     >
                       Enable Camera Access
                     </button>

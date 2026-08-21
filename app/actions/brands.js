@@ -1,14 +1,10 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import fs from 'fs';
-import path from 'path';
 
+import { requireAuth } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
-
 import { generateId } from '@/lib/idGenerator';
 import { generateBrandJWT, verifyBrandJWT } from '@/lib/jwt';
 import crypto from 'crypto';
@@ -17,43 +13,17 @@ async function saveFile(file) {
   return uploadToImageKit(file);
 }
 
-async function checkAuth() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    throw new Error('Unauthorized');
-  }
-  return session;
-}
-
 export async function getBrands() {
-  await checkAuth();
+  await requireAuth();
   const brands = await prisma.brand.findMany({
     orderBy: { createdAt: 'desc' },
   });
-
-  let needsRevalidate = false;
-  for (const brand of brands) {
-    const payload = verifyBrandJWT(brand.secretKey);
-    if (!payload || payload.brandId !== brand.id) {
-      const newSecretKey = generateBrandJWT(brand.id, brand.name);
-      await prisma.brand.update({
-        where: { id: brand.id },
-        data: { secretKey: newSecretKey },
-      });
-      brand.secretKey = newSecretKey;
-      needsRevalidate = true;
-    }
-  }
-
-  if (needsRevalidate) {
-    revalidatePath('/dashboard/brands');
-  }
 
   return brands;
 }
 
 export async function createBrand(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const description = formData.get('description');
@@ -92,7 +62,7 @@ export async function createBrand(formData) {
 }
 
 export async function updateBrand(id, formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const description = formData.get('description');
@@ -127,7 +97,7 @@ export async function updateBrand(id, formData) {
 }
 
 export async function deleteBrand(id) {
-  await checkAuth();
+  await requireAuth();
 
   // Cascade delete handles cascade to Products and Projects
   await prisma.brand.delete({
@@ -139,7 +109,7 @@ export async function deleteBrand(id) {
 }
 
 export async function getBrandWithDetails(id) {
-  await checkAuth();
+  await requireAuth();
 
   const brand = await prisma.brand.findUnique({
     where: { id },
@@ -176,23 +146,11 @@ export async function getBrandWithDetails(id) {
     }
   });
 
-  if (brand) {
-    const payload = verifyBrandJWT(brand.secretKey);
-    if (!payload || payload.brandId !== brand.id) {
-      const newSecretKey = generateBrandJWT(brand.id, brand.name);
-      await prisma.brand.update({
-        where: { id: brand.id },
-        data: { secretKey: newSecretKey },
-      });
-      brand.secretKey = newSecretKey;
-    }
-  }
-
   return brand;
 }
 
 export async function connectStoreToBrand(brandId, storeId) {
-  await checkAuth();
+  await requireAuth();
 
   await prisma.brand.update({
     where: { id: brandId },
@@ -208,7 +166,7 @@ export async function connectStoreToBrand(brandId, storeId) {
 }
 
 export async function disconnectStoreFromBrand(brandId, storeId) {
-  await checkAuth();
+  await requireAuth();
 
   await prisma.brand.update({
     where: { id: brandId },
@@ -224,7 +182,7 @@ export async function disconnectStoreFromBrand(brandId, storeId) {
 }
 
 export async function createStoreAndLinkToBrand(brandId, formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const region = formData.get('region');
@@ -342,7 +300,7 @@ export async function getBrandPortalDetails(secretKey) {
 }
 
 export async function createBulkBrands(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const count = parseInt(formData.get('count'), 10) || 0;
   if (count === 0) {

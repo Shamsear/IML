@@ -1,27 +1,20 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
+import { requireAuth } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
 
-async function checkAuth() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error('Unauthorized');
-  return session;
-}
-
 export async function getSupervisors() {
-  await checkAuth();
+  await requireAuth();
   return prisma.supervisor.findMany({
     orderBy: { name: 'asc' },
   });
 }
 
 export async function createSupervisor(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const email = formData.get('email');
@@ -45,7 +38,7 @@ export async function createSupervisor(formData) {
 }
 
 export async function updateSupervisor(id, formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const email = formData.get('email');
@@ -66,7 +59,7 @@ export async function updateSupervisor(id, formData) {
 }
 
 export async function deleteSupervisor(id) {
-  await checkAuth();
+  await requireAuth();
 
   await prisma.supervisor.delete({
     where: { id },

@@ -132,7 +132,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
               <input
                 type="text"
                 placeholder="Search by product name..."
-                className="w-full pl-9 pr-4 py-2.5 bg-surface text-text-primary border border-border rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full pl-9 pr-4 py-2.5 bg-surface text-text-primary border border-border rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                 value={productFilter}
                 onChange={e => setProductFilter(e.target.value)}
               />

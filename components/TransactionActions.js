@@ -50,6 +50,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
                 : `/dashboard/transactions/${txId}/edit`
             }
             className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
+            aria-label={deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : 'Edit transaction'}
           >
             <Edit2 size={13} />
           </Link>
@@ -65,6 +66,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
                 : `/dashboard/${copyType}/new?copyTxId=${txId}`
             }
             className="p-1.5 rounded-md text-text-muted hover:text-success hover:bg-success/10 transition-colors"
+            aria-label={deliveryNote ? `Duplicate full ${noteName.toLowerCase()}` : 'Duplicate transaction'}
           >
             <CopyPlus size={13} />
           </Link>
@@ -77,6 +79,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
             type="button"
             onClick={handleOpenDelete}
             className="p-1.5 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+            aria-label="Delete transaction"
           >
             <Trash2 size={13} />
           </button>
@@ -128,7 +131,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-danger hover:bg-danger-hover disabled:bg-danger/50 text-white font-bold text-sm rounded-lg shadow-sm transition-all"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-danger hover:bg-danger-hover disabled:bg-danger/50 text-white font-bold text-sm rounded-lg shadow-sm transition-colors shadow-sm"
               >
                 {deleting && <Loader2 size={16} className="animate-spin" />}
                 <span>{deleting ? 'Processing...' : 'Confirm Undo / Delete'}</span>

@@ -106,7 +106,7 @@ export default async function StoreDetailPage({ params, searchParams }) {
         <Link 
           href={`/api/dashboard/stores/${id}/delivery-note`} 
           target="_blank" 
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200"
         >
           <Printer size={16} />
           <span>Download Store Stock Statement (PDF)</span>
@@ -149,7 +149,7 @@ export default async function StoreDetailPage({ params, searchParams }) {
             <div className="py-12 text-center flex flex-col items-center gap-3 text-text-muted">
               <ClipboardCheck size={36} />
               <p className="text-sm">This store currently holds no active inventory.</p>
-              <Link href="/dashboard/outbound" className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-hover shadow-sm transition-all duration-200">
+              <Link href="/dashboard/outbound" className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-hover shadow-sm transition-colors duration-200">
                 Issue Stock to Outlet
               </Link>
             </div>
@@ -298,7 +298,7 @@ export default async function StoreDetailPage({ params, searchParams }) {
                     <div className="flex items-center gap-1">
                       <Link
                         href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.max(1, dispPage - 1)}`}
-                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-all duration-150 ${
+                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-colors duration-150 ${
                           dispPage === 1 ? 'pointer-events-none opacity-50' : ''
                         }`}
                       >
@@ -306,7 +306,7 @@ export default async function StoreDetailPage({ params, searchParams }) {
                       </Link>
                       <Link
                         href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.min(totalDispPages, dispPage + 1)}`}
-                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-all duration-150 ${
+                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-colors duration-150 ${
                           dispPage === totalDispPages ? 'pointer-events-none opacity-50' : ''
                         }`}
                       >

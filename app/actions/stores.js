@@ -1,27 +1,20 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
+import { requireAuth } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
 
-async function checkAuth() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error('Unauthorized');
-  return session;
-}
-
 export async function getStores() {
-  await checkAuth();
+  await requireAuth();
   return prisma.store.findMany({
     orderBy: { name: 'asc' },
   });
 }
 
 export async function createStore(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const region = formData.get('region');
@@ -47,7 +40,7 @@ export async function createStore(formData) {
 }
 
 export async function updateStore(id, formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const region = formData.get('region');
@@ -71,7 +64,7 @@ export async function updateStore(id, formData) {
 }
 
 export async function deleteStore(id) {
-  await checkAuth();
+  await requireAuth();
 
   await prisma.store.delete({
     where: { id },
@@ -82,7 +75,7 @@ export async function deleteStore(id) {
 }
 
 export async function createBulkStores(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const count = parseInt(formData.get('count'), 10) || 0;
   if (count === 0) {

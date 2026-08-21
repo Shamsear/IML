@@ -159,7 +159,7 @@ export default function EditTransactionClient({ transaction, products, stores })
               value={formData.timestamp}
               onChange={handleChange}
               required
-              className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+              className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none"
             />
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function EditTransactionClient({ transaction, products, stores })
                 name="fromEntityType"
                 value={formData.fromEntityType}
                 onChange={handleChange}
-                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none"
               />
             </div>
             <div>
@@ -185,7 +185,7 @@ export default function EditTransactionClient({ transaction, products, stores })
                 name="fromEntityId"
                 value={formData.fromEntityId}
                 onChange={handleChange}
-                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none"
               />
             </div>
             <div>
@@ -195,7 +195,7 @@ export default function EditTransactionClient({ transaction, products, stores })
                 name="toEntityType"
                 value={formData.toEntityType}
                 onChange={handleChange}
-                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none"
               />
             </div>
             <div>
@@ -205,7 +205,7 @@ export default function EditTransactionClient({ transaction, products, stores })
                 name="toEntityId"
                 value={formData.toEntityId}
                 onChange={handleChange}
-                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none"
+                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none"
               />
             </div>
           </div>
@@ -314,7 +314,7 @@ export default function EditTransactionClient({ transaction, products, stores })
                 onChange={handleChange}
                 rows={2}
                 placeholder="Optional notes"
-                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none resize-none"
+                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2 text-sm text-text-primary focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none resize-none"
               />
             </div>
           </div>

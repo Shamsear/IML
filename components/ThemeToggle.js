@@ -45,13 +45,13 @@ const styles = {
     borderRadius: 'var(--radius-sm)',
     cursor: 'pointer',
     color: 'var(--text-secondary)',
-    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
     overflow: 'hidden',
   },
   iconWrap: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
   },
 };

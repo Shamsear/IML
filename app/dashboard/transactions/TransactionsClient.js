@@ -84,19 +84,19 @@ export default function TransactionsClient({
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          <Link href="/dashboard/inbound" className="inline-flex items-center gap-2 px-4 py-2.5 bg-success/15 hover:bg-success text-success hover:text-white border border-success/30 rounded-lg text-sm font-semibold transition-all duration-200">
+          <Link href="/dashboard/inbound" className="inline-flex items-center gap-2 px-4 py-2.5 bg-success/15 hover:bg-success text-success hover:text-white border border-success/30 rounded-lg text-sm font-semibold transition-colors duration-200">
             <ArrowDownLeft size={16} />
             <span>Inbound (Receive)</span>
           </Link>
-          <Link href="/dashboard/outbound" className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary/15 hover:bg-primary text-primary hover:text-white border border-primary/30 rounded-lg text-sm font-semibold transition-all duration-200">
+          <Link href="/dashboard/outbound" className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary/15 hover:bg-primary text-primary hover:text-white border border-primary/30 rounded-lg text-sm font-semibold transition-colors duration-200">
             <ArrowUpRight size={16} />
             <span>Outbound (Dispatch)</span>
           </Link>
-          <Link href="/dashboard/rebrand" className="inline-flex items-center gap-2 px-4 py-2.5 bg-secondary/15 hover:bg-secondary text-secondary hover:text-white border border-secondary/30 rounded-lg text-sm font-semibold transition-all duration-200">
+          <Link href="/dashboard/rebrand" className="inline-flex items-center gap-2 px-4 py-2.5 bg-secondary/15 hover:bg-secondary text-secondary hover:text-white border border-secondary/30 rounded-lg text-sm font-semibold transition-colors duration-200">
             <RefreshCw size={16} />
             <span>Rebrand Stock</span>
           </Link>
-          <Link href="/dashboard/damage" className="inline-flex items-center gap-2 px-4 py-2.5 bg-danger/15 hover:bg-danger text-danger hover:text-white border border-danger/30 rounded-lg text-sm font-semibold transition-all duration-200">
+          <Link href="/dashboard/damage" className="inline-flex items-center gap-2 px-4 py-2.5 bg-danger/15 hover:bg-danger text-danger hover:text-white border border-danger/30 rounded-lg text-sm font-semibold transition-colors duration-200">
             <ShieldAlert size={16} />
             <span>Log Damage</span>
           </Link>
@@ -148,7 +148,7 @@ export default function TransactionsClient({
                   placeholder="Search product, delivery note..."
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-[34px]"
+                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors h-[34px]"
                 />
               </div>
             </div>
@@ -297,7 +297,7 @@ export default function TransactionsClient({
                     type="button"
                     disabled={page === 1}
                     onClick={() => updateUrlParams({ page: page - 1 })}
-                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200 cursor-pointer"
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-colors duration-200 cursor-pointer"
                   >
                     Previous
                   </button>
@@ -326,7 +326,7 @@ export default function TransactionsClient({
                     type="button"
                     disabled={page === totalPages}
                     onClick={() => updateUrlParams({ page: page + 1 })}
-                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200 cursor-pointer"
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-colors duration-200 cursor-pointer"
                   >
                     Next
                   </button>

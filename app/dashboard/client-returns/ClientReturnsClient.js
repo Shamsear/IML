@@ -523,7 +523,7 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
             <label className="text-xs font-semibold text-text-secondary">Client Representative</label>
             <input
               type="text"
-              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors font-semibold"
               value={receivedBy}
               onChange={(e) => setReceivedBy(e.target.value)}
               placeholder="e.g. John representative"
@@ -536,7 +536,7 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
             <div className="relative">
               <input
                 type="text"
-                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors font-semibold"
                 value={deliverySupervisorName}
                 onChange={(e) => {
                   setDeliverySupervisorName(e.target.value);

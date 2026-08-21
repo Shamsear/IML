@@ -2,303 +2,166 @@
 
 import { prisma } from '@/lib/prisma';
 import { generateId } from '@/lib/idGenerator';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import fs from 'fs';
-import path from 'path';
 
+import { requireAuth } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
-import { generateCustomRef } from './transactions';
+import { generateCustomRef, generateSkuCode } from '@/lib/ledger';
 
 async function saveFile(file) {
   return uploadToImageKit(file);
 }
 
-async function checkAuth() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error('Unauthorized');
-  return session;
+// ─── Shared warehouse stock calculation ──────────────────────────────────────
+// Extracted to eliminate the ~80-line duplication between getProducts() and getProductsSlim().
+async function computeWarehouseStockMap(products) {
+  const [aggregates, serialsCount] = await Promise.all([
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
+      _sum: { quantity: true },
+    }),
+    prisma.productSerialNumber.groupBy({
+      by: ['productId'],
+      where: {
+        status: 'AVAILABLE',
+        OR: [
+          { currentLocationType: 'WAREHOUSE' },
+          { currentLocationType: null }
+        ]
+      },
+      _count: { id: true }
+    })
+  ]);
+
+  const serialsMap = new Map(serialsCount.map(s => [s.productId, s._count.id]));
+
+  const aggsMap = new Map();
+  aggregates.forEach(agg => {
+    if (!aggsMap.has(agg.productId)) aggsMap.set(agg.productId, []);
+    aggsMap.get(agg.productId).push(agg);
+  });
+
+  // Expiry-aware stock for products that track expiry
+  const expiryProducts = products.filter(p => !p.isSerialized && p.trackExpiry).map(p => p.id);
+  let expiryStockMap = {};
+  if (expiryProducts.length > 0) {
+    const expiryTransactions = await prisma.inventoryTransaction.findMany({
+      where: {
+        productId: { in: expiryProducts },
+        OR: [
+          { fromEntityType: 'WAREHOUSE' },
+          { toEntityType: 'WAREHOUSE' }
+        ]
+      },
+      select: {
+        productId: true, transactionType: true, quantity: true,
+        manufactureDate: true, expiryDate: true,
+        fromEntityType: true, toEntityType: true,
+      },
+      orderBy: { timestamp: 'asc' }
+    });
+
+    const now = new Date();
+    for (const prodId of expiryProducts) {
+      const prodTxs = expiryTransactions.filter(tx => tx.productId === prodId);
+      const batches = {};
+      for (const tx of prodTxs) {
+        const m = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
+        const e = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
+        const key = `${m}|${e}`;
+        if (!batches[key]) batches[key] = { expiryDate: tx.expiryDate, quantity: 0 };
+        if (tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType)) {
+          batches[key].quantity += tx.quantity;
+        } else if (tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType)) {
+          batches[key].quantity -= tx.quantity;
+        }
+      }
+      let available = 0;
+      for (const b of Object.values(batches)) {
+        if (b.quantity > 0 && !(b.expiryDate && new Date(b.expiryDate) < now)) {
+          available += b.quantity;
+        }
+      }
+      expiryStockMap[prodId] = Math.max(0, available);
+    }
+  }
+
+  // Compute final stock map
+  const stockMap = new Map();
+  for (const product of products) {
+    let warehouseStock = 0;
+    if (product.isSerialized) {
+      warehouseStock = serialsMap.get(product.id) || 0;
+    } else if (product.trackExpiry) {
+      warehouseStock = expiryStockMap[product.id] || 0;
+    } else {
+      const productAggs = aggsMap.get(product.id) || [];
+      for (const t of productAggs) {
+        const qty = t._sum.quantity || 0;
+        if (t.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(t.transactionType)) {
+          warehouseStock += qty;
+        }
+        if (t.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(t.transactionType)) {
+          warehouseStock -= qty;
+        }
+      }
+    }
+    stockMap.set(product.id, warehouseStock);
+  }
+
+  return stockMap;
 }
 
 export async function getProducts() {
-  await checkAuth();
+  await requireAuth();
 
-  const [products, aggregates, serialsCount] = await Promise.all([
-    prisma.product.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        brand: { select: { id: true, name: true } },
-        _count: {
-          select: { serialNumbers: true }
-        }
-      }
-    }),
-    prisma.inventoryTransaction.groupBy({
-      by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
-      _sum: {
-        quantity: true,
-      },
-    }),
-    prisma.productSerialNumber.groupBy({
-      by: ['productId'],
-      where: {
-        status: 'AVAILABLE',
-        OR: [
-          { currentLocationType: 'WAREHOUSE' },
-          { currentLocationType: null }
-        ]
-      },
-      _count: {
-        id: true
-      }
-    })
-  ]);
-
-  const serialsMap = new Map(serialsCount.map(s => [s.productId, s._count.id]));
-  const aggsMap = new Map();
-  aggregates.forEach(agg => {
-    if (!aggsMap.has(agg.productId)) {
-      aggsMap.set(agg.productId, []);
+  const products = await prisma.product.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      brand: { select: { id: true, name: true } },
+      _count: { select: { serialNumbers: true } }
     }
-    aggsMap.get(agg.productId).push(agg);
   });
 
-  const expiryProducts = products.filter(p => !p.isSerialized && p.trackExpiry).map(p => p.id);
-  const expiryTransactions = expiryProducts.length > 0 ? await prisma.inventoryTransaction.findMany({
-    where: {
-      productId: { in: expiryProducts },
-      OR: [
-        { fromEntityType: 'WAREHOUSE' },
-        { toEntityType: 'WAREHOUSE' }
-      ]
-    },
-    select: {
-      productId: true,
-      transactionType: true,
-      quantity: true,
-      manufactureDate: true,
-      expiryDate: true,
-      fromEntityType: true,
-      toEntityType: true,
-    },
-    orderBy: { timestamp: 'asc' }
-  }) : [];
+  const stockMap = await computeWarehouseStockMap(products);
 
-  const expiryStockMap = {};
-  if (expiryProducts.length > 0) {
-    const now = new Date();
-    expiryProducts.forEach(prodId => {
-      const prodTxs = expiryTransactions.filter(tx => tx.productId === prodId);
-      const batches = {};
-
-      prodTxs.forEach(tx => {
-        const mDateStr = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
-        const eDateStr = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
-        const key = `${mDateStr}|${eDateStr}`;
-
-        if (!batches[key]) {
-          batches[key] = {
-            expiryDate: tx.expiryDate,
-            quantity: 0
-          };
-        }
-
-        if (tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType)) {
-          batches[key].quantity += tx.quantity;
-        } else if (tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType)) {
-          batches[key].quantity -= tx.quantity;
-        }
-      });
-
-      let availableQty = 0;
-      Object.values(batches).forEach(b => {
-        if (b.quantity > 0) {
-          const isExpired = b.expiryDate && new Date(b.expiryDate) < now;
-          if (!isExpired) {
-            availableQty += b.quantity;
-          }
-        }
-      });
-
-      expiryStockMap[prodId] = Math.max(0, availableQty);
-    });
-  }
-
-  return products.map(product => {
-    let warehouseStock = 0;
-    if (product.isSerialized) {
-      warehouseStock = serialsMap.get(product.id) || 0;
-    } else if (product.trackExpiry) {
-      warehouseStock = expiryStockMap[product.id] || 0;
-    } else {
-      const productAggs = aggsMap.get(product.id) || [];
-      productAggs.forEach(t => {
-        const qty = t._sum.quantity || 0;
-        if (t.toEntityType === 'WAREHOUSE') {
-          if (t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN') {
-            warehouseStock += qty;
-          }
-        }
-        if (t.fromEntityType === 'WAREHOUSE') {
-          if (t.transactionType === 'ISSUE' || t.transactionType === 'DAMAGE' || t.transactionType === 'LOST' || t.transactionType === 'REBRAND_OUT') {
-            warehouseStock -= qty;
-          }
-        }
-      });
-    }
-
-    return {
-      ...product,
-      warehouseStock,
-    };
-  });
+  return products.map(product => ({
+    ...product,
+    warehouseStock: stockMap.get(product.id) || 0,
+  }));
 }
 
 export async function getProductsSlim() {
-  await checkAuth();
-  
-  const [products, aggregates, serialsCount] = await Promise.all([
-    prisma.product.findMany({
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        isSerialized: true,
-        trackExpiry: true,
-        category: true,
-        imageUrl: true,
-        isReturnable: true,
-        isDisposable: true,
-        size: true,
-        rack: true,
-        shelf: true,
-        brand: { select: { id: true, name: true, rack: true, shelf: true } }
-      }
-    }),
-    prisma.inventoryTransaction.groupBy({
-      by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
-      _sum: {
-        quantity: true,
-      },
-    }),
-    prisma.productSerialNumber.groupBy({
-      by: ['productId'],
-      where: {
-        status: 'AVAILABLE',
-        OR: [
-          { currentLocationType: 'WAREHOUSE' },
-          { currentLocationType: null }
-        ]
-      },
-      _count: {
-        id: true
-      }
-    })
-  ]);
+  await requireAuth();
 
-  const serialsMap = new Map(serialsCount.map(s => [s.productId, s._count.id]));
-  const aggsMap = new Map();
-  aggregates.forEach(agg => {
-    if (!aggsMap.has(agg.productId)) {
-      aggsMap.set(agg.productId, []);
-    }
-    aggsMap.get(agg.productId).push(agg);
-  });
-
-  const expiryProducts = products.filter(p => !p.isSerialized && p.trackExpiry).map(p => p.id);
-  const expiryTransactions = expiryProducts.length > 0 ? await prisma.inventoryTransaction.findMany({
-    where: {
-      productId: { in: expiryProducts },
-      OR: [
-        { fromEntityType: 'WAREHOUSE' },
-        { toEntityType: 'WAREHOUSE' }
-      ]
-    },
+  const products = await prisma.product.findMany({
+    orderBy: { name: 'asc' },
     select: {
-      productId: true,
-      transactionType: true,
-      quantity: true,
-      manufactureDate: true,
-      expiryDate: true,
-      fromEntityType: true,
-      toEntityType: true,
-    },
-    orderBy: { timestamp: 'asc' }
-  }) : [];
-
-  const expiryStockMap = {};
-  if (expiryProducts.length > 0) {
-    const now = new Date();
-    expiryProducts.forEach(prodId => {
-      const prodTxs = expiryTransactions.filter(tx => tx.productId === prodId);
-      const batches = {};
-
-      prodTxs.forEach(tx => {
-        const mDateStr = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
-        const eDateStr = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
-        const key = `${mDateStr}|${eDateStr}`;
-
-        if (!batches[key]) {
-          batches[key] = {
-            expiryDate: tx.expiryDate,
-            quantity: 0
-          };
-        }
-
-        if (tx.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType)) {
-          batches[key].quantity += tx.quantity;
-        } else if (tx.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType)) {
-          batches[key].quantity -= tx.quantity;
-        }
-      });
-
-      let availableQty = 0;
-      Object.values(batches).forEach(b => {
-        if (b.quantity > 0) {
-          const isExpired = b.expiryDate && new Date(b.expiryDate) < now;
-          if (!isExpired) {
-            availableQty += b.quantity;
-          }
-        }
-      });
-
-      expiryStockMap[prodId] = Math.max(0, availableQty);
-    });
-  }
-
-  return products.map(product => {
-    let warehouseStock = 0;
-    if (product.isSerialized) {
-      warehouseStock = serialsMap.get(product.id) || 0;
-    } else if (product.trackExpiry) {
-      warehouseStock = expiryStockMap[product.id] || 0;
-    } else {
-      const productAggs = aggsMap.get(product.id) || [];
-      productAggs.forEach(t => {
-        const qty = t._sum.quantity || 0;
-        if (t.toEntityType === 'WAREHOUSE') {
-          if (t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN') {
-            warehouseStock += qty;
-          }
-        }
-        if (t.fromEntityType === 'WAREHOUSE') {
-          if (t.transactionType === 'ISSUE' || t.transactionType === 'DAMAGE' || t.transactionType === 'LOST' || t.transactionType === 'REBRAND_OUT') {
-            warehouseStock -= qty;
-          }
-        }
-      });
+      id: true,
+      name: true,
+      isSerialized: true,
+      trackExpiry: true,
+      category: true,
+      imageUrl: true,
+      isReturnable: true,
+      isDisposable: true,
+      size: true,
+      rack: true,
+      shelf: true,
+      brand: { select: { id: true, name: true, rack: true, shelf: true } }
     }
-
-    return {
-      ...product,
-      warehouseStock,
-    };
   });
+
+  const stockMap = await computeWarehouseStockMap(products);
+
+  return products.map(product => ({
+    ...product,
+    warehouseStock: stockMap.get(product.id) || 0,
+  }));
 }
 
 export async function createProduct(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const brandId = formData.get('brandId');
@@ -341,25 +204,7 @@ export async function createProduct(formData) {
 
   let itemCodeToSave = itemCode ? itemCode.trim() : null;
   if (!itemCodeToSave) {
-    const brandPrefix = (brand.name || 'GEN').substring(0, 3).toUpperCase();
-    const catPrefix = (category || 'GEN').substring(0, 3).toUpperCase();
-    const prefix = `${brandPrefix}-${catPrefix}`;
-    
-    const existing = await prisma.product.findMany({
-      where: { itemCode: { startsWith: `${prefix}-` } },
-      select: { itemCode: true }
-    });
-    let max = 0;
-    for (const p of existing) {
-      if (p.itemCode) {
-        const match = p.itemCode.match(/-(\d+)$/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > max) max = num;
-        }
-      }
-    }
-    itemCodeToSave = `${prefix}-${String(max + 1).padStart(4, '0')}`;
+    itemCodeToSave = await generateSkuCode(prisma, brand.name, category || 'General');
   }
 
   const product = await prisma.product.create({
@@ -500,7 +345,7 @@ export async function createProduct(formData) {
 }
 
 export async function updateProduct(id, formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const brandId = formData.get('brandId');
@@ -552,7 +397,7 @@ export async function updateProduct(id, formData) {
 }
 
 export async function deleteProduct(id) {
-  await checkAuth();
+  await requireAuth();
 
   await prisma.product.delete({
     where: { id },
@@ -564,7 +409,7 @@ export async function deleteProduct(id) {
 
 // Upload/import barcodes in bulk for a serialized product
 export async function importBarcodes(productId, barcodes = [], secondaryBarcodes = []) {
-  await checkAuth();
+  await requireAuth();
 
   if (!productId) throw new Error('Product ID is required');
   if (barcodes.length === 0) throw new Error('No barcodes provided');
@@ -603,7 +448,7 @@ export async function importBarcodes(productId, barcodes = [], secondaryBarcodes
 
 // Fetch barcodes for a single product
 export async function getProductSerials(productId) {
-  await checkAuth();
+  await requireAuth();
   return prisma.productSerialNumber.findMany({
     where: { productId },
     select: {
@@ -618,7 +463,7 @@ export async function getProductSerials(productId) {
 
 // Fetch active barcodes currently at a specific location
 export async function getActiveSerialsAtLocation(productId, locationType, locationId) {
-  await checkAuth();
+  await requireAuth();
   return prisma.productSerialNumber.findMany({
     where: {
       productId,
@@ -632,7 +477,7 @@ export async function getActiveSerialsAtLocation(productId, locationType, locati
 
 // Bulk create products from CSV import
 export async function bulkCreateProducts(productsList) {
-  await checkAuth();
+  await requireAuth();
 
   if (!productsList || productsList.length === 0) {
     throw new Error('No products list provided');
@@ -675,7 +520,7 @@ export async function bulkCreateProducts(productsList) {
 
 // Bulk update multiple products
 export async function bulkUpdateProducts(ids = [], updateData = {}) {
-  await checkAuth();
+  await requireAuth();
 
   if (ids.length === 0) throw new Error('No product IDs specified');
 
@@ -696,7 +541,7 @@ export async function bulkUpdateProducts(ids = [], updateData = {}) {
 
 // Bulk delete multiple products
 export async function bulkDeleteProducts(ids = []) {
-  await checkAuth();
+  await requireAuth();
 
   if (ids.length === 0) throw new Error('No product IDs specified');
 
@@ -710,7 +555,7 @@ export async function bulkDeleteProducts(ids = []) {
 
 // Fetch available barcodes/serials at a specific location
 export async function getAvailableBarcodes(productId, locationType, locationId = null) {
-  await checkAuth();
+  await requireAuth();
   return prisma.productSerialNumber.findMany({
     where: {
       productId,
@@ -730,7 +575,7 @@ export async function getAvailableBarcodes(productId, locationType, locationId =
 }
 
 export async function getProductStockAtLocation(productId, locationType, locationId = null) {
-  await checkAuth();
+  await requireAuth();
   
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -793,7 +638,7 @@ export async function getProductStockAtLocation(productId, locationType, locatio
 
 // Fetch available stock batches at a specific location for bulk products tracking expiry
 export async function getProductBatchesAtLocation(productId, locationType, locationId = null) {
-  await checkAuth();
+  await requireAuth();
 
   const [inbounds, outbounds] = await Promise.all([
     prisma.inventoryTransaction.findMany({
@@ -861,7 +706,7 @@ export async function getProductBatchesAtLocation(productId, locationType, locat
 
 // Find a product and its location availability details by serial barcode
 export async function findProductByBarcode(barcode) {
-  await checkAuth();
+  await requireAuth();
   if (!barcode) return null;
   
   const serial = await prisma.productSerialNumber.findUnique({
@@ -889,7 +734,7 @@ export async function findProductByBarcode(barcode) {
 }
 
 export async function getProductById(id) {
-  await checkAuth();
+  await requireAuth();
   if (!id) return null;
   return prisma.product.findUnique({
     where: { id },
@@ -900,7 +745,7 @@ export async function getProductById(id) {
 }
 
 export async function createBulkProducts(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const count = parseInt(formData.get('count'), 10) || 0;
   if (count === 0) {
@@ -1023,30 +868,7 @@ export async function createBulkProducts(formData) {
 
       let itemCodeToSave = item.itemCode ? item.itemCode.trim() : null;
       if (!itemCodeToSave) {
-        const brandPrefix = (bName || 'GEN').substring(0, 3).toUpperCase();
-        const catPrefix = (item.category || 'GEN').substring(0, 3).toUpperCase();
-        const prefix = `${brandPrefix}-${catPrefix}`;
-        
-        if (!tx.prefixCache) tx.prefixCache = {};
-        if (tx.prefixCache[prefix] === undefined) {
-          const existing = await tx.product.findMany({
-            where: { itemCode: { startsWith: `${prefix}-` } },
-            select: { itemCode: true }
-          });
-          let max = 0;
-          for (const p of existing) {
-            if (p.itemCode) {
-              const match = p.itemCode.match(/-(\d+)$/);
-              if (match) {
-                const num = parseInt(match[1], 10);
-                if (num > max) max = num;
-              }
-            }
-          }
-          tx.prefixCache[prefix] = max;
-        }
-        tx.prefixCache[prefix]++;
-        itemCodeToSave = `${prefix}-${String(tx.prefixCache[prefix]).padStart(4, '0')}`;
+        itemCodeToSave = await generateSkuCode(tx, bName, item.category || 'General');
       }
 
       // 1. Create Product

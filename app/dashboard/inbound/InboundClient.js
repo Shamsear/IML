@@ -879,7 +879,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             <div className="relative">
               <input
                 type="text"
-                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                 value={fromId}
                 onChange={(e) => {
                   setFromId(e.target.value);
@@ -948,7 +948,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             <div className="relative">
               <input
                 type="text"
-                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                 value={receivedBy}
                 onChange={(e) => {
                   setReceivedBy(e.target.value);
@@ -1027,7 +1027,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             <label className="text-xs font-semibold text-text-secondary">Receive Note Global Remarks</label>
             <input
               type="text"
-              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
               value={globalNotes}
               onChange={(e) => setGlobalNotes(e.target.value)}
               placeholder="Global remark visible at the top of the Receive Note PDF..."
@@ -1862,7 +1862,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                       setActiveScanTarget({ itemIdx: idx, field: 'list' });
                                       handleOpenMobileScanner();
                                     }}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded text-[10px] font-bold cursor-pointer transition-colors"
                                   >
                                     <Smartphone size={10} /> <span>Companion Sync</span>
                                   </button>
@@ -1875,7 +1875,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                       setActiveScanTarget({ itemIdx: idx, field: 'list' });
                                       setIsCameraOpen(true);
                                     }}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-colors"
                                   >
                                     <Camera size={10} /> <span>Webcam Scan</span>
                                   </button>
@@ -2042,7 +2042,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                           alert("Camera access is still blocked. Please enable it in site settings.");
                         }
                       }}
-                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-all"
+                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-colors"
                     >
                       Enable Camera Access
                     </button>

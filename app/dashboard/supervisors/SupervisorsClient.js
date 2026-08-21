@@ -99,7 +99,7 @@ export default function SupervisorsClient({ initialSupervisors }) {
         {!isFormOpen && (
           <div className="has-tooltip">
             <button 
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" 
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200" 
               onClick={openAddModal}
             >
               <Plus size={16} /> <span>Add Supervisor</span>
@@ -135,7 +135,7 @@ export default function SupervisorsClient({ initialSupervisors }) {
                 <label className="text-xs font-semibold text-text-secondary">Full Name</label>
                 <input 
                   type="text" 
-                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
+                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
                   placeholder="e.g. Shanawas" 
@@ -168,10 +168,10 @@ export default function SupervisorsClient({ initialSupervisors }) {
               </div>
 
               <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border">
-                <button type="button" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" onClick={() => setIsFormOpen(false)} disabled={loading}>
+                <button type="button" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200" onClick={() => setIsFormOpen(false)} disabled={loading}>
                   Cancel
                 </button>
-                <button type="submit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" disabled={loading}>
+                <button type="submit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200" disabled={loading}>
                   {loading && <Loader2 size={16} className="animate-spin" />}
                   <span>{editingSupervisor ? 'Save Details' : 'Add Supervisor'}</span>
                 </button>
@@ -188,7 +188,7 @@ export default function SupervisorsClient({ initialSupervisors }) {
               placeholder="Search supervisors by name, email or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors font-semibold"
             />
           </div>
           {filteredSupervisors.length === 0 ? (
@@ -229,12 +229,12 @@ export default function SupervisorsClient({ initialSupervisors }) {
                   </div>
 
                   <div className="flex gap-2 pt-4 border-t border-border mt-2" onClick={(e) => e.stopPropagation()}>
-                    <button className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => openEditModal(supervisor)}>
+                    <button className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors duration-200" onClick={() => openEditModal(supervisor)}>
                       <Edit2 size={13} />
                       <span>Edit</span>
                     </button>
                     <div className="has-tooltip">
-                      <button className="inline-flex items-center justify-center p-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => handleDelete(supervisor.id)}>
+                      <button className="inline-flex items-center justify-center p-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 rounded-lg text-xs font-semibold transition-colors duration-200" onClick={() => handleDelete(supervisor.id)}>
                         <Trash2 size={14} />
                       </button>
                       <span className="tooltip-box">Remove supervisor profile</span>

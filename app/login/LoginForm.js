@@ -110,7 +110,7 @@ export default function LoginForm() {
                 <User size={16} className="absolute left-3 text-text-muted pointer-events-none" />
                 <input
                   type="text"
-                  className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                  className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter your username"
@@ -128,7 +128,7 @@ export default function LoginForm() {
                 <Lock size={16} className="absolute left-3 text-text-muted pointer-events-none" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-10 pr-12 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                  className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-10 pr-12 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -143,10 +143,9 @@ export default function LoginForm() {
                     e.stopPropagation();
                     setShowPassword(!showPassword);
                   }}
-                  className="absolute right-3 text-text-muted hover:text-text-secondary transition-colors duration-200 focus:outline-none focus:ring-0 cursor-pointer z-10"
+                  className="absolute right-3 text-text-muted hover:text-text-secondary transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 rounded cursor-pointer z-10"
                   disabled={loading}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -155,7 +154,7 @@ export default function LoginForm() {
 
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 mt-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+              className="w-full inline-flex items-center justify-center gap-2 mt-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200"
               disabled={loading}
             >
               {loading && <Loader2 size={16} className="animate-spin" />}

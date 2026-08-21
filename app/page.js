@@ -34,7 +34,7 @@ export default async function Home() {
         <div className="flex justify-center">
           <Link 
             href="/dashboard" 
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg hover:shadow-primary/10 transition-all duration-200"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg hover:shadow-primary/10 transition-colors shadow duration-200"
           >
             <ShieldCheck size={18} />
             <span>Access Dashboard</span>

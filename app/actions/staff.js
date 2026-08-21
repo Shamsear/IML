@@ -1,21 +1,14 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
+import { requireAuth } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
-import { generateCustomRef } from '@/app/actions/transactions';
-
-async function checkAuth() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error('Unauthorized');
-  return session;
-}
+import { generateCustomRef } from '@/lib/ledger';
 
 export async function getStaff() {
-  await checkAuth();
+  await requireAuth();
   return prisma.staff.findMany({
     orderBy: { name: 'asc' },
     include: {
@@ -32,7 +25,7 @@ export async function getStaff() {
 }
 
 export async function createStaff(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const phone = formData.get('phone');
@@ -57,7 +50,7 @@ export async function createStaff(formData) {
 }
 
 export async function updateStaff(id, formData) {
-  await checkAuth();
+  await requireAuth();
 
   const name = formData.get('name');
   const phone = formData.get('phone');
@@ -80,7 +73,7 @@ export async function updateStaff(id, formData) {
 }
 
 export async function deleteStaff(id) {
-  await checkAuth();
+  await requireAuth();
 
   await prisma.staff.delete({
     where: { id },
@@ -90,7 +83,7 @@ export async function deleteStaff(id) {
 }
 
 export async function allocateUniform(formData) {
-  await checkAuth();
+  await requireAuth();
 
   const staffId = formData.get('staffId');
   const storeId = formData.get('storeId');
@@ -123,7 +116,7 @@ export async function allocateUniform(formData) {
 }
 
 export async function deleteAllocation(allocationId) {
-  await checkAuth();
+  await requireAuth();
 
   await prisma.staffUniformAllocation.delete({
     where: { id: allocationId }
@@ -133,7 +126,7 @@ export async function deleteAllocation(allocationId) {
 }
 
 export async function returnUniformItem(allocationId, payload, notes = '') {
-  await checkAuth();
+  await requireAuth();
 
   await prisma.$transaction(async (tx) => {
     const allocation = await tx.staffUniformAllocation.findUnique({
@@ -244,7 +237,7 @@ export async function returnUniformItem(allocationId, payload, notes = '') {
 }
 
 export async function getAllocationDetails(allocationId) {
-  await checkAuth();
+  await requireAuth();
   return prisma.staffUniformAllocation.findUnique({
     where: { id: allocationId },
     include: {
@@ -255,7 +248,7 @@ export async function getAllocationDetails(allocationId) {
 }
 
 export async function saveCombinedAllocation(formData, allocationId = null) {
-  await checkAuth();
+  await requireAuth();
 
   const isNewPromoter = formData.get('isNewPromoter') === 'true';
   const promoterName = formData.get('promoterName');
@@ -362,7 +355,7 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
 }
 
 export async function bulkReturnUniformItems(allocationIds, notes = '') {
-  await checkAuth();
+  await requireAuth();
 
   if (!allocationIds || !Array.isArray(allocationIds) || allocationIds.length === 0) {
     throw new Error('No allocations selected for return');
@@ -428,7 +421,7 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
 }
 
 export async function saveBulkCombinedAllocations(payload) {
-  await checkAuth();
+  await requireAuth();
 
   const { items = [] } = payload;
   if (items.length === 0) throw new Error('At least one promoter assignment is required');

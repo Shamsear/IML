@@ -374,7 +374,7 @@ export default function StoresClient({ initialStores }) {
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
               <input 
                 type="text" 
-                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors" 
                 placeholder="Search stores by name or address..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

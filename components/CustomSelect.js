@@ -199,7 +199,7 @@ export default function CustomSelect({
         onKeyDown={handleTriggerKeyDown}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`w-full flex items-center justify-between bg-surface text-text-primary border border-border ${radius} ${py} ${text} text-left focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all ${
+        className={`w-full flex items-center justify-between bg-surface text-text-primary border border-border ${radius} ${py} ${text} text-left focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors ${
           disabled ? 'opacity-50 cursor-not-allowed bg-surface-elevated/40' : 'cursor-pointer hover:border-primary/50'
         }`}
       >
