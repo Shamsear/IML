@@ -344,9 +344,9 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
         <Undo2 size={250} />
       </div>
 
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             With Client
           </h1>
           <p className="text-text-secondary text-sm mt-1">

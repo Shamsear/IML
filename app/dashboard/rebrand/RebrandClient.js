@@ -708,7 +708,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
               Rebrand Stock Items
             </h1>
             <p className="text-text-secondary text-sm mt-1">

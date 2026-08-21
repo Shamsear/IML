@@ -154,9 +154,9 @@ export default function ReportsClient({ initialProducts, brands }) {
       </div>
       
       {/* Header View */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border print:border-b-2 print:border-black print:pb-3">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-5 border-b border-border print:border-b-2 print:border-black print:pb-3">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight print:text-xl print:font-black">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight print:text-xl print:font-black">
             Global Stock Summary Report
           </h1>
           <p className="text-text-secondary text-sm mt-1 print:text-xs">

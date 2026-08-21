@@ -76,7 +76,7 @@ export default function TransactionsClient({
       {/* Header */}
       <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Inventory Ledger Feed
           </h1>
           <p className="text-text-secondary text-sm mt-1">

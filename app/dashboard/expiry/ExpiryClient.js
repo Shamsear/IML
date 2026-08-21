@@ -76,9 +76,9 @@ export default function ExpiryClient({ initialBatches }) {
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
         <AlertTriangle size={250} />
       </div>
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Expiry &amp; Batch Tracking
           </h1>
           <p className="text-text-secondary text-sm mt-1">
@@ -182,18 +182,18 @@ export default function ExpiryClient({ initialBatches }) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border text-sm">
+            <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                  <th className="py-3 px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
-                  <th className="py-3 px-5">Batch / DN</th>
-                  <th className="py-3 px-5">Supplier / Source</th>
-                  <th className="py-3 px-5">Received Date</th>
-                  <th className="py-3 px-5">Mfg Date</th>
-                  <th className="py-3 px-5">Expiry Date</th>
-                  <th className="py-3 px-5">Shelf Status</th>
-                  <th className="py-3 px-5 text-center">Batch Stock</th>
-                  <th className="py-3 px-5 text-right">Actions</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Batch / DN</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supplier / Source</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Received Date</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Mfg Date</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Expiry Date</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Shelf Status</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Batch Stock</th>
+                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-text-primary">
@@ -224,7 +224,7 @@ export default function ExpiryClient({ initialBatches }) {
 
                   return (
                     <tr key={batch.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                      <td className="py-3.5 px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                         <div className="flex items-center gap-3">
                           {batch.productImage ? (
                             <img src={batch.productImage} alt={batch.productName} className="w-10 h-10 object-contain rounded-lg border border-border bg-white" />
@@ -239,18 +239,18 @@ export default function ExpiryClient({ initialBatches }) {
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-5 font-mono text-xs font-semibold text-text-secondary whitespace-nowrap">{batch.deliveryNote}</td>
-                      <td className="py-3.5 px-5 text-xs text-text-secondary font-medium whitespace-nowrap">{batch.supplier}</td>
-                      <td className="py-3.5 px-5 text-xs text-text-secondary whitespace-nowrap">
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs font-semibold text-text-secondary whitespace-nowrap">{batch.deliveryNote}</td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary font-medium whitespace-nowrap">{batch.supplier}</td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary whitespace-nowrap">
                         {rcvDateStr} <span className="text-[10px] text-text-muted">(Qty: {batch.receivedQty})</span>
                       </td>
-                      <td className="py-3.5 px-5 text-xs text-text-secondary whitespace-nowrap">{mfgDateStr}</td>
-                      <td className="py-3.5 px-5 text-xs font-semibold text-text-secondary whitespace-nowrap">{expDateStr}</td>
-                      <td className="py-3.5 px-5 whitespace-nowrap">{statusBadge}</td>
-                      <td className="py-3.5 px-5 text-center font-mono font-bold text-sm text-primary">
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary whitespace-nowrap">{mfgDateStr}</td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs font-semibold text-text-secondary whitespace-nowrap">{expDateStr}</td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">{statusBadge}</td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm text-primary">
                         {batch.remainingBatchStock}
                       </td>
-                      <td className="py-3.5 px-5 text-right">
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
                         <Link
                           href={`/dashboard/products?search=${encodeURIComponent(batch.productName)}`}
                           className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-bold"

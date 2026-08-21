@@ -594,7 +594,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
               {lockedType === 'LOST' ? 'Report Loss / Missing' : 'Report Damage & Wastage'}
             </h1>
             <p className="text-text-secondary text-sm mt-1">
@@ -1073,7 +1073,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           })}
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-5 border-t border-border">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mt-4 pt-5 border-t border-border">
           <button 
             type="button" 
             className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200" 

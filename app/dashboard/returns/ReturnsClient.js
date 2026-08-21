@@ -104,9 +104,9 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
         <RotateCcw size={250} />
       </div>
 
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border z-10 relative">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border z-10 relative">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight flex items-center gap-3">
             <RotateCcw className="text-primary" size={28} /> Stock Returns
           </h1>
           <p className="text-sm font-medium text-text-secondary mt-1">
@@ -160,14 +160,14 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
-                    <th className="py-3 px-5 w-10 sticky left-0 bg-surface-elevated z-20"></th>
-                    <th className="py-3 px-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</th>
-                    <th className="py-3 px-5">Date</th>
-                    <th className="py-3 px-5">Store</th>
-                    <th className="py-3 px-5 text-right">Available</th>
-                    <th className="py-3 px-5 w-32">Return Qty</th>
-                    <th className="py-3 px-5">Delivery Note</th>
-                    <th className="py-3 px-5">Remarks</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 w-10 sticky left-0 bg-surface-elevated z-20"></th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Available</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 w-32">Return Qty</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Delivery Note</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -181,19 +181,19 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     const itemState = processingItems[tx.id];
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/30'}`}>
-                        <td className="py-3 px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
-                        <td className="py-3 px-5 font-semibold text-primary max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>{tx.product?.name}</td>
-                        <td className="py-3 px-5 whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-primary max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>{tx.product?.name}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
                         </td>
-                        <td className="py-3 px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
-                        <td className="py-3 px-5 text-right font-mono font-bold text-text-primary">{remainingQty}</td>
-                        <td className="py-3 px-5">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary">{remainingQty}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                           <input type="number" min="1" max={remainingQty} disabled={!isSelected}
                             value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
                             className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
                         </td>
-                        <td className="py-3 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
                           {tx.deliveryNote ? (
                             <a
                               href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
@@ -208,7 +208,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                             <span className="text-text-muted">---</span>
                           )}
                         </td>
-                        <td className="py-3 px-5">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                           <input type="text" placeholder="Optional notes..." disabled={!isSelected}
                             value={itemState?.notes || ''} onChange={(e) => handleChange(tx.id, 'notes', e.target.value)}
                             className="w-full min-w-[150px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
@@ -275,7 +275,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     {/* Expanded Items */}
                     {isExpanded && (
                       <div className="border-t border-border bg-surface/50">
-                        <table className="min-w-full divide-y divide-border text-sm">
+                        <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
                           <thead>
                             <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                               <th className="py-2.5 px-5 pl-16 w-10"></th>
@@ -292,17 +292,17 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                               const itemState = processingItems[tx.id];
                               return (
                                 <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/40'}`}>
-                                  <td className="py-3 px-5 pl-16">
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-16">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
                                   </td>
-                                  <td className="py-3 px-5 font-medium text-xs text-primary">{tx.product?.name}</td>
-                                  <td className="py-3 px-5 text-right font-mono font-bold text-text-primary text-xs">{remainingQty}</td>
-                                  <td className="py-3 px-5">
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-primary">{tx.product?.name}</td>
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs">{remainingQty}</td>
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                                     <input type="number" min="1" max={remainingQty} disabled={!isSelected}
                                       value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
                                       className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
                                   </td>
-                                  <td className="py-3 px-5">
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                                     <input type="text" placeholder="Optional notes..." disabled={!isSelected}
                                       value={itemState?.notes || ''} onChange={(e) => handleChange(tx.id, 'notes', e.target.value)}
                                       className="w-full min-w-[140px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
@@ -326,12 +326,12 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
-                    <th className="py-3 px-5">Date</th>
-                    <th className="py-3 px-5">Product</th>
-                    <th className="py-3 px-5">Returned From</th>
-                    <th className="py-3 px-5 text-center">Returned Qty</th>
-                    <th className="py-3 px-5">Remarks</th>
-                    <th className="py-3 px-5 text-right">Actions / Undo</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Returned From</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Returned Qty</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions / Undo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -343,19 +343,19 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
                           {new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td className="py-3 px-5 font-semibold text-text-primary whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="text-primary font-bold">{tx.product?.name}</span>
                             <span className="text-[10px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-5 font-semibold text-xs text-text-secondary">{fromStore}</td>
-                        <td className="py-3 px-5 text-center font-mono font-bold text-success">+{tx.quantity}</td>
-                        <td className="py-3 px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
-                        <td className="py-3 px-5 text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary">{fromStore}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-success">+{tx.quantity}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
                           <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
                         </td>
                       </tr>

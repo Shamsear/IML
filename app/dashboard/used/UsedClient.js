@@ -92,9 +92,9 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
         <Trash2 size={250} />
       </div>
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight flex items-center gap-3">
             <Trash2 className="text-warning" size={28} /> Mark as Used / Consumed
           </h1>
           <p className="text-sm font-medium text-text-secondary mt-1">
@@ -148,12 +148,12 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
-                    <th className="py-3 px-5 w-10 sticky left-0 bg-surface-elevated z-20"></th>
-                    <th className="py-3 px-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</th>
-                    <th className="py-3 px-5">Date &amp; DN</th>
-                    <th className="py-3 px-5">Store</th>
-                    <th className="py-3 px-5 text-right">Qty to Mark</th>
-                    <th className="py-3 px-5">Remarks</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 w-10 sticky left-0 bg-surface-elevated z-20"></th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date &amp; DN</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Qty to Mark</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -166,18 +166,18 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                     const remainingQty = tx.quantity - (tx.returnedQty || 0);
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/30'}`}>
-                        <td className="py-3 px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
-                        <td className="py-3 px-5 font-semibold text-warning max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-warning max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
                           {tx.product?.name}
                           <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
                         </td>
-                        <td className="py-3 px-5 whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
                           <div className="font-mono text-xs text-text-muted mt-0.5">{tx.deliveryNote || 'No DN'}</div>
                         </td>
-                        <td className="py-3 px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
-                        <td className="py-3 px-5 text-right font-mono font-bold text-text-primary">{remainingQty}</td>
-                        <td className="py-3 px-5">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary">{remainingQty}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                           <input type="text" placeholder="Optional notes..." disabled={!isSelected}
                             value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
                             className="w-full min-w-[150px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
@@ -230,7 +230,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
 
                     {isExpanded && (
                       <div className="border-t border-border bg-surface/50">
-                        <table className="min-w-full divide-y divide-border text-sm">
+                        <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
                           <thead>
                             <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                               <th className="py-2.5 px-5 pl-16 w-10"></th>
@@ -245,12 +245,12 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                               const remainingQty = tx.quantity - (tx.returnedQty || 0);
                               return (
                                 <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/40'}`}>
-                                  <td className="py-3 px-5 pl-16">
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-16">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
                                   </td>
-                                  <td className="py-3 px-5 font-medium text-xs text-warning">{tx.product?.name}</td>
-                                  <td className="py-3 px-5 text-right font-mono font-bold text-text-primary text-xs">{remainingQty}</td>
-                                  <td className="py-3 px-5">
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-warning">{tx.product?.name}</td>
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs">{remainingQty}</td>
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                                     <input type="text" placeholder="Optional notes..." disabled={!isSelected}
                                       value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
                                       className="w-full min-w-[140px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
@@ -274,12 +274,12 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
-                    <th className="py-3 px-5">Date</th>
-                    <th className="py-3 px-5">Product</th>
-                    <th className="py-3 px-5">Store</th>
-                    <th className="py-3 px-5 text-center">Consumed Qty</th>
-                    <th className="py-3 px-5">Remarks</th>
-                    <th className="py-3 px-5 text-right">Actions / Undo</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Consumed Qty</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions / Undo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -291,19 +291,19 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                     const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
                           {new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td className="py-3 px-5 font-semibold text-text-primary whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="text-warning font-bold">{tx.product?.name}</span>
                             <span className="text-[10px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-5 font-semibold text-xs text-text-secondary">{fromStore}</td>
-                        <td className="py-3 px-5 text-center font-mono font-bold text-warning">-{tx.quantity}</td>
-                        <td className="py-3 px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
-                        <td className="py-3 px-5 text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary">{fromStore}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-warning">-{tx.quantity}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
                           <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
                         </td>
                       </tr>

@@ -59,9 +59,9 @@ export default async function LossPage({ searchParams }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Loss Ledger
           </h1>
           <p className="text-text-secondary text-sm mt-1">
@@ -93,14 +93,14 @@ export default async function LossPage({ searchParams }) {
             <table className="min-w-full divide-y divide-border text-sm">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                  <th className="py-3 px-5">Date</th>
-                  <th className="py-3 px-5">Product Details</th>
-                  <th className="py-3 px-5">SKU</th>
-                  <th className="py-3 px-5">Lost From</th>
-                  <th className="py-3 px-5 text-center">Quantity</th>
-                  <th className="py-3 px-5">Loss Note</th>
-                  <th className="py-3 px-5">Remarks</th>
-                  <th className="py-3 px-5 text-right">Actions</th>
+                  <th className="py-3 px-3 sm:px-5">Date</th>
+                  <th className="py-3 px-3 sm:px-5">Product Details</th>
+                  <th className="py-3 px-3 sm:px-5">SKU</th>
+                  <th className="py-3 px-3 sm:px-5">Lost From</th>
+                  <th className="py-3 px-3 sm:px-5 text-center">Quantity</th>
+                  <th className="py-3 px-3 sm:px-5">Loss Note</th>
+                  <th className="py-3 px-3 sm:px-5">Remarks</th>
+                  <th className="py-3 px-3 sm:px-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-text-primary">
@@ -115,19 +115,19 @@ export default async function LossPage({ searchParams }) {
                   }
                   return (
                     <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                      <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
-                      <td className="py-3.5 px-5 whitespace-nowrap">
+                      <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
+                      <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="font-semibold">{tx.product.name}</span>
                           <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
-                      <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary">{sourceName}</td>
-                      <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-warning">
+                      <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
+                      <td className="py-3.5 px-3 sm:px-5 font-semibold text-xs text-text-secondary">{sourceName}</td>
+                      <td className="py-3.5 px-3 sm:px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-warning">
                         -{tx.quantity}
                       </td>
-                      <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
+                      <td className="py-3.5 px-3 sm:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
                         {tx.deliveryNote ? (
                           <a
                             href={`/api/dashboard/loss/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
@@ -142,8 +142,8 @@ export default async function LossPage({ searchParams }) {
                           <span className="text-text-muted">---</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
-                      <td className="py-3.5 px-5 text-right">
+                      <td className="py-3.5 px-3 sm:px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
+                      <td className="py-3.5 px-3 sm:px-5 text-right">
                         <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
                       </td>
                     </tr>

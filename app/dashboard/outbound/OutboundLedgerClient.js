@@ -86,9 +86,9 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
         <ArrowUpRight size={250} />
       </div>
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Outbound Dispatches
           </h1>
           <p className="text-text-secondary text-sm mt-1">
@@ -156,19 +156,19 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-sm">
+                  <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
-                        <th className="py-3 px-5">Date</th>
-                        <th className="py-3 px-5">SKU</th>
-                        <th className="py-3 px-5">Destination Type</th>
-                        <th className="py-3 px-5">Destination Entity</th>
-                        <th className="py-3 px-5">Via Supervisor</th>
-                        <th className="py-3 px-5 text-center">Quantity</th>
-                        <th className="py-3 px-5">Delivery Note</th>
-                        <th className="py-3 px-5">Remarks</th>
-                        <th className="py-3 px-5 text-right">Actions</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">SKU</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Destination Type</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Destination Entity</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Via Supervisor</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Quantity</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Delivery Note</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -184,19 +184,19 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
 
                         return (
                           <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                            <td className="py-3.5 px-5 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                               <div className="flex flex-col">
                                 <span className="font-semibold">{tx.product.name}</span>
                                 <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
                               </div>
                             </td>
-                            <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
-                            <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
-                            <td className="py-3.5 px-5 whitespace-nowrap">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                               <span className="badge text-[10px] bg-secondary/15 text-secondary border border-secondary/10">{tx.toEntityType}</span>
                             </td>
-                            <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary whitespace-nowrap">{destinationName}</td>
-                            <td className="py-3.5 px-5 whitespace-nowrap">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary whitespace-nowrap">{destinationName}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                               {tx.deliverySupervisorId ? (
                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
                                   <UserCheck size={12} />
@@ -206,8 +206,8 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                                 <span className="text-xs text-text-muted">—</span>
                               )}
                             </td>
-                            <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-primary">-{tx.quantity}</td>
-                            <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-primary">-{tx.quantity}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
                               {tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId ? (
                                 <div className="has-tooltip">
                                   <Link
@@ -223,8 +223,8 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                                 <span>{tx.deliveryNote || '---'}</span>
                               )}
                             </td>
-                            <td className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
-                            <td className="py-3.5 px-5 text-right">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
                               <TransactionActions
                                 txId={tx.id}
                                 notes={tx.notes || ''}
@@ -372,7 +372,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
 
                     {isExpanded && (
                       <div className="border-t border-border bg-surface/50 overflow-x-auto">
-                        <table className="min-w-full divide-y divide-border text-sm">
+                        <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
                           <thead>
                             <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                               <th className="py-2.5 px-5 pl-14">Product Name</th>
@@ -385,11 +385,11 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                           <tbody className="divide-y divide-border text-text-primary">
                             {group.items.map(tx => (
                               <tr key={tx.id} className="hover:bg-surface-elevated/40 transition-colors">
-                                <td className="py-3 px-5 pl-14 font-medium text-xs">{tx.product.name}</td>
-                                <td className="py-3 px-5 text-xs font-mono text-text-secondary">{tx.product.itemCode || '---'}</td>
-                                <td className="py-3 px-5 text-xs text-text-secondary">{tx.product.brand.name}</td>
-                                <td className="py-3 px-5 text-center font-mono text-xs font-bold text-primary">-{tx.quantity}</td>
-                                <td className="py-3 px-5 text-right">
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-14 font-medium text-xs">{tx.product.name}</td>
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs font-mono text-text-secondary">{tx.product.itemCode || '---'}</td>
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary">{tx.product.brand.name}</td>
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono text-xs font-bold text-primary">-{tx.quantity}</td>
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
                                   <div className="flex items-center justify-end gap-1.5 flex-wrap">
                                     {tx.product.isReturnable && (
                                       <button

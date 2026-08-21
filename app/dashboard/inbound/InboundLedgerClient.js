@@ -95,9 +95,9 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
         <ArrowDownLeft size={250} />
       </div>
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Inbound Stock Receipts
           </h1>
           <p className="text-text-secondary text-sm mt-1">
@@ -165,18 +165,18 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
             ) : (
               <>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-sm">
+                  <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
-                        <th className="py-3 px-5">Date</th>
-                        <th className="py-3 px-5">SKU</th>
-                        <th className="py-3 px-5">Type</th>
-                        <th className="py-3 px-5">Source / Supplier</th>
-                        <th className="py-3 px-5 text-center">Quantity</th>
-                        <th className="py-3 px-5">Receive Note</th>
-                        <th className="py-3 px-5">Remarks</th>
-                        <th className="py-3 px-5 text-right">Actions</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">SKU</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Type</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Source / Supplier</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Quantity</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Receive Note</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -192,22 +192,22 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
 
                         return (
                           <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                            <td className="py-3.5 px-5 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated/100 z-10 border-r border-border shadow-sm">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated/100 z-10 border-r border-border shadow-sm">
                               <div className="flex flex-col">
                                 <span className="font-semibold">{tx.product.name}</span>
                                 <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
                               </div>
                             </td>
-                            <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
-                            <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
-                            <td className="py-3.5 px-5 whitespace-nowrap">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                               <span className={`badge text-[10px] ${tx.transactionType === 'RECEIVE' ? 'bg-success/10 border-success/20 text-success' : 'bg-info/10 border-info/20 text-info'}`}>
                                 {tx.transactionType}
                               </span>
                             </td>
-                            <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary whitespace-nowrap">{sourceName}</td>
-                            <td className="py-3.5 px-5 text-center font-mono font-bold text-sm whitespace-nowrap">+{tx.quantity}</td>
-                            <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary whitespace-nowrap">{sourceName}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap">+{tx.quantity}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
                               {tx.deliveryNote ? (
                                 <div className="has-tooltip">
                                   <Link
@@ -223,8 +223,8 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                                 <span>---</span>
                               )}
                             </td>
-                            <td className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
-                            <td className="py-3.5 px-5 text-right">
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
                               <TransactionActions
                                 txId={tx.id}
                                 notes={tx.notes || ''}
@@ -347,7 +347,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
 
                     {isExpanded && (
                       <div className="border-t border-border bg-surface/50">
-                        <table className="min-w-full divide-y divide-border text-sm">
+                        <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
                           <thead>
                             <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                               <th className="py-2.5 px-5 pl-14">Product Name</th>
@@ -360,11 +360,11 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                           <tbody className="divide-y divide-border text-text-primary">
                             {group.items.map(tx => (
                               <tr key={tx.id} className="hover:bg-surface-elevated/40 transition-colors">
-                                <td className="py-3 px-5 pl-14 font-medium text-xs">{tx.product.name}</td>
-                                <td className="py-3 px-5 text-xs font-mono text-text-secondary">{tx.product.itemCode || '---'}</td>
-                                <td className="py-3 px-5 text-xs text-text-secondary">{tx.product.brand.name}</td>
-                                <td className="py-3 px-5 text-center font-mono text-xs font-bold text-success">+{tx.quantity}</td>
-                                <td className="py-3 px-5 text-right">
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-14 font-medium text-xs">{tx.product.name}</td>
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs font-mono text-text-secondary">{tx.product.itemCode || '---'}</td>
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary">{tx.product.brand.name}</td>
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono text-xs font-bold text-success">+{tx.quantity}</td>
+                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
                                   <TransactionActions
                                     txId={tx.id}
                                     notes={tx.notes || ''}

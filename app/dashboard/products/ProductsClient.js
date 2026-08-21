@@ -752,8 +752,148 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
             </div>
           )}
 
-          {/* Products Table Wrapper */}
-          <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+          {/* Mobile Card View */}
+          {filteredProducts.length === 0 ? (
+            <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
+              <Package size={48} />
+              <h3 className="font-display font-bold text-lg text-text-primary">No Products Registered</h3>
+              <p className="text-sm max-w-xs">Define your products to start tracking stock levels.</p>
+            </div>
+          ) : (
+            <div className="md:hidden grid grid-cols-1 gap-3">
+              {paginatedProducts.map(product => (
+                <div 
+                  key={product.id}
+                  onClick={() => openEditModal(product)}
+                  className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-all"
+                >
+                  {/* Top row: image, name, stock */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {product.imageUrl ? (
+                        <img 
+                          src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
+                          alt={product.name} 
+                          className="w-10 h-10 rounded-lg object-contain bg-background p-0.5 border border-border flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                          <Package size={18} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-sm text-text-primary truncate block">{product.name}</span>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="badge bg-secondary/15 text-secondary border border-secondary/10 text-[10px]">
+                            {product.brand.name}
+                          </span>
+                          <span className="badge bg-surface-elevated text-text-secondary border border-border text-[10px]">
+                            {product.category || 'STANDS'}
+                          </span>
+                          {product.isReturnable && (
+                            <span className="badge badge-warning text-[10px]"><ShieldAlert size={9} /> Returnable</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Stock badge */}
+                    <div className="flex-shrink-0">
+                      {product.stockCap ? (
+                        product.warehouseStock <= 0 ? (
+                          <span className="inline-flex items-center px-2 py-1 text-[10px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full">
+                            0 / Out
+                          </span>
+                        ) : product.warehouseStock < product.stockCap ? (
+                          <span className="inline-flex items-center px-2 py-1 text-[10px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full animate-pulse">
+                            {product.warehouseStock} / Low
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 text-[10px] font-bold bg-success/10 text-success border border-success/20 rounded-full">
+                            {product.warehouseStock}
+                          </span>
+                        )
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 text-[10px] font-semibold bg-surface-elevated text-text-primary border border-border rounded-full font-mono">
+                          {product.warehouseStock}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Bottom row: SKU + type + actions */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-2 text-[10px] text-text-muted">
+                      {product.itemCode && <span className="font-mono">{product.itemCode}</span>}
+                      {product.isSerialized && (
+                        <button 
+                          className="inline-flex items-center gap-0.5 text-primary font-semibold"
+                          onClick={(e) => { e.stopPropagation(); openSerialModal(product); }}
+                          type="button"
+                        >
+                          <QrCode size={10} />
+                          <span>SIM ({product._count.serialNumbers})</span>
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      {!product.isSerialized && (
+                        <button 
+                          className="p-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-md transition-colors"
+                          onClick={() => {
+                            setAddQtyProduct(product);
+                            setAddQtyValue('');
+                            setAddQtyDN('');
+                            setAddQtyDeliveryFrom('');
+                            setAddQtyNotes('');
+                            setAddQtyError('');
+                          }}
+                          type="button"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      )}
+                      <button type="button" className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
+                        <Edit2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Shared Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs">
+              <span className="text-text-muted">
+                Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{' '}
+                <strong className="text-text-primary">
+                  {Math.min((currentPage + 1) * itemsPerPage, filteredProducts.length)}
+                </strong> of{' '}
+                <strong className="text-text-primary">{filteredProducts.length}</strong> products
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={currentPage === 0}
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages - 1}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
             {filteredProducts.length === 0 ? (
               <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted shadow-sm bg-surface">
                 <Package size={48} />
@@ -763,21 +903,21 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
             ) : (
               <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-sm">
+                  <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
                         <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">
                           <input type="checkbox" className="custom-checkbox" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
                             onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
                         </th>
-                        <th className="py-3 px-3 sm:px-5 sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
-                        <th className="py-3 px-3 sm:px-5 hidden lg:table-cell">Code (SKU)</th>
-                        <th className="py-3 px-3 sm:px-5">Brand</th>
-                        <th className="py-3 px-3 sm:px-5 text-center">Stock</th>
-                        <th className="py-3 px-3 sm:px-5 hidden md:table-cell">Type</th>
-                        <th className="py-3 px-3 sm:px-5 hidden lg:table-cell">Category</th>
-                        <th className="py-3 px-3 sm:px-5 hidden md:table-cell">Returnable</th>
-                        <th className="py-3 px-3 sm:px-5 text-right">Actions</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Code (SKU)</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Brand</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Stock</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Type</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Category</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Returnable</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -791,7 +931,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                             <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
                               onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
                           </td>
-                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                             <div className="flex items-center gap-2.5">
                               {product.imageUrl ? (
                                 <img 
@@ -823,13 +963,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               </div>
                             </div>
                           </td>
-                          <td className="py-3.5 px-3 sm:px-5 font-mono text-xs text-text-secondary whitespace-nowrap hidden lg:table-cell">{product.itemCode || '---'}</td>
-                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap">
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">{product.itemCode || '---'}</td>
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                             <span className="badge bg-secondary/15 text-secondary border border-secondary/10">
                               {product.brand.name}
                             </span>
                           </td>
-                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap text-center">
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-center">
                             {product.stockCap ? (
                               product.warehouseStock <= 0 ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full">
@@ -850,7 +990,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               </span>
                             )}
                           </td>
-                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap hidden md:table-cell">
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                             {product.isSerialized ? (
                               <button 
                                 className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${
@@ -866,19 +1006,19 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               <span className="text-xs text-text-muted">Normal</span>
                             )}
                           </td>
-                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap hidden lg:table-cell">
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                             <span className="badge bg-surface-elevated text-text-secondary border border-border">
                               {product.category || 'STANDS'}
                             </span>
                           </td>
-                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap hidden md:table-cell">
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                             {product.isReturnable ? (
                               <span className="badge badge-warning text-[10px]"><ShieldAlert size={10} /> Yes</span>
                             ) : (
                               <span className="badge badge-success text-[10px]"><CheckCircle size={10} /> No</span>
                             )}
                           </td>
-                           <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                           <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-2">
                               {!product.isSerialized && (
                                 <div className="has-tooltip">
@@ -919,37 +1059,6 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                     </tbody>
                   </table>
                 </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
-                    <span className="text-text-muted">
-                      Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{" "}
-                      <strong className="text-text-primary">
-                        {Math.min((currentPage + 1) * itemsPerPage, filteredProducts.length)}
-                      </strong> of{" "}
-                      <strong className="text-text-primary">{filteredProducts.length}</strong> products
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        disabled={currentPage === 0}
-                        onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
-                        className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        type="button"
-                        disabled={currentPage === totalPages - 1}
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
-                        className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
