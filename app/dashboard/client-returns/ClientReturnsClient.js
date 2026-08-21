@@ -512,7 +512,6 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
         title={confirmData.title}
         message={confirmData.message}
       />
-      )}
 
       {/* Global Fields Container */}
       <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">
