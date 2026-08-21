@@ -1,0 +1,1 @@
+self.addEventListener("push",function(t){if(t.data)try{let e=JSON.parse(t.data.text()),a={body:e.message,icon:"/icon-192.png",badge:"/icon-192.png",vibrate:[100,50,100],data:{dateOfArrival:Date.now(),primaryKey:"2"}};t.waitUntil(self.registration.showNotification(e.title,a))}catch(t){console.error("Push notification parse error:",t)}});
