@@ -51,6 +51,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   const [fromType, setFromType] = useState('WAREHOUSE'); // 'WAREHOUSE', 'STORE', 'DIRECT'
   const [fromId, setFromId] = useState('');
   const [showDirectSellerSuggestions, setShowDirectSellerSuggestions] = useState(false);
+  const [highlightedSellerIdx, setHighlightedSellerIdx] = useState(-1);
 
   // State for bulk damage items
   const [items, setItems] = useState([]);
@@ -714,10 +715,43 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                     <input
                       type="text"
                       value={fromId}
-                      onChange={(e) => { setFromId(e.target.value); setShowDirectSellerSuggestions(true); }}
-                      onFocus={() => setShowDirectSellerSuggestions(true)}
-                    onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const next = e.target.nextElementSibling; if (next && next.tagName === 'DIV') { const btns = next.querySelectorAll('button'); if (btns.length > 0) btns[0].focus(); } } }}
-                      onBlur={(e) => { if (e.relatedTarget && e.relatedTarget.getAttribute('data-smart') === 'true') return; setTimeout(() => setShowDirectSellerSuggestions(false), 250); }}
+                      onChange={(e) => {
+                        setFromId(e.target.value);
+                        setShowDirectSellerSuggestions(true);
+                        setHighlightedSellerIdx(0);
+                      }}
+                      onFocus={() => {
+                        setShowDirectSellerSuggestions(true);
+                        setHighlightedSellerIdx(0);
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => {
+                          setShowDirectSellerSuggestions(false);
+                          setHighlightedSellerIdx(-1);
+                        }, 250);
+                      }}
+                      onKeyDown={(e) => {
+                        const filtered = fromId ? directSellers.filter(ds => ds.toLowerCase().includes(fromId.toLowerCase())) : directSellers;
+                        if (filtered.length === 0) return;
+
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          setHighlightedSellerIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setHighlightedSellerIdx(prev => Math.max(prev - 1, 0));
+                        } else if (e.key === 'Enter') {
+                          if (highlightedSellerIdx >= 0 && highlightedSellerIdx < filtered.length) {
+                            e.preventDefault();
+                            setFromId(filtered[highlightedSellerIdx]);
+                            setShowDirectSellerSuggestions(false);
+                            setHighlightedSellerIdx(-1);
+                          }
+                        } else if (e.key === 'Escape') {
+                          setShowDirectSellerSuggestions(false);
+                          setHighlightedSellerIdx(-1);
+                        }
+                      }}
                       placeholder="Type or select seller/staff name"
                       className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold"
                       required
@@ -732,8 +766,10 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                         })().map((ds, idx) => (
                           <button
                             key={idx}
-                            type="button" data-smart="true" onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const btns = Array.from(e.target.parentElement.querySelectorAll('button')); const idx = btns.indexOf(e.target); if (e.key === 'ArrowDown' && idx < btns.length - 1) btns[idx + 1].focus(); else if (e.key === 'ArrowUp') { if (idx > 0) btns[idx - 1].focus(); else e.target.parentElement.previousElementSibling?.focus(); } } }} 
-                            className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium"
+                            type="button"
+                            className={`w-full text-left px-3 py-2 text-xs transition-colors border-b border-border last:border-0 font-medium ${
+                              idx === highlightedSellerIdx ? 'bg-primary/10 text-primary' : 'hover:bg-surface-elevated text-text-primary'
+                            }`}
                             onClick={() => {
                               setFromId(ds);
                               setShowDirectSellerSuggestions(false);

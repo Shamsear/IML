@@ -120,6 +120,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
   const [isCompanionActive, setIsCompanionActive] = useState(false);
   const [showDirectSellerSuggestions, setShowDirectSellerSuggestions] = useState(false);
+  const [highlightedSellerIdx, setHighlightedSellerIdx] = useState(-1);
   const [globalNotes, setGlobalNotes] = useState('');
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
@@ -939,10 +940,43 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                   <input
                     type="text"
                     value={toId}
-                    onChange={(e) => { setToId(e.target.value); setShowDirectSellerSuggestions(true); }}
-                    onFocus={() => setShowDirectSellerSuggestions(true)}
-                    onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const next = e.target.nextElementSibling; if (next && next.tagName === 'DIV') { const btns = next.querySelectorAll('button'); if (btns.length > 0) btns[0].focus(); } } }}
-                    onBlur={(e) => { if (e.relatedTarget && e.relatedTarget.getAttribute('data-smart') === 'true') return; setTimeout(() => setShowDirectSellerSuggestions(false), 250); }}
+                    onChange={(e) => {
+                      setToId(e.target.value);
+                      setShowDirectSellerSuggestions(true);
+                      setHighlightedSellerIdx(0);
+                    }}
+                    onFocus={() => {
+                      setShowDirectSellerSuggestions(true);
+                      setHighlightedSellerIdx(0);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        setShowDirectSellerSuggestions(false);
+                        setHighlightedSellerIdx(-1);
+                      }, 250);
+                    }}
+                    onKeyDown={(e) => {
+                      const filtered = toId ? directSellers.filter(ds => ds.toLowerCase().includes(toId.toLowerCase())) : directSellers;
+                      if (filtered.length === 0) return;
+
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setHighlightedSellerIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setHighlightedSellerIdx(prev => Math.max(prev - 1, 0));
+                      } else if (e.key === 'Enter') {
+                        if (highlightedSellerIdx >= 0 && highlightedSellerIdx < filtered.length) {
+                          e.preventDefault();
+                          setToId(filtered[highlightedSellerIdx]);
+                          setShowDirectSellerSuggestions(false);
+                          setHighlightedSellerIdx(-1);
+                        }
+                      } else if (e.key === 'Escape') {
+                        setShowDirectSellerSuggestions(false);
+                        setHighlightedSellerIdx(-1);
+                      }
+                    }}
                     placeholder="Type or select direct seller name"
                     className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                     required
@@ -957,8 +991,10 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       })().map((ds, idx) => (
                         <button
                           key={idx}
-                          type="button" data-smart="true" onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const btns = Array.from(e.target.parentElement.querySelectorAll('button')); const idx = btns.indexOf(e.target); if (e.key === 'ArrowDown' && idx < btns.length - 1) btns[idx + 1].focus(); else if (e.key === 'ArrowUp') { if (idx > 0) btns[idx - 1].focus(); else e.target.parentElement.previousElementSibling?.focus(); } } }} 
-                          className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                          type="button"
+                          className={`w-full text-left px-3 py-2 text-xs transition-colors border-b border-border last:border-0 font-medium font-semibold ${
+                            idx === highlightedSellerIdx ? 'bg-primary/10 text-primary' : 'hover:bg-surface-elevated text-text-primary'
+                          }`}
                           onClick={() => {
                             setToId(ds);
                             setShowDirectSellerSuggestions(false);

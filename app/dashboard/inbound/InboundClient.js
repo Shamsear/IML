@@ -90,6 +90,9 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
   const [isCompanionActive, setIsCompanionActive] = useState(false);
   const [activeCategorySuggestionsTarget, setActiveCategorySuggestionsTarget] = useState(null); // idx
+  const [highlightedSupplierIdx, setHighlightedSupplierIdx] = useState(-1);
+  const [highlightedReceiverIdx, setHighlightedReceiverIdx] = useState(-1);
+  const [highlightedCategoryIdx, setHighlightedCategoryIdx] = useState(-1);
 
   // Cooldown refs to prevent double-scanning same barcode within 2 seconds
   const lastScannedBarcodeRef = useRef('');
@@ -878,10 +881,43 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 type="text"
                 className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 value={fromId}
-                onChange={(e) => { setFromId(e.target.value); setShowSupplierSuggestions(true); }}
-                onFocus={() => setShowSupplierSuggestions(true)}
-                    onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); const next = e.target.nextElementSibling; if (next && next.tagName === 'DIV') { const btns = next.querySelectorAll('button'); if (btns.length > 0) btns[0].focus(); } } }}
-                onBlur={(e) => { if (e.relatedTarget && e.relatedTarget.getAttribute('data-smart') === 'true') return; setTimeout(() => setShowSupplierSuggestions(false), 250); }}
+                onChange={(e) => {
+                  setFromId(e.target.value);
+                  setShowSupplierSuggestions(true);
+                  setHighlightedSupplierIdx(0);
+                }}
+                onFocus={() => {
+                  setShowSupplierSuggestions(true);
+                  setHighlightedSupplierIdx(0);
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowSupplierSuggestions(false);
+                    setHighlightedSupplierIdx(-1);
+                  }, 250);
+                }}
+                onKeyDown={(e) => {
+                  const filtered = filteredSupplierSuggestions;
+                  if (filtered.length === 0) return;
+
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlightedSupplierIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedSupplierIdx(prev => Math.max(prev - 1, 0));
+                  } else if (e.key === 'Enter') {
+                    if (highlightedSupplierIdx >= 0 && highlightedSupplierIdx < filtered.length) {
+                      e.preventDefault();
+                      setFromId(filtered[highlightedSupplierIdx]);
+                      setShowSupplierSuggestions(false);
+                      setHighlightedSupplierIdx(-1);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setShowSupplierSuggestions(false);
+                    setHighlightedSupplierIdx(-1);
+                  }
+                }}
                 placeholder="e.g. Sadia Supplier"
                 required
               />
@@ -890,8 +926,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                   {filteredSupplierSuggestions.map((name, idx) => (
                     <button
                       key={idx}
-                      type="button" data-smart="true" onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const btns = Array.from(e.target.parentElement.querySelectorAll('button')); const idx = btns.indexOf(e.target); if (e.key === 'ArrowDown' && idx < btns.length - 1) btns[idx + 1].focus(); else if (e.key === 'ArrowUp') { if (idx > 0) btns[idx - 1].focus(); else e.target.parentElement.previousElementSibling?.focus(); } } }} 
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium"
+                      type="button"
+                      className={`w-full text-left px-3 py-2 text-xs transition-colors border-b border-border last:border-0 font-medium ${
+                        idx === highlightedSupplierIdx ? 'bg-primary/10 text-primary' : 'hover:bg-surface-elevated text-text-primary'
+                      }`}
                       onClick={() => {
                         setFromId(name);
                         setShowSupplierSuggestions(false);
@@ -912,9 +950,43 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 type="text"
                 className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 value={receivedBy}
-                onChange={(e) => { setReceivedBy(e.target.value); setShowSuggestions(true); }}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
+                onChange={(e) => {
+                  setReceivedBy(e.target.value);
+                  setShowSuggestions(true);
+                  setHighlightedReceiverIdx(0);
+                }}
+                onFocus={() => {
+                  setShowSuggestions(true);
+                  setHighlightedReceiverIdx(0);
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowSuggestions(false);
+                    setHighlightedReceiverIdx(-1);
+                  }, 250);
+                }}
+                onKeyDown={(e) => {
+                  const filtered = filteredSuggestions;
+                  if (filtered.length === 0) return;
+
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlightedReceiverIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedReceiverIdx(prev => Math.max(prev - 1, 0));
+                  } else if (e.key === 'Enter') {
+                    if (highlightedReceiverIdx >= 0 && highlightedReceiverIdx < filtered.length) {
+                      e.preventDefault();
+                      setReceivedBy(filtered[highlightedReceiverIdx]);
+                      setShowSuggestions(false);
+                      setHighlightedReceiverIdx(-1);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setShowSuggestions(false);
+                    setHighlightedReceiverIdx(-1);
+                  }
+                }}
                 placeholder="e.g. John Doe"
                 required
               />
@@ -924,7 +996,9 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                     <button
                       key={idx}
                       type="button"
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium"
+                      className={`w-full text-left px-3 py-2 text-xs transition-colors border-b border-border last:border-0 font-medium ${
+                        idx === highlightedReceiverIdx ? 'bg-primary/10 text-primary' : 'hover:bg-surface-elevated text-text-primary'
+                      }`}
                       onClick={() => {
                         setReceivedBy(name);
                         setShowSuggestions(false);
@@ -1367,9 +1441,40 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                   onChange={(e) => {
                                     updateItemField(idx, 'prodCategory', e.target.value);
                                     setActiveCategorySuggestionsTarget(idx);
+                                    setHighlightedCategoryIdx(0);
                                   }}
-                                  onFocus={() => setActiveCategorySuggestionsTarget(idx)}
-                                  onBlur={() => setTimeout(() => setActiveCategorySuggestionsTarget(null), 250)}
+                                  onFocus={() => {
+                                    setActiveCategorySuggestionsTarget(idx);
+                                    setHighlightedCategoryIdx(0);
+                                  }}
+                                  onBlur={() => {
+                                    setTimeout(() => {
+                                      setActiveCategorySuggestionsTarget(null);
+                                      setHighlightedCategoryIdx(-1);
+                                    }, 250);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    const filtered = getFilteredCategories(item.prodCategory);
+                                    if (filtered.length === 0) return;
+
+                                    if (e.key === 'ArrowDown') {
+                                      e.preventDefault();
+                                      setHighlightedCategoryIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                                    } else if (e.key === 'ArrowUp') {
+                                      e.preventDefault();
+                                      setHighlightedCategoryIdx(prev => Math.max(prev - 1, 0));
+                                    } else if (e.key === 'Enter') {
+                                      if (highlightedCategoryIdx >= 0 && highlightedCategoryIdx < filtered.length) {
+                                        e.preventDefault();
+                                        updateItemField(idx, 'prodCategory', filtered[highlightedCategoryIdx]);
+                                        setActiveCategorySuggestionsTarget(null);
+                                        setHighlightedCategoryIdx(-1);
+                                      }
+                                    } else if (e.key === 'Escape') {
+                                      setActiveCategorySuggestionsTarget(null);
+                                      setHighlightedCategoryIdx(-1);
+                                    }
+                                  }}
                                   disabled={item.prodType !== 'NORMAL' || item.prodCategory?.toUpperCase() === 'UNIFORM'}
                                   placeholder="e.g. Materials"
                                 />
@@ -1379,7 +1484,9 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                       <button
                                         key={catIdx}
                                         type="button"
-                                        className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                        className={`w-full text-left px-3 py-2 text-xs transition-colors border-b border-border last:border-0 font-medium font-semibold ${
+                                          catIdx === highlightedCategoryIdx ? 'bg-primary/10 text-primary' : 'hover:bg-surface-elevated text-text-primary'
+                                        }`}
                                         onClick={() => {
                                           updateItemField(idx, 'prodCategory', cat);
                                           setActiveCategorySuggestionsTarget(null);

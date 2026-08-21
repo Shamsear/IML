@@ -1528,9 +1528,40 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                           onChange={(e) => {
                                             updateInboundField(idx, subIdx, 'receivedBy', e.target.value);
                                             setActiveReceiverSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                            setHighlightedReceiverIdx(0);
                                           }}
-                                          onFocus={() => setActiveReceiverSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx })}
-                                          onBlur={() => setTimeout(() => setActiveReceiverSuggestionsTarget(null), 250)}
+                                          onFocus={() => {
+                                            setActiveReceiverSuggestionsTarget({ itemIdx: idx, inboundIdx: subIdx });
+                                            setHighlightedReceiverIdx(0);
+                                          }}
+                                          onBlur={() => {
+                                            setTimeout(() => {
+                                              setActiveReceiverSuggestionsTarget(null);
+                                              setHighlightedReceiverIdx(-1);
+                                            }, 250);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            const filtered = getFilteredReceivers(inb.receivedBy);
+                                            if (filtered.length === 0) return;
+
+                                            if (e.key === 'ArrowDown') {
+                                              e.preventDefault();
+                                              setHighlightedReceiverIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                                            } else if (e.key === 'ArrowUp') {
+                                              e.preventDefault();
+                                              setHighlightedReceiverIdx(prev => Math.max(prev - 1, 0));
+                                            } else if (e.key === 'Enter') {
+                                              if (highlightedReceiverIdx >= 0 && highlightedReceiverIdx < filtered.length) {
+                                                e.preventDefault();
+                                                updateInboundField(idx, subIdx, 'receivedBy', filtered[highlightedReceiverIdx]);
+                                                setActiveReceiverSuggestionsTarget(null);
+                                                setHighlightedReceiverIdx(-1);
+                                              }
+                                            } else if (e.key === 'Escape') {
+                                              setActiveReceiverSuggestionsTarget(null);
+                                              setHighlightedReceiverIdx(-1);
+                                            }
+                                          }}
                                           placeholder="e.g. John Doe"
                                         />
                                         {activeReceiverSuggestionsTarget?.itemIdx === idx && activeReceiverSuggestionsTarget?.inboundIdx === subIdx && getFilteredReceivers(inb.receivedBy).length > 0 && (
@@ -1539,7 +1570,9 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                               <button
                                                 key={nameIdx}
                                                 type="button"
-                                                className="w-full text-left px-3 py-2 text-xs hover:bg-surface-elevated text-text-primary transition-colors border-b border-border last:border-0 font-medium font-semibold"
+                                                className={`w-full text-left px-3 py-2 text-xs transition-colors border-b border-border last:border-0 font-medium font-semibold ${
+                                                  nameIdx === highlightedReceiverIdx ? 'bg-primary/10 text-primary' : 'hover:bg-surface-elevated text-text-primary'
+                                                }`}
                                                 onClick={() => {
                                                   updateInboundField(idx, subIdx, 'receivedBy', name);
                                                   setActiveReceiverSuggestionsTarget(null);
