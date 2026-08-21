@@ -96,6 +96,20 @@ export default function DashboardShell({ user, children }) {
           <DashboardNav collapsed={collapsed && !mobileOpen} />
         </div>
 
+        {/* Expand hint when collapsed */}
+        {collapsed && !mobileOpen && (
+          <div className="hidden lg:flex flex-col items-center gap-1.5 pb-3 px-2">
+            <button
+              onClick={() => setCollapsed(false)}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[9px] font-bold text-text-muted hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
+              type="button"
+            >
+              <PanelLeftOpen size={14} />
+              <span>Expand</span>
+            </button>
+          </div>
+        )}
+
         {/* User Info footer inside sidebar */}
         <div className="sidebar-footer p-4 border-t border-border flex items-center justify-between gap-2 overflow-hidden bg-surface-elevated/30 relative z-10">
           <div className="flex items-center gap-3">
@@ -164,7 +178,7 @@ export default function DashboardShell({ user, children }) {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[380px] shadow-2xl flex flex-col gap-4 animate-slide-down">
             <div className="flex flex-col gap-1.5 text-center sm:text-left">
               <h3 className="font-display font-extrabold text-base text-text-primary">

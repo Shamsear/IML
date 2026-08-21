@@ -6,6 +6,7 @@ import { ArrowLeft, Trash2, Plus, Loader2, ArrowDownLeft, AlertCircle, Camera, Q
 import Link from 'next/link';
 import { createBulkReceiveTransactions, updateBulkReceiveTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
+import ConfirmModal from '@/components/ConfirmModal';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
@@ -34,6 +35,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '' });
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
   const [transactionDate, setTransactionDate] = useState(() => {
     const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Dubai" }));
@@ -780,16 +783,12 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     try {
       if (editMode && existingDn) {
         await updateBulkReceiveTransactions(existingDn, formData);
-        setSuccessMsg(`Receive note ${existingDn} updated successfully!`);
-        setTimeout(() => {
-          router.push('/dashboard/inbound');
-        }, 1500);
+        setConfirmData({ title: 'Receive Note Updated', message: `Receive note ${existingDn} has been updated successfully.` });
+        setConfirmOpen(true);
       } else {
         await createBulkReceiveTransactions(formData);
-        setSuccessMsg(`Logged inbound receive of ${items.length} items successfully!`);
-        setTimeout(() => {
-          router.push('/dashboard/inbound');
-        }, 1500);
+        setConfirmData({ title: 'Inbound Received', message: `${items.length} item(s) received into warehouse successfully.` });
+        setConfirmOpen(true);
       }
     } catch (err) {
       setError(err.message || 'Failed to complete inbound transaction.');
@@ -839,8 +838,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         {/* Companion Scanner Status Badge */}
         <div className="flex items-center">
           {isCompanionActive && mobileSession?.sessionId ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
               Companion Active: {mobileSession.sessionId}
             </span>
           ) : (
@@ -865,6 +864,14 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           <span>{successMsg}</span>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/inbound'); }}
+        type="success"
+        title={confirmData.title}
+        message={confirmData.message}
+      />
 
       {/* Global Form Configurations */}
       <div className="bg-surface border border-border rounded-xl p-5 shadow-sm">

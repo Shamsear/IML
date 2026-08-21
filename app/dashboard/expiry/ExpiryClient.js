@@ -219,7 +219,7 @@ export default function ExpiryClient({ initialBatches }) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
+            <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
                   <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { createBulkRebrandTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
+import ConfirmModal from '@/components/ConfirmModal';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
 // Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
@@ -34,6 +35,8 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '' });
 
   // Source product selection (only allow non-serialized products per user request)
   const sourceProducts = products.filter(p => !p.isSerialized);
@@ -687,10 +690,8 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
       }
 
       await createBulkRebrandTransactions(formData);
-      setSuccessMsg('Logged rebranding mapping successfully!');
-      setTimeout(() => {
-        router.push('/dashboard/rebrand');
-      }, 1500);
+      setConfirmData({ title: 'Rebranding Complete', message: 'Product rebranding has been recorded successfully.' });
+      setConfirmOpen(true);
     } catch (err) {
       setError(err.message || 'Failed to complete rebranding transaction.');
       setLoading(false);
@@ -719,8 +720,8 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         {/* Companion Scanner Status Badge */}
         <div className="flex items-center">
           {isCompanionActive && mobileSession?.sessionId ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
               Companion Active: {mobileSession.sessionId}
             </span>
           ) : (
@@ -744,6 +745,15 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
           <CheckCircle size={16} className="text-success" />
           <span>{successMsg}</span>
         </div>
+      )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/rebrand'); }}
+        type="success"
+        title={confirmData.title}
+        message={confirmData.message}
+      />
       )}
 
       <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm">

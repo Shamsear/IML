@@ -854,8 +854,8 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
         {/* Companion Scanner Status Badge */}
         <div className="flex items-center">
           {isCompanionActive && mobileSession?.sessionId ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
               Companion Active: {mobileSession.sessionId}
             </span>
           ) : (

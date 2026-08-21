@@ -216,7 +216,7 @@ export default function CustomSelect({
             const optionCount = selectedOption.count !== undefined ? selectedOption.count : (selectedOption.stock !== undefined ? selectedOption.stock : selectedOption.warehouseStock);
             if (optionCount === undefined) return null;
             return (
-              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${optionCount > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-danger/10 text-danger'}`}>
+              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${optionCount > 0 ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
                 {optionCount} qty
               </span>
             );
@@ -311,7 +311,7 @@ export default function CustomSelect({
                         const optionCount = opt.count !== undefined ? opt.count : (opt.stock !== undefined ? opt.stock : opt.warehouseStock);
                         if (optionCount === undefined) return null;
                         return (
-                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${optionCount > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-danger/10 text-danger'}`}>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${optionCount > 0 ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
                             {optionCount} qty
                           </span>
                         );

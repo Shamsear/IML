@@ -21,8 +21,9 @@ export default async function BrandDetailPage({ params }) {
 
   if (!brand) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <h2>Brand not found</h2>
+      <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <h2 className="font-display font-bold text-lg text-text-primary">Brand not found</h2>
+        <p className="text-sm text-text-secondary">The brand you're looking for doesn't exist or has been removed.</p>
       </div>
     );
   }

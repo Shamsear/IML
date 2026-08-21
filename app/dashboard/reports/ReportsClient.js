@@ -165,18 +165,35 @@ export default function ReportsClient({ initialProducts, brands }) {
         </div>
 
         {/* Action triggers */}
-        <div className="flex items-center gap-2 flex-wrap print:hidden">
-          <div className="has-tooltip">
-            <button 
-              type="button" 
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200"
-            >
-              <Printer size={15} />
-              <span>Print Report</span>
-            </button>
-            <span className="tooltip-box">Export stock ledger to PDF/Printer</span>
-          </div>
+        <div className="flex items-center gap-2.5 flex-wrap print:hidden">
+          <button 
+            type="button" 
+            onClick={handlePrint}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            <Printer size={15} />
+            <span>Export PDF</span>
+          </button>
+          <button 
+            type="button" 
+            onClick={() => {
+              const headers = ['Product', 'Brand', 'Category', 'Warehouse', 'In Stores', 'With Staff', 'Total'];
+              const rows = filteredProducts.map(p => {
+                const stock = getProductStock(p.transactions || []);
+                return [p.name, p.brand?.name || '', p.category || '', stock.warehouse, stock.stores, stock.staff, stock.total];
+              });
+              const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = `IML-Stock-Report-${new Date().toISOString().split('T')[0]}.csv`;
+              a.click(); URL.revokeObjectURL(url);
+            }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-bold transition-all duration-200"
+          >
+            <Download size={15} />
+            <span>Export CSV</span>
+          </button>
         </div>
       </header>
 

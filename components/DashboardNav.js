@@ -35,20 +35,25 @@ const navSections = [
     ],
   },
   {
-    label: 'Operations',
+    label: 'Daily Operations',
     items: [
-      { name: 'Products', href: '/dashboard/products', icon: Package },
       { name: 'Inbound (Receive)', href: '/dashboard/inbound', icon: ArrowDownLeft },
       { name: 'Outbound (Dispatch)', href: '/dashboard/outbound', icon: ArrowUpRight },
       { name: 'Returns', href: '/dashboard/returns', icon: RotateCcw },
       { name: 'With Client', href: '/dashboard/client-returns', icon: Undo2 },
       { name: 'Mark as Used', href: '/dashboard/used', icon: Trash2 },
-      { name: 'Expiry Tracking', href: '/dashboard/expiry', icon: Calendar },
-      { name: 'Rebrand Stock', href: '/dashboard/rebrand', icon: RefreshCw },
+      { name: 'Ledger Logs', href: '/dashboard/transactions', icon: History },
+    ],
+  },
+  {
+    label: 'Stock Management',
+    items: [
+      { name: 'Products', href: '/dashboard/products', icon: Package },
+      { name: 'Staff & Promoters', href: '/dashboard/staff', icon: Shirt },
+      { name: 'Rebrand Stock', href: '/dashboard/rebrand', icon: RefreshCcw },
       { name: 'Report Damage', href: '/dashboard/damage', icon: ShieldAlert },
       { name: 'Report Loss', href: '/dashboard/loss', icon: AlertCircle },
-      { name: 'Uniform Assigning', href: '/dashboard/staff', icon: Shirt },
-      { name: 'Ledger Logs', href: '/dashboard/transactions', icon: History },
+      { name: 'Expiry Tracking', href: '/dashboard/expiry', icon: Calendar },
     ],
   },
   {

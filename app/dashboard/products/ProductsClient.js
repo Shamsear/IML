@@ -903,7 +903,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
             ) : (
               <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
+                  <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
                         <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">

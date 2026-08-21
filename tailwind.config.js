@@ -40,6 +40,7 @@ module.exports = {
         },
         danger: {
           DEFAULT: 'var(--color-danger)',
+          hover: 'var(--color-danger-hover)',
           subtle: 'var(--color-danger-subtle)',
         },
         info: {

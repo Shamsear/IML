@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck } from 'lucide-react';
 import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
+import ConfirmModal from '@/components/ConfirmModal';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 // Beep audio synthesizer
@@ -64,6 +65,8 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '' });
 
   // Webcam scanning states
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -414,7 +417,7 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
       const result = await createBulkClientReturnTransactions(payload);
       
       if (result && result.length > 0) {
-        setSuccessMsg(`Successfully processed client return! Generating gate pass PDF...`);
+        setConfirmData({ title: 'Client Return Processed', message: `Gate pass generated for ${result[0].deliveryNote}. The PDF has been downloaded.` });
         
         // Retrieve custom reference number
         const refNo = result[0].deliveryNote;
@@ -475,8 +478,8 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
         {/* Companion Status Badge */}
         <div className="flex items-center">
           {isCompanionActive && mobileSession?.sessionId ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
               Companion Active: {mobileSession.sessionId}
             </span>
           ) : (
@@ -500,6 +503,15 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
           <CheckCircle size={16} className="text-success" />
           <span>{successMsg}</span>
         </div>
+      )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/client-returns'); }}
+        type="success"
+        title={confirmData.title}
+        message={confirmData.message}
+      />
       )}
 
       {/* Global Fields Container */}

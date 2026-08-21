@@ -67,10 +67,10 @@ export default function GlobalSearch() {
   // Flatten results for keyboard navigation
   const getFlatResults = () => {
     const flat = [];
-    if (results.products?.length) results.products.forEach(p => flat.push({ type: 'product', id: p.id, name: p.name, desc: p.brand.name }));
-    if (results.stores?.length) results.stores.forEach(s => flat.push({ type: 'store', id: s.id, name: s.name, desc: s.region }));
-    if (results.staff?.length) results.staff.forEach(st => flat.push({ type: 'staff', id: st.id, name: st.name, desc: `Staff | ${st.shirtSize || 'No Size'}` }));
-    if (results.serials?.length) results.serials.forEach(sr => flat.push({ type: 'serial', id: sr.id, name: sr.barcode, desc: `Serial | ${sr.product.name}` }));
+    if (results.products?.length) results.products.forEach(p => flat.push({ type: 'product', id: p.id, name: p.name, desc: p.brand.name, hint: 'View product catalog' }));
+    if (results.stores?.length) results.stores.forEach(s => flat.push({ type: 'store', id: s.id, name: s.name, desc: s.region, hint: 'Go to store details' }));
+    if (results.staff?.length) results.staff.forEach(st => flat.push({ type: 'staff', id: st.id, name: st.name, desc: `Staff | ${st.shirtSize || 'No Size'}`, hint: 'View promoter profile' }));
+    if (results.serials?.length) results.serials.forEach(sr => flat.push({ type: 'serial', id: sr.id, name: sr.barcode, desc: `Serial | ${sr.product.name}`, hint: 'Lookup barcode serial' }));
     return flat;
   };
 
@@ -114,7 +114,7 @@ export default function GlobalSearch() {
       {/* Backdrop Overlay Modal */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-start justify-center pt-[10vh] z-[9999]"
+          className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-start justify-center pt-[10vh] z-[999]"
           onClick={() => setIsOpen(false)}
         >
           <div
@@ -169,7 +169,10 @@ export default function GlobalSearch() {
                       >
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold text-text-primary">{item.name}</span>
-                          <span className="text-xs text-text-secondary mt-0.5">{item.desc}</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-text-secondary">{item.desc}</span>
+                            {item.hint && <span className="text-[10px] text-text-muted">· {item.hint}</span>}
+                          </div>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-surface-elevated ${
                           item.type === 'serial' ? 'text-success' : 'text-primary'

@@ -314,7 +314,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     {/* Expanded Items */}
                     {isExpanded && (
                       <div className="border-t border-border bg-surface/50">
-                        <table className="min-w-full divide-y divide-border text-[11px] sm:text-xs md:text-sm">
+                        <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                           <thead>
                             <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                               <th className="py-2.5 px-5 pl-16 w-10"></th>
