@@ -254,17 +254,17 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                              <th className="py-2 pr-4 font-semibold sticky left-0 bg-[#faf9f6] z-10 border-r border-border shadow-sm">Product Description</th>
                               <th className="py-2 pr-4 font-semibold">SKU / Item Code</th>
-                              <th className="py-2 pr-4 font-semibold">Product Description</th>
                               <th className="py-2 pr-4 text-center font-semibold">Qty</th>
                               <th className="py-2 font-semibold">Notes / Serials</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/60">
                             {group.items.map((tx, idx) => (
-                              <tr key={idx} className="text-xs text-text-primary">
+                              <tr key={idx} className="text-xs text-text-primary group/subrow">
+                                <td className="py-2.5 pr-4 font-semibold sticky left-0 bg-surface group-hover/subrow:bg-surface-elevated z-10 border-r border-border shadow-sm">{tx.product?.name}</td>
                                 <td className="py-2.5 pr-4 font-mono font-bold text-[11px] text-primary">{tx.product?.itemCode || '—'}</td>
-                                <td className="py-2.5 pr-4 font-semibold">{tx.product?.name}</td>
                                 <td className="py-2.5 pr-4 text-center font-bold">{tx.quantity}</td>
                                 <td className="py-2.5 text-text-secondary font-medium leading-relaxed">
                                   {tx.notes || (tx.product?.isSerialized ? 'Serialized items returned' : 'Bulk items returned')}
@@ -308,10 +308,10 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                  <th className="py-3 px-4 font-semibold sticky left-0 bg-[#faf9f6] z-10 border-r border-border shadow-sm">Product Description</th>
                   <th className="py-3 px-4 font-semibold">Date</th>
                   <th className="py-3 px-4 font-semibold">Gate Pass No</th>
                   <th className="py-3 px-4 font-semibold">Client Brand</th>
-                  <th className="py-3 px-4 font-semibold">Product Description</th>
                   <th className="py-3 px-4 text-center font-semibold">Qty</th>
                   <th className="py-3 px-4 font-semibold">Remarks</th>
                 </tr>
@@ -330,16 +330,16 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                     const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
                     return (
-                      <tr key={tx.id} className="text-xs hover:bg-surface-elevated/20 transition-colors">
+                      <tr key={tx.id} className="text-xs hover:bg-surface-elevated/20 transition-colors group/row">
+                        <td className="py-3 px-4 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <span className="font-semibold block">{tx.product?.name}</span>
+                          <span className="text-[10px] font-mono text-text-muted block mt-0.5">{tx.product?.itemCode || 'No SKU'}</span>
+                        </td>
                         <td className="py-3 px-4 font-semibold whitespace-nowrap text-text-secondary">
                           {formattedDate} <span className="text-[10px] font-normal block mt-0.5">{formattedTime}</span>
                         </td>
                         <td className="py-3 px-4 font-mono font-bold uppercase text-[11px] whitespace-nowrap">{tx.deliveryNote || '—'}</td>
                         <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
-                        <td className="py-3 px-4">
-                          <span className="font-semibold block">{tx.product?.name}</span>
-                          <span className="text-[10px] font-mono text-text-muted block mt-0.5">{tx.product?.itemCode || 'No SKU'}</span>
-                        </td>
                         <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
                         <td className="py-3 px-4 text-text-secondary font-medium max-w-xs truncate">{tx.notes || '—'}</td>
                       </tr>

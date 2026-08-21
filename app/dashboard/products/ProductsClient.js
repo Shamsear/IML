@@ -766,11 +766,11 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 pl-4 pr-0 w-8 text-center">
+                        <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-[#faf9f6] z-20">
                           <input type="checkbox" className="custom-checkbox" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
                             onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
                         </th>
-                        <th className="py-3 px-5">Product Details</th>
+                        <th className="py-3 px-5 sticky left-8 bg-[#faf9f6] z-20 border-r border-border shadow-sm">Product Details</th>
                         <th className="py-3 px-5">Code (SKU)</th>
                         <th className="py-3 px-5">Brand</th>
                         <th className="py-3 px-5 text-center">Warehouse Stock</th>
@@ -784,14 +784,14 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                       {paginatedProducts.map(product => (
                         <tr 
                           key={product.id} 
-                          className="hover:bg-surface-elevated/30 transition-all duration-150 cursor-pointer"
+                          className="hover:bg-surface-elevated/30 transition-all duration-150 cursor-pointer group/row"
                           onClick={() => openEditModal(product)}
                         >
-                          <td className="py-3.5 pl-4 pr-0 w-8 text-center" onClick={(e) => e.stopPropagation()}>
+                          <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10" onClick={(e) => e.stopPropagation()}>
                             <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
                               onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
                           </td>
-                          <td className="py-3.5 px-5 whitespace-nowrap">
+                          <td className="py-3.5 px-5 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                             <div className="flex items-center gap-2.5">
                               {product.imageUrl ? (
                                 <img 

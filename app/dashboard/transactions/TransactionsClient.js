@@ -171,7 +171,7 @@ export default function TransactionsClient({
                 <table className="min-w-full divide-y divide-border">
                   <thead>
                     <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
-                      <th className="pb-3 pr-4">Product Details</th>
+                      <th className="pb-3 pr-4 sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Product Details</th>
                       <th className="pb-3 px-4">SKU</th>
                       <th className="pb-3 px-4">Transaction Type</th>
                       <th className="pb-3 px-4">Source / From</th>
@@ -183,8 +183,8 @@ export default function TransactionsClient({
                   </thead>
                   <tbody className="divide-y divide-border text-sm text-text-primary">
                     {paginatedTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 pr-4 whitespace-nowrap">
+                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
+                        <td className="py-3.5 pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex flex-col">
                             <span className="font-semibold text-text-primary">{tx.product.name}</span>
 

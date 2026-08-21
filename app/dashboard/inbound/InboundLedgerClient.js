@@ -168,8 +168,8 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                        <th className="py-3 px-5 sticky left-0 bg-[#faf9f6] z-20 border-r border-border shadow-sm">Product Details</th>
                         <th className="py-3 px-5">Date</th>
-                        <th className="py-3 px-5">Product Details</th>
                         <th className="py-3 px-5">SKU</th>
                         <th className="py-3 px-5">Type</th>
                         <th className="py-3 px-5">Source / Supplier</th>
@@ -191,14 +191,14 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                           : `Supplier: ${tx.fromEntityId || '---'}`;
 
                         return (
-                          <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                            <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
-                            <td className="py-3.5 px-5 whitespace-nowrap">
+                          <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
+                            <td className="py-3.5 px-5 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated/100 z-10 border-r border-border shadow-sm">
                               <div className="flex flex-col">
                                 <span className="font-semibold">{tx.product.name}</span>
                                 <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
                               </div>
                             </td>
+                            <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
                             <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">{tx.product.itemCode || '---'}</td>
                             <td className="py-3.5 px-5 whitespace-nowrap">
                               <span className={`badge text-[10px] ${tx.transactionType === 'RECEIVE' ? 'bg-success/10 border-success/20 text-success' : 'bg-info/10 border-info/20 text-info'}`}>

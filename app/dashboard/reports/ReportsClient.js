@@ -286,7 +286,7 @@ export default function ReportsClient({ initialProducts, brands }) {
             <table className="min-w-full divide-y divide-border print:divide-y-2 print:divide-black">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider print:text-[9px] print:text-black border-b border-border">
-                  <th className="pb-3 pr-4 whitespace-nowrap font-semibold">Product Details</th>
+                  <th className="pb-3 pr-4 whitespace-nowrap font-semibold sticky left-0 bg-surface z-10 border-r border-border shadow-sm print:relative print:bg-transparent print:border-r-0 print:shadow-none">Product Details</th>
                   <th className="pb-3 px-4 whitespace-nowrap font-semibold">Brand</th>
                   <th className="pb-3 px-4 whitespace-nowrap font-semibold">Category</th>
                   <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Purchased</th>
@@ -303,7 +303,7 @@ export default function ReportsClient({ initialProducts, brands }) {
               <tbody className="divide-y divide-border text-xs text-text-primary print:divide-y print:divide-gray-400 print:text-[9px]">
                 {paginatedProducts.map(p => (
                   <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors print:hover:bg-transparent">
-                    <td className="py-3.5 pr-4 whitespace-nowrap">
+                    <td className="py-3.5 pr-4 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm print:relative print:bg-transparent print:border-r-0 print:shadow-none">
                       <div className="flex items-center gap-3">
                         {p.imageUrl ? (
                           <img 

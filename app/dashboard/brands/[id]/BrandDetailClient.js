@@ -495,7 +495,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               <table className="min-w-full divide-y divide-border text-sm">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                    <th className="py-3 pl-4 pr-0 w-8 text-center">
+                    <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-[#faf9f6] z-20">
                       <input 
                         type="checkbox" 
                         className="custom-checkbox"
@@ -509,7 +509,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                         }}
                       />
                     </th>
-                    <th className="py-3 px-5 whitespace-nowrap">Item Description</th>
+                    <th className="py-3 px-5 whitespace-nowrap sticky left-8 bg-[#faf9f6] z-20 border-r border-border shadow-sm">Item Description</th>
                     <th className="py-3 px-5 whitespace-nowrap">Item Code</th>
                     <th className="py-3 px-5 whitespace-nowrap">Item category</th>
                     <th className="py-3 px-5 text-center whitespace-nowrap">Purchased / Received</th>
@@ -529,8 +529,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                   {paginatedProducts.map(product => {
                     const stock = calculateStock(product.transactions);
                     return (
-                      <tr key={product.id} className="hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/20 transition-colors">
-                        <td className="py-3.5 pl-4 pr-0 w-8 text-center">
+                      <tr key={product.id} className="hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/20 transition-colors group/row">
+                        <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10">
                           <input 
                             type="checkbox" 
                             className="custom-checkbox"
@@ -544,7 +544,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                             }}
                           />
                         </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap">
+                        <td className="py-3.5 px-5 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex items-center gap-3">
                             {product.imageUrl ? (
                               <img 

@@ -160,10 +160,10 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
-                    <th className="py-3 px-5 w-10"></th>
+                    <th className="py-3 px-5 w-10 sticky left-0 bg-surface-elevated z-20"></th>
+                    <th className="py-3 px-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</th>
                     <th className="py-3 px-5">Date</th>
                     <th className="py-3 px-5">Store</th>
-                    <th className="py-3 px-5">Product</th>
                     <th className="py-3 px-5 text-right">Available</th>
                     <th className="py-3 px-5 w-32">Return Qty</th>
                     <th className="py-3 px-5">Delivery Note</th>
@@ -180,13 +180,13 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     const remainingQty = tx.quantity - (tx.returnedQty || 0);
                     const itemState = processingItems[tx.id];
                     return (
-                      <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/30'}`}>
-                        <td className="py-3 px-5"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
+                      <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/30'}`}>
+                        <td className="py-3 px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
+                        <td className="py-3 px-5 font-semibold text-primary max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>{tx.product?.name}</td>
                         <td className="py-3 px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
                         </td>
                         <td className="py-3 px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
-                        <td className="py-3 px-5 font-semibold text-primary max-w-[200px] truncate" title={tx.product?.name}>{tx.product?.name}</td>
                         <td className="py-3 px-5 text-right font-mono font-bold text-text-primary">{remainingQty}</td>
                         <td className="py-3 px-5">
                           <input type="number" min="1" max={remainingQty} disabled={!isSelected}

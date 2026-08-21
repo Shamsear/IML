@@ -378,7 +378,7 @@ export default function BrandPortalClient({ brand }) {
                   <table className="min-w-full divide-y divide-border">
                     <thead>
                       <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                        <th className="pb-2.5 px-3 whitespace-nowrap">Item Description</th>
+                        <th className="pb-2.5 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Item Description</th>
                         <th className="pb-2.5 px-3 whitespace-nowrap">Item Code</th>
                         <th className="pb-2.5 px-3 whitespace-nowrap">Item category</th>
                         <th className="pb-2.5 px-3 text-center whitespace-nowrap">Purchased / Received</th>
@@ -398,7 +398,7 @@ export default function BrandPortalClient({ brand }) {
                         const stock = getProductStock(p.transactions);
                         return (
                           <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
-                            <td className="py-3 px-3 whitespace-nowrap">
+                            <td className="py-3 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">
                               <div className="flex items-center gap-3">
                                 {p.imageUrl ? (
                                   <img 
