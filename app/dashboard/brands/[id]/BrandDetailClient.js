@@ -294,23 +294,26 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         warehouse -= qty;
         if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
         else if (t.toEntityType === 'STAFF') used += qty;
-        else if (t.toEntityType === 'CLIENT') withClient += qty;
+        else if (t.toEntityType === 'CLIENT' || t.toEntityType === 'BRAND') withClient += qty;
+      } else if (t.transactionType === 'CLIENT_RETURN') {
+        warehouse -= qty;
+        withClient += qty;
       } else if (t.transactionType === 'RETURN') {
         warehouse += qty;
         if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
         else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
       } else if (t.transactionType === 'DAMAGE') {
         if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
         else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
         else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
         damage += qty;
       } else if (t.transactionType === 'LOST') {
         if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
         else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
         else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
         lost += qty;
       } else if (t.transactionType === 'REBRAND_OUT') {
         warehouse -= qty;

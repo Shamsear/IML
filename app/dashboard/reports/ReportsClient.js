@@ -69,24 +69,27 @@ export default function ReportsClient({ initialProducts, brands }) {
           warehouse -= qty;
           if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
           else if (t.toEntityType === 'STAFF') used += qty;
-          else if (t.toEntityType === 'CLIENT') withClient += qty;
+          else if (t.toEntityType === 'CLIENT' || t.toEntityType === 'BRAND') withClient += qty;
         }
+      } else if (t.transactionType === 'CLIENT_RETURN') {
+        warehouse -= qty;
+        withClient += qty;
       } else if (t.transactionType === 'RETURN') {
         warehouse += qty;
         if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
         else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
       } else if (t.transactionType === 'DAMAGE') {
         if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
         else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
         else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
         damage += qty;
       } else if (t.transactionType === 'LOST') {
         if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
         else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
         else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT') withClient -= qty;
+        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
         lost += qty;
       } else if (t.transactionType === 'REBRAND_OUT') {
         warehouse -= qty;
@@ -177,7 +180,7 @@ export default function ReportsClient({ initialProducts, brands }) {
       </header>
 
       {/* Aggregate telemetry tiles */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 print:grid-cols-5 print:gap-2">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 print:grid-cols-6 print:gap-1.5">
         <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
           <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider print:text-[8px]">Filtered Items</span>
           <span className="text-2xl font-display font-black text-text-primary mt-1 block print:text-lg">
@@ -209,6 +212,15 @@ export default function ReportsClient({ initialProducts, brands }) {
           </span>
           <span className="text-2xl font-display font-black text-primary mt-1 block print:text-lg">
             {aggregateTotals.used}
+          </span>
+        </div>
+
+        <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
+          <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider print:text-[8px] flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary/70"></span> With Clients
+          </span>
+          <span className="text-2xl font-display font-black text-primary/80 mt-1 block print:text-lg">
+            {aggregateTotals.withClient}
           </span>
         </div>
 
@@ -283,6 +295,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                   <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Used</th>
                   <th className="pb-3 px-4 text-center text-danger whitespace-nowrap font-semibold print:text-black">Damage</th>
                   <th className="pb-3 px-4 text-center text-danger whitespace-nowrap font-semibold print:text-black">Lost</th>
+                  <th className="pb-3 px-4 text-center text-primary whitespace-nowrap font-semibold print:text-black">With Client</th>
                   <th className="pb-3 px-4 text-center text-secondary whitespace-nowrap font-semibold print:text-black">Rebrand</th>
                   <th className="pb-3 pl-4 text-center font-bold text-primary whitespace-nowrap print:text-black">Total Stock</th>
                 </tr>
@@ -324,6 +337,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                     <td className="py-3.5 px-4 text-center font-mono font-semibold text-text-secondary whitespace-nowrap">{p.stock.used}</td>
                     <td className="py-3.5 px-4 text-center font-mono font-semibold text-danger/80 print:text-black whitespace-nowrap">{p.stock.damage}</td>
                     <td className="py-3.5 px-4 text-center font-mono font-semibold text-danger/80 print:text-black whitespace-nowrap">{p.stock.lost}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-primary print:text-black whitespace-nowrap">{p.stock.withClient}</td>
                     <td className="py-3.5 px-4 text-center font-mono font-semibold text-secondary/80 print:text-black whitespace-nowrap">{p.stock.reBrand}</td>
                     <td className="py-3.5 pl-4 text-center font-mono font-extrabold text-primary print:text-black whitespace-nowrap">{p.stock.total}</td>
                   </tr>
