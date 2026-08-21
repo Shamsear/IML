@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck } from 'lucide-react';
 import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
+import { getOptimizedImageUrl } from '@/lib/cloudinary';
 
 // Beep audio synthesizer
 const playBeep = () => {
@@ -450,7 +451,8 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
     { value: '', label: 'Select product...' },
     ...filteredProducts.map(p => ({
       value: p.id,
-      label: `${p.brand.name} - ${p.name} (${p.itemCode || 'No SKU'})`
+      label: `${p.name} (${p.itemCode || 'No SKU'})`,
+      imageUrl: p.imageUrl ? getOptimizedImageUrl(p.imageUrl, 50, 50) : null
     }))
   ];
 
