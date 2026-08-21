@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import ClientReturnsLedgerClient from './ClientReturnsLedgerClient';
 
 export const metadata = {
-  title: 'Client Returns Ledger - Inventory System',
+  title: 'With Client Ledger - Inventory System',
   description: 'Review stock items returned to client brand owners',
 };
 
