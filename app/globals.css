@@ -508,12 +508,10 @@ body {
 
 .tooltip-box {
   display: none;
-  position: fixed;
-  bottom: auto;
-  left: auto;
-  right: auto;
-  top: auto;
-  transform: none;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
   background-color: var(--text-primary);
   color: var(--text-inverse);
   text-align: center;
@@ -529,9 +527,21 @@ body {
   text-transform: none;
 }
 
-/* JS-positioned tooltips: positioned via inline styles */
-.tooltip-box.tooltip-pos {
+/* Fixed tooltips for elements inside overflow containers */
+.tooltip-box.tooltip-fixed {
   position: fixed;
+  z-index: 99999;
+}
+
+.has-tooltip:hover .tooltip-box.tooltip-fixed {
+  display: block;
+}
+
+/* Sidebar tooltip override - show above to avoid overflow clipping */
+.sidebar-nav .has-tooltip:hover .tooltip-box,
+.sidebar-nav .has-tooltip .tooltip-box.tooltip-right {
+  position: fixed;
+  z-index: 99999;
 }
 
 /* Tooltip arrow */
