@@ -598,10 +598,10 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-border/40">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-text-secondary">Override Date (Optional)</label>
+            <label className="text-xs font-semibold text-text-secondary">Transaction Date</label>
             <input
-              type="date"
-              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
+              type="datetime-local"
+              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold font-mono"
               value={transactionDate}
               onChange={(e) => setTransactionDate(e.target.value)}
             />
