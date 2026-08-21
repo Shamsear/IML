@@ -387,9 +387,9 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
         <Package size={250} />
       </div>
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Inventory Catalog
           </h1>
           <p className="text-text-secondary text-sm mt-1">
@@ -652,8 +652,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
         {/* Products List Pane */}
         <div className="w-full flex flex-col gap-4">
           {/* Filters & Search Bar */}
-          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col md:flex-row items-end justify-between gap-4 shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end flex-1 w-full max-w-2xl">
+          <div className="bg-surface border border-border rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3 sm:gap-4 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 items-end flex-1 w-full max-w-2xl">
               {/* Search Input */}
               <div className="flex flex-col gap-1.5 w-full">
                 <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Search Catalog</label>
@@ -766,18 +766,18 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-[#faf9f6] z-20">
+                        <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">
                           <input type="checkbox" className="custom-checkbox" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
                             onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
                         </th>
-                        <th className="py-3 px-5 sticky left-8 bg-[#faf9f6] z-20 border-r border-border shadow-sm">Product Details</th>
-                        <th className="py-3 px-5">Code (SKU)</th>
-                        <th className="py-3 px-5">Brand</th>
-                        <th className="py-3 px-5 text-center">Warehouse Stock</th>
-                        <th className="py-3 px-5">Type</th>
-                        <th className="py-3 px-5">Category</th>
-                        <th className="py-3 px-5">Returnable</th>
-                        <th className="py-3 px-5 text-right">Actions</th>
+                        <th className="py-3 px-3 sm:px-5 sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
+                        <th className="py-3 px-3 sm:px-5 hidden lg:table-cell">Code (SKU)</th>
+                        <th className="py-3 px-3 sm:px-5">Brand</th>
+                        <th className="py-3 px-3 sm:px-5 text-center">Stock</th>
+                        <th className="py-3 px-3 sm:px-5 hidden md:table-cell">Type</th>
+                        <th className="py-3 px-3 sm:px-5 hidden lg:table-cell">Category</th>
+                        <th className="py-3 px-3 sm:px-5 hidden md:table-cell">Returnable</th>
+                        <th className="py-3 px-3 sm:px-5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -791,13 +791,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                             <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
                               onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
                           </td>
-                          <td className="py-3.5 px-5 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                             <div className="flex items-center gap-2.5">
                               {product.imageUrl ? (
                                 <img 
                                   src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
                                   alt={product.name} 
-                                  className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                  className="w-8 h-8 rounded-lg object-contain bg-background p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setLightboxImage({ url: product.imageUrl, name: product.name });
@@ -823,13 +823,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               </div>
                             </div>
                           </td>
-                          <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">{product.itemCode || '---'}</td>
-                          <td className="py-3.5 px-5 whitespace-nowrap">
+                          <td className="py-3.5 px-3 sm:px-5 font-mono text-xs text-text-secondary whitespace-nowrap hidden lg:table-cell">{product.itemCode || '---'}</td>
+                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap">
                             <span className="badge bg-secondary/15 text-secondary border border-secondary/10">
                               {product.brand.name}
                             </span>
                           </td>
-                          <td className="py-3.5 px-5 whitespace-nowrap text-center">
+                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap text-center">
                             {product.stockCap ? (
                               product.warehouseStock <= 0 ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full">
@@ -850,7 +850,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               </span>
                             )}
                           </td>
-                          <td className="py-3.5 px-5 whitespace-nowrap">
+                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap hidden md:table-cell">
                             {product.isSerialized ? (
                               <button 
                                 className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${
@@ -866,19 +866,19 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               <span className="text-xs text-text-muted">Normal</span>
                             )}
                           </td>
-                          <td className="py-3.5 px-5 whitespace-nowrap">
+                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap hidden lg:table-cell">
                             <span className="badge bg-surface-elevated text-text-secondary border border-border">
                               {product.category || 'STANDS'}
                             </span>
                           </td>
-                          <td className="py-3.5 px-5 whitespace-nowrap">
+                          <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap hidden md:table-cell">
                             {product.isReturnable ? (
                               <span className="badge badge-warning text-[10px]"><ShieldAlert size={10} /> Yes</span>
                             ) : (
                               <span className="badge badge-success text-[10px]"><CheckCircle size={10} /> No</span>
                             )}
                           </td>
-                           <td className="py-3.5 px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                           <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-2">
                               {!product.isSerialized && (
                                 <div className="has-tooltip">

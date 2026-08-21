@@ -12,13 +12,13 @@ export default async function Home() {
   }
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen bg-background p-6 overflow-hidden">
+    <div className="relative flex items-center justify-center min-h-[100dvh] bg-background p-4 sm:p-6 overflow-hidden">
       {/* Decorative Warm Accent Ambient Glows */}
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-secondary/5 blur-[120px] pointer-events-none" />
 
       {/* Landing Panel */}
-      <div className="w-full max-w-lg bg-surface border border-border rounded-2xl p-8 sm:p-10 shadow-lg flex flex-col gap-8 relative z-10">
+      <div className="w-full max-w-lg bg-surface border border-border rounded-2xl p-6 sm:p-8 md:p-10 shadow-lg flex flex-col gap-6 sm:gap-8 relative z-10">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="px-3 py-1 bg-primary/10 border border-primary/20 text-primary text-xs font-bold font-display rounded-full tracking-wider uppercase">
             IML Group

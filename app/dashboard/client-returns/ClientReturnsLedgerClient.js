@@ -235,7 +235,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                          <th className="py-2 pr-4 font-semibold sticky left-0 bg-[#faf9f6] z-10 border-r border-border shadow-sm">Product Description</th>
+                          <th className="py-2 pr-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</th>
                           <th className="py-2 pr-4 font-semibold">SKU / Item Code</th>
                           <th className="py-2 pr-4 text-center font-semibold">Qty</th>
                           <th className="py-2 font-semibold">Notes / Serials</th>
@@ -291,7 +291,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-              <th className="py-3 px-4 font-semibold sticky left-0 bg-[#faf9f6] z-10 border-r border-border shadow-sm">Product Description</th>
+              <th className="py-3 px-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</th>
               <th className="py-3 px-4 font-semibold">Date</th>
               <th className="py-3 px-4 font-semibold">Gate Pass No</th>
               <th className="py-3 px-4 font-semibold">Client Brand</th>

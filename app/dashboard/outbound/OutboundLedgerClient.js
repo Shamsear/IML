@@ -159,7 +159,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 px-5 sticky left-0 bg-[#faf9f6] z-20 border-r border-border shadow-sm">Product Details</th>
+                        <th className="py-3 px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
                         <th className="py-3 px-5">Date</th>
                         <th className="py-3 px-5">SKU</th>
                         <th className="py-3 px-5">Destination Type</th>

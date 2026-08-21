@@ -1406,7 +1406,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                 <img 
                                   src={selectedProd.imageUrl} 
                                   alt={selectedProd.name} 
-                                  className="w-12 h-12 rounded-lg object-contain bg-[#fcfbfa] border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                  className="w-12 h-12 rounded-lg object-contain bg-background border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
                                   onClick={() => setLightboxImage({ url: selectedProd.imageUrl, name: selectedProd.name })}
                                 />
                                 <div className="flex flex-col min-w-0">

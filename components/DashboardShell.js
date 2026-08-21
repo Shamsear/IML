@@ -128,19 +128,21 @@ export default function DashboardShell({ user, children }) {
       {/* Main Workspace Frame */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-6 bg-surface/85 backdrop-blur-md border-b border-border">
-          <div className="flex items-center gap-4 flex-1">
+        <header className="sticky top-0 z-30 flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 bg-surface/85 backdrop-blur-md border-b border-border">
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
             <button 
-              className="lg:hidden p-2 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors" 
+              className="lg:hidden p-2 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors flex-shrink-0" 
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
             >
               <Menu size={20} />
             </button>
-            <GlobalSearch />
+            <div className="flex-1 min-w-0">
+              <GlobalSearch />
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <PushSubscriptionBtn />
             <div className="hidden sm:block h-6 w-px bg-border" />
             <div className="hidden sm:flex items-center gap-3">
@@ -154,7 +156,7 @@ export default function DashboardShell({ user, children }) {
 
         {/* Page children wrapped in standard container */}
         <main className="flex-1 overflow-x-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             {children}
           </div>
         </main>

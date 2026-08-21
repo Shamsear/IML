@@ -310,7 +310,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                           <img 
                             src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
                             alt={p.name} 
-                            className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200 print:w-6 print:h-6"
+                            className="w-8 h-8 rounded-lg object-contain bg-background p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200 print:w-6 print:h-6"
                             onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
                             onError={(e) => {
                               if (e.target.src !== p.imageUrl) {

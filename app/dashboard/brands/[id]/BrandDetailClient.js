@@ -495,7 +495,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               <table className="min-w-full divide-y divide-border text-sm">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                    <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-[#faf9f6] z-20">
+                    <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">
                       <input 
                         type="checkbox" 
                         className="custom-checkbox"
@@ -509,7 +509,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                         }}
                       />
                     </th>
-                    <th className="py-3 px-5 whitespace-nowrap sticky left-8 bg-[#faf9f6] z-20 border-r border-border shadow-sm">Item Description</th>
+                    <th className="py-3 px-5 whitespace-nowrap sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Item Description</th>
                     <th className="py-3 px-5 whitespace-nowrap">Item Code</th>
                     <th className="py-3 px-5 whitespace-nowrap">Item category</th>
                     <th className="py-3 px-5 text-center whitespace-nowrap">Purchased / Received</th>
@@ -550,7 +550,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                               <img 
                                 src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
                                 alt={product.name} 
-                                className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                className="w-8 h-8 rounded-lg object-contain bg-background p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setLightboxImage({ url: product.imageUrl, name: product.name });
