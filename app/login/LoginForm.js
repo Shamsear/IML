@@ -18,26 +18,38 @@ export default function LoginForm() {
     setLoading(true);
     setError('');
 
-    const startTime = performance.now();
+    try {
+      const startTime = performance.now();
 
-    const result = await signIn('credentials', {
-      redirect: false,
-      username,
-      password,
-    });
+      const result = await signIn('credentials', {
+        redirect: false,
+        username,
+        password,
+      });
 
-    const endTime = performance.now();
-    const duration = Math.round(endTime - startTime);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔐 Login authentication took: ${duration}ms`);
-    }
+      const endTime = performance.now();
+      const duration = Math.round(endTime - startTime);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔐 Login authentication took: ${duration}ms`);
+      }
 
-    if (result?.error) {
-      setError('Access Denied. Invalid credentials.');
+      if (result?.error) {
+        setError('Access Denied. Invalid credentials.');
+        setLoading(false);
+      } else if (result?.ok) {
+        await router.push('/dashboard');
+        // Reset loading in case navigation fails
+        setLoading(false);
+      } else {
+        // Unexpected response
+        setError('Login failed. Please try again.');
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Network error. Check your connection and try again.');
       setLoading(false);
-    } else {
-      router.push('/dashboard');
     }
   };
 
@@ -170,16 +182,12 @@ export default function LoginForm() {
                 />
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowPassword(!showPassword);
-                  }}
-                  className="absolute right-3 text-text-muted hover:text-text-secondary transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg p-0.5 cursor-pointer z-10"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-text-muted hover:text-text-secondary hover:bg-surface-hover rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer z-10"
                   disabled={loading}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>

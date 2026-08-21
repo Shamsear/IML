@@ -508,10 +508,12 @@ body {
 
 .tooltip-box {
   display: none;
-  position: absolute;
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  position: fixed;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  top: auto;
+  transform: none;
   background-color: var(--text-primary);
   color: var(--text-inverse);
   text-align: center;
@@ -522,9 +524,14 @@ body {
   white-space: nowrap;
   box-shadow: var(--shadow-md);
   pointer-events: none;
-  z-index: 999;
+  z-index: 99999;
   letter-spacing: 0.025em;
   text-transform: none;
+}
+
+/* JS-positioned tooltips: positioned via inline styles */
+.tooltip-box.tooltip-pos {
+  position: fixed;
 }
 
 /* Tooltip arrow */
