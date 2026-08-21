@@ -172,8 +172,42 @@ export default function ExpiryClient({ initialBatches }) {
         </div>
       </div>
 
-      {/* Batches Table */}
-      <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+      {/* Mobile Card View */}
+      {filteredBatches.length === 0 ? (
+        <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
+          <AlertTriangle size={48} className="text-text-muted" />
+          <h3 className="font-display font-bold text-lg text-text-primary">No tracked batches match criteria</h3>
+          <p className="text-sm">Try modifying your query filters above.</p>
+        </div>
+      ) : (
+        <div className="md:hidden flex flex-col gap-3">
+          {filteredBatches.map((batch) => {
+            const shelfStatus = batch.shelfStatus || 'GOOD';
+            return (
+              <div key={batch.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-semibold text-sm text-text-primary block truncate">{batch.product?.name || 'Unknown'}</span>
+                    <span className="text-[11px] text-text-muted">{batch.product?.brand?.name || '---'}</span>
+                  </div>
+                  <span className={`badge text-[10px] flex-shrink-0 ${shelfStatus === 'EXPIRED' ? 'badge-danger' : shelfStatus === 'NEAR_EXPIRY' ? 'badge-warning' : 'badge-success'}`}>
+                    {shelfStatus === 'NEAR_EXPIRY' ? 'Near Expiry' : shelfStatus}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div><span className="text-text-muted">Batch:</span> <span className="font-mono font-semibold">{batch.deliveryNote || '---'}</span></div>
+                  <div><span className="text-text-muted">Qty:</span> <span className="font-bold">{batch.quantity}</span></div>
+                  <div><span className="text-text-muted">Received:</span> <span className="font-semibold">{batch.receivedDate ? new Date(batch.receivedDate).toLocaleDateString() : '---'}</span></div>
+                  <div><span className="text-text-muted">Expiry:</span> <span className="font-semibold">{batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : '---'}</span></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
         {filteredBatches.length === 0 ? (
           <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted bg-surface">
             <AlertTriangle size={48} className="text-text-muted" />

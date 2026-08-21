@@ -287,7 +287,42 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
         </div>
       </div>
 
-      <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+      {/* Mobile Card View */}
+      <div className="md:hidden flex flex-col gap-3">
+        {txs.length === 0 ? (
+          <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-muted text-xs shadow-sm">
+            No matching transactions found.
+          </div>
+        ) : (
+          txs.map((tx) => {
+            const dateObj = new Date(tx.timestamp);
+            const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+            return (
+              <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-semibold text-sm text-text-primary block truncate">{tx.product?.name}</span>
+                    <span className="text-[11px] text-text-muted font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                  </div>
+                  <span className="font-mono font-bold text-sm flex-shrink-0">{tx.quantity}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-text-secondary font-semibold">{tx.product?.brand?.name || '—'}</span>
+                  <span className="text-text-muted">{formattedDate}</span>
+                </div>
+                {tx.deliveryNote && (
+                  <div className="pt-2 border-t border-border/50 text-[11px]">
+                    <span className="text-primary font-mono font-bold">Gate Pass: {tx.deliveryNote}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">

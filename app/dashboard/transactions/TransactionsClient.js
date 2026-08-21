@@ -156,8 +156,53 @@ export default function TransactionsClient({
           <span className="text-xs font-semibold text-text-muted pb-2 flex-shrink-0">{totalCount} logs total</span>
         </div>
 
-        {/* Ledger Table Panel */}
-        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm overflow-hidden">
+        {/* Mobile Card View */}
+        {paginatedTransactions.length === 0 ? (
+          <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
+            <History size={48} />
+            <h3 className="font-display font-bold text-lg text-text-primary">No Ledger Logs Found</h3>
+            <p className="text-sm max-w-xs">Select a movement action above to log stock operations.</p>
+          </div>
+        ) : (
+          <div className="md:hidden flex flex-col gap-3">
+            {paginatedTransactions.map((tx) => (
+              <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-semibold text-sm text-text-primary block truncate">{tx.product.name}</span>
+                    <span className="text-[11px] text-text-muted font-mono">{tx.product.itemCode || ''}</span>
+                  </div>
+                  <span className={`badge text-[10px] flex-shrink-0 ${
+                    tx.transactionType === 'RECEIVE' || tx.transactionType === 'REBRAND_IN' ? 'badge-success' :
+                    tx.transactionType === 'ISSUE' ? 'badge-info' : 
+                    tx.transactionType === 'DAMAGE' || tx.transactionType === 'LOST' ? 'badge-danger' : 'badge-warning'
+                  }`}>
+                    {tx.transactionType}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-text-secondary">
+                    {tx.fromEntityType === 'WAREHOUSE' ? 'Warehouse' : (entityNames[tx.fromEntityId] || tx.fromEntityId || '---')}
+                    {' → '}
+                    {tx.toEntityType === 'WAREHOUSE' ? 'Warehouse' : (entityNames[tx.toEntityId] || tx.toEntityId || '---')}
+                  </span>
+                  <span className="font-mono font-bold text-sm">{tx.quantity}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                  <span className="text-text-muted">
+                    {new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                  {tx.deliveryNote && (
+                    <span className="text-primary font-semibold font-mono">{tx.deliveryNote}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-surface border border-border rounded-xl p-5 shadow-sm overflow-hidden">
           {paginatedTransactions.length === 0 ? (
             <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
               <History size={48} />

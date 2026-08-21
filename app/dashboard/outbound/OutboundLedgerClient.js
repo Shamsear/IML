@@ -147,7 +147,49 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
             </div>
           </div>
 
-          <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+          {/* Mobile Card View */}
+          {filteredTransactions.length === 0 ? (
+            <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
+              <ArrowUpRight size={48} className="text-text-muted" />
+              <h3 className="font-display font-bold text-lg text-text-primary">No matching transactions</h3>
+            </div>
+          ) : (
+            <div className="md:hidden flex flex-col gap-3">
+              {filteredTransactions.map((tx) => {
+                const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                let destinationName = tx.toEntityType === 'CLIENT' ? (tx.toEntityId || 'Client Possession') : (entityNames[tx.toEntityId] || tx.toEntityId || '---');
+                return (
+                  <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-sm text-text-primary block truncate">{tx.product.name}</span>
+                        <span className="text-[11px] text-text-muted">{tx.product.brand.name}</span>
+                      </div>
+                      <span className="badge text-[10px] bg-secondary/15 text-secondary border border-secondary/10 flex-shrink-0">{tx.toEntityType}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-text-secondary font-medium">{dateStr}</span>
+                      <span className="font-mono font-bold text-sm text-primary">-{tx.quantity}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                      <span className="text-text-secondary truncate max-w-[55%]">{destinationName}</span>
+                      <div className="flex items-center gap-2">
+                        {tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId && (
+                          <Link href={`/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`} target="_blank" className="text-primary font-semibold hover:underline">
+                            {tx.deliveryNote}
+                          </Link>
+                        )}
+                        <TransactionActions txId={tx.id} notes={tx.notes || ''} deliveryNote={tx.deliveryNote || ''} showDeliveryNote={tx.toEntityType === 'STORE'} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
             {filteredTransactions.length === 0 ? (
               <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted bg-surface">
                 <ArrowUpRight size={48} className="text-text-muted" />
