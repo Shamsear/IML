@@ -92,7 +92,7 @@ export default function DashboardShell({ user, children }) {
         </div>
 
         {/* Navigation list */}
-        <div className="flex-1 overflow-y-auto py-4 px-3">
+        <div className="sidebar-nav flex-1 overflow-y-auto py-4 px-3">
           <DashboardNav collapsed={collapsed && !mobileOpen} />
         </div>
 

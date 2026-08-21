@@ -580,6 +580,11 @@ body {
   transform: translateY(-50%) translateX(4px);
 }
 
+/* Fixed right tooltip for sidebar */
+.sidebar-nav .has-tooltip .tooltip-box.tooltip-right {
+  position: fixed;
+}
+
 .tooltip-box.tooltip-right::after {
   top: 50%;
   left: auto;
