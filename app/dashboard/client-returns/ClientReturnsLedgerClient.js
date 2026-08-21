@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar } from 'lucide-react';
+import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
 
@@ -39,16 +39,20 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
     }));
   };
 
-  // Group transactions by Return Note (Gate Pass)
+  // Group transactions by Return Note (Gate Pass) — direction-aware
   const returnNotesGroups = useMemo(() => {
     const groups = {};
     (transactions || []).forEach(tx => {
       if (tx.deliveryNote) {
-        const key = `${tx.deliveryNote}_${tx.toEntityId || 'unknown'}`;
+        const isFromClient = tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE';
+        const direction = isFromClient ? 'fromClient' : 'toClient';
+        const brandId = isFromClient ? tx.fromEntityId : tx.toEntityId;
+        const key = `${tx.deliveryNote}_${brandId || 'unknown'}_${direction}`;
         if (!groups[key]) {
           groups[key] = {
             deliveryNote: tx.deliveryNote,
-            brandId: tx.toEntityId,
+            brandId: brandId,
+            direction,
             brandName: tx.product?.brand?.name || 'Client',
             timestamp: tx.timestamp,
             receivedBy: tx.receivedBy,
@@ -87,18 +91,22 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
 
   const handleDownloadPDF = async (group) => {
     const dateStr = new Date(group.timestamp).toISOString().split('T')[0];
-    const key = `${group.deliveryNote}_${group.brandId}`;
+    const key = `${group.deliveryNote}_${group.brandId}_${group.direction}`;
     setPdfLoadingKey(key);
     
     try {
-      const url = `/api/dashboard/client-returns/gate-pass?dn=${encodeURIComponent(group.deliveryNote)}&brandId=${group.brandId}&date=${dateStr}`;
+      const isReturnToWarehouse = group.direction === 'fromClient';
+      const endpoint = isReturnToWarehouse ? 'return-gate-pass' : 'gate-pass';
+      const url = `/api/dashboard/client-returns/${endpoint}?dn=${encodeURIComponent(group.deliveryNote)}&brandId=${group.brandId}&date=${dateStr}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('PDF generation failed');
       const blob = await res.blob();
       const fileUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = fileUrl;
-      a.download = `IML-ClientReturn-GatePass-${group.deliveryNote}.pdf`;
+      a.download = isReturnToWarehouse
+        ? `IML-ReturnToWarehouse-${group.deliveryNote}.pdf`
+        : `IML-ClientReturn-GatePass-${group.deliveryNote}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -199,7 +207,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
               </div>
             ) : (
               filteredGroups.map(group => {
-                const groupKey = `${group.deliveryNote}_${group.brandId}`;
+                const groupKey = `${group.deliveryNote}_${group.brandId}_${group.direction}`;
                 const isExpanded = !!expandedDn[groupKey];
                 const dateStr = new Date(group.timestamp).toLocaleDateString('en-US', {
                   day: 'numeric',
@@ -221,6 +229,15 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                           <span className="text-xs font-bold text-text-primary uppercase tracking-wider font-mono">{group.deliveryNote}</span>
                           <span className="text-[10px] text-text-secondary font-semibold">
                             Date: {dateStr} · Client: <strong className="text-primary">{group.brandName}</strong>
+                            {group.direction === 'fromClient' ? (
+                              <span className="inline-flex items-center gap-0.5 ml-2 px-1.5 py-0.5 bg-success/10 text-success border border-success/20 rounded-full text-[9px] font-bold">
+                                <ArrowDownLeft size={8} /> Return
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-0.5 ml-2 px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[9px] font-bold">
+                                <ArrowUpRight size={8} /> Dispatch
+                              </span>
+                            )}
                           </span>
                         </div>
                       </div>
@@ -237,7 +254,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                             handleDownloadPDF(group);
                           }}
                           disabled={pdfLoadingKey === groupKey}
-                          className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary-hover font-bold text-xs rounded-lg transition-colors border border-primary/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary-hover font-bold text-xs rounded-lg transition-colors border border-primary/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                         >
                           {pdfLoadingKey === groupKey ? (
                             <Loader2 size={13} className="animate-spin" />

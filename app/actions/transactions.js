@@ -2507,3 +2507,140 @@ export async function getClientReturnsBalances() {
   return finalBalances;
 }
 
+// Return items from Client/Brand back to Warehouse
+export async function returnClientItemsToWarehouse(payload) {
+  await checkAuth();
+
+  const {
+    brandId,
+    receivedBy = '',
+    deliverySupervisorName = '',
+    transactionDate,
+    globalNotes = '',
+    items = [], // Array of { productId, quantity, barcodes = [], notes }
+  } = payload;
+
+  if (!brandId) throw new Error('Brand is required');
+  if (items.length === 0) throw new Error('At least one item is required');
+
+  // Use supervisor name as receivedBy if not explicitly provided
+  const finalReceivedBy = receivedBy.trim() || deliverySupervisorName.trim() || 'System';
+
+  // Resolve supervisor
+  let supervisorId = null;
+  if (deliverySupervisorName?.trim()) {
+    const existing = await prisma.supervisor.findFirst({
+      where: { name: { equals: deliverySupervisorName.trim(), mode: 'insensitive' } }
+    });
+    if (existing) {
+      supervisorId = existing.id;
+    } else {
+      const created = await prisma.supervisor.create({
+        data: { name: deliverySupervisorName.trim() }
+      });
+      supervisorId = created.id;
+    }
+  }
+
+  const brand = await prisma.brand.findUnique({ where: { id: brandId } });
+  if (!brand) throw new Error('Brand not found');
+
+  const transactions = await prisma.$transaction(async (tx) => {
+    const createdTxs = [];
+    const deliveryNote = await generateCustomRef(tx, 'CRR', brand.name, transactionDate);
+
+    for (const item of items) {
+      const { productId, quantity, barcodes = [], notes } = item;
+
+      if (!productId) throw new Error('Product ID is required for all items');
+      if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0');
+
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+        include: { brand: { select: { name: true } } }
+      });
+      if (!product) throw new Error(`Product not found for ID: ${productId}`);
+
+      // For bulk products, verify stock with client
+      if (!product.isSerialized) {
+        const currentStock = await getStockAtLocation(productId, 'BRAND', brandId);
+        if (currentStock < quantity) {
+          throw new Error(`Insufficient stock with client for "${product.name}". Available: ${currentStock}, requested: ${quantity}.`);
+        }
+      }
+
+      // Create CLIENT_RETURN transaction (from BRAND → to WAREHOUSE)
+      const invTx = await tx.inventoryTransaction.create({
+        data: {
+          productId,
+          transactionType: 'CLIENT_RETURN',
+          fromEntityType: 'BRAND',
+          fromEntityId: brandId,
+          toEntityType: 'WAREHOUSE',
+          toEntityId: 'MAIN',
+          quantity,
+          deliveryNote,
+          notes: (() => {
+            const itemNote = notes?.trim() || '';
+            const gNotes = globalNotes?.trim() || '';
+            if (gNotes && itemNote) return `Client→Warehouse Return | ${gNotes} | ${itemNote}`;
+            if (gNotes) return `Client→Warehouse Return | ${gNotes}`;
+            if (itemNote) return `Client→Warehouse Return | ${itemNote}`;
+            return 'Client→Warehouse Return';
+          })(),
+          receivedBy: finalReceivedBy,
+          deliverySupervisorId: supervisorId || null,
+          deliveryStatus: 'Delivered',
+          timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
+        }
+      });
+
+      // Handle serialized products
+      if (product.isSerialized && barcodes.length > 0) {
+        const dbSerials = await tx.productSerialNumber.findMany({
+          where: {
+            productId,
+            barcode: { in: barcodes },
+          }
+        });
+
+        if (dbSerials.length !== barcodes.length) {
+          throw new Error(`Some barcodes for "${product.name}" could not be found.`);
+        }
+
+        const invalidSerials = dbSerials.filter(
+          s => !(s.status === 'WITH_CLIENT' && s.currentLocationType === 'BRAND' && s.currentLocationId === brandId)
+        );
+        if (invalidSerials.length > 0) {
+          throw new Error(`Some barcodes for "${product.name}" are not currently with this client.`);
+        }
+
+        // Update serial status back to AVAILABLE at warehouse
+        await tx.productSerialNumber.updateMany({
+          where: { id: { in: dbSerials.map(s => s.id) } },
+          data: {
+            status: 'AVAILABLE',
+            currentLocationType: 'WAREHOUSE',
+            currentLocationId: 'MAIN',
+          }
+        });
+
+        // Link serials to transaction
+        await tx.transactionSerialNumber.createMany({
+          data: dbSerials.map(serial => ({
+            transactionId: invTx.id,
+            serialNumberId: serial.id,
+          }))
+        });
+      }
+
+      createdTxs.push(invTx);
+    }
+    return createdTxs;
+  }, { timeout: 25000 });
+
+  revalidatePath('/dashboard/client-returns');
+  revalidatePath('/dashboard/transactions');
+  return transactions;
+}
+

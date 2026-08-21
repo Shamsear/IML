@@ -41,7 +41,7 @@ const navSections = [
       { name: 'Inbound (Receive)', href: '/dashboard/inbound', icon: ArrowDownLeft },
       { name: 'Outbound (Dispatch)', href: '/dashboard/outbound', icon: ArrowUpRight },
       { name: 'Returns', href: '/dashboard/returns', icon: RotateCcw },
-      { name: 'Client Returns', href: '/dashboard/client-returns', icon: Undo2 },
+      { name: 'With Client', href: '/dashboard/client-returns', icon: Undo2 },
       { name: 'Mark as Used', href: '/dashboard/used', icon: Trash2 },
       { name: 'Expiry Tracking', href: '/dashboard/expiry', icon: Calendar },
       { name: 'Rebrand Stock', href: '/dashboard/rebrand', icon: RefreshCw },
