@@ -536,7 +536,7 @@ export default function BrandsClient({ initialBrands }) {
                       <h3 className="font-display font-extrabold text-sm text-text-primary truncate">{brand.name}</h3>
                       <Link 
                         href={`/dashboard/brands/${brand.id}`} 
-                        className="text-xs font-bold text-primary hover:underline flex-shrink-0"
+                        className="text-xs font-bold text-primary hover:underline flex-shrink-0 after:absolute after:inset-0 after:content-[''] after:z-0"
                       >
                         Manage ➔
                       </Link>
@@ -551,7 +551,7 @@ export default function BrandsClient({ initialBrands }) {
                         {brand.rack || brand.shelf ? `Loc: ${brand.rack || ''}${brand.rack && brand.shelf ? '/' : ''}${brand.shelf || ''}` : 'No Loc'}
                       </span>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 relative z-10">
                         <div className="has-tooltip">
                           <button 
                             className="p-1 hover:text-text-primary rounded transition-colors cursor-pointer"
