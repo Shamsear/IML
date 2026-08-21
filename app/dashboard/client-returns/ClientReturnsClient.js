@@ -33,9 +33,18 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
   // Core Form States
   const [brandId, setBrandId] = useState('');
   const [receivedBy, setReceivedBy] = useState(''); // Client Rep. Name
-  const [deliverySupervisorId, setDeliverySupervisorId] = useState('');
+  const [deliverySupervisorName, setDeliverySupervisorName] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedReceiverIdx, setHighlightedReceiverIdx] = useState(-1);
   const [transactionDate, setTransactionDate] = useState('');
   const [globalNotes, setGlobalNotes] = useState('');
+
+  const filteredSuggestions = (supervisors || [])
+    .map(s => s.name)
+    .filter(name => 
+      name.toLowerCase().includes(deliverySupervisorName.toLowerCase()) && 
+      name.toLowerCase() !== deliverySupervisorName.toLowerCase()
+    );
 
   // Queue of return lines
   const [items, setItems] = useState([
@@ -377,8 +386,8 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
       setError('Please enter the client representative name.');
       return;
     }
-    if (!deliverySupervisorId) {
-      setError('Please select the authorizing supervisor.');
+    if (!deliverySupervisorName.trim()) {
+      setError('Please enter the received by staff name.');
       return;
     }
 
@@ -390,7 +399,7 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
       const payload = {
         brandId,
         receivedBy: receivedBy.trim(),
-        deliverySupervisorId,
+        deliverySupervisorName: deliverySupervisorName.trim(),
         transactionDate: transactionDate || null,
         globalNotes: globalNotes || null,
         items: items.map(x => ({
@@ -520,13 +529,70 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-text-secondary">Authorizing Supervisor</label>
-            <CustomSelect
-              options={[{ value: '', label: 'Select supervisor...' }, ...supervisors.map(s => ({ value: s.id, label: s.name }))]}
-              value={deliverySupervisorId}
-              onChange={setDeliverySupervisorId}
-            />
+          <div className="flex flex-col gap-1.5 relative">
+            <label className="text-xs font-semibold text-text-secondary">Received By (Staff)</label>
+            <div className="relative">
+              <input
+                type="text"
+                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+                value={deliverySupervisorName}
+                onChange={(e) => {
+                  setDeliverySupervisorName(e.target.value);
+                  setShowSuggestions(true);
+                  setHighlightedReceiverIdx(0);
+                }}
+                onFocus={() => {
+                  setShowSuggestions(true);
+                  setHighlightedReceiverIdx(0);
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowSuggestions(false);
+                    setHighlightedReceiverIdx(-1);
+                  }, 250);
+                }}
+                onKeyDown={(e) => {
+                  const filtered = filteredSuggestions;
+                  if (filtered.length === 0) return;
+
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlightedReceiverIdx(prev => Math.min(prev + 1, filtered.length - 1));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedReceiverIdx(prev => Math.max(prev - 1, 0));
+                  } else if (e.key === 'Enter') {
+                    if (highlightedReceiverIdx >= 0 && highlightedReceiverIdx < filtered.length) {
+                      e.preventDefault();
+                      setDeliverySupervisorName(filtered[highlightedReceiverIdx]);
+                      setShowSuggestions(false);
+                    }
+                  }
+                }}
+                placeholder="e.g. John Doe"
+                required
+              />
+
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
+                  {filteredSuggestions.map((name, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`w-full text-left px-3 py-2 text-xs font-semibold transition-colors ${
+                        idx === highlightedReceiverIdx ? 'bg-primary/10 text-primary' : 'text-text-primary hover:bg-surface-elevated'
+                      }`}
+                      onMouseDown={() => {
+                        setDeliverySupervisorName(name);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

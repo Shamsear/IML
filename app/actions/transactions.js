@@ -2282,6 +2282,7 @@ export async function createBulkClientReturnTransactions(payload) {
     brandId,
     receivedBy,
     deliverySupervisorId,
+    deliverySupervisorName,
     transactionDate,
     globalNotes,
     items = [], // Array of { productId, quantity, barcodes = [], notes }
@@ -2289,6 +2290,21 @@ export async function createBulkClientReturnTransactions(payload) {
 
   if (!brandId) throw new Error('Client brand selection is required');
   if (items.length === 0) throw new Error('At least one item is required to log a return');
+
+  let supervisorId = deliverySupervisorId || null;
+  if (!supervisorId && deliverySupervisorName?.trim()) {
+    const existing = await prisma.supervisor.findFirst({
+      where: { name: { equals: deliverySupervisorName.trim(), mode: 'insensitive' } }
+    });
+    if (existing) {
+      supervisorId = existing.id;
+    } else {
+      const created = await prisma.supervisor.create({
+        data: { name: deliverySupervisorName.trim() }
+      });
+      supervisorId = created.id;
+    }
+  }
 
   const brand = await prisma.brand.findUnique({
     where: { id: brandId }
@@ -2337,7 +2353,7 @@ export async function createBulkClientReturnTransactions(payload) {
             return gNotes || itemNote || null;
           })(),
           receivedBy,
-          deliverySupervisorId: deliverySupervisorId || null,
+          deliverySupervisorId: supervisorId || null,
           deliveryStatus: 'Delivered',
           timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
         }
