@@ -156,7 +156,45 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
 
           {/* ── TAB: ALL ITEMS ── */}
           {activeTab === 'transactions' && (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile Card View */}
+            <div className="md:hidden flex flex-col gap-3 p-4">
+              {filteredTransactions.length === 0 ? (
+                <div className="py-12 text-center text-text-muted flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returnable items found.</span></div>
+              ) : filteredTransactions.map(tx => {
+                const isSelected = !!processingItems[tx.id];
+                const remainingQty = tx.quantity - (tx.returnedQty || 0);
+                const itemState = processingItems[tx.id];
+                return (
+                  <div key={tx.id} className={`bg-surface border rounded-xl p-4 flex flex-col gap-2.5 transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
+                          <span className="font-semibold text-sm text-primary truncate">{tx.product?.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
+                          <span>{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</span>
+                          <span>·</span>
+                          <span>{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                      </div>
+                      <span className="font-mono font-bold text-sm flex-shrink-0">{remainingQty}</span>
+                    </div>
+                    {tx.deliveryNote && <div className="text-[11px] text-primary font-mono font-semibold">DN: {tx.deliveryNote}</div>}
+                    {isSelected && (
+                      <div className="flex gap-2 pt-2 border-t border-border/50">
+                        <input type="number" min="1" max={remainingQty} placeholder="Qty" value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))} className="w-20 bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono" />
+                        <input type="text" placeholder="Notes..." value={itemState?.notes || ''} onChange={(e) => handleChange(tx.id, 'notes', e.target.value)} className="flex-1 bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
@@ -219,6 +257,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {/* ── TAB: BY RETURN NOTE ── */}

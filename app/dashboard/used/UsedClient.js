@@ -144,7 +144,44 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
 
           {/* ── TAB: ALL ITEMS ── */}
           {activeTab === 'transactions' && (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile Card View */}
+            <div className="md:hidden flex flex-col gap-3 p-4">
+              {filteredTransactions.length === 0 ? (
+                <div className="py-12 text-center text-text-muted flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No disposable items pending.</span></div>
+              ) : filteredTransactions.map(tx => {
+                const isSelected = !!selectedIds[tx.id];
+                const remainingQty = tx.quantity - (tx.returnedQty || 0);
+                return (
+                  <div key={tx.id} className={`bg-surface border rounded-xl p-4 flex flex-col gap-2.5 transition-all ${isSelected ? 'border-warning bg-warning/5' : 'border-border'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
+                          <span className="font-semibold text-sm text-warning truncate">{tx.product?.name}</span>
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
+                          <span>{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</span>
+                          <span>·</span>
+                          <span>{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                      </div>
+                      <span className="font-mono font-bold text-sm flex-shrink-0">{remainingQty}</span>
+                    </div>
+                    {tx.deliveryNote && <div className="text-[11px] text-text-muted font-mono">DN: {tx.deliveryNote}</div>}
+                    {isSelected && (
+                      <div className="pt-2 border-t border-border/50">
+                        <input type="text" placeholder="Notes..." value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)} className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
@@ -188,6 +225,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {/* ── TAB: BY USAGE NOTE ── */}

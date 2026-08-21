@@ -265,7 +265,7 @@ export default function StaffClient({ initialStaff, stores }) {
       {/* Page Header */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Uniform Assigning &amp; Tracking
           </h1>
           <p className="text-text-secondary text-sm mt-1">
@@ -419,8 +419,47 @@ export default function StaffClient({ initialStaff, stores }) {
               </div>
             </div>
 
-            {/* Ledger Table */}
-            <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+            {/* Mobile Card View */}
+            {filteredAllocations.length === 0 ? (
+              <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
+                <Shirt size={48} />
+                <h3 className="font-display font-bold text-lg text-text-primary">No Allocations Logged</h3>
+                <p className="text-sm max-w-xs">No promoter uniform assignments match your filter parameters.</p>
+              </div>
+            ) : (
+              <div className="md:hidden flex flex-col gap-3">
+                {filteredAllocations.map((alloc) => {
+                  const isFullyReturned = isAllocationFullyReturned(alloc);
+                  const items = getAllocatedItems(alloc);
+                  return (
+                    <div key={alloc.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <input type="checkbox" checked={selectedAllocIds.includes(alloc.id)} onChange={(e) => { if (e.target.checked) setSelectedAllocIds(prev => [...prev, alloc.id]); else setSelectedAllocIds(prev => prev.filter(id => id !== alloc.id)); }} className="w-4 h-4 rounded accent-primary cursor-pointer" disabled={isFullyReturned} />
+                            <span className="font-semibold text-sm text-text-primary">{alloc.staffName}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
+                            <Building2 size={11} /><span>{alloc.store?.name || 'Unknown'}</span>
+                            <span>·</span>
+                            <span>{alloc.workingPeriod || '---'}</span>
+                          </div>
+                        </div>
+                        {isFullyReturned && <span className="badge badge-success text-[9px]">Returned</span>}
+                      </div>
+                      <div className="flex flex-col gap-1 text-[11px]">
+                        {alloc.uniformQty > 0 && <div className="flex justify-between"><span>{alloc.uniformQty}x Shirt</span>{alloc.uniformReturned ? <span className="text-success font-bold">Returned</span> : <span className="text-warning font-bold">Active</span>}</div>}
+                        {alloc.capQty > 0 && <div className="flex justify-between"><span>{alloc.capQty}x Cap</span>{alloc.capReturned ? <span className="text-success font-bold">Returned</span> : <span className="text-warning font-bold">Active</span>}</div>}
+                        {items.map((item, idx) => <div key={item.id || idx} className="flex justify-between"><span>{item.qty}x {item.type} ({item.size})</span>{item.returned ? <span className="text-success font-bold">Returned</span> : <span className="text-warning font-bold">Active</span>}</div>)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
               {filteredAllocations.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
                   <Shirt size={48} />
@@ -618,8 +657,42 @@ export default function StaffClient({ initialStaff, stores }) {
               <span className="text-xs font-semibold text-text-secondary">{filteredPromoters.length} promoters</span>
             </div>
 
-            {/* Table */}
-            <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+            {/* Mobile Card View */}
+            {filteredPromoters.length === 0 ? (
+              <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
+                <Users size={48} />
+                <h3 className="font-display font-bold text-lg text-text-primary">No Promoters Found</h3>
+                <p className="text-sm max-w-xs">Register promoters first to assign them uniforms.</p>
+              </div>
+            ) : (
+              <div className="md:hidden flex flex-col gap-3">
+                {filteredPromoters.map((staff) => (
+                  <div key={staff.id} onClick={() => setSelectedPromoter(staff)} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/30 transition-all">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-secondary/15 text-secondary flex items-center justify-center text-xs font-bold flex-shrink-0">{staff.name.charAt(0)}</div>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-sm text-text-primary block truncate">{staff.name}</span>
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-text-muted">
+                            <span>{staff.phone || 'No Contact'}</span>
+                            <span>·</span>
+                            <span className="badge badge-info text-[9px]"><Shirt size={9} /> {staff.shirtSize || 'M'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-text-secondary font-semibold text-right flex-shrink-0">{staff.store ? staff.store.name : 'Unassigned'}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} className="text-primary font-semibold hover:underline">Allocate Uniforms</button>
+                      <button onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)} className="text-text-secondary hover:text-text-primary">Edit</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
               {filteredPromoters.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
                   <Users size={48} />
