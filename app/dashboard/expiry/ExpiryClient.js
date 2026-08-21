@@ -187,8 +187,11 @@ export default function ExpiryClient({ initialBatches }) {
               <div key={batch.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <span className="font-semibold text-sm text-text-primary block truncate">{batch.product?.name || 'Unknown'}</span>
-                    <span className="text-[11px] text-text-muted">{batch.product?.brand?.name || '---'}</span>
+                    {batch.productImage && (
+                      <img src={batch.productImage} alt={batch.productName} className="w-8 h-8 object-contain rounded-lg border border-border bg-white mb-1.5" />
+                    )}
+                    <span className="font-semibold text-sm text-text-primary block truncate">{batch.productName || 'Unknown'}</span>
+                    <span className="text-[11px] text-text-muted">{batch.productBrand || '---'} · {batch.productCategory || ''}</span>
                   </div>
                   <span className={`badge text-[10px] flex-shrink-0 ${shelfStatus === 'EXPIRED' ? 'badge-danger' : shelfStatus === 'NEAR_EXPIRY' ? 'badge-warning' : 'badge-success'}`}>
                     {shelfStatus === 'NEAR_EXPIRY' ? 'Near Expiry' : shelfStatus}
