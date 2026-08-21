@@ -13,7 +13,6 @@ export default async function NewClientReturnPage() {
       select: { id: true, name: true }
     }),
     prisma.product.findMany({
-      where: { isActive: true },
       include: {
         brand: {
           select: {
@@ -25,7 +24,6 @@ export default async function NewClientReturnPage() {
       orderBy: { name: 'asc' }
     }),
     prisma.supervisor.findMany({
-      where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { id: true, name: true }
     })
