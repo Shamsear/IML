@@ -167,6 +167,7 @@ export async function getBrandWithDetails(id) {
               quantity: true,
               fromEntityType: true,
               toEntityType: true,
+              returnStatus: true,
             }
           }
         },

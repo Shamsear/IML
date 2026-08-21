@@ -275,7 +275,33 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     }
   };
 
-  const calculateStock = (transactions) => {
+  const calculateStock = (rawTransactions) => {
+    const transactions = [...(rawTransactions || [])];
+
+    let totalQtyMarkedUsed = 0;
+    transactions.forEach(t => {
+      if (t.transactionType === 'ISSUE' && t.fromEntityType !== 'STORE' && t.returnStatus === 'USED') {
+        totalQtyMarkedUsed += t.quantity || 0;
+      }
+    });
+
+    let totalQtyStoreToStaff = 0;
+    transactions.forEach(t => {
+      if (t.transactionType === 'ISSUE' && t.fromEntityType === 'STORE' && t.toEntityType === 'STAFF') {
+        totalQtyStoreToStaff += t.quantity || 0;
+      }
+    });
+
+    const virtualQty = Math.max(0, totalQtyMarkedUsed - totalQtyStoreToStaff);
+    if (virtualQty > 0) {
+      transactions.push({
+        transactionType: 'ISSUE',
+        fromEntityType: 'STORE',
+        toEntityType: 'STAFF',
+        quantity: virtualQty,
+      });
+    }
+
     let purchased = 0;
     let warehouse = 0;
     let issued = 0;
@@ -291,10 +317,15 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         purchased += qty;
         warehouse += qty;
       } else if (t.transactionType === 'ISSUE') {
-        warehouse -= qty;
-        if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
-        else if (t.toEntityType === 'STAFF') used += qty;
-        else if (t.toEntityType === 'CLIENT' || t.toEntityType === 'BRAND') withClient += qty;
+        if (t.fromEntityType === 'STORE') {
+          issued -= qty;
+          if (t.toEntityType === 'STAFF') used += qty;
+        } else {
+          warehouse -= qty;
+          if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
+          else if (t.toEntityType === 'STAFF') used += qty;
+          else if (t.toEntityType === 'CLIENT' || t.toEntityType === 'BRAND') withClient += qty;
+        }
       } else if (t.transactionType === 'CLIENT_RETURN') {
         warehouse -= qty;
         withClient += qty;
