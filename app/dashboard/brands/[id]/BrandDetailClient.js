@@ -392,7 +392,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           )}
 
           <div>
-            <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
               {brand.name} Control Panel
             </h1>
             <p className="text-text-secondary text-sm mt-1">{brand.description || 'Campaign details, store mapping, and product catalog'}</p>
@@ -490,7 +490,52 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
             No products registered for this brand. Click &quot;Add Product&quot; to define catalog items.
           </div>
         ) : (
-          <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+          <>
+          {/* Mobile Card View */}
+          <div className="md:hidden flex flex-col gap-3">
+            {paginatedProducts.map(product => {
+              const stock = calculateStock(product.transactions);
+              return (
+                <div key={product.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <input type="checkbox" className="custom-checkbox mt-0.5" checked={checkedProductIds.includes(product.id)} onChange={(e) => { if (e.target.checked) setCheckedProductIds(prev => [...prev, product.id]); else setCheckedProductIds(prev => prev.filter(id => id !== product.id)); }} />
+                      {product.imageUrl ? (
+                        <img src={getOptimizedImageUrl(product.imageUrl, 80, 80)} alt={product.name} className="w-10 h-10 rounded-lg object-contain bg-background p-0.5 border border-border flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
+                      )}
+                      <div className="min-w-0">
+                        <span className="font-semibold text-sm text-text-primary block truncate">{product.name}</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-text-muted font-mono">{product.itemCode || '---'}</span>
+                          <span className="badge bg-surface-elevated text-text-secondary border border-border text-[9px]">{product.category || '---'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{stock.total}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-2 border-t border-border/50">
+                    <div><span className="text-text-muted block">Warehouse</span><span className="font-mono font-bold text-sm">{stock.warehouse}</span></div>
+                    <div><span className="text-text-muted block">Issued</span><span className="font-mono font-bold text-sm">{stock.issued}</span></div>
+                    <div><span className="text-text-muted block">Used</span><span className="font-mono font-bold text-sm">{stock.used}</span></div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-success font-semibold hover:underline inline-flex items-center gap-0.5"><ArrowDownLeft size={11} /> Recv</Link>
+                      <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5"><ArrowUpRight size={11} /> Issue</Link>
+                    </div>
+                    {product.isSerialized && (
+                      <button className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5" onClick={() => openSerialsModal(product)} type="button"><QrCode size={11} /> SIM ({product._count?.serialNumbers || 0})</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border text-sm">
                 <thead>
@@ -683,6 +728,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               </div>
             )}
           </div>
+          </>
         )}
       </div>
 
