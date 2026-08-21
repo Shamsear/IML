@@ -24,12 +24,19 @@ export default async function ExpiryPage() {
           category: true,
           itemCode: true,
           isSerialized: true,
-          warehouseStock: true, // Get current warehouse stock from Product
           brand: {
             select: {
               name: true,
             },
           },
+          transactions: {
+            select: {
+              transactionType: true,
+              quantity: true,
+              fromEntityType: true,
+              toEntityType: true,
+            }
+          }
         },
       },
     },
@@ -44,7 +51,27 @@ export default async function ExpiryPage() {
   
   transactions.forEach((tx) => {
     const productId = tx.productId;
-    const warehouseStock = tx.product.warehouseStock || 0;
+    
+    // Calculate current warehouse stock for this product dynamically
+    let warehouseStock = 0;
+    if (tx.product?.transactions) {
+      tx.product.transactions.forEach(t => {
+        const qty = t.quantity || 0;
+        if (t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN') {
+          if (t.toEntityType === 'WAREHOUSE') {
+            warehouseStock += qty;
+          }
+        } else if (t.transactionType === 'ISSUE' || t.transactionType === 'DAMAGE' || t.transactionType === 'LOST' || t.transactionType === 'REBRAND_OUT') {
+          if (t.fromEntityType === 'WAREHOUSE') {
+            warehouseStock -= qty;
+          }
+        } else if (t.transactionType === 'CLIENT_RETURN') {
+          warehouseStock -= qty;
+        }
+      });
+    }
+
+    warehouseStock = Math.max(0, warehouseStock);
     
     // Only process if product has stock in warehouse
     if (warehouseStock > 0) {
@@ -63,7 +90,7 @@ export default async function ExpiryPage() {
           deliveryNote: tx.deliveryNote || 'N/A',
           supplier: tx.fromEntityId || 'Unknown Supplier',
           receivedQty: tx.quantity,
-          remainingBatchStock: warehouseStock, // Current warehouse stock from Product table
+          remainingBatchStock: warehouseStock, // Dynamic warehouse stock
           receivedDate: tx.timestamp,
           manufactureDate: tx.manufactureDate,
           expiryDate: tx.expiryDate,
