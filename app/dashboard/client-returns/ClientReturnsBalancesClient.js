@@ -415,8 +415,37 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
             </span>
           </div>
 
-          {/* History Table */}
-          <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+          {/* Mobile Card View */}
+          <div className="md:hidden flex flex-col gap-3">
+            {filteredHistory.length === 0 ? (
+              <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-muted text-xs shadow-sm">No transactions found.</div>
+            ) : (
+              filteredHistory.map((tx) => {
+                const isFromClient = tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE';
+                const dateObj = new Date(tx.timestamp);
+                const formattedDate = dateObj.toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' });
+                return (
+                  <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className={`badge text-[10px] ${isFromClient ? 'badge-success' : 'badge-info'}`}>{isFromClient ? 'From Client' : 'To Client'}</span>
+                      <span className="font-mono font-bold text-sm">{tx.quantity}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-sm text-text-primary block truncate">{tx.product?.name}</span>
+                      <span className="text-[11px] text-text-muted">{tx.product?.brand?.name || '—'}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                      <span className="text-text-muted">{formattedDate} · {tx.receivedBy || '—'}</span>
+                      {tx.deliveryNote && <span className="text-primary font-mono font-semibold">{tx.deliveryNote}</span>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">

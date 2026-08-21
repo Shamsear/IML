@@ -374,7 +374,41 @@ export default function BrandPortalClient({ brand }) {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* Mobile Card View */}
+                <div className="md:hidden flex flex-col gap-3">
+                  {paginatedProducts.map(p => {
+                    const stock = getProductStock(p.transactions);
+                    return (
+                      <div key={p.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            {p.imageUrl ? (
+                              <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-lg object-contain bg-background p-0.5 border border-border flex-shrink-0" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-primary/5 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold border border-primary/10">{p.name.substring(0, 2).toUpperCase()}</div>
+                            )}
+                            <div className="min-w-0">
+                              <span className="font-semibold text-sm text-text-primary block truncate">{p.name}</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] text-text-muted font-mono">{p.itemCode || '---'}</span>
+                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${p.isSerialized ? 'bg-primary/10 text-primary' : 'bg-surface-elevated text-text-secondary'}`}>{p.category || 'Bulk'}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{stock.total}</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-2 border-t border-border/50">
+                          <div><span className="text-text-muted block">Warehouse</span><span className="font-mono font-bold text-sm">{stock.warehouse}</span></div>
+                          <div><span className="text-text-muted block">Issued</span><span className="font-mono font-bold text-sm">{stock.issued}</span></div>
+                          <div><span className="text-text-muted block">Used</span><span className="font-mono font-bold text-sm">{stock.used}</span></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="min-w-full divide-y divide-border">
                     <thead>
                       <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider">
