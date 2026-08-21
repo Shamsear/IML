@@ -23,6 +23,7 @@ export default async function ReportsPage() {
       name: true,
       itemCode: true,
       category: true,
+      imageUrl: true,
       brandId: true,
       brand: { select: { id: true, name: true } },
     },

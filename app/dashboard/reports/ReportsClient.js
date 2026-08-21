@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Package, Search, Filter, Printer, Download, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, X } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
+import { getOptimizedImageUrl } from '@/lib/cloudinary';
 
 export default function ReportsClient({ initialProducts, brands }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -307,10 +308,15 @@ export default function ReportsClient({ initialProducts, brands }) {
                       <div className="flex items-center gap-3">
                         {p.imageUrl ? (
                           <img 
-                            src={p.imageUrl} 
+                            src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
                             alt={p.name} 
                             className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200 print:w-6 print:h-6"
                             onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
+                            onError={(e) => {
+                              if (e.target.src !== p.imageUrl) {
+                                e.target.src = p.imageUrl;
+                              }
+                            }}
                           />
                         ) : (
                           <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 print:hidden">
