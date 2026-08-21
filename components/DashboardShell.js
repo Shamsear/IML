@@ -97,7 +97,7 @@ export default function DashboardShell({ user, children }) {
         </div>
 
         {/* User Info footer inside sidebar */}
-        <div className="p-4 border-t border-border flex items-center justify-between gap-2 overflow-hidden bg-surface-elevated/30">
+        <div className="p-4 border-t border-border flex items-center justify-between gap-2 overflow-hidden bg-surface-elevated/30 relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
               {user?.name?.charAt(0)?.toUpperCase() || 'A'}

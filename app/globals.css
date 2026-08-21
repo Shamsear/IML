@@ -527,22 +527,7 @@ body {
   text-transform: none;
 }
 
-/* Fixed tooltips for elements inside overflow containers */
-.tooltip-box.tooltip-fixed {
-  position: fixed;
-  z-index: 99999;
-}
 
-.has-tooltip:hover .tooltip-box.tooltip-fixed {
-  display: block;
-}
-
-/* Sidebar tooltip override - show above to avoid overflow clipping */
-.sidebar-nav .has-tooltip:hover .tooltip-box,
-.sidebar-nav .has-tooltip .tooltip-box.tooltip-right {
-  position: fixed;
-  z-index: 99999;
-}
 
 /* Tooltip arrow */
 .tooltip-box::after {
@@ -580,10 +565,7 @@ body {
   transform: translateY(-50%) translateX(4px);
 }
 
-/* Fixed right tooltip for sidebar */
-.sidebar-nav .has-tooltip .tooltip-box.tooltip-right {
-  position: fixed;
-}
+
 
 .tooltip-box.tooltip-right::after {
   top: 50%;
