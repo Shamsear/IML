@@ -13,7 +13,6 @@ export function useTheme() {
 }
 
 export default function ThemeProvider({ children }) {
-  const [theme] = useState('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -21,11 +20,12 @@ export default function ThemeProvider({ children }) {
     setMounted(true);
   }, []);
 
-  const setTheme = () => {
-    document.documentElement.setAttribute('data-theme', 'light');
+  const setTheme = (t) => {
+    document.documentElement.setAttribute('data-theme', t);
   };
 
   const toggleTheme = () => {
+    // Currently locked to light mode
     document.documentElement.setAttribute('data-theme', 'light');
   };
 

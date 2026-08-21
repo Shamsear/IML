@@ -10,48 +10,22 @@ export default function ThemeToggle() {
     <button
       onClick={toggleTheme}
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      style={styles.toggle}
+      className="relative w-9 h-9 flex items-center justify-center bg-surface-elevated border border-border rounded-[var(--radius-sm)] cursor-pointer text-text-secondary transition-all duration-300 overflow-hidden hover:bg-surface-hover hover:text-text-primary"
     >
-      <span style={{
-        ...styles.iconWrap,
-        transform: theme === 'dark' ? 'rotate(0deg)' : 'rotate(180deg)',
-        opacity: theme === 'dark' ? 1 : 0,
-        position: 'absolute',
-      }}>
+      <span
+        className={`flex items-center justify-center transition-all duration-300 ${
+          theme === 'dark' ? 'rotate-0 opacity-100' : 'rotate-180 opacity-0'
+        } absolute`}
+      >
         <Moon size={16} />
       </span>
-      <span style={{
-        ...styles.iconWrap,
-        transform: theme === 'light' ? 'rotate(0deg)' : 'rotate(-180deg)',
-        opacity: theme === 'light' ? 1 : 0,
-        position: 'absolute',
-      }}>
+      <span
+        className={`flex items-center justify-center transition-all duration-300 ${
+          theme === 'light' ? 'rotate-0 opacity-100' : '-rotate-180 opacity-0'
+        } absolute`}
+      >
         <Sun size={16} />
       </span>
     </button>
   );
 }
-
-const styles = {
-  toggle: {
-    position: 'relative',
-    width: '36px',
-    height: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'var(--bg-surface-secondary)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-sm)',
-    cursor: 'pointer',
-    color: 'var(--text-secondary)',
-    transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-    overflow: 'hidden',
-  },
-  iconWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-  },
-};

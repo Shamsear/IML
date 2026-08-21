@@ -100,48 +100,57 @@ export default function GlobalSearch() {
   };
 
   return (
-    <div ref={searchRef} style={styles.searchWrapper}>
+    <div ref={searchRef} className="w-full max-w-[380px] relative">
       {/* Trigger Button */}
-      <button onClick={() => setIsOpen(true)} style={styles.triggerButton}>
-        <Search size={16} style={{ color: 'var(--text-secondary)' }} />
-        <span style={styles.triggerText}>Quick search...</span>
-        <kbd style={styles.shortcut}>Ctrl K</kbd>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="w-full flex items-center bg-surface border border-border rounded-[var(--radius-sm)] px-3.5 py-2 cursor-pointer text-left outline-none hover:border-primary/40 transition-colors"
+      >
+        <Search size={16} className="text-text-secondary flex-shrink-0" />
+        <span className="flex-1 text-sm text-text-secondary ml-2">Quick search...</span>
+        <kbd className="text-xs bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-secondary font-mono">Ctrl K</kbd>
       </button>
 
       {/* Backdrop Overlay Modal */}
       {isOpen && (
-        <div style={styles.overlay} onClick={() => setIsOpen(false)}>
-          <div 
-            className="glass-panel" 
-            style={styles.modal} 
+        <div
+          className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-start justify-center pt-[10vh] z-[9999]"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className="w-full max-w-[600px] bg-surface border border-border rounded-xl shadow-lg flex flex-col overflow-hidden animate-slide-down"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Quick search"
           >
-            <div style={styles.inputContainer}>
-              <Search size={20} style={{ color: 'var(--accent-primary)' }} />
+            {/* Search Input */}
+            <div className="flex items-center gap-4 px-6 py-5 border-b border-border">
+              <Search size={20} className="text-primary flex-shrink-0" />
               <input
                 ref={overlayInputRef}
                 type="text"
-                style={styles.overlayInput}
+                className="flex-1 bg-transparent border-none outline-none text-lg text-text-primary placeholder:text-text-muted"
                 placeholder="Search Barcode, Promoter, Store..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
               />
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ESC to exit</span>
+              <span className="text-sm text-text-muted flex-shrink-0">ESC to exit</span>
             </div>
 
-            <div style={styles.resultsContainer}>
-              {loading && <div style={styles.status}>Searching database...</div>}
-              
+            {/* Results */}
+            <div className="max-h-[400px] overflow-y-auto p-4">
+              {loading && (
+                <div className="text-center py-8 text-text-secondary text-sm">Searching database...</div>
+              )}
+
               {!loading && query.trim().length >= 2 && flatResults.length === 0 && (
-                <div style={styles.status}>No matching records found.</div>
+                <div className="text-center py-8 text-text-secondary text-sm">No matching records found.</div>
               )}
 
               {!loading && flatResults.length > 0 && (
-                <div style={styles.list}>
+                <div className="flex flex-col gap-1">
                   {flatResults.map((item, index) => {
                     const isSelected = index === selectedIndex;
                     return (
@@ -152,24 +161,19 @@ export default function GlobalSearch() {
                         type="button"
                         role="option"
                         aria-selected={isSelected}
-                        style={{
-                          ...styles.item,
-                          width: '100%',
-                          border: 'none',
-                          background: isSelected ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
-                          borderLeft: isSelected ? '3px solid var(--accent-primary)' : '3px solid transparent',
-                          paddingLeft: 'calc(1rem - 3px)',
-                          ...(isSelected ? {} : {})
-                        }}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-[var(--radius-sm)] cursor-pointer transition-colors border-l-[3px] text-left ${
+                          isSelected
+                            ? 'bg-surface-elevated border-l-primary'
+                            : 'bg-transparent border-l-transparent hover:bg-surface-elevated/50'
+                        }`}
                       >
-                        <div style={styles.itemMeta}>
-                          <span style={styles.itemName}>{item.name}</span>
-                          <span style={styles.itemDesc}>{item.desc}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-text-primary">{item.name}</span>
+                          <span className="text-xs text-text-secondary mt-0.5">{item.desc}</span>
                         </div>
-                        <span style={{
-                          ...styles.typeBadge,
-                          color: item.type === 'serial' ? 'var(--color-success)' : 'var(--accent-primary)'
-                        }}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-surface-elevated ${
+                          item.type === 'serial' ? 'text-success' : 'text-primary'
+                        }`}>
                           {item.type.toUpperCase()}
                         </span>
                       </button>
@@ -179,9 +183,9 @@ export default function GlobalSearch() {
               )}
 
               {query.trim().length < 2 && (
-                <div style={styles.help}>
+                <div className="p-4 text-text-secondary text-sm flex flex-col gap-3">
                   <p>Type 2 or more characters to search:</p>
-                  <ul>
+                  <ul className="flex flex-col gap-1.5">
                     <li><strong>Virgin Barcode</strong> (e.g. SIM code)</li>
                     <li><strong>Promoter Name</strong> (e.g. Sarah)</li>
                     <li><strong>Store Outlet</strong> (e.g. Lulu Hypermarket)</li>
@@ -196,137 +200,3 @@ export default function GlobalSearch() {
     </div>
   );
 }
-
-const styles = {
-  searchWrapper: {
-    width: '100%',
-    maxWidth: '380px',
-    position: 'relative',
-  },
-  triggerButton: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid var(--border-color)',
-    borderRadius: 'var(--radius-sm)',
-    padding: '0.5rem 0.85rem',
-    cursor: 'pointer',
-    textAlign: 'left',
-    outline: 'none',
-    transition: 'border-color var(--transition-fast)',
-  },
-  triggerText: {
-    flex: 1,
-    fontSize: '0.9rem',
-    color: 'var(--text-secondary)',
-    marginLeft: '0.5rem',
-  },
-  shortcut: {
-    fontSize: '0.75rem',
-    background: 'rgba(255, 255, 255, 0.08)',
-    border: '1px solid var(--border-color)',
-    padding: '0.1rem 0.35rem',
-    borderRadius: '4px',
-    color: 'var(--text-secondary)',
-    fontFamily: 'monospace',
-  },
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(5, 6, 10, 0.75)',
-    backdropFilter: 'blur(8px)',
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    paddingTop: '10vh',
-    zIndex: 9999,
-  },
-  modal: {
-    width: '100%',
-    maxWidth: '600px',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    boxShadow: 'var(--shadow-lg), var(--shadow-glow)',
-    background: 'rgba(18, 22, 33, 0.95)',
-  },
-  inputContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    padding: '1.25rem 1.5rem',
-    borderBottom: '1px solid var(--border-color)',
-  },
-  overlayInput: {
-    flex: 1,
-    background: 'none',
-    border: 'none',
-    outline: 'none',
-    color: 'var(--text-primary)',
-    fontSize: '1.1rem',
-  },
-  resultsContainer: {
-    maxHeight: '400px',
-    overflowY: 'auto',
-    padding: '1rem',
-  },
-  status: {
-    textAlign: 'center',
-    padding: '2rem',
-    color: 'var(--text-secondary)',
-    fontSize: '0.95rem',
-  },
-  list: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
-  },
-  item: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0.85rem 1rem',
-    borderRadius: 'var(--radius-sm)',
-    cursor: 'pointer',
-    transition: 'background-color var(--transition-fast)',
-  },
-  selectedItem: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    borderLeft: '3px solid var(--accent-primary)',
-    paddingLeft: 'calc(1rem - 3px)',
-  },
-  itemMeta: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  itemName: {
-    fontSize: '0.95rem',
-    fontWeight: '600',
-    color: 'var(--text-primary)',
-  },
-  itemDesc: {
-    fontSize: '0.8rem',
-    color: 'var(--text-secondary)',
-    marginTop: '0.15rem',
-  },
-  typeBadge: {
-    fontSize: '0.7rem',
-    fontWeight: '700',
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid var(--border-color)',
-    padding: '0.2rem 0.5rem',
-    borderRadius: 'var(--radius-sm)',
-  },
-  help: {
-    padding: '1rem',
-    color: 'var(--text-secondary)',
-    fontSize: '0.9rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
-  },
-};

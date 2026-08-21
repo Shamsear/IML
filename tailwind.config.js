@@ -7,49 +7,68 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#fcfbfa', // Warm alabaster background
+        background: 'var(--bg-base)',
         surface: {
-          DEFAULT: '#ffffff', // Pure white cards
-          elevated: '#f4f3f0', // Warm grey elevation
-          popover: '#ffffff'
+          DEFAULT: 'var(--bg-surface)',
+          elevated: 'var(--bg-surface-elevated)',
+          hover: 'var(--bg-surface-hover)',
+          popover: 'var(--bg-surface)',
         },
-        border: 'rgba(0, 0, 0, 0.08)',
+        border: 'var(--border-color)',
+        'border-strong': 'var(--border-color-strong)',
+        'border-accent': 'var(--border-color-accent)',
         primary: {
-          DEFAULT: '#0f766e', // Forest Teal
-          hover: '#0f766e',
-          glow: 'rgba(15, 118, 110, 0.15)'
+          DEFAULT: 'var(--accent-primary)',
+          hover: 'var(--accent-primary-hover)',
+          light: 'var(--accent-primary-light)',
+          subtle: 'var(--accent-primary-subtle)',
+          glow: 'var(--accent-primary-glow)',
         },
         secondary: {
-          DEFAULT: '#d97706', // Warm Amber
-          hover: '#b45309'
+          DEFAULT: 'var(--accent-secondary)',
+          hover: 'var(--accent-secondary-hover)',
+          subtle: 'var(--accent-secondary-subtle)',
         },
         success: {
-          DEFAULT: '#10b981', // Emerald Green
-          hover: '#059669'
+          DEFAULT: 'var(--color-success)',
+          subtle: 'var(--color-success-subtle)',
         },
         warning: {
-          DEFAULT: '#f59e0b', // Amber Warning
-          hover: '#d97706'
+          DEFAULT: 'var(--color-warning)',
+          subtle: 'var(--color-warning-subtle)',
         },
         danger: {
-          DEFAULT: '#ef4444', // Rose Red
-          hover: '#dc2626'
+          DEFAULT: 'var(--color-danger)',
+          subtle: 'var(--color-danger-subtle)',
+        },
+        info: {
+          DEFAULT: 'var(--color-info)',
+          subtle: 'var(--color-info-subtle)',
         },
         text: {
-          primary: '#0f172a', // Deep Slate 900
-          secondary: '#475569', // Cool Grey 600
-          muted: '#94a3b8' // Slate 400
-        }
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+          inverse: 'var(--text-inverse)',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        display: ['Outfit', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace']
+        sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Outfit', 'sans-serif'],
+        mono: ['var(--font-mono)', 'JetBrains Mono', 'monospace'],
+      },
+      borderRadius: {
+        xs: 'var(--radius-xs)',
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
       },
       boxShadow: {
-        glow: '0 0 15px var(--tw-shadow-color)',
-        glass: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
-      }
+        sm: 'var(--shadow-sm)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+        glow: 'var(--shadow-glow)',
+      },
     }
   },
   plugins: [],
