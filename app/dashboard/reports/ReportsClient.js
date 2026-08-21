@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Package, Search, Filter, Printer, Download, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, X } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
-import { getOptimizedImageUrl } from '@/lib/cloudinary';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function ReportsClient({ initialProducts, brands }) {
   const [searchQuery, setSearchQuery] = useState('');

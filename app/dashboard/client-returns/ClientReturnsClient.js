@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck } from 'lucide-react';
 import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
-import { getOptimizedImageUrl } from '@/lib/cloudinary';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 // Beep audio synthesizer
 const playBeep = () => {
