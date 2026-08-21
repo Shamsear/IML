@@ -754,7 +754,6 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         title={confirmData.title}
         message={confirmData.message}
       />
-      )}
 
       <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
         {/* Destination Header */}
