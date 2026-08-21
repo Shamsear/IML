@@ -2275,3 +2275,219 @@ export async function getRecentDirectSellers() {
   return transactions.map(t => t.toEntityId).filter(Boolean);
 }
 
+export async function createBulkClientReturnTransactions(payload) {
+  await checkAuth();
+
+  const {
+    brandId,
+    receivedBy,
+    deliverySupervisorId,
+    transactionDate,
+    globalNotes,
+    items = [], // Array of { productId, quantity, barcodes = [], notes }
+  } = payload;
+
+  if (!brandId) throw new Error('Client brand selection is required');
+  if (items.length === 0) throw new Error('At least one item is required to log a return');
+
+  const brand = await prisma.brand.findUnique({
+    where: { id: brandId }
+  });
+  if (!brand) throw new Error('Brand not found');
+
+  const transactions = await prisma.$transaction(async (tx) => {
+    const createdTxs = [];
+    // Generate a single custom reference code (Gate Pass) for all items in this return batch
+    const deliveryNote = await generateCustomRef(tx, 'CRN', brand.name, transactionDate);
+
+    for (const item of items) {
+      const { productId, quantity, barcodes = [], notes } = item;
+
+      if (!productId) throw new Error('Product ID is required for all items');
+      if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0');
+
+      const product = await tx.product.findUnique({
+        where: { id: productId }
+      });
+      if (!product) throw new Error(`Product not found for ID: ${productId}`);
+
+      // Verify stock levels in central warehouse for bulk products
+      if (!product.isSerialized) {
+        const currentStock = await getStockAtLocation(productId, 'WAREHOUSE', 'MAIN');
+        if (currentStock < quantity) {
+          throw new Error(`Insufficient stock for "${product.name}". Available warehouse stock is ${currentStock}, requested ${quantity}.`);
+        }
+      }
+
+      // Create transaction record
+      const invTx = await tx.inventoryTransaction.create({
+        data: {
+          productId,
+          transactionType: 'CLIENT_RETURN',
+          fromEntityType: 'WAREHOUSE',
+          fromEntityId: 'MAIN',
+          toEntityType: 'BRAND',
+          toEntityId: brandId,
+          quantity,
+          deliveryNote,
+          notes: (() => {
+            const itemNote = notes?.trim() || '';
+            const gNotes = globalNotes?.trim() || '';
+            if (gNotes && itemNote) return `${gNotes} | ${itemNote}`;
+            return gNotes || itemNote || null;
+          })(),
+          receivedBy,
+          deliverySupervisorId: deliverySupervisorId || null,
+          deliveryStatus: 'Delivered',
+          timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
+        }
+      });
+
+      // Update serials and create mapping records
+      if (product.isSerialized && barcodes.length > 0) {
+        const dbSerials = await tx.productSerialNumber.findMany({
+          where: {
+            productId,
+            barcode: { in: barcodes }
+          }
+        });
+
+        if (dbSerials.length !== barcodes.length) {
+          throw new Error(`Some barcodes for product "${product.name}" could not be found.`);
+        }
+
+        const invalidSerials = dbSerials.filter(
+          s => s.currentLocationType !== 'WAREHOUSE' || s.currentLocationId !== 'MAIN'
+        );
+        if (invalidSerials.length > 0) {
+          throw new Error(`Some barcodes for product "${product.name}" are not present in the Central Warehouse.`);
+        }
+
+        // Bulk update status to WITH_CLIENT
+        await tx.productSerialNumber.updateMany({
+          where: {
+            id: { in: dbSerials.map(s => s.id) }
+          },
+          data: {
+            status: 'WITH_CLIENT',
+            currentLocationType: 'BRAND',
+            currentLocationId: brandId
+          }
+        });
+
+        // Link to transaction
+        await tx.transactionSerialNumber.createMany({
+          data: dbSerials.map(serial => ({
+            transactionId: invTx.id,
+            serialNumberId: serial.id
+          }))
+        });
+      }
+
+      createdTxs.push(invTx);
+    }
+    return createdTxs;
+  }, { timeout: 25000 });
+
+  revalidatePath('/dashboard/client-returns');
+  revalidatePath('/dashboard/transactions');
+  return transactions;
+}
+
+export async function getClientReturnsBalances() {
+  await checkAuth();
+
+  const txs = await prisma.inventoryTransaction.findMany({
+    where: {
+      OR: [
+        { toEntityType: 'BRAND' },
+        { fromEntityType: 'BRAND' }
+      ]
+    },
+    select: {
+      productId: true,
+      toEntityType: true,
+      toEntityId: true,
+      fromEntityType: true,
+      fromEntityId: true,
+      quantity: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          category: true,
+          isSerialized: true,
+          brand: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const balances = {};
+
+  for (const tx of txs) {
+    const isToBrand = tx.toEntityType === 'BRAND';
+    const brandId = isToBrand ? tx.toEntityId : tx.fromEntityId;
+    
+    if (!brandId) continue;
+
+    const brandName = tx.product.brand?.name || 'General';
+    const prodId = tx.productId;
+    const key = `${brandId}_${prodId}`;
+
+    if (!balances[key]) {
+      balances[key] = {
+        brandId,
+        brandName,
+        productId: prodId,
+        productName: tx.product.name,
+        itemCode: tx.product.itemCode,
+        category: tx.product.category,
+        isSerialized: tx.product.isSerialized,
+        quantity: 0,
+        serialNumbers: []
+      };
+    }
+
+    const qtyChange = isToBrand ? tx.quantity : -tx.quantity;
+    balances[key].quantity += qtyChange;
+  }
+
+  const finalBalances = [];
+  for (const key in balances) {
+    const bal = balances[key];
+    if (bal.quantity > 0) {
+      if (bal.isSerialized) {
+        const serials = await prisma.productSerialNumber.findMany({
+          where: {
+            productId: bal.productId,
+            status: 'WITH_CLIENT',
+            currentLocationType: 'BRAND',
+            currentLocationId: bal.brandId
+          },
+          select: {
+            id: true,
+            barcode: true,
+            manufactureDate: true,
+            expiryDate: true
+          }
+        });
+        bal.serialNumbers = serials;
+        bal.quantity = serials.length;
+      }
+      
+      if (bal.quantity > 0) {
+        finalBalances.push(bal);
+      }
+    }
+  }
+
+  return finalBalances;
+}
+
