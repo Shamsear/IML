@@ -293,7 +293,7 @@ export default function ScanCompanionClient({ session }) {
   // Error/Success state displays
   if (!session) {
     return (
-      <div className="h-[100dvh] bg-[#fcfbfa] flex flex-col items-center justify-center p-6 text-center font-sans overflow-hidden">
+      <div className="h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center font-sans overflow-hidden">
         <div className="w-16 h-16 rounded-full bg-danger/10 text-danger flex items-center justify-center mb-4">
           <AlertCircle size={32} />
         </div>
@@ -306,7 +306,7 @@ export default function ScanCompanionClient({ session }) {
   }
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-[#fcfbfa] flex flex-col font-sans">
+    <div className="h-[100dvh] overflow-hidden bg-background flex flex-col font-sans">
       {/* Header banner */}
       <header className="bg-surface border-b border-border py-4 px-6 flex items-center justify-between sticky top-0 z-50 flex-shrink-0">
         <div className="flex items-center gap-2">

@@ -13,6 +13,7 @@ module.exports = {
           elevated: 'var(--bg-surface-elevated)',
           hover: 'var(--bg-surface-hover)',
           popover: 'var(--bg-surface)',
+          sticky: 'var(--bg-sticky)',
         },
         border: 'var(--border-color)',
         'border-strong': 'var(--border-color-strong)',

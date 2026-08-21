@@ -9,7 +9,7 @@ export default async function BrandPortalPage({ params }) {
 
   if (!brand) {
     return (
-      <div className="min-h-[100dvh] bg-[#fcfbfa] flex flex-col items-center justify-center p-6 text-center font-sans">
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center font-sans">
         <div className="w-16 h-16 rounded-full bg-danger/10 text-danger flex items-center justify-center mb-4">
           <AlertCircle size={32} />
         </div>

@@ -204,7 +204,7 @@ export default function BrandPortalClient({ brand }) {
   const groupedLogs = getGroupedTransactions(paginatedTransactions);
 
   return (
-    <div className="min-h-[100dvh] bg-[#fcfbfa] text-text-primary py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-[100dvh] bg-background text-text-primary py-8 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         
         {/* Portal Branding Header */}
@@ -214,7 +214,7 @@ export default function BrandPortalClient({ brand }) {
               <img 
                 src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
                 alt={brand.name} 
-                className="w-16 h-16 rounded-xl object-contain bg-[#fcfbfa] p-1.5 border border-border cursor-pointer hover:border-primary transition-colors"
+                className="w-16 h-16 rounded-xl object-contain bg-background p-1.5 border border-border cursor-pointer hover:border-primary transition-colors"
                 onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
                 onError={(e) => {
                   if (e.target.src !== brand.imageUrl) {
@@ -404,7 +404,7 @@ export default function BrandPortalClient({ brand }) {
                                   <img 
                                     src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
                                     alt={p.name} 
-                                    className="w-8 h-8 rounded-lg object-contain bg-[#fcfbfa] p-0.5 border border-border cursor-pointer hover:border-primary transition-all flex-shrink-0"
+                                    className="w-8 h-8 rounded-lg object-contain bg-background p-0.5 border border-border cursor-pointer hover:border-primary transition-all flex-shrink-0"
                                     onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
                                     onError={(e) => {
                                       if (e.target.src !== p.imageUrl) {

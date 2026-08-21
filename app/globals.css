@@ -21,6 +21,7 @@ html {
   --bg-surface-hover: #ececea;
   --bg-inset: #f4f3f0;
   --bg-surface-active: #e4e3e0;
+  --bg-sticky: #faf9f6;
   --bg-overlay: rgba(15, 23, 42, 0.4);
 
   /* ---- Glass & Borders ---- */
