@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
-import ServerExportToExcel from '@/components/ServerExportToExcel';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export const metadata = {
   title: 'Loss Ledger - Inventory System',
@@ -70,7 +70,7 @@ export default async function LossPage({ searchParams }) {
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <ServerExportToExcel
+          <ExportToExcel
             data={transactions.map(tx => ({
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
               Product: tx.product?.name || '',

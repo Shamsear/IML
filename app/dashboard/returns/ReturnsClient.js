@@ -7,6 +7,7 @@ import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
 import ExportToExcel from '@/components/ExportToExcel';
+import PageHeader from '@/components/PageHeader';
 
 export default function ReturnsClient({ transactions, stores, pastReturns = [] }) {
   const router = useRouter();
@@ -103,20 +104,11 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
 
   return (
     <div className="flex flex-col gap-6 relative">
-      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
-        <RotateCcw size={250} />
-      </div>
-
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border z-10 relative">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight flex items-center gap-3">
-            <RotateCcw className="text-primary" size={28} /> Stock Returns
-          </h1>
-          <p className="text-sm font-medium text-text-secondary mt-1">
-            Return issued stock back to the warehouse. Only returnable products appear here.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
+      <PageHeader
+        icon={RotateCcw}
+        title="Stock Returns"
+        description="Return issued stock back to the warehouse. Only returnable products appear here."
+        actions={<>
           <ExportToExcel
             data={transactions.map(tx => ({
               Barcode: tx.barcode,
@@ -140,8 +132,8 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
             ]}
             filename="IML-Returns"
           />
-        </div>
-      </header>
+        </>
+      }
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-fit">

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ShieldAlert } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
-import ServerExportToExcel from '@/components/ServerExportToExcel';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export const metadata = {
   title: 'Damage Ledger - Inventory System',
@@ -72,7 +72,7 @@ export default async function DamagePage({ searchParams }) {
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <CopyDeliveryNoteButton type="damage" />
-          <ServerExportToExcel
+          <ExportToExcel
             data={transactions.map(tx => ({
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
               Product: tx.product?.name || '',

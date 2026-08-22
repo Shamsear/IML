@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Package, Search, Filter, Printer, Download, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, X } from 'lucide-react';
-import CustomSelect from '@/components/CustomSelect';
+import { Package, Printer, Download } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import ExportToExcel from '@/components/ExportToExcel';
+import { getProductStock } from '@/lib/stock';
+import PageHeader from '@/components/PageHeader';
+import Pagination from '@/components/Pagination';
+import FilterBar from '@/components/FilterBar';
+import StockBreakdown from '@/components/StockBreakdown';
+import ImageLightbox from '@/components/ImageLightbox';
 
 export default function ReportsClient({ initialProducts, brands }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,91 +25,6 @@ export default function ReportsClient({ initialProducts, brands }) {
   React.useEffect(() => {
     setCurrentPage(0);
   }, [searchQuery, selectedBrand, selectedCategory]);
-
-  // Compute stock levels for a product from its transactions
-  const getProductStock = (rawTransactions) => {
-    const transactions = [...rawTransactions];
-
-    let totalQtyMarkedUsed = 0;
-    transactions.forEach(t => {
-      if (t.transactionType === 'ISSUE' && t.fromEntityType !== 'STORE' && t.returnStatus === 'USED') {
-        totalQtyMarkedUsed += t.quantity || 0;
-      }
-    });
-
-    let totalQtyStoreToStaff = 0;
-    transactions.forEach(t => {
-      if (t.transactionType === 'ISSUE' && t.fromEntityType === 'STORE' && t.toEntityType === 'STAFF') {
-        totalQtyStoreToStaff += t.quantity || 0;
-      }
-    });
-
-    const virtualQty = Math.max(0, totalQtyMarkedUsed - totalQtyStoreToStaff);
-    if (virtualQty > 0) {
-      transactions.push({
-        transactionType: 'ISSUE',
-        fromEntityType: 'STORE',
-        toEntityType: 'STAFF',
-        quantity: virtualQty,
-      });
-    }
-
-    let purchased = 0;
-    let warehouse = 0;
-    let issued = 0;
-    let used = 0;
-    let withClient = 0;
-    let damage = 0;
-    let lost = 0;
-    let reBrand = 0;
-    
-    transactions.forEach(t => {
-      const qty = t.quantity || 0;
-      if (t.transactionType === 'RECEIVE') {
-        purchased += qty;
-        warehouse += qty;
-      } else if (t.transactionType === 'ISSUE') {
-        if (t.fromEntityType === 'STORE') {
-          issued -= qty;
-          if (t.toEntityType === 'STAFF') used += qty;
-        } else {
-          warehouse -= qty;
-          if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
-          else if (t.toEntityType === 'STAFF') used += qty;
-          else if (t.toEntityType === 'CLIENT' || t.toEntityType === 'BRAND') withClient += qty;
-        }
-      } else if (t.transactionType === 'CLIENT_RETURN') {
-        warehouse -= qty;
-        withClient += qty;
-      } else if (t.transactionType === 'RETURN') {
-        warehouse += qty;
-        if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-      } else if (t.transactionType === 'DAMAGE') {
-        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-        damage += qty;
-      } else if (t.transactionType === 'LOST') {
-        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-        lost += qty;
-      } else if (t.transactionType === 'REBRAND_OUT') {
-        warehouse -= qty;
-        reBrand += qty;
-      } else if (t.transactionType === 'REBRAND_IN') {
-        warehouse += qty;
-      }
-    });
-
-    const total = warehouse + issued + used + damage + lost + withClient + reBrand;
-
-    return { purchased, warehouse, issued, used, damage, lost, withClient, reBrand, total };
-  };
 
   // Compile products list with computed metrics
   const productsWithStock = initialProducts.map(p => {
@@ -154,19 +74,11 @@ export default function ReportsClient({ initialProducts, brands }) {
         <Package size={250} />
       </div>
       
-      {/* Header View */}
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-5 border-b border-border print:border-b-2 print:border-black print:pb-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight print:text-xl print:font-black">
-            Global Stock Summary Report
-          </h1>
-          <p className="text-text-secondary text-sm mt-1 print:text-xs">
-            Comprehensive audit report of stock distributions across Warehouse, Outlets, and Staff
-          </p>
-        </div>
-
-        {/* Action triggers */}
-        <div className="flex items-center gap-2.5 flex-wrap print:hidden">
+      <PageHeader
+        icon={Package}
+        title="Global Stock Summary Report"
+        description="Comprehensive audit report of stock distributions across Warehouse, Outlets, and Staff"
+        actions={<>
           <button 
             type="button" 
             onClick={handlePrint}
@@ -183,8 +95,8 @@ export default function ReportsClient({ initialProducts, brands }) {
                 Brand: p.brand?.name || '',
                 Category: p.category || '',
                 Warehouse: stock.warehouse,
-                'In Stores': stock.stores,
-                'With Staff': stock.staff,
+                Issued: stock.issued,
+                Used: stock.used,
                 Total: stock.total,
               };
             })}
@@ -193,8 +105,8 @@ export default function ReportsClient({ initialProducts, brands }) {
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'Category', key: 'Category', width: 16 },
               { header: 'Warehouse', key: 'Warehouse', width: 12 },
-              { header: 'In Stores', key: 'In Stores', width: 12 },
-              { header: 'With Staff', key: 'With Staff', width: 12 },
+              { header: 'Issued', key: 'Issued', width: 12 },
+              { header: 'Used', key: 'Used', width: 12 },
               { header: 'Total', key: 'Total', width: 10 },
             ]}
             filename="IML-Stock-Report"
@@ -205,7 +117,7 @@ export default function ReportsClient({ initialProducts, brands }) {
               const headers = ['Product', 'Brand', 'Category', 'Warehouse', 'In Stores', 'With Staff', 'Total'];
               const rows = filteredProducts.map(p => {
                 const stock = getProductStock(p.transactions || []);
-                return [p.name, p.brand?.name || '', p.category || '', stock.warehouse, stock.stores, stock.staff, stock.total];
+                return [p.name, p.brand?.name || '', p.category || '', stock.warehouse, stock.issued, stock.used, stock.total];
               });
               const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
               const blob = new Blob([csv], { type: 'text/csv' });
@@ -219,10 +131,9 @@ export default function ReportsClient({ initialProducts, brands }) {
             <Download size={15} />
             <span>Export CSV</span>
           </button>
-        </div>
-      </header>
-
-      {/* Aggregate telemetry tiles */}
+        </>
+      }
+      />
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 print:grid-cols-6 print:gap-1.5">
         <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
           <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider print:text-[8px]">Filtered Items</span>
@@ -277,45 +188,15 @@ export default function ReportsClient({ initialProducts, brands }) {
         </div>
       </section>
 
-      {/* Control filters card */}
-      <div className="bg-surface border border-border rounded-xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 items-end print:hidden">
-        {/* Search Input */}
-        <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Search Catalogue</label>
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={13} />
-            <input
-              type="text"
-              placeholder="Search by name or SKU..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-[34px]"
-            />
-          </div>
-        </div>
-
-        {/* Brand Filter */}
-        <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Brand Owner</label>
-          <CustomSelect
-            options={[{ value: 'ALL', label: 'All Brands' }, ...brands.map(b => ({ value: b.id, label: b.name }))]}
-            value={selectedBrand}
-            onChange={(val) => setSelectedBrand(val)}
-            size="sm"
-          />
-        </div>
-
-        {/* Category Filter */}
-        <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Category</label>
-          <CustomSelect
-            options={[{ value: 'ALL', label: 'All Categories' }, ...categories.map(cat => ({ value: cat, label: cat }))]}
-            value={selectedCategory}
-            onChange={(val) => setSelectedCategory(val)}
-            size="sm"
-          />
-        </div>
-      </div>
+      <FilterBar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search by name or SKU..."
+        filters={[
+          { label: 'Brand Owner', value: selectedBrand, onChange: setSelectedBrand, options: [{ value: 'ALL', label: 'All Brands' }, ...brands.map(b => ({ value: b.id, label: b.name }))] },
+          { label: 'Category', value: selectedCategory, onChange: setSelectedCategory, options: [{ value: 'ALL', label: 'All Categories' }, ...categories.map(cat => ({ value: cat, label: cat }))] },
+        ]}
+      />
 
       {/* Mobile Card View */}
       {filteredProducts.length === 0 ? (
@@ -343,18 +224,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                 </div>
                 <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{p.stock.total}</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-2 border-t border-border/50">
-                <div><span className="text-text-muted block">Warehouse</span><span className="font-mono font-bold text-sm">{p.stock.warehouse}</span></div>
-                <div><span className="text-text-muted block">Issued</span><span className="font-mono font-bold text-sm">{p.stock.issued}</span></div>
-                <div><span className="text-text-muted block">Used</span><span className="font-mono font-bold text-sm">{p.stock.used}</span></div>
-              </div>
-              {(p.stock.damage > 0 || p.stock.lost > 0 || p.stock.withClient > 0) && (
-                <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                  {p.stock.damage > 0 && <div><span className="text-text-muted block">Damage</span><span className="font-mono font-bold text-sm text-danger">{p.stock.damage}</span></div>}
-                  {p.stock.lost > 0 && <div><span className="text-text-muted block">Lost</span><span className="font-mono font-bold text-sm text-danger">{p.stock.lost}</span></div>}
-                  {p.stock.withClient > 0 && <div><span className="text-text-muted block">Client</span><span className="font-mono font-bold text-sm text-primary">{p.stock.withClient}</span></div>}
-                </div>
-              )}
+              <StockBreakdown stock={p.stock} />
             </div>
           ))}
         </div>
@@ -441,69 +311,16 @@ export default function ReportsClient({ initialProducts, brands }) {
         )}
       </div>
 
-      {/* Shared Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
-          <span className="text-text-muted">
-            Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{' '}
-            <strong className="text-text-primary">
-              {Math.min((currentPage + 1) * itemsPerPage, filteredProducts.length)}
-            </strong> of{' '}
-            <strong className="text-text-primary">{filteredProducts.length}</strong> products
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              disabled={currentPage === 0}
-              onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
-              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              disabled={currentPage === totalPages - 1}
-              onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
-              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage + 1}
+        totalPages={totalPages}
+        totalItems={filteredProducts.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={(page) => setCurrentPage(page - 1)}
+        itemLabel="products"
+      />
 
-      {/* Lightbox Modal */}
-      {lightboxImage && (
-        <div 
-          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none print:hidden"
-          onClick={() => setLightboxImage(null)}
-        >
-          <button 
-            type="button"
-            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightboxImage(null);
-            }}
-          >
-            <X size={20} />
-          </button>
-          
-          <div 
-            className="relative max-w-4xl max-h-[80vh] flex flex-col items-center gap-4 cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img 
-              src={lightboxImage.url} 
-              alt={lightboxImage.name} 
-              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/15 animate-scale-up"
-            />
-            <span className="text-white text-sm font-semibold tracking-wide text-center">
-              {lightboxImage.name}
-            </span>
-          </div>
-        </div>
-      )}
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

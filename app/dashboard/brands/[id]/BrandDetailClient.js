@@ -13,6 +13,8 @@ import {
   ArrowLeft, Store, Plus, Package, Edit2, Trash2, QrCode, 
   Loader2, X, Link as LinkIcon, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight, Share2
 } from 'lucide-react';
+import { getProductStock } from '@/lib/stock';
+import StockBreakdown from '@/components/StockBreakdown';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 
@@ -275,90 +277,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     }
   };
 
-  const calculateStock = (rawTransactions) => {
-    const transactions = [...(rawTransactions || [])];
-
-    let totalQtyMarkedUsed = 0;
-    transactions.forEach(t => {
-      if (t.transactionType === 'ISSUE' && t.fromEntityType !== 'STORE' && t.returnStatus === 'USED') {
-        totalQtyMarkedUsed += t.quantity || 0;
-      }
-    });
-
-    let totalQtyStoreToStaff = 0;
-    transactions.forEach(t => {
-      if (t.transactionType === 'ISSUE' && t.fromEntityType === 'STORE' && t.toEntityType === 'STAFF') {
-        totalQtyStoreToStaff += t.quantity || 0;
-      }
-    });
-
-    const virtualQty = Math.max(0, totalQtyMarkedUsed - totalQtyStoreToStaff);
-    if (virtualQty > 0) {
-      transactions.push({
-        transactionType: 'ISSUE',
-        fromEntityType: 'STORE',
-        toEntityType: 'STAFF',
-        quantity: virtualQty,
-      });
-    }
-
-    let purchased = 0;
-    let warehouse = 0;
-    let issued = 0;
-    let used = 0;
-    let withClient = 0;
-    let damage = 0;
-    let lost = 0;
-    let reBrand = 0;
-    
-    transactions.forEach(t => {
-      const qty = t.quantity || 0;
-      if (t.transactionType === 'RECEIVE') {
-        purchased += qty;
-        warehouse += qty;
-      } else if (t.transactionType === 'ISSUE') {
-        if (t.fromEntityType === 'STORE') {
-          issued -= qty;
-          if (t.toEntityType === 'STAFF') used += qty;
-        } else {
-          warehouse -= qty;
-          if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
-          else if (t.toEntityType === 'STAFF') used += qty;
-          else if (t.toEntityType === 'CLIENT' || t.toEntityType === 'BRAND') withClient += qty;
-        }
-      } else if (t.transactionType === 'CLIENT_RETURN') {
-        warehouse -= qty;
-        withClient += qty;
-      } else if (t.transactionType === 'RETURN') {
-        warehouse += qty;
-        if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-      } else if (t.transactionType === 'DAMAGE') {
-        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-        damage += qty;
-      } else if (t.transactionType === 'LOST') {
-        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-        lost += qty;
-      } else if (t.transactionType === 'REBRAND_OUT') {
-        warehouse -= qty;
-        reBrand += qty;
-      } else if (t.transactionType === 'REBRAND_IN') {
-        warehouse += qty;
-      }
-    });
-
-    const total = warehouse + issued + used + damage + lost + withClient + reBrand;
-
-    return { purchased, warehouse, issued, used, damage, lost, withClient, reBrand, total };
-  };
-
   const itemsPerPage = 25;
   const totalPages = Math.ceil(brand.products.length / itemsPerPage);
   const paginatedProducts = brand.products.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
@@ -494,7 +412,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           {/* Mobile Card View */}
           <div className="md:hidden flex flex-col gap-3">
             {paginatedProducts.map(product => {
-              const stock = calculateStock(product.transactions);
+              const stock = getProductStock(product.transactions);
               return (
                 <div key={product.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-3">
@@ -514,12 +432,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                       </div>
                     </div>
                     <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{stock.total}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-2 border-t border-border/50">
-                    <div><span className="text-text-muted block">Warehouse</span><span className="font-mono font-bold text-sm">{stock.warehouse}</span></div>
-                    <div><span className="text-text-muted block">Issued</span><span className="font-mono font-bold text-sm">{stock.issued}</span></div>
-                    <div><span className="text-text-muted block">Used</span><span className="font-mono font-bold text-sm">{stock.used}</span></div>
-                  </div>
+                  </div>                   <StockBreakdown stock={stock} compact />
                   <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
                     <div className="flex items-center gap-2">
                       <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-success font-semibold hover:underline inline-flex items-center gap-0.5"><ArrowDownLeft size={11} /> Recv</Link>
@@ -572,7 +485,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                 </thead>
                 <tbody className="divide-y divide-border text-text-primary">
                   {paginatedProducts.map(product => {
-                    const stock = calculateStock(product.transactions);
+                    const stock = getProductStock(product.transactions);
                     return (
                       <tr key={product.id} className="hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/20 transition-colors group/row">
                         <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10">

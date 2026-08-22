@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { RefreshCw, Plus } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
-import ServerExportToExcel from '@/components/ServerExportToExcel';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export const metadata = {
   title: 'Stock Rebranding Ledger - Inventory System',
@@ -62,7 +62,7 @@ export default async function RebrandPage({ searchParams }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <ServerExportToExcel
+          <ExportToExcel
             data={transactions.map(tx => ({
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
               Type: tx.transactionType === 'REBRAND_OUT' ? 'Rebrand Out' : 'Rebrand In',

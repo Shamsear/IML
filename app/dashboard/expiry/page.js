@@ -46,37 +46,36 @@ export default async function ExpiryPage() {
     },
   });
 
-  // Map transactions to batch objects
-  // Group by product and show only products with warehouse stock > 0
+  // Pre-compute correct warehouse stock per product using the same logic
+  // as computeWarehouseStockMap (handles RECEIVE/RETURN/ISSUE/DAMAGE/LOST/etc.)
+  const warehouseStockMap = new Map();
+  transactions.forEach((tx) => {
+    const pid = tx.productId;
+    if (!warehouseStockMap.has(pid)) {
+      // Collect all transactions for this product from the nested relation
+      const allTxs = tx.product?.transactions || [];
+      let stock = 0;
+      allTxs.forEach(t => {
+        const qty = t.quantity || 0;
+        if (t.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(t.transactionType)) {
+          stock += qty;
+        } else if (t.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(t.transactionType)) {
+          stock -= qty;
+        }
+      });
+      warehouseStockMap.set(pid, Math.max(0, stock));
+    }
+  });
+
+  // Map transactions to batch objects — group by product, keep earliest expiry
   const productBatchMap = new Map();
   
   transactions.forEach((tx) => {
     const productId = tx.productId;
-    
-    // Calculate current warehouse stock for this product dynamically
-    let warehouseStock = 0;
-    if (tx.product?.transactions) {
-      tx.product.transactions.forEach(t => {
-        const qty = t.quantity || 0;
-        if (t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN') {
-          if (t.toEntityType === 'WAREHOUSE') {
-            warehouseStock += qty;
-          }
-        } else if (t.transactionType === 'ISSUE' || t.transactionType === 'DAMAGE' || t.transactionType === 'LOST' || t.transactionType === 'REBRAND_OUT') {
-          if (t.fromEntityType === 'WAREHOUSE') {
-            warehouseStock -= qty;
-          }
-        } else if (t.transactionType === 'CLIENT_RETURN') {
-          warehouseStock -= qty;
-        }
-      });
-    }
-
-    warehouseStock = Math.max(0, warehouseStock);
+    const warehouseStock = warehouseStockMap.get(productId) || 0;
     
     // Only process if product has stock in warehouse
     if (warehouseStock > 0) {
-      // Keep track of earliest expiry batch per product
       if (!productBatchMap.has(productId) || 
           (tx.expiryDate && productBatchMap.get(productId).expiryDate && 
            new Date(tx.expiryDate) < new Date(productBatchMap.get(productId).expiryDate))) {
@@ -91,7 +90,7 @@ export default async function ExpiryPage() {
           deliveryNote: tx.deliveryNote || 'N/A',
           supplier: tx.fromEntityId || 'Unknown Supplier',
           receivedQty: tx.quantity,
-          remainingBatchStock: warehouseStock, // Dynamic warehouse stock
+          remainingBatchStock: warehouseStock,
           receivedDate: tx.timestamp,
           manufactureDate: tx.manufactureDate,
           expiryDate: tx.expiryDate,

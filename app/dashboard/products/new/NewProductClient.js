@@ -10,26 +10,7 @@ import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import DashboardLoading from '@/app/dashboard/loading';
-
-// Synthesize a premium barcode scanner beep sound (100% fileless/client-only)
-const playBeep = () => {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = 900; // High pitch crisp beep
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.03);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.12);
-  } catch (e) {
-    console.error(e);
-  }
-};
+import { playBeep } from '@/lib/audio';
 
 export default function NewProductClient({ brands, stores = [], editId: propEditId = null, existingCategories = [], recentSuppliers = [], recentReceivers = [] }) {
   const router = useRouter();

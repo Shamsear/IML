@@ -8,26 +8,7 @@ import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
-
-// Beep audio synthesizer
-const playBeep = () => {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = 850;
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.02);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.10);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.10);
-  } catch (e) {
-    console.error("Beep synth failed:", e);
-  }
-};
+import { playBeep } from '@/lib/audio';
 
 export default function ClientReturnsClient({ brands, products, supervisors }) {
   const router = useRouter();

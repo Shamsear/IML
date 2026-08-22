@@ -7,6 +7,7 @@ import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
 import ExportToExcel from '@/components/ExportToExcel';
+import PageHeader from '@/components/PageHeader';
 
 export default function UsedClient({ transactions, stores, pastUsed = [] }) {
   const router = useRouter();
@@ -92,19 +93,11 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
 
   return (
     <div className="flex flex-col gap-6 relative">
-      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
-        <Trash2 size={250} />
-      </div>
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight flex items-center gap-3">
-            <Trash2 className="text-warning" size={28} /> Mark as Used / Consumed
-          </h1>
-          <p className="text-sm font-medium text-text-secondary mt-1">
-            Mark disposable items as fully used. Stock will not return to warehouse.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
+      <PageHeader
+        icon={Trash2}
+        title="Mark as Used / Consumed"
+        description="Mark disposable items as fully used. Stock will not return to warehouse."
+        actions={<>
           <ExportToExcel
             data={transactions.map(tx => ({
               Barcode: tx.barcode,
@@ -128,8 +121,8 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
             ]}
             filename="IML-Used-Items"
           />
-        </div>
-      </header>
+        </>
+      }
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-fit">

@@ -8,6 +8,9 @@ import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
+import PageHeader from '@/components/PageHeader';
+import Pagination from '@/components/Pagination';
+import DeliveryNoteGroup from '@/components/DeliveryNoteGroup';
 
 export default function InboundLedgerClient({ transactions, totalCount, totalPages, page, entityNames }) {
   const router = useRouter();
@@ -93,19 +96,11 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
 
   return (
     <div className="flex flex-col gap-6 relative">
-      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
-        <ArrowDownLeft size={250} />
-      </div>
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 border-b border-border">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
-            Inbound Stock Receipts
-          </h1>
-          <p className="text-text-secondary text-sm mt-1">
-            Audit logs of all incoming stock received at the warehouse.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
+      <PageHeader
+        icon={ArrowDownLeft}
+        title="Inbound Stock Receipts"
+        description="Audit logs of all incoming stock received at the warehouse."
+        actions={<>
           <CopyDeliveryNoteButton type="inbound" noteType="Receive" />
           <ExportToExcel
             data={filteredTransactions.map(tx => ({
@@ -139,8 +134,8 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
             <Plus size={16} />
             <span>New Inbound Receipt</span>
           </Link>
-        </div>
-      </header>
+        </>
+      }
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-border">

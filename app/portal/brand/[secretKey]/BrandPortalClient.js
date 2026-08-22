@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, Filter, X } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import { getProductStock } from '@/lib/stock';
+import StockBreakdown from '@/components/StockBreakdown';
 
 export default function BrandPortalClient({ brand }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,90 +32,6 @@ export default function BrandPortalClient({ brand }) {
   React.useEffect(() => {
     setMounted(true);
   }, []);
-
-  const getProductStock = (rawTransactions) => {
-    const transactions = [...rawTransactions];
-
-    let totalQtyMarkedUsed = 0;
-    transactions.forEach(t => {
-      if (t.transactionType === 'ISSUE' && t.fromEntityType !== 'STORE' && t.returnStatus === 'USED') {
-        totalQtyMarkedUsed += t.quantity || 0;
-      }
-    });
-
-    let totalQtyStoreToStaff = 0;
-    transactions.forEach(t => {
-      if (t.transactionType === 'ISSUE' && t.fromEntityType === 'STORE' && t.toEntityType === 'STAFF') {
-        totalQtyStoreToStaff += t.quantity || 0;
-      }
-    });
-
-    const virtualQty = Math.max(0, totalQtyMarkedUsed - totalQtyStoreToStaff);
-    if (virtualQty > 0) {
-      transactions.push({
-        transactionType: 'ISSUE',
-        fromEntityType: 'STORE',
-        toEntityType: 'STAFF',
-        quantity: virtualQty,
-      });
-    }
-
-    let purchased = 0;
-    let warehouse = 0;
-    let issued = 0;
-    let used = 0;
-    let withClient = 0;
-    let damage = 0;
-    let lost = 0;
-    let reBrand = 0;
-
-    transactions.forEach(t => {
-      const qty = t.quantity || 0;
-      if (t.transactionType === 'RECEIVE') {
-        purchased += qty;
-        warehouse += qty;
-      } else if (t.transactionType === 'ISSUE') {
-        if (t.fromEntityType === 'STORE') {
-          issued -= qty;
-          if (t.toEntityType === 'STAFF') used += qty;
-        } else {
-          warehouse -= qty;
-          if (t.toEntityType === 'STORE' || t.toEntityType === 'SUPERVISOR') issued += qty;
-          else if (t.toEntityType === 'STAFF') used += qty;
-          else if (t.toEntityType === 'CLIENT' || t.toEntityType === 'BRAND') withClient += qty;
-        }
-      } else if (t.transactionType === 'CLIENT_RETURN') {
-        warehouse -= qty;
-        withClient += qty;
-      } else if (t.transactionType === 'RETURN') {
-        warehouse += qty;
-        if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-      } else if (t.transactionType === 'DAMAGE') {
-        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-        damage += qty;
-      } else if (t.transactionType === 'LOST') {
-        if (t.fromEntityType === 'WAREHOUSE') warehouse -= qty;
-        else if (t.fromEntityType === 'STORE' || t.fromEntityType === 'SUPERVISOR') issued -= qty;
-        else if (t.fromEntityType === 'STAFF') used -= qty;
-        else if (t.fromEntityType === 'CLIENT' || t.fromEntityType === 'BRAND') withClient -= qty;
-        lost += qty;
-      } else if (t.transactionType === 'REBRAND_OUT') {
-        warehouse -= qty;
-        reBrand += qty;
-      } else if (t.transactionType === 'REBRAND_IN') {
-        warehouse += qty;
-      }
-    });
-
-    const total = warehouse + issued + used + damage + lost + withClient + reBrand;
-
-    return { purchased, warehouse, issued, used, damage, lost, withClient, reBrand, total };
-  };
 
   // Compute aggregated totals for header overview metrics
   const getAggregatedTotals = () => {
@@ -396,12 +314,7 @@ export default function BrandPortalClient({ brand }) {
                             </div>
                           </div>
                           <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{stock.total}</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-2 border-t border-border/50">
-                          <div><span className="text-text-muted block">Warehouse</span><span className="font-mono font-bold text-sm">{stock.warehouse}</span></div>
-                          <div><span className="text-text-muted block">Issued</span><span className="font-mono font-bold text-sm">{stock.issued}</span></div>
-                          <div><span className="text-text-muted block">Used</span><span className="font-mono font-bold text-sm">{stock.used}</span></div>
-                        </div>
+                        </div>                         <StockBreakdown stock={stock} compact />
                       </div>
                     );
                   })}
