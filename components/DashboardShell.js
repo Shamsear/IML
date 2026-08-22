@@ -31,7 +31,7 @@ export default function DashboardShell({ user, children }) {
   };
 
   return (
-    <div className="h-[100dvh] overflow-hidden flex bg-background text-text-primary">
+    <div className="h-[100dvh] overflow-hidden flex bg-background text-text-primary relative">
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div 
@@ -143,7 +143,7 @@ export default function DashboardShell({ user, children }) {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
         {/* Top Header */}
         <header className="sticky top-0 z-30 flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 bg-surface/85 backdrop-blur-md border-b border-border">
-          <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 h-full">
             <button 
               className="lg:hidden p-2 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors flex-shrink-0" 
               onClick={() => setMobileOpen(true)}
@@ -151,12 +151,12 @@ export default function DashboardShell({ user, children }) {
             >
               <Menu size={20} />
             </button>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 h-full flex items-center">
               <GlobalSearch />
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 h-full">
             <PushSubscriptionBtn />
             <div className="hidden sm:block h-6 w-px bg-border" />
             <div className="hidden sm:flex items-center gap-3">

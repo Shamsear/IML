@@ -112,7 +112,7 @@ export default function GlobalSearch() {
   };
 
   return (
-    <div ref={searchRef} className="w-full max-w-[380px] relative">
+    <div ref={searchRef} className="w-full max-w-[380px] relative flex items-center">
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(true)}

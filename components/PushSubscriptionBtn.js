@@ -153,7 +153,12 @@ const styles = {
     gap: '0.5rem',
   },
   btn: {
-    padding: '0.45rem',
+    width: '2.25rem',
+    height: '2.25rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0',
     borderRadius: 'var(--radius-full)',
   },
   activeBtn: {
