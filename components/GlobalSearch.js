@@ -12,7 +12,7 @@ export default function GlobalSearch() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const router = useRouter();
   const searchRef = useRef(null);
-  const overlayInputRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Toggle search on Ctrl+K
   useEffect(() => {
@@ -29,10 +29,10 @@ export default function GlobalSearch() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Focus input when dropdown opens
+  // Focus input when activated
   useEffect(() => {
-    if (isOpen && overlayInputRef.current) {
-      overlayInputRef.current.focus();
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
       setQuery('');
       setResults({ products: [], stores: [], staff: [], serials: [] });
     }
@@ -50,7 +50,7 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [isOpen]);
 
-  // Handle typing & query search api
+  // Handle typing & search API
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults({ products: [], stores: [], staff: [], serials: [] });
@@ -87,6 +87,8 @@ export default function GlobalSearch() {
   };
 
   const flatResults = getFlatResults();
+  const hasResults = query.trim().length >= 2;
+  const showDropdown = isOpen;
 
   const handleKeyDown = (e) => {
     if (flatResults.length === 0) return;
@@ -113,47 +115,59 @@ export default function GlobalSearch() {
 
   return (
     <div ref={searchRef} className="w-full max-w-[380px] relative flex items-center">
-      {/* Trigger Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="w-full flex items-center bg-surface border border-border rounded-[var(--radius-sm)] px-3.5 py-2.5 cursor-pointer text-left outline-none hover:border-primary/40 transition-colors h-10"
+      {/* Search bar — acts as both trigger and input */}
+      <div
+        className={`w-full flex items-center border rounded-[var(--radius-sm)] px-3.5 transition-colors h-10 ${
+          isOpen
+            ? 'bg-surface border-primary/50 ring-2 ring-primary/10 shadow-sm'
+            : 'bg-surface border-border hover:border-primary/40 cursor-pointer'
+        }`}
       >
-        <Search size={16} className="text-text-secondary flex-shrink-0" />
-        <span className="flex-1 text-sm text-text-secondary ml-2">Quick search...</span>
-        <kbd className="text-xs bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-secondary font-mono">Ctrl K</kbd>
-      </button>
+        <Search size={16} className={`flex-shrink-0 ${isOpen ? 'text-primary' : 'text-text-secondary'}`} />
 
-      {/* Dropdown below trigger */}
-      {isOpen && (
+        {isOpen ? (
+          <input
+            ref={inputRef}
+            type="text"
+            className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted ml-2"
+            placeholder="Search barcode, promoter, store..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        ) : (
+          <button
+            onClick={() => setIsOpen(true)}
+            className="flex-1 text-left text-sm text-text-secondary ml-2 bg-transparent border-none outline-none cursor-pointer"
+          >
+            Quick search...
+          </button>
+        )}
+
+        {isOpen ? (
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-[10px] bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-muted font-mono flex-shrink-0 cursor-pointer hover:bg-border/30 transition-colors"
+          >
+            ESC
+          </button>
+        ) : (
+          <kbd className="text-xs bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-secondary font-mono flex-shrink-0">Ctrl K</kbd>
+        )}
+      </div>
+
+      {/* Dropdown results below the bar */}
+      {showDropdown && (
         <div
-          className="absolute left-0 right-0 top-full mt-2 w-full min-w-[380px] max-w-[600px] bg-surface border border-border rounded-xl shadow-lg flex flex-col overflow-hidden z-[999] animate-slide-down"
+          className="absolute left-0 right-0 top-full mt-2 w-full bg-surface border border-border rounded-xl shadow-lg flex flex-col overflow-hidden z-[999] animate-slide-down"
           onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Quick search"
         >
-          {/* Search Input */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-            <Search size={16} className="text-primary flex-shrink-0" />
-            <input
-              ref={overlayInputRef}
-              type="text"
-              className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted"
-              placeholder="Search Barcode, Promoter, Store..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <kbd className="text-[10px] bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-muted font-mono flex-shrink-0">ESC</kbd>
-          </div>
-
-          {/* Results */}
           <div className="max-h-[350px] overflow-y-auto p-2">
             {loading && (
               <div className="text-center py-6 text-text-secondary text-sm">Searching database...</div>
             )}
 
-            {!loading && query.trim().length >= 2 && flatResults.length === 0 && (
+            {!loading && hasResults && flatResults.length === 0 && (
               <div className="text-center py-6 text-text-secondary text-sm">No matching records found.</div>
             )}
 
@@ -193,7 +207,7 @@ export default function GlobalSearch() {
               </div>
             )}
 
-            {query.trim().length < 2 && (
+            {!hasResults && (
               <div className="p-3 text-text-secondary text-sm flex flex-col gap-2">
                 <p className="text-xs">Type 2 or more characters to search:</p>
                 <ul className="flex flex-col gap-1">
