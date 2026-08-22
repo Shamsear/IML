@@ -1,6 +1,6 @@
 'use client';
 
-export default function DashboardLoading() {
+export default function Loading() {
   return (
     <div className="w-full min-h-[60vh] flex items-center justify-center p-6">
       <div className="flex flex-col items-center gap-6 text-center">
@@ -11,10 +11,10 @@ export default function DashboardLoading() {
         </div>
         <div className="flex flex-col gap-1">
           <h3 className="font-display font-bold text-sm text-text-primary tracking-tight">
-            Loading dashboard
+            Loading supervisors
           </h3>
           <p className="text-xs text-text-secondary">
-            Preparing your inventory overview…
+            Fetching delivery supervisor records…
           </p>
         </div>
       </div>
