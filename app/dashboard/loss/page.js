@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import ExportToExcel from '@/components/ExportToExcel';
+import ServerPagination from '@/components/ServerPagination';
 
 export const metadata = {
   title: 'Loss Ledger - Inventory System',
@@ -175,25 +176,14 @@ export default async function LossPage({ searchParams }) {
             </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
-                <span className="text-text-muted">
-                  Showing <strong className="text-text-primary">{(page - 1) * pageSize + 1}</strong> to{" "}
-                  <strong className="text-text-primary">{Math.min(page * pageSize, totalCount)}</strong> of{" "}
-                  <strong className="text-text-primary">{totalCount}</strong> reports
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <Link
-                    href={`/dashboard/loss?page=${Math.max(1, page - 1)}`}
-                    className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}
-                  >Previous</Link>
-                  <Link
-                    href={`/dashboard/loss?page=${Math.min(totalPages, page + 1)}`}
-                    className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === totalPages ? 'pointer-events-none opacity-50' : ''}`}
-                  >Next</Link>
-                </div>
-              </div>
-            )}
+            <ServerPagination
+              page={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              pageSize={pageSize}
+              baseUrl="/dashboard/loss"
+              itemLabel="reports"
+            />
           </>
         )}
       </div>

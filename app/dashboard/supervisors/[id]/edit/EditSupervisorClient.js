@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { updateSupervisor } from '@/app/actions/supervisors';
 import { ArrowLeft, UserCheck, Loader2, AlertCircle } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
+import FormFooter from '@/components/FormFooter';
 
 export default function EditSupervisorClient({ supervisor }) {
   const router = useRouter();
@@ -107,22 +108,7 @@ export default function EditSupervisorClient({ supervisor }) {
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-border">
-          <Link
-            href="/dashboard/supervisors"
-            className="px-5 py-2.5 border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold transition-colors"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover disabled:bg-primary/50 text-white text-xs font-bold rounded-lg shadow-md transition-colors"
-          >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />}
-            <span>{loading ? 'Saving...' : 'Save Changes'}</span>
-          </button>
-        </div>
+        <FormFooter cancelHref="/dashboard/supervisors" submitLabel="Save Changes" loading={loading} editMode />
       </form>
 
       <ConfirmModal

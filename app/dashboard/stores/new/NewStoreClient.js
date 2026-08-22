@@ -7,6 +7,7 @@ import { createBulkStores } from '@/app/actions/stores';
 import { ArrowLeft, Store, Loader2, AlertCircle, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
+import FormFooter from '@/components/FormFooter';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
@@ -225,23 +226,7 @@ export default function NewStoreClient() {
           </button>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
-          <Link
-            href="/dashboard/stores"
-            className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer flex items-center gap-2"
-            disabled={loading}
-          >
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            <span>Save Stores</span>
-          </button>
-        </div>
+        <FormFooter cancelHref="/dashboard/stores" submitLabel="Save Stores" loading={loading} />
       </form>
     </div>
   );

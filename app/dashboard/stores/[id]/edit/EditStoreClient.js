@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { updateStore } from '@/app/actions/stores';
 import { ArrowLeft, Store, Loader2, AlertCircle } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
+import FormFooter from '@/components/FormFooter';
 import ConfirmModal from '@/components/ConfirmModal';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
@@ -103,22 +104,7 @@ export default function EditStoreClient({ store }) {
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-border">
-          <Link
-            href={`/dashboard/stores/${store.id}`}
-            className="px-5 py-2.5 border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold transition-colors"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover disabled:bg-primary/50 text-white text-xs font-bold rounded-lg shadow-md transition-colors"
-          >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Store size={14} />}
-            <span>{loading ? 'Saving...' : 'Save Changes'}</span>
-          </button>
-        </div>
+        <FormFooter cancelHref={`/dashboard/stores/${store.id}`} submitLabel="Save Changes" loading={loading} editMode />
       </form>
 
       <ConfirmModal
