@@ -172,17 +172,15 @@ export default function StoresClient({ initialStores }) {
             Manage physical stores, regions, and coordinates across the UAE.
           </p>
         </div>
-        {!isFormOpen && (
-          <div className="has-tooltip">
-            <button 
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
-              onClick={openAddModal}
-            >
-              <Plus size={16} /> <span>Add Store</span>
-            </button>
-            <span className="tooltip-box">Register new outlet</span>
-          </div>
-        )}
+        <div className="has-tooltip">
+          <Link 
+            href="/dashboard/stores/new"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            <Plus size={16} /> <span>Add Store</span>
+          </Link>
+          <span className="tooltip-box">Register new outlet</span>
+        </div>
       </header>
 
       <div className="flex flex-col gap-6">
@@ -422,8 +420,7 @@ export default function StoresClient({ initialStores }) {
                 title={searchQuery || selectedRegionFilter !== 'ALL' ? 'No stores match your filters' : 'No stores yet'}
                 description={searchQuery || selectedRegionFilter !== 'ALL' ? 'Try adjusting your search or filters.' : 'Stores represent retail outlets across the UAE. Register your first store to start tracking inventory.'}
                 actionLabel={searchQuery || selectedRegionFilter !== 'ALL' ? undefined : 'Add Store'}
-                actionHref={searchQuery || selectedRegionFilter !== 'ALL' ? undefined : undefined}
-                onAction={searchQuery || selectedRegionFilter !== 'ALL' ? undefined : openAddModal}
+                actionHref="/dashboard/stores/new"
               />
             </div>
           ) : (

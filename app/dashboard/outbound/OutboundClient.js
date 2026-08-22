@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2, UserCheck, Tag, Copy, Shirt, Info } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/actions/transactions';
-import { createSupervisor } from '@/app/actions/supervisors';
+import { createStore } from '@/app/actions/stores';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { getAvailableBarcodes, findProductByBarcode, getProductBatchesAtLocation } from '@/app/actions/products';
@@ -55,12 +55,15 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
 
   // Delivery supervisor (who carried goods to the store)
   const [deliverySupervisorId, setDeliverySupervisorId] = useState(initialDeliverySupervisorId || '');
-  const [showNewSupervisorForm, setShowNewSupervisorForm] = useState(false);
-  const [newSupName, setNewSupName] = useState('');
-  const [newSupPhone, setNewSupPhone] = useState('');
-  const [newSupEmail, setNewSupEmail] = useState('');
   const [supervisorList, setSupervisorList] = useState(supervisors);
-  const [creatingSup, setCreatingSup] = useState(false);
+
+  // Inline store creation
+  const [showNewStoreForm, setShowNewStoreForm] = useState(false);
+  const [newStoreName, setNewStoreName] = useState('');
+  const [newStoreRegion, setNewStoreRegion] = useState('DXB');
+  const [newStoreLocation, setNewStoreLocation] = useState('');
+  const [storeList, setStoreList] = useState(stores);
+  const [creatingStore, setCreatingStore] = useState(false);
 
   // Global brand filter — sets all items at once; per-item pills override individually
   const [globalBrand, setGlobalBrand] = useState('ALL');
@@ -931,15 +934,100 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-text-secondary">Assigned Target</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-text-secondary">Assigned Target</label>
+              {toType === 'STORE' && (
+                <button
+                  type="button"
+                  onClick={() => { setShowNewStoreForm(!showNewStoreForm); setNewStoreName(''); setNewStoreRegion('DXB'); setNewStoreLocation(''); }}
+                  className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  <Plus size={11} />
+                  {showNewStoreForm ? 'Cancel' : 'Create new store'}
+                </button>
+              )}
+            </div>
             {toType === 'STORE' && (
-              <CustomSelect
-                options={stores.map(s => ({ value: s.id, label: s.name }))}
-                value={toId}
-                onChange={(val) => setToId(val)}
-                placeholder="-- Select Retail Store --"
-                required
-              />
+              <>
+                <CustomSelect
+                  options={storeList.map(s => ({ value: s.id, label: s.name }))}
+                  value={toId}
+                  onChange={(val) => setToId(val)}
+                  placeholder="-- Select Retail Store --"
+                  required
+                />
+                {showNewStoreForm && (
+                  <div className="bg-surface-elevated/60 border border-border rounded-lg p-4 flex flex-col gap-3 animate-slide-down">
+                    <p className="text-[11px] text-text-muted">Create a new store and it will be auto-selected for this dispatch.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Store Name *</label>
+                        <input
+                          type="text"
+                          value={newStoreName}
+                          onChange={e => setNewStoreName(e.target.value)}
+                          placeholder="e.g. Carrefour MOE"
+                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Region</label>
+                        <select
+                          value={newStoreRegion}
+                          onChange={e => setNewStoreRegion(e.target.value)}
+                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary appearance-none"
+                        >
+                          {['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'].map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Location</label>
+                        <input
+                          type="text"
+                          value={newStoreLocation}
+                          onChange={e => setNewStoreLocation(e.target.value)}
+                          placeholder="e.g. Sheikh Zayed Rd"
+                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={creatingStore || !newStoreName.trim()}
+                      onClick={async () => {
+                        if (!newStoreName.trim()) return;
+                        setCreatingStore(true);
+                        try {
+                          const fd = new FormData();
+                          fd.set('name', newStoreName.trim());
+                          fd.set('region', newStoreRegion);
+                          fd.set('location', newStoreLocation.trim());
+                          fd.set('isPublic', 'true');
+                          const created = await createStore(fd);
+                          // Refetch store list to get the full object with id
+                          const { getStores } = await import('@/app/actions/stores');
+                          const updatedStores = await getStores();
+                          setStoreList(updatedStores);
+                          const newStore = updatedStores.find(s => s.name === newStoreName.trim());
+                          if (newStore) setToId(newStore.id);
+                          setShowNewStoreForm(false);
+                          setNewStoreName(''); setNewStoreRegion('DXB'); setNewStoreLocation('');
+                        } catch (err) {
+                          setError(err.message || 'Failed to create store');
+                        } finally {
+                          setCreatingStore(false);
+                        }
+                      }}
+                      className="self-start inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                    >
+                      {creatingStore ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                      <span>{creatingStore ? 'Creating...' : 'Create & Select Store'}</span>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
             {toType === 'DIRECT' && (
               <div className="flex flex-col gap-1.5 relative">
@@ -1040,109 +1128,31 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           </div>
         </div>
 
-        {/* Delivery Supervisor — shown when dispatching to a store */}
-        {toType === 'STORE' && (
+        {/* Delivery Supervisor — shown when dispatching to a store */}        {toType === 'STORE' && (
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex items-center justify-between mb-3">
               <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
                 <UserCheck size={13} />
                 Delivered By (Supervisor) <span className="text-text-muted font-normal">— optional</span>
               </label>
-              <button
-                type="button"
-                onClick={() => { setShowNewSupervisorForm(!showNewSupervisorForm); setNewSupName(''); setNewSupPhone(''); setNewSupEmail(''); }}
+              <Link
+                href="/dashboard/supervisors/new"
                 className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
               >
                 <Plus size={11} />
-                {showNewSupervisorForm ? 'Cancel' : 'Create new'}
-              </button>
+                Create new supervisor
+              </Link>
             </div>
 
-            {showNewSupervisorForm ? (
-              <div className="bg-surface-elevated/60 border border-border rounded-lg p-4 flex flex-col gap-3">
-                <p className="text-[11px] text-text-muted">Fill in details to create a new supervisor and assign them to this dispatch.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Name *</label>
-                    <input
-                      type="text"
-                      value={newSupName}
-                      onChange={e => setNewSupName(e.target.value)}
-                      placeholder="Supervisor name"
-                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Phone</label>
-                    <input
-                      type="text"
-                      value={newSupPhone}
-                      onChange={e => setNewSupPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      maxLength={10}
-                      placeholder="e.g. 0501234567"
-                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Email</label>
-                    <input
-                      type="email"
-                      value={newSupEmail}
-                      onChange={e => setNewSupEmail(e.target.value)}
-                      placeholder="email@example.com"
-                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  disabled={creatingSup || !newSupName.trim()}
-                  onClick={async () => {
-                    if (!newSupName.trim()) return;
-                    
-                    if (newSupPhone.trim()) {
-                      const cleanPhone = newSupPhone.replace(/[\s\-\(\)]/g, '');
-                      const uaePhoneRegex = /^0(?:5[024568]|[234679])\d{7}$/;
-                      if (!uaePhoneRegex.test(cleanPhone)) {
-                        setError('Please enter a valid UAE phone number starting with 0 (e.g. 050 123 4567 or 04 123 4567, without country code).');
-                        return;
-                      }
-                    }
-
-                    setCreatingSup(true);
-                    try {
-                      const fd = new FormData();
-                      fd.set('name', newSupName.trim());
-                      if (newSupPhone.trim()) fd.set('phone', newSupPhone.trim());
-                      if (newSupEmail.trim()) fd.set('email', newSupEmail.trim());
-                      const created = await createSupervisor(fd);
-                      setSupervisorList(prev => [...prev, created]);
-                      setDeliverySupervisorId(created.id);
-                      setShowNewSupervisorForm(false);
-                      setNewSupName(''); setNewSupPhone(''); setNewSupEmail('');
-                    } catch (err) {
-                      setError(err.message || 'Failed to create supervisor');
-                    } finally {
-                      setCreatingSup(false);
-                    }
-                  }}
-                  className="self-start inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
-                >
-                  {creatingSup ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />}
-                  {creatingSup ? 'Creating...' : 'Create & Assign Supervisor'}
-                </button>
-              </div>
-            ) : (
-              <CustomSelect
-                options={[
-                  { value: '', label: 'No supervisor (skip)' },
-                  ...supervisorList.map(s => ({ value: s.id, label: `${s.name}${s.phone ? ' · ' + s.phone : ''}` }))
-                ]}
-                value={deliverySupervisorId}
-                onChange={val => setDeliverySupervisorId(val)}
-                placeholder="-- Select delivering supervisor --"
-              />
-            )}
+            <CustomSelect
+              options={[
+                { value: '', label: 'No supervisor (skip)' },
+                ...supervisorList.map(s => ({ value: s.id, label: `${s.name}${s.phone ? ' · ' + s.phone : ''}` }))
+              ]}
+              value={deliverySupervisorId}
+              onChange={val => setDeliverySupervisorId(val)}
+              placeholder="-- Select delivering supervisor --"
+            />
           </div>
         )}
       </div>

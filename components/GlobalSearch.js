@@ -104,7 +104,7 @@ export default function GlobalSearch() {
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full flex items-center bg-surface border border-border rounded-[var(--radius-sm)] px-3.5 py-2 cursor-pointer text-left outline-none hover:border-primary/40 transition-colors"
+        className="w-full flex items-center bg-surface border border-border rounded-[var(--radius-sm)] px-3.5 py-2.5 cursor-pointer text-left outline-none hover:border-primary/40 transition-colors h-10"
       >
         <Search size={16} className="text-text-secondary flex-shrink-0" />
         <span className="flex-1 text-sm text-text-secondary ml-2">Quick search...</span>
@@ -114,7 +114,7 @@ export default function GlobalSearch() {
       {/* Backdrop Overlay Modal */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-start justify-center pt-[10vh] z-[999]"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center pt-[12vh] z-[999]"
           onClick={() => setIsOpen(false)}
         >
           <div

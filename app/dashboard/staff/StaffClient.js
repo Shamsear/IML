@@ -666,7 +666,7 @@ export default function StaffClient({ initialStaff, stores }) {
                   title="No promoters yet"
                   description="Promoters are field staff who receive uniform assignments. Add your first promoter to get started."
                   actionLabel="Add Promoter"
-                  onAction={() => setActivePanel('form')}
+                  actionHref="/dashboard/staff/assign"
                 />
               </div>
             ) : (
@@ -704,7 +704,7 @@ export default function StaffClient({ initialStaff, stores }) {
                   title="No promoters yet"
                   description="Promoters are field staff who receive uniform assignments. Add your first promoter to get started."
                   actionLabel="Add Promoter"
-                  onAction={() => setActivePanel('form')}
+                  actionHref="/dashboard/staff/assign"
                 />
               ) : (
                 <div className="overflow-x-auto">

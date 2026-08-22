@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createSupervisor, updateSupervisor, deleteSupervisor } from '@/app/actions/supervisors';
 import { UserCheck, Plus, Edit2, Trash2, Mail, Phone, Loader2, X, Search } from 'lucide-react';
+import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
 
 export default function SupervisorsClient({ initialSupervisors }) {
@@ -97,17 +98,15 @@ export default function SupervisorsClient({ initialSupervisors }) {
             Manage regional field supervisors responsible for operations and stock.
           </p>
         </div>
-        {!isFormOpen && (
-          <div className="has-tooltip">
-            <button 
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200" 
-              onClick={openAddModal}
-            >
-              <Plus size={16} /> <span>Add Supervisor</span>
-            </button>
-            <span className="tooltip-box">Register new team supervisor</span>
-          </div>
-        )}
+        <div className="has-tooltip">
+          <Link 
+            href="/dashboard/supervisors/new"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200"
+          >
+            <Plus size={16} /> <span>Add Supervisor</span>
+          </Link>
+          <span className="tooltip-box">Register new team supervisor</span>
+        </div>
       </header>
 
       <div className="flex flex-col gap-6">
@@ -208,7 +207,7 @@ export default function SupervisorsClient({ initialSupervisors }) {
                   title="No supervisors yet"
                   description="Supervisors manage delivery operations between warehouse and stores. Add your first supervisor."
                   actionLabel="Add Supervisor"
-                  onAction={() => setIsFormOpen(true)}
+                  actionHref="/dashboard/supervisors/new"
                 />
               </div>
             )
