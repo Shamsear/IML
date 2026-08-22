@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Package, Search, Store, Trash2, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function UsedClient({ transactions, stores, pastUsed = [] }) {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const filteredTransactions = useMemo(() => transactions.filter(tx => {
     const matchDN = !searchDN || tx.deliveryNote?.toLowerCase().includes(searchDN.toLowerCase());
@@ -79,7 +81,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
     setIsSubmitting(true);
     try {
       const res = await processOutboundReturns(payload);
-      if (res.success) { setSuccess('Items marked as used/consumed successfully!'); setSelectedIds({}); }
+      if (res.success) { setConfirmOpen(true); setSelectedIds({}); }
     } catch (err) {
       setError(err.message || 'An error occurred');
     } finally { setIsSubmitting(false); }
@@ -369,6 +371,14 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
           )}
         </form>
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        type="success"
+        title="Items Marked as Used"
+        message="Selected items have been marked as used/consumed. Stock will not return to warehouse."
+      />
     </div>
   );
 }

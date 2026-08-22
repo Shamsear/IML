@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Settings, ShieldCheck, Database, Image, Bell, Info, Trash2, CheckCircle2 } from 'lucide-react';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function SettingsClient({ config, user }) {
   const [cacheStatus, setCacheStatus] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '' });
   const [pushStatus, setPushStatus] = useState('default');
 
   useEffect(() => {
@@ -26,8 +29,8 @@ export default function SettingsClient({ config, user }) {
       const permission = await Notification.requestPermission();
       setPushStatus(permission);
       if (permission === 'granted') {
-        setSuccessMsg('Push notifications have been enabled successfully!');
-        setTimeout(() => setSuccessMsg(''), 3000);
+        setConfirmData({ title: 'Notifications Enabled', message: 'Push notifications are now active for this browser.' });
+        setConfirmOpen(true);
       } else if (permission === 'denied') {
         alert('Notification permission was denied. Please reset the site settings in your browser address bar to allow notifications.');
       }
@@ -58,11 +61,8 @@ export default function SettingsClient({ config, user }) {
       localStorage.clear();
       
       setCacheStatus('Cleared!');
-      setSuccessMsg('Service worker registrations and client asset cache cleared successfully!');
-      setTimeout(() => {
-        setCacheStatus('');
-        setSuccessMsg('');
-      }, 3000);
+      setConfirmData({ title: 'Cache Cleared', message: 'Service worker registrations and asset cache have been cleared. The page will reload.' });
+      setConfirmOpen(true);
     } catch (e) {
       console.error(e);
       setCacheStatus('Failed');
@@ -89,6 +89,14 @@ export default function SettingsClient({ config, user }) {
           <span>{successMsg}</span>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setCacheStatus(''); setSuccessMsg(''); }}
+        type="success"
+        title={confirmData.title}
+        message={confirmData.message}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         

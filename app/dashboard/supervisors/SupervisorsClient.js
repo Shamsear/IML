@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createSupervisor, updateSupervisor, deleteSupervisor } from '@/app/actions/supervisors';
 import { UserCheck, Plus, Edit2, Trash2, Mail, Phone, Loader2, X, Search } from 'lucide-react';
+import EmptyState from '@/components/EmptyState';
 
 export default function SupervisorsClient({ initialSupervisors }) {
   const [supervisors, setSupervisors] = useState(initialSupervisors);
@@ -192,11 +193,25 @@ export default function SupervisorsClient({ initialSupervisors }) {
             />
           </div>
           {filteredSupervisors.length === 0 ? (
-            <div className="bg-surface border border-border rounded-xl p-16 text-center flex flex-col items-center gap-3 text-text-muted shadow-sm">
-              <UserCheck size={48} />
-              <h3 className="font-display font-bold text-lg text-text-primary">{searchQuery ? 'No supervisors match your search' : 'No Supervisors Registered'}</h3>
-              <p className="text-sm max-w-xs">{searchQuery ? 'Try a different search term.' : 'Click "Add Supervisor" to list your first team supervisor.'}</p>
-            </div>
+            searchQuery ? (
+              <div className="bg-surface border border-border rounded-xl shadow-sm">
+                <EmptyState
+                  icon={UserCheck}
+                  title="No supervisors match your search"
+                  description="Try a different search term or clear the filter."
+                />
+              </div>
+            ) : (
+              <div className="bg-surface border border-border rounded-xl shadow-sm">
+                <EmptyState
+                  icon={UserCheck}
+                  title="No supervisors yet"
+                  description="Supervisors manage delivery operations between warehouse and stores. Add your first supervisor."
+                  actionLabel="Add Supervisor"
+                  onAction={() => setIsFormOpen(true)}
+                />
+              </div>
+            )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredSupervisors.map((supervisor) => (

@@ -6,11 +6,14 @@ import Link from 'next/link';
 import { createBulkBrands } from '@/app/actions/brands';
 import { ArrowLeft, Plus, Trash2, Edit2, Loader2, X, Camera } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function NewBrandClient() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '' });
 
   // Queue item creator helper
   const createEmptyBrandItem = (index = 0) => ({
@@ -159,8 +162,8 @@ export default function NewBrandClient() {
         }
       });
       await createBulkBrands(formData);
-      router.push('/dashboard/brands');
-      router.refresh();
+      setConfirmData({ title: 'Brand Created', message: `${items.length} brand(s) registered successfully.` });
+      setConfirmOpen(true);
     } catch (err) {
       setError(err.message || 'Something went wrong.');
     } finally {
@@ -191,6 +194,14 @@ export default function NewBrandClient() {
           {error}
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/brands'); }}
+        type="success"
+        title={confirmData.title}
+        message={confirmData.message}
+      />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-4">

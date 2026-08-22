@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createBulkProducts, getProductById, updateProduct } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
+import ConfirmModal from '@/components/ConfirmModal';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import DashboardLoading from '@/app/dashboard/loading';
 
@@ -37,6 +38,8 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '' });
 
   // Webcam scanning state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -760,7 +763,8 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
           formData.append('imageUrl', item.imageUrl);
         }
         await updateProduct(editId, formData);
-        setSuccess(`Product "${item.name}" updated successfully!`);
+        setConfirmData({ title: 'Product Updated', message: `"${item.name}" has been updated successfully.` });
+        setConfirmOpen(true);
       } else {
         // Create mode (Batch upload via FormData serialization)
         const formData = new FormData();
@@ -807,17 +811,11 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
         });
 
         await createBulkProducts(formData);
-        setSuccess(`Registered all ${items.length} products successfully!`);
+        setConfirmData({ title: 'Products Registered', message: `${items.length} product(s) have been added to the catalog.` });
+        setConfirmOpen(true);
       }
 
-      setTimeout(() => {
-        const redirectBrandId = searchParams.get('brandId');
-        if (redirectBrandId) {
-          router.push(`/dashboard/brands/${redirectBrandId}`);
-        } else {
-          router.push('/dashboard/products');
-        }
-      }, 1500);
+
     } catch (err) {
       setError(err.message || 'Failed to submit products batch.');
       setLoading(false);
@@ -880,6 +878,18 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
           <span>{success}</span>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => {
+          setConfirmOpen(false);
+          const redirectBrandId = searchParams.get('brandId');
+          router.push(redirectBrandId ? `/dashboard/brands/${redirectBrandId}` : '/dashboard/products');
+        }}
+        type="success"
+        title={confirmData.title}
+        message={confirmData.message}
+      />
 
       {/* Accordion Queue List */}
       <form onSubmit={handleBatchSubmit} className="flex flex-col gap-5">

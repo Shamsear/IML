@@ -6,6 +6,7 @@ import {
   ClipboardList, Calendar, FileText, User, Store, UserCheck, Package, Search
 } from 'lucide-react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import EmptyState from '@/components/EmptyState';
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
@@ -158,10 +159,12 @@ export default function TransactionsClient({
 
         {/* Mobile Card View */}
         {paginatedTransactions.length === 0 ? (
-          <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
-            <History size={48} />
-            <h3 className="font-display font-bold text-lg text-text-primary">No Ledger Logs Found</h3>
-            <p className="text-sm max-w-xs">Select a movement action above to log stock operations.</p>
+          <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm">
+            <EmptyState
+              icon={History}
+              title="No ledger entries yet"
+              description="Stock movements will appear here as you receive, dispatch, and manage inventory."
+            />
           </div>
         ) : (
           <div className="md:hidden flex flex-col gap-3">
@@ -204,11 +207,11 @@ export default function TransactionsClient({
         {/* Desktop Table View */}
         <div className="hidden md:block bg-surface border border-border rounded-xl p-5 shadow-sm overflow-hidden">
           {paginatedTransactions.length === 0 ? (
-            <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
-              <History size={48} />
-              <h3 className="font-display font-bold text-lg text-text-primary">No Ledger Logs Found</h3>
-              <p className="text-sm max-w-xs">Select a movement action above to log stock operations.</p>
-            </div>
+            <EmptyState
+              icon={History}
+              title="No ledger entries yet"
+              description="Stock movements will appear here as you receive, dispatch, and manage inventory."
+            />
           ) : (
             <>
               <div className="overflow-x-auto -mx-5">

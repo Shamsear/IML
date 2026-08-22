@@ -7,6 +7,7 @@ import {
   Users, Plus, Trash2, Phone, Shirt, Search, Loader2, 
   CheckCircle, Building2, Inbox, Calendar, Edit2, AlertCircle, X
 } from 'lucide-react';
+import EmptyState from '@/components/EmptyState';
 
 export default function StaffClient({ initialStaff, stores }) {
   const router = useRouter();
@@ -659,10 +660,14 @@ export default function StaffClient({ initialStaff, stores }) {
 
             {/* Mobile Card View */}
             {filteredPromoters.length === 0 ? (
-              <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
-                <Users size={48} />
-                <h3 className="font-display font-bold text-lg text-text-primary">No Promoters Found</h3>
-                <p className="text-sm max-w-xs">Register promoters first to assign them uniforms.</p>
+              <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm">
+                <EmptyState
+                  icon={Users}
+                  title="No promoters yet"
+                  description="Promoters are field staff who receive uniform assignments. Add your first promoter to get started."
+                  actionLabel="Add Promoter"
+                  onAction={() => setActivePanel('form')}
+                />
               </div>
             ) : (
               <div className="md:hidden flex flex-col gap-3">
@@ -694,11 +699,13 @@ export default function StaffClient({ initialStaff, stores }) {
             {/* Desktop Table View */}
             <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
               {filteredPromoters.length === 0 ? (
-                <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
-                  <Users size={48} />
-                  <h3 className="font-display font-bold text-lg text-text-primary">No Promoters Found</h3>
-                  <p className="text-sm max-w-xs">Register promoters first to assign them uniforms.</p>
-                </div>
+                <EmptyState
+                  icon={Users}
+                  title="No promoters yet"
+                  description="Promoters are field staff who receive uniform assignments. Add your first promoter to get started."
+                  actionLabel="Add Promoter"
+                  onAction={() => setActivePanel('form')}
+                />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-border text-sm">

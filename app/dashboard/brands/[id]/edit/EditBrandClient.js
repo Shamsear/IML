@@ -6,11 +6,13 @@ import Link from 'next/link';
 import { updateBrand } from '@/app/actions/brands';
 import { ArrowLeft, Loader2, X, Camera, Save } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function EditBrandClient({ brand }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Single Brand Item state
   const [item, setItem] = useState({
@@ -119,8 +121,7 @@ export default function EditBrandClient({ brand }) {
       formData.append('isPublic', item.isPublic.toString());
 
       await updateBrand(item.id, formData);
-      router.push('/dashboard/brands');
-      router.refresh();
+      setConfirmOpen(true);
     } catch (err) {
       setError(err.message || 'Something went wrong.');
       setLoading(false);
@@ -381,6 +382,14 @@ export default function EditBrandClient({ brand }) {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/brands'); }}
+        type="success"
+        title="Brand Updated"
+        message="Brand details have been saved successfully."
+      />
     </div>
   );
 }

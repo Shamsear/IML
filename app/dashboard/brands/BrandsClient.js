@@ -5,6 +5,7 @@ import { deleteBrand } from '@/app/actions/brands';
 import { Tag, Plus, Edit2, Trash2, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import EmptyState from '@/components/EmptyState';
 
 export default function BrandsClient({ initialBrands }) {
   const [brands, setBrands] = useState(initialBrands);
@@ -75,11 +76,25 @@ export default function BrandsClient({ initialBrands }) {
           </div>
 
           {filteredBrands.length === 0 ? (
-            <div className="bg-surface border border-border rounded-xl p-16 text-center flex flex-col items-center gap-3 text-text-muted shadow-sm">
-              <Tag size={48} />
-              <h3 className="font-display font-bold text-lg text-text-primary">{searchQuery ? 'No brands match your search' : 'No Brands Registered'}</h3>
-              <p className="text-sm max-w-xs">{searchQuery ? 'Try a different search term.' : 'Click "Add Brand" to create your first client operation.'}</p>
-            </div>
+            searchQuery ? (
+              <div className="bg-surface border border-border rounded-xl shadow-sm">
+                <EmptyState
+                  icon={Tag}
+                  title="No brands match your search"
+                  description="Try a different search term or clear the filter."
+                />
+              </div>
+            ) : (
+              <div className="bg-surface border border-border rounded-xl shadow-sm">
+                <EmptyState
+                  icon={Tag}
+                  title="No brands yet"
+                  description="Brands represent your client operations. Register your first brand to start managing inventory."
+                  actionLabel="Add Brand"
+                  actionHref="/dashboard/brands/new"
+                />
+              </div>
+            )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBrands.map((brand) => (

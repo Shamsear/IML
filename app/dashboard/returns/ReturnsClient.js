@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Package, Search, Store, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, FileText } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function ReturnsClient({ transactions, stores, pastReturns = [] }) {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // --- Filtering ---
   const filteredTransactions = useMemo(() => transactions.filter(tx => {
@@ -90,7 +92,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
     setIsSubmitting(true);
     try {
       const res = await processOutboundReturns(payload);
-      if (res.success) { setSuccess('Stock returned to warehouse successfully!'); setProcessingItems({}); }
+      if (res.success) { setConfirmOpen(true); setProcessingItems({}); }
     } catch (err) {
       setError(err.message || 'An error occurred');
     } finally { setIsSubmitting(false); }
@@ -422,6 +424,14 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
           )}
         </form>
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        type="success"
+        title="Stock Returned"
+        message="Selected items have been returned to the warehouse successfully."
+      />
     </div>
   );
 }

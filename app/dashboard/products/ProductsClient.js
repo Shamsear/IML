@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import EmptyState from '@/components/EmptyState';
 import { 
   createProduct, updateProduct, deleteProduct, importBarcodes, getProductSerials,
   bulkCreateProducts, bulkUpdateProducts, bulkDeleteProducts 
@@ -754,10 +755,14 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
 
           {/* Mobile Card View */}
           {filteredProducts.length === 0 ? (
-            <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
-              <Package size={48} />
-              <h3 className="font-display font-bold text-lg text-text-primary">No Products Registered</h3>
-              <p className="text-sm max-w-xs">Define your products to start tracking stock levels.</p>
+            <div className="md:hidden">
+              <EmptyState
+                icon={Package}
+                title="No products yet"
+                description="Products are the items you track in inventory. Add your first product to get started."
+                actionLabel="Add Product"
+                actionHref="/dashboard/products/new"
+              />
             </div>
           ) : (
             <div className="md:hidden grid grid-cols-1 gap-3">
@@ -895,11 +900,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
           {/* Desktop Table View */}
           <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
             {filteredProducts.length === 0 ? (
-              <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted shadow-sm bg-surface">
-                <Package size={48} />
-                <h3 className="font-display font-bold text-lg text-text-primary">No Products Registered</h3>
-                <p className="text-sm max-w-xs">Define your products to start tracking stock levels.</p>
-              </div>
+              <EmptyState
+                icon={Package}
+                title="No products yet"
+                description="Products are the items you track in inventory. Add your first product to get started."
+                actionLabel="Add Product"
+                actionHref="/dashboard/products/new"
+              />
             ) : (
               <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">

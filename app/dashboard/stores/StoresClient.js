@@ -6,6 +6,7 @@ import { createStore, updateStore, deleteStore, createBulkStores } from '@/app/a
 import { Store, Plus, Edit2, Trash2, MapPin, Search, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
+import EmptyState from '@/components/EmptyState';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
@@ -415,10 +416,15 @@ export default function StoresClient({ initialStores }) {
         {/* Grid List */}
         <div className="w-full">
           {filteredStores.length === 0 ? (
-            <div className="bg-surface border border-border rounded-xl p-16 text-center flex flex-col items-center gap-3 text-text-muted shadow-sm">
-              <Store size={48} />
-              <h3 className="font-display font-bold text-lg text-text-primary">No Outlets Matches</h3>
-              <p className="text-sm max-w-xs">No registered stores found in the database matching your criteria.</p>
+            <div className="bg-surface border border-border rounded-xl shadow-sm">
+              <EmptyState
+                icon={Store}
+                title={searchQuery || selectedRegionFilter !== 'ALL' ? 'No stores match your filters' : 'No stores yet'}
+                description={searchQuery || selectedRegionFilter !== 'ALL' ? 'Try adjusting your search or filters.' : 'Stores represent retail outlets across the UAE. Register your first store to start tracking inventory.'}
+                actionLabel={searchQuery || selectedRegionFilter !== 'ALL' ? undefined : 'Add Store'}
+                actionHref={searchQuery || selectedRegionFilter !== 'ALL' ? undefined : undefined}
+                onAction={searchQuery || selectedRegionFilter !== 'ALL' ? undefined : openAddModal}
+              />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">

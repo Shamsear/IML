@@ -50,7 +50,7 @@ const navSections = [
     items: [
       { name: 'Products', href: '/dashboard/products', icon: Package },
       { name: 'Staff & Promoters', href: '/dashboard/staff', icon: Shirt },
-      { name: 'Rebrand Stock', href: '/dashboard/rebrand', icon: RefreshCcw },
+      { name: 'Rebrand Stock', href: '/dashboard/rebrand', icon: RefreshCw },
       { name: 'Report Damage', href: '/dashboard/damage', icon: ShieldAlert },
       { name: 'Report Loss', href: '/dashboard/loss', icon: AlertCircle },
       { name: 'Expiry Tracking', href: '/dashboard/expiry', icon: Calendar },
