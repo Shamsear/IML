@@ -136,6 +136,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
           </Link>
         </>
       }
+      />
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-border">

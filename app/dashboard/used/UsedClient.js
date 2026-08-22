@@ -123,6 +123,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
           />
         </>
       }
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-fit">

@@ -134,6 +134,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
           />
         </>
       }
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-fit">
