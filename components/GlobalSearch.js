@@ -29,13 +29,25 @@ export default function GlobalSearch() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Focus input when overlay opens
+  // Focus input when dropdown opens
   useEffect(() => {
     if (isOpen && overlayInputRef.current) {
       overlayInputRef.current.focus();
       setQuery('');
       setResults({ products: [], stores: [], staff: [], serials: [] });
     }
+  }, [isOpen]);
+
+  // Close on click outside
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [isOpen]);
 
   // Handle typing & query search api
@@ -111,92 +123,87 @@ export default function GlobalSearch() {
         <kbd className="text-xs bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-secondary font-mono">Ctrl K</kbd>
       </button>
 
-      {/* Backdrop Overlay Modal */}
+      {/* Dropdown below trigger */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center pt-[12vh] z-[999]"
-          onClick={() => setIsOpen(false)}
+          className="absolute left-0 right-0 top-full mt-2 w-full min-w-[380px] max-w-[600px] bg-surface border border-border rounded-xl shadow-lg flex flex-col overflow-hidden z-[999] animate-slide-down"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Quick search"
         >
-          <div
-            className="w-full max-w-[600px] bg-surface border border-border rounded-xl shadow-lg flex flex-col overflow-hidden animate-slide-down"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Quick search"
-          >
-            {/* Search Input */}
-            <div className="flex items-center gap-4 px-6 py-5 border-b border-border">
-              <Search size={20} className="text-primary flex-shrink-0" />
-              <input
-                ref={overlayInputRef}
-                type="text"
-                className="flex-1 bg-transparent border-none outline-none text-lg text-text-primary placeholder:text-text-muted"
-                placeholder="Search Barcode, Promoter, Store..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-              <span className="text-sm text-text-muted flex-shrink-0">ESC to exit</span>
-            </div>
+          {/* Search Input */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+            <Search size={16} className="text-primary flex-shrink-0" />
+            <input
+              ref={overlayInputRef}
+              type="text"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted"
+              placeholder="Search Barcode, Promoter, Store..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <kbd className="text-[10px] bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-muted font-mono flex-shrink-0">ESC</kbd>
+          </div>
 
-            {/* Results */}
-            <div className="max-h-[400px] overflow-y-auto p-4">
-              {loading && (
-                <div className="text-center py-8 text-text-secondary text-sm">Searching database...</div>
-              )}
+          {/* Results */}
+          <div className="max-h-[350px] overflow-y-auto p-2">
+            {loading && (
+              <div className="text-center py-6 text-text-secondary text-sm">Searching database...</div>
+            )}
 
-              {!loading && query.trim().length >= 2 && flatResults.length === 0 && (
-                <div className="text-center py-8 text-text-secondary text-sm">No matching records found.</div>
-              )}
+            {!loading && query.trim().length >= 2 && flatResults.length === 0 && (
+              <div className="text-center py-6 text-text-secondary text-sm">No matching records found.</div>
+            )}
 
-              {!loading && flatResults.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  {flatResults.map((item, index) => {
-                    const isSelected = index === selectedIndex;
-                    return (
-                      <button
-                        key={`${item.type}-${item.id}`}
-                        onClick={() => navigateToItem(item)}
-                        onMouseEnter={() => setSelectedIndex(index)}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-[var(--radius-sm)] cursor-pointer transition-colors border-l-[3px] text-left ${
-                          isSelected
-                            ? 'bg-surface-elevated border-l-primary'
-                            : 'bg-transparent border-l-transparent hover:bg-surface-elevated/50'
-                        }`}
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-text-primary">{item.name}</span>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-text-secondary">{item.desc}</span>
-                            {item.hint && <span className="text-[10px] text-text-muted">· {item.hint}</span>}
-                          </div>
+            {!loading && flatResults.length > 0 && (
+              <div className="flex flex-col gap-0.5">
+                {flatResults.map((item, index) => {
+                  const isSelected = index === selectedIndex;
+                  return (
+                    <button
+                      key={`${item.type}-${item.id}`}
+                      onClick={() => navigateToItem(item)}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors border-l-[3px] text-left ${
+                        isSelected
+                          ? 'bg-surface-elevated border-l-primary'
+                          : 'bg-transparent border-l-transparent hover:bg-surface-elevated/50'
+                      }`}
+                    >
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-text-primary">{item.name}</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-text-secondary">{item.desc}</span>
+                          {item.hint && <span className="text-[10px] text-text-muted">· {item.hint}</span>}
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-surface-elevated ${
-                          item.type === 'serial' ? 'text-success' : 'text-primary'
-                        }`}>
-                          {item.type.toUpperCase()}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-surface-elevated ${
+                        item.type === 'serial' ? 'text-success' : 'text-primary'
+                      }`}>
+                        {item.type.toUpperCase()}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-              {query.trim().length < 2 && (
-                <div className="p-4 text-text-secondary text-sm flex flex-col gap-3">
-                  <p>Type 2 or more characters to search:</p>
-                  <ul className="flex flex-col gap-1.5">
-                    <li><strong>Virgin Barcode</strong> (e.g. SIM code)</li>
-                    <li><strong>Promoter Name</strong> (e.g. Sarah)</li>
-                    <li><strong>Store Outlet</strong> (e.g. Lulu Hypermarket)</li>
-                    <li><strong>Products</strong> (e.g. stands, shirts)</li>
-                  </ul>
-                </div>
-              )}
-            </div>
+            {query.trim().length < 2 && (
+              <div className="p-3 text-text-secondary text-sm flex flex-col gap-2">
+                <p className="text-xs">Type 2 or more characters to search:</p>
+                <ul className="flex flex-col gap-1">
+                  <li className="text-xs"><strong>Virgin Barcode</strong> (e.g. SIM code)</li>
+                  <li className="text-xs"><strong>Promoter Name</strong> (e.g. Sarah)</li>
+                  <li className="text-xs"><strong>Store Outlet</strong> (e.g. Lulu Hypermarket)</li>
+                  <li className="text-xs"><strong>Products</strong> (e.g. stands, shirts)</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}
