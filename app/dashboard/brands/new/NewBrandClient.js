@@ -298,28 +298,68 @@ export default function NewBrandClient() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-text-secondary">Upload Logo Image File</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="w-full bg-surface-elevated text-text-primary border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-                        onChange={(e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            setOriginalFile(file);
-                            setCropSrc(URL.createObjectURL(file));
-                            setCroppingIdx(idx);
-                            setCropZoom(1);
-                            setCropX(0);
-                            setCropY(0);
-                          }
-                        }}
-                      />
-                      {(item.logoPreview || item.imageUrl) && (
-                        <div className="flex items-center gap-2 mt-1">
-                          <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 60, 60)} alt="Preview" className="w-8 h-8 rounded border border-border bg-white object-contain" />
-                          <span className="text-[10px] text-text-secondary truncate max-w-xs">{item.logoFile?.name || 'Current Image'}</span>
+                      <label className="text-xs font-semibold text-text-secondary">Logo Image</label>
+                      {(item.logoPreview || item.imageUrl) ? (
+                        <div className="relative group">
+                          <div className="w-full h-24 rounded-lg border border-border bg-white overflow-hidden flex items-center justify-center">
+                            <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 200, 200)} alt="Preview" className="max-h-full max-w-full object-contain" />
+                          </div>
+                          <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                            <label className="px-3 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-md cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
+                              Change
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    setOriginalFile(file);
+                                    setCropSrc(URL.createObjectURL(file));
+                                    setCroppingIdx(idx);
+                                    setCropZoom(1);
+                                    setCropX(0);
+                                    setCropY(0);
+                                  }
+                                }}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateItemField(idx, 'logoFile', null);
+                                updateItemField(idx, 'logoPreview', '');
+                                updateItemField(idx, 'imageUrl', '');
+                              }}
+                              className="px-3 py-1.5 bg-white text-danger text-[11px] font-bold rounded-md hover:bg-red-50 transition-colors shadow-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <span className="text-[10px] text-text-secondary mt-1 truncate block">{item.logoFile?.name || 'Current logo'}</span>
                         </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border hover:border-primary/50 rounded-lg bg-surface-elevated/30 hover:bg-surface-elevated/60 cursor-pointer transition-all group">
+                          <Camera size={20} className="text-text-muted group-hover:text-primary transition-colors mb-1" />
+                          <span className="text-[11px] font-semibold text-text-secondary group-hover:text-text-primary transition-colors">Click to upload logo</span>
+                          <span className="text-[10px] text-text-muted">PNG, JPG up to 5MB</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                setOriginalFile(file);
+                                setCropSrc(URL.createObjectURL(file));
+                                setCroppingIdx(idx);
+                                setCropZoom(1);
+                                setCropX(0);
+                                setCropY(0);
+                              }
+                            }}
+                          />
+                        </label>
                       )}
                     </div>
                   </div>

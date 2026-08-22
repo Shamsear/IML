@@ -87,7 +87,7 @@ export default function TransactionsClient({
         </div>
         <div className="flex flex-wrap gap-2.5">
           <ExportToExcel
-            data={transactions.map(tx => ({
+            data={initialTransactions.map(tx => ({
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
               Type: tx.transactionType,
               Barcode: tx.barcode,
