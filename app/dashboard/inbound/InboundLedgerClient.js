@@ -104,26 +104,30 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
           <CopyDeliveryNoteButton type="inbound" noteType="Receive" />
           <ExportToExcel
             data={filteredTransactions.map(tx => ({
-              Barcode: tx.barcode,
               Product: tx.product?.name || '',
+              SKU: tx.product?.itemCode || '',
+              Barcode: tx.barcode || '',
               Brand: tx.product?.brand?.name || '',
               Category: tx.product?.category || '',
+              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
               Supplier: tx.fromEntityType === 'STORE' ? (entityNames[tx.fromEntityId] || tx.fromEntityId) : (tx.fromEntityId || 'Supplier'),
               'Received By': tx.receivedBy || '',
               Quantity: tx.quantity,
-              'Delivery Note': tx.deliveryNote || '',
-              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }),
+              'Receive Note': tx.deliveryNote || '',
+              Notes: tx.notes || '',
             }))}
             columns={[
-              { header: 'Barcode', key: 'Barcode', width: 22 },
               { header: 'Product', key: 'Product', width: 25 },
+              { header: 'SKU', key: 'SKU', width: 14 },
+              { header: 'Barcode', key: 'Barcode', width: 22 },
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'Category', key: 'Category', width: 18 },
+              { header: 'Date', key: 'Date', width: 18 },
               { header: 'Supplier', key: 'Supplier', width: 20 },
               { header: 'Received By', key: 'Received By', width: 18 },
               { header: 'Quantity', key: 'Quantity', width: 10 },
-              { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
-              { header: 'Date', key: 'Date', width: 14 },
+              { header: 'Receive Note', key: 'Receive Note', width: 20 },
+              { header: 'Notes', key: 'Notes', width: 25 },
             ]}
             filename="IML-Inbound-Ledger"
           />

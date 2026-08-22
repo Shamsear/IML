@@ -7,6 +7,7 @@ import { updateBrand } from '@/app/actions/brands';
 import { ArrowLeft, Loader2, X, Camera, Save } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import ConfirmModal from '@/components/ConfirmModal';
+import FormFooter from '@/components/FormFooter';
 
 export default function EditBrandClient({ brand }) {
   const router = useRouter();
@@ -225,23 +226,7 @@ export default function EditBrandClient({ brand }) {
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border">
-          <Link 
-            href="/dashboard/brands" 
-            className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer" 
-          >
-            Cancel
-          </Link>
-          <button 
-            type="submit" 
-            className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer flex items-center gap-2"
-            disabled={loading}
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            <span>Save Changes</span>
-          </button>
-        </div>
+        <FormFooter cancelHref="/dashboard/brands" submitLabel="Save Changes" loading={loading} editMode />
       </form>
 
       {/* Image Cropping Modal */}

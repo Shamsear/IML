@@ -111,24 +111,28 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
         actions={<>
           <ExportToExcel
             data={transactions.map(tx => ({
-              Barcode: tx.barcode,
               Product: tx.product?.name || '',
+              SKU: tx.product?.itemCode || '',
+              Barcode: tx.barcode || '',
               Brand: tx.product?.brand?.name || '',
               Category: tx.product?.category || '',
               Store: stores.find(s => s.id === tx.toEntityId)?.name || tx.toEntityId || '',
               Quantity: tx.quantity,
               'Delivery Note': tx.deliveryNote || '',
-              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }),
+              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+              Notes: tx.notes || '',
             }))}
             columns={[
-              { header: 'Barcode', key: 'Barcode', width: 22 },
               { header: 'Product', key: 'Product', width: 25 },
+              { header: 'SKU', key: 'SKU', width: 14 },
+              { header: 'Barcode', key: 'Barcode', width: 22 },
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'Category', key: 'Category', width: 18 },
               { header: 'Store', key: 'Store', width: 20 },
               { header: 'Quantity', key: 'Quantity', width: 10 },
               { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
-              { header: 'Date', key: 'Date', width: 14 },
+              { header: 'Date', key: 'Date', width: 18 },
+              { header: 'Notes', key: 'Notes', width: 25 },
             ]}
             filename="IML-Returns"
           />

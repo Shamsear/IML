@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { createBulkReceiveTransactions, updateBulkReceiveTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
+import FormFooter from '@/components/FormFooter';
+import ImageLightbox from '@/components/ImageLightbox';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import { playBeep } from '@/lib/audio';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
@@ -1954,20 +1956,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           <Plus size={16} />
           <span>Add Another Inbound Item</span>
         </button>
-        {/* Action triggers */}
-        <div className="flex justify-end gap-3 mt-4 pt-5 border-t border-border">
-          <Link href="/dashboard/inbound" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200">
-            Cancel
-          </Link>
-          <button 
-            type="submit" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-success hover:bg-success/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
-            disabled={loading}
-          >
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            <span>{editMode ? 'Update Inbound Receive' : 'Log Inbound Receive'}</span>
-          </button>
-        </div>
+        <FormFooter cancelHref="/dashboard/inbound" loading={loading} editMode={editMode} submitLabel={editMode ? 'Update Inbound Receive' : 'Log Inbound Receive'} />
       </form>
 
       {/* Webcam scanner overlay */}
@@ -2155,38 +2144,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         </div>
       )}
 
-      {/* Lightbox Modal */}
-      {lightboxImage && (
-        <div 
-          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none"
-          onClick={() => setLightboxImage(null)}
-        >
-          <button 
-            type="button"
-            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightboxImage(null);
-            }}
-          >
-            <X size={20} />
-          </button>
-          
-          <div 
-            className="relative max-w-4xl max-h-[80vh] flex flex-col items-center gap-4 cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img 
-              src={lightboxImage.url} 
-              alt={lightboxImage.name} 
-              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/15 animate-scale-up"
-            />
-            <span className="text-white text-sm font-semibold tracking-wide text-center">
-              {lightboxImage.name}
-            </span>
-          </div>
-        </div>
-      )}
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

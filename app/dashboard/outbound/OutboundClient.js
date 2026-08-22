@@ -8,6 +8,7 @@ import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/
 import { createStore } from '@/app/actions/stores';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
+import ImageLightbox from '@/components/ImageLightbox';
 import { getAvailableBarcodes, findProductByBarcode, getProductBatchesAtLocation } from '@/app/actions/products';
 import { playBeep } from '@/lib/audio';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
@@ -1991,38 +1992,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         </div>
       )}
 
-      {/* Lightbox Modal */}
-      {lightboxImage && (
-        <div 
-          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none"
-          onClick={() => setLightboxImage(null)}
-        >
-          <button 
-            type="button"
-            className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightboxImage(null);
-            }}
-          >
-            <X size={20} />
-          </button>
-          
-          <div 
-            className="relative max-w-4xl max-h-[80vh] flex flex-col items-center gap-4 cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img 
-              src={lightboxImage.url} 
-              alt={lightboxImage.name} 
-              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/15 animate-scale-up"
-            />
-            <span className="text-white text-sm font-semibold tracking-wide text-center">
-              {lightboxImage.name}
-            </span>
-          </div>
-        </div>
-      )}
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

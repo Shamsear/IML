@@ -5,6 +5,7 @@ import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldA
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { getProductStock } from '@/lib/stock';
 import StockBreakdown from '@/components/StockBreakdown';
+import ImageLightbox from '@/components/ImageLightbox';
 
 export default function BrandPortalClient({ brand }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -609,40 +610,7 @@ export default function BrandPortalClient({ brand }) {
 
       </div>
 
-      {/* Lightbox / Image Preview */}
-      {lightboxImage && (
-        <div            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in print:hidden"
-          onClick={() => setLightboxImage(null)}
-        >
-          <div 
-            className="bg-surface border border-border rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl relative animate-scale-up"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Image preview"
-          >
-            <div className="p-4 border-b border-border flex justify-between items-center bg-surface-elevated/45">
-              <h3 className="font-display font-bold text-sm text-text-primary truncate max-w-[80%]">
-                {lightboxImage.name}
-              </h3>
-              <button 
-                onClick={() => setLightboxImage(null)}
-                className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg transition-colors"
-                aria-label="Close lightbox"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="p-6 flex justify-center bg-surface-elevated/20 max-h-[60vh] overflow-y-auto">
-              <img 
-                src={lightboxImage.url} 
-                alt={lightboxImage.name} 
-                className="max-w-full max-h-[50vh] object-contain rounded-xl shadow-md border border-border"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

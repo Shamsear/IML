@@ -92,32 +92,44 @@ export default function ReportsClient({ initialProducts, brands }) {
               const stock = getProductStock(p.transactions || []);
               return {
                 Product: p.name,
+                SKU: p.itemCode || '',
                 Brand: p.brand?.name || '',
                 Category: p.category || '',
+                Purchased: stock.purchased,
                 Warehouse: stock.warehouse,
                 Issued: stock.issued,
                 Used: stock.used,
-                Total: stock.total,
+                Damage: stock.damage,
+                Lost: stock.lost,
+                'With Client': stock.withClient,
+                Rebrand: stock.reBrand,
+                'Total Stock': stock.total,
               };
             })}
             columns={[
               { header: 'Product', key: 'Product', width: 25 },
+              { header: 'SKU', key: 'SKU', width: 14 },
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'Category', key: 'Category', width: 16 },
+              { header: 'Purchased', key: 'Purchased', width: 12 },
               { header: 'Warehouse', key: 'Warehouse', width: 12 },
               { header: 'Issued', key: 'Issued', width: 12 },
               { header: 'Used', key: 'Used', width: 12 },
-              { header: 'Total', key: 'Total', width: 10 },
+              { header: 'Damage', key: 'Damage', width: 10 },
+              { header: 'Lost', key: 'Lost', width: 10 },
+              { header: 'With Client', key: 'With Client', width: 12 },
+              { header: 'Rebrand', key: 'Rebrand', width: 10 },
+              { header: 'Total Stock', key: 'Total Stock', width: 12 },
             ]}
             filename="IML-Stock-Report"
           />
           <button 
             type="button" 
             onClick={() => {
-              const headers = ['Product', 'Brand', 'Category', 'Warehouse', 'In Stores', 'With Staff', 'Total'];
+              const headers = ['Product', 'SKU', 'Brand', 'Category', 'Purchased', 'Warehouse', 'Issued', 'Used', 'Damage', 'Lost', 'With Client', 'Rebrand', 'Total Stock'];
               const rows = filteredProducts.map(p => {
                 const stock = getProductStock(p.transactions || []);
-                return [p.name, p.brand?.name || '', p.category || '', stock.warehouse, stock.issued, stock.used, stock.total];
+                return [p.name, p.itemCode || '', p.brand?.name || '', p.category || '', stock.purchased, stock.warehouse, stock.issued, stock.used, stock.damage, stock.lost, stock.withClient, stock.reBrand, stock.total];
               });
               const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
               const blob = new Blob([csv], { type: 'text/csv' });
