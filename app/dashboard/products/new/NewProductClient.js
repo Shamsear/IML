@@ -829,7 +829,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans relative">
       <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
-        <Plus size={250} />
+        <Plus size={180} />
       </div>
       {/* Page Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border">
