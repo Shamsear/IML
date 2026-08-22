@@ -129,7 +129,7 @@ export default function EditBrandClient({ brand }) {
   };
 
   return (
-    <div className="max-w-xl mx-auto flex flex-col gap-6 font-sans relative">
+    <div className="max-w-xl mx-auto flex flex-col gap-6">
       <header className="flex items-center gap-4 pb-5 border-b border-border">
         <Link href="/dashboard/brands" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
           <ArrowLeft size={16} />

@@ -120,9 +120,9 @@ export default function EditTransactionClient({ transaction, products, stores })
       <header className="flex items-center gap-4 pb-5 border-b border-border">
         <button 
           onClick={() => router.back()}
-          className="p-2 bg-surface hover:bg-surface-elevated text-text-secondary rounded-lg border border-border transition-colors"
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} />
         </button>
         <div>
           <h1 className="text-2xl font-display font-extrabold text-text-primary tracking-tight">

@@ -172,7 +172,7 @@ export default function NewBrandClient() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto flex flex-col gap-6 font-sans relative">
+    <div className="max-w-xl mx-auto flex flex-col gap-6">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/brands" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">

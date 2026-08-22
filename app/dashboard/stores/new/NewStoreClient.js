@@ -45,11 +45,7 @@ export default function NewStoreClient() {
   };
 
   return (
-    <div className="max-w-xl mx-auto flex flex-col gap-6 relative">
-      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
-        <Store size={250} />
-      </div>
-
+    <div className="max-w-xl mx-auto flex flex-col gap-6">
       <header className="flex items-center gap-4 pb-5 border-b border-border">
         <Link
           href="/dashboard/stores"
