@@ -48,7 +48,7 @@ export default function DashboardShell({ user, children }) {
         `}
       >
         {/* Logo area */}
-        <div className="flex items-center justify-between px-4 py-5 border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14 sm:h-16 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-3 overflow-hidden w-full">
             {(!collapsed || mobileOpen) ? (
               <div className="flex items-center gap-2">
