@@ -188,6 +188,8 @@ model ProductSerialNumber {
 
   @@index([currentLocationType, currentLocationId])
   @@index([productId])
+  @@index([barcode])
+  @@index([status])
 }
 
 // ------------------------------------------------------
@@ -229,6 +231,11 @@ model InventoryTransaction {
   @@index([fromEntityType, fromEntityId])
   @@index([toEntityType, toEntityId])
   @@index([productId])
+  @@index([transactionType, timestamp])
+  @@index([transactionType, productId])
+  @@index([deliveryNote])
+  @@index([transactionType, fromEntityType, fromEntityId])
+  @@index([transactionType, toEntityType, toEntityId])
 }
 
 model TransactionSerialNumber {
