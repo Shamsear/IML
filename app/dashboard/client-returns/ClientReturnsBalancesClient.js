@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, BarChart3, Tag, ClipboardList, Info, X, RotateCcw, Loader2, CheckCircle, AlertCircle, History, ArrowUpRight, ArrowDownLeft, FileText } from 'lucide-react';
 import { returnClientItemsToWarehouse } from '@/app/actions/transactions';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export default function ClientReturnsBalancesClient({ balances, recentTransactions = [] }) {
   const router = useRouter();
@@ -259,9 +260,36 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl shadow-sm">
-          <ClipboardList size={16} />
-          <span className="text-xs font-bold font-mono">Total with Clients: {totalStockWithClients} items</span>
+        <div className="flex items-center gap-3">
+          <ExportToExcel
+            data={filteredBalances.map(b => ({
+              Product: b.productName,
+              Brand: b.productBrand,
+              Category: b.productCategory || '',
+              Client: b.clientName || '',
+              'Client Type': b.clientType || '',
+              Quantity: b.totalQuantity,
+              'With Client': b.totalWithClient,
+              Dispatched: b.totalDispatched,
+              Returned: b.totalReturned,
+            }))}
+            columns={[
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Category', key: 'Category', width: 16 },
+              { header: 'Client', key: 'Client', width: 20 },
+              { header: 'Client Type', key: 'Client Type', width: 12 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'With Client', key: 'With Client', width: 12 },
+              { header: 'Dispatched', key: 'Dispatched', width: 12 },
+              { header: 'Returned', key: 'Returned', width: 10 },
+            ]}
+            filename="IML-Client-Balances"
+          />
+          <div className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl shadow-sm">
+            <ClipboardList size={16} />
+            <span className="text-xs font-bold font-mono">Total with Clients: {totalStockWithClients} items</span>
+          </div>
         </div>
       </header>
 

@@ -6,6 +6,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export default function ClientReturnsLedgerClient({ transactions, totalCount, totalPages, page, brands }) {
   const router = useRouter();
@@ -389,6 +390,27 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
           </p>
         </div>
         <div className="flex flex-wrap gap-2 flex-shrink-0">
+          <ExportToExcel
+            data={transactions.map(tx => ({
+              Barcode: tx.barcode,
+              Product: tx.product?.name || '',
+              Brand: tx.product?.brand?.name || '',
+              Type: tx.transactionType || '',
+              Quantity: tx.quantity,
+              'Delivery Note': tx.deliveryNote || '',
+              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }),
+            }))}
+            columns={[
+              { header: 'Barcode', key: 'Barcode', width: 22 },
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Type', key: 'Type', width: 16 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
+              { header: 'Date', key: 'Date', width: 14 },
+            ]}
+            filename="IML-Client-Returns-Ledger"
+          />
           <Link
             href="/dashboard/client-returns/balances"
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-surface border border-border text-text-primary hover:bg-surface-elevated font-semibold text-sm rounded-lg shadow-sm transition-all duration-200"

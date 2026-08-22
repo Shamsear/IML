@@ -36,7 +36,7 @@ export default async function UsedPage() {
   const transactions = rawTransactions.filter(t => (t.quantity - (t.returnedQty || 0)) > 0);
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="w-full min-h-[40vh] flex items-center justify-center"><div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary animate-[pulse_1.4s_ease-in-out_infinite]" /><span className="w-1.5 h-1.5 rounded-full bg-primary animate-[pulse_1.4s_ease-in-out_0.2s_infinite]" /><span className="w-1.5 h-1.5 rounded-full bg-primary animate-[pulse_1.4s_ease-in-out_0.4s_infinite]" /></div></div>}>
       <UsedClient transactions={transactions} stores={stores} pastUsed={pastUsed} />
     </Suspense>
   );

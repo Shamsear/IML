@@ -6,6 +6,7 @@ import { Package, Search, Store, Trash2, CheckCircle2, AlertCircle, Loader2, Che
 import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export default function UsedClient({ transactions, stores, pastUsed = [] }) {
   const router = useRouter();
@@ -102,6 +103,31 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
           <p className="text-sm font-medium text-text-secondary mt-1">
             Mark disposable items as fully used. Stock will not return to warehouse.
           </p>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <ExportToExcel
+            data={transactions.map(tx => ({
+              Barcode: tx.barcode,
+              Product: tx.product?.name || '',
+              Brand: tx.product?.brand?.name || '',
+              Category: tx.product?.category || '',
+              Store: stores.find(s => s.id === tx.toEntityId)?.name || tx.toEntityId || '',
+              Quantity: tx.quantity,
+              'Delivery Note': tx.deliveryNote || '',
+              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }),
+            }))}
+            columns={[
+              { header: 'Barcode', key: 'Barcode', width: 22 },
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Category', key: 'Category', width: 18 },
+              { header: 'Store', key: 'Store', width: 20 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
+              { header: 'Date', key: 'Date', width: 14 },
+            ]}
+            filename="IML-Used-Items"
+          />
         </div>
       </header>
 

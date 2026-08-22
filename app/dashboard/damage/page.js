@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ShieldAlert } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
+import ServerExportToExcel from '@/components/ServerExportToExcel';
 
 export const metadata = {
   title: 'Damage Ledger - Inventory System',
@@ -71,6 +72,29 @@ export default async function DamagePage({ searchParams }) {
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <CopyDeliveryNoteButton type="damage" />
+          <ServerExportToExcel
+            data={transactions.map(tx => ({
+              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
+              Product: tx.product?.name || '',
+              Brand: tx.product?.brand?.name || '',
+              SKU: tx.product?.itemCode || '',
+              'Lost From': tx.fromEntityType === 'WAREHOUSE' ? 'Warehouse' : (entityNames[tx.fromEntityId] || tx.fromEntityType || ''),
+              Quantity: tx.quantity,
+              'Damage Note': tx.deliveryNote || '',
+              Remarks: tx.notes || '',
+            }))}
+            columns={[
+              { header: 'Date', key: 'Date', width: 18 },
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'SKU', key: 'SKU', width: 16 },
+              { header: 'Lost From', key: 'Lost From', width: 20 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'Damage Note', key: 'Damage Note', width: 20 },
+              { header: 'Remarks', key: 'Remarks', width: 25 },
+            ]}
+            filename="IML-Damage-Ledger"
+          />
           <Link
             href="/dashboard/damage/new"
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"

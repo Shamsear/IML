@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
+import ServerExportToExcel from '@/components/ServerExportToExcel';
 
 export const metadata = {
   title: 'Loss Ledger - Inventory System',
@@ -69,6 +70,27 @@ export default async function LossPage({ searchParams }) {
           </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
+          <ServerExportToExcel
+            data={transactions.map(tx => ({
+              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
+              Product: tx.product?.name || '',
+              Brand: tx.product?.brand?.name || '',
+              SKU: tx.product?.itemCode || '',
+              'Lost From': tx.fromEntityType === 'WAREHOUSE' ? 'Warehouse' : (entityNames[tx.fromEntityId] || tx.fromEntityType || ''),
+              Quantity: tx.quantity,
+              Notes: tx.notes || '',
+            }))}
+            columns={[
+              { header: 'Date', key: 'Date', width: 18 },
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'SKU', key: 'SKU', width: 16 },
+              { header: 'Lost From', key: 'Lost From', width: 20 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'Notes', key: 'Notes', width: 25 },
+            ]}
+            filename="IML-Loss-Ledger"
+          />
           <Link
             href="/dashboard/loss/new"
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-warning hover:bg-warning/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"

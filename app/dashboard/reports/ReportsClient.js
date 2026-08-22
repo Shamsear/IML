@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Package, Search, Filter, Printer, Download, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, X } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export default function ReportsClient({ initialProducts, brands }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -174,6 +175,30 @@ export default function ReportsClient({ initialProducts, brands }) {
             <Printer size={15} />
             <span>Export PDF</span>
           </button>
+          <ExportToExcel
+            data={filteredProducts.map(p => {
+              const stock = getProductStock(p.transactions || []);
+              return {
+                Product: p.name,
+                Brand: p.brand?.name || '',
+                Category: p.category || '',
+                Warehouse: stock.warehouse,
+                'In Stores': stock.stores,
+                'With Staff': stock.staff,
+                Total: stock.total,
+              };
+            })}
+            columns={[
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Category', key: 'Category', width: 16 },
+              { header: 'Warehouse', key: 'Warehouse', width: 12 },
+              { header: 'In Stores', key: 'In Stores', width: 12 },
+              { header: 'With Staff', key: 'With Staff', width: 12 },
+              { header: 'Total', key: 'Total', width: 10 },
+            ]}
+            filename="IML-Stock-Report"
+          />
           <button 
             type="button" 
             onClick={() => {

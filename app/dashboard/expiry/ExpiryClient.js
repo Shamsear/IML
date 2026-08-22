@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, AlertTriangle, CheckCircle, Clock, ArrowRight, Package } from 'lucide-react';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export default function ExpiryClient({ initialBatches }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,6 +85,31 @@ export default function ExpiryClient({ initialBatches }) {
           <p className="text-text-secondary text-sm mt-1">
             Monitor product shelf life and batch expiration dates.
           </p>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <ExportToExcel
+            data={filteredBatches.map(b => ({
+              'Product': b.productName,
+              'Brand': b.productBrand,
+              'Delivery Note': b.deliveryNote,
+              'Supplier': b.supplier,
+              'Quantity': b.quantity,
+              'Expiry Date': b.expiryDate ? new Date(b.expiryDate).toLocaleDateString('en-AE') : '',
+              'Status': b.status,
+              'Days Left': b.daysLeft != null ? b.daysLeft : '',
+            }))}
+            columns={[
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
+              { header: 'Supplier', key: 'Supplier', width: 20 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'Expiry Date', key: 'Expiry Date', width: 14 },
+              { header: 'Status', key: 'Status', width: 14 },
+              { header: 'Days Left', key: 'Days Left', width: 10 },
+            ]}
+            filename="IML-Expiry-Batches"
+          />
         </div>
       </header>
 

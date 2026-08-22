@@ -7,6 +7,7 @@ import { ArrowUpRight, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPl
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export default function OutboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {}, stores = [], supervisorNames = {} }) {
   const router = useRouter();
@@ -97,6 +98,31 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <CopyDeliveryNoteButton type="outbound" noteType="Delivery" />
+          <ExportToExcel
+            data={filteredTransactions.map(tx => ({
+              Barcode: tx.barcode,
+              Product: tx.product?.name || '',
+              Brand: tx.product?.brand?.name || '',
+              Category: tx.product?.category || '',
+              Destination: tx.toEntityType === 'STORE' ? (entityNames[tx.toEntityId] || tx.toEntityId) : (tx.toEntityType === 'SUPERVISOR' ? (supervisorNames[tx.toEntityId] || tx.toEntityId) : tx.toEntityId || ''),
+              'Dest. Type': tx.toEntityType || '',
+              Quantity: tx.quantity,
+              'Delivery Note': tx.deliveryNote || '',
+              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }),
+            }))}
+            columns={[
+              { header: 'Barcode', key: 'Barcode', width: 22 },
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Category', key: 'Category', width: 18 },
+              { header: 'Destination', key: 'Destination', width: 22 },
+              { header: 'Dest. Type', key: 'Dest. Type', width: 12 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
+              { header: 'Date', key: 'Date', width: 14 },
+            ]}
+            filename="IML-Outbound-Ledger"
+          />
           <Link 
             href="/dashboard/outbound/new" 
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"

@@ -16,6 +16,7 @@ import {
   Copy, Trash, Camera, ArrowDownLeft, ArrowUpRight
 } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
+import ExportToExcel from '@/components/ExportToExcel';
 
 const shirtSizes = ['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'];
 
@@ -399,6 +400,31 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
         </div>
         {!activePanel && (
           <div className="flex gap-2.5">
+            <ExportToExcel
+              data={filteredProducts.map(p => ({
+                'Product Name': p.name,
+                'Item Code': p.itemCode || '',
+                Brand: p.brand?.name || '',
+                Category: p.category || '',
+                'Shirt Size': p.shirtSize || '',
+                Barcode: p.barcode || '',
+                Supplier: p.supplier || '',
+                'Unit Price': p.unitPrice || '',
+                Status: p.status || '',
+              }))}
+              columns={[
+                { header: 'Product Name', key: 'Product Name', width: 25 },
+                { header: 'Item Code', key: 'Item Code', width: 16 },
+                { header: 'Brand', key: 'Brand', width: 18 },
+                { header: 'Category', key: 'Category', width: 16 },
+                { header: 'Shirt Size', key: 'Shirt Size', width: 12 },
+                { header: 'Barcode', key: 'Barcode', width: 22 },
+                { header: 'Supplier', key: 'Supplier', width: 20 },
+                { header: 'Unit Price', key: 'Unit Price', width: 12 },
+                { header: 'Status', key: 'Status', width: 12 },
+              ]}
+              filename="IML-Products"
+            />
             <div className="has-tooltip">
               <button 
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" 

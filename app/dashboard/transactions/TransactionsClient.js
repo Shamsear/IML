@@ -10,6 +10,7 @@ import EmptyState from '@/components/EmptyState';
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export default function TransactionsClient({ 
   initialTransactions, 
@@ -85,6 +86,33 @@ export default function TransactionsClient({
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5">
+          <ExportToExcel
+            data={transactions.map(tx => ({
+              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
+              Type: tx.transactionType,
+              Barcode: tx.barcode,
+              Product: tx.product?.name || '',
+              Brand: tx.product?.brand?.name || '',
+              Quantity: tx.quantity,
+              'From': tx.fromEntityType || '',
+              'To': tx.toEntityType || '',
+              'Delivery Note': tx.deliveryNote || '',
+              Notes: tx.notes || '',
+            }))}
+            columns={[
+              { header: 'Date', key: 'Date', width: 18 },
+              { header: 'Type', key: 'Type', width: 16 },
+              { header: 'Barcode', key: 'Barcode', width: 22 },
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'From', key: 'From', width: 14 },
+              { header: 'To', key: 'To', width: 14 },
+              { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
+              { header: 'Notes', key: 'Notes', width: 25 },
+            ]}
+            filename="IML-Transaction-Ledger"
+          />
           <Link href="/dashboard/inbound" className="inline-flex items-center gap-2 px-4 py-2.5 bg-success/15 hover:bg-success text-success hover:text-white border border-success/30 rounded-lg text-sm font-semibold transition-colors duration-200">
             <ArrowDownLeft size={16} />
             <span>Inbound (Receive)</span>
