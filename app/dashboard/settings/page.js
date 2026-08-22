@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -33,6 +34,8 @@ export default async function SettingsPage() {
   };
 
   return (
-    <SettingsClient config={config} user={session.user} />
+    <Suspense fallback={<div className="w-full min-h-[40vh] flex items-center justify-center"><div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-[pulse_1.4s_ease-in-out_infinite]" /><span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-[pulse_1.4s_ease-in-out_0.2s_infinite]" /><span className="w-1.5 h-1.5 rounded-full bg-text-muted animate-[pulse_1.4s_ease-in-out_0.4s_infinite]" /></div></div>}>
+      <SettingsClient config={config} user={session.user} />
+    </Suspense>
   );
 }
