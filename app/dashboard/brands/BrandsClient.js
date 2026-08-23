@@ -98,14 +98,14 @@ export default function BrandsClient({ initialBrands }) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBrands.map((brand) => (
-                <div key={brand.id} className="bg-surface border border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col aspect-square group relative">
+                <div key={brand.id} className="bg-surface border border-border rounded-t-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col group relative">
                   {/* Brand Image/Logo Container */}
-                  <div className="flex-1 min-h-0 bg-white flex items-center justify-center p-0 relative overflow-hidden">
+                  <div className="aspect-square w-full bg-white flex items-center justify-center relative overflow-hidden rounded-t-2xl">
                     {brand.imageUrl ? (
                       <img 
                         src={getOptimizedImageUrl(brand.imageUrl, 400, 400)} 
                         alt={brand.name} 
-                        className="w-full h-full object-cover filter group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-contain p-4 filter group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                       />
                     ) : (
@@ -117,7 +117,7 @@ export default function BrandsClient({ initialBrands }) {
                   </div>
 
                   {/* Brand Info Overlay / Bottom Banner */}
-                  <div className="bg-surface-elevated/95 border-t border-border p-4 flex flex-col gap-1.5 flex-shrink-0">
+                  <div className="bg-surface-elevated/95 border-t border-border p-4 flex flex-col gap-1.5 flex-shrink-0 rounded-b-none">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-display font-extrabold text-sm text-text-primary truncate">{brand.name}</h3>
                       <Link 
