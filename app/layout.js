@@ -38,6 +38,7 @@ export default function RootLayout({ children }) {
             {children}
           </ThemeProvider>
         </Providers>
+        <script src="/tooltip.js" defer />
       </body>
     </html>
   );

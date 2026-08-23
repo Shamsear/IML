@@ -514,7 +514,7 @@ body {
 }
 
 /* ============================================================
-   PREMIUM CUSTOM TOOLTIP UI/UX STYLING
+   PREMIUM CUSTOM TOOLTIP UI/UX STYLING (position:fixed)
    ============================================================ */
 .has-tooltip {
   position: relative;
@@ -525,10 +525,7 @@ body {
 
 .tooltip-box {
   display: none;
-  position: absolute;
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  position: fixed;
   background-color: var(--text-primary);
   color: var(--text-inverse);
   text-align: center;
@@ -542,133 +539,16 @@ body {
   z-index: 99999;
   letter-spacing: 0.025em;
   text-transform: none;
-  isolation: isolate;
-}
-
-
-
-/* Tooltip arrow */
-.tooltip-box::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -4px;
-  border-width: 4px;
-  border-style: solid;
-  border-color: var(--text-primary) transparent transparent transparent;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
 .has-tooltip:hover .tooltip-box {
   display: block;
-  animation: tooltip-fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 1;
 }
 
-/* Tooltips in sidebar footer: show above the button */
-.sidebar-footer .has-tooltip .tooltip-box {
-  bottom: auto;
-  top: auto;
-  bottom: 100%;
-  transform: translateX(-50%) translateY(-4px);
-}
-.sidebar-footer .has-tooltip .tooltip-box::after {
-  top: auto;
-  bottom: 100%;
-  border-color: transparent transparent var(--text-primary) transparent;
-}
-.sidebar-footer .has-tooltip:hover .tooltip-box {
-  animation: tooltip-fade-in-up 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes tooltip-fade-in-up {
-  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-@keyframes tooltip-fade-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-/* Tooltip right alignment variant */
-.tooltip-box.tooltip-right {
-  bottom: auto;
-  left: 115%;
-  top: 50%;
-  transform: translateY(-50%) translateX(4px);
-}
-
-
-
-.tooltip-box.tooltip-right::after {
-  top: 50%;
-  left: auto;
-  right: 100%;
-  margin-top: -4px;
-  margin-left: 0;
-  border-width: 4px;
-  border-color: transparent var(--text-primary) transparent transparent;
-}
-
-@keyframes tooltip-fade-in-right {
-  from {
-    opacity: 0;
-    transform: translateY(-50%) translateX(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(-50%) translateX(0);
-  }
-}
-
-.has-tooltip:hover .tooltip-box.tooltip-right {
-  display: block;
-  animation: tooltip-fade-in-right 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Tooltip left alignment variant */
-.tooltip-box.tooltip-left {
-  bottom: auto;
-  right: 115%;
-  left: auto;
-  top: 50%;
-  transform: translateY(-50%) translateX(-4px);
-}
-
-.tooltip-box.tooltip-left::after {
-  top: 50%;
-  left: 100%;
-  right: auto;
-  margin-top: -4px;
-  margin-left: 0;
-  border-width: 4px;
-  border-color: transparent transparent transparent var(--text-primary);
-}
-
-@keyframes tooltip-fade-in-left {
-  from {
-    opacity: 0;
-    transform: translateY(-50%) translateX(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(-50%) translateX(0);
-  }
-}
-
-.has-tooltip:hover .tooltip-box.tooltip-left {
-  display: block;
-  animation: tooltip-fade-in-left 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* ============================================================
-   REDUCED MOTION — disable all decorative animations
-   ============================================================ */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -692,11 +572,8 @@ body {
     animation: none !important;
   }
 
-  .has-tooltip:hover .tooltip-box,
-  .has-tooltip:hover .tooltip-box.tooltip-right,
-  .has-tooltip:hover .tooltip-box.tooltip-left {
-    animation: none !important;
+  .has-tooltip:hover .tooltip-box {
+    transition: none !important;
     opacity: 1;
-    transform: none;
   }
 }

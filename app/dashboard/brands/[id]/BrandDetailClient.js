@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { 
   connectStoreToBrand, 
-  disconnectStoreFromBrand, 
-  createStoreAndLinkToBrand 
+  disconnectStoreFromBrand 
 } from '@/app/actions/brands';
 import { createProduct, importBarcodes, getProductSerials } from '@/app/actions/products';
 import { 
@@ -18,8 +17,6 @@ import StockBreakdown from '@/components/StockBreakdown';
 import ImageLightbox from '@/components/ImageLightbox';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
-
-const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
 export default function BrandDetailClient({ brand, allStores, supervisors, staff }) {
   const router = useRouter();
@@ -52,11 +49,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
 
   // Connect Store Form
   const [storeToConnect, setStoreToConnect] = useState('');
-
-  // Create Store Form
-  const [newStoreName, setNewStoreName] = useState('');
-  const [newStoreRegion, setNewStoreRegion] = useState('DXB');
-  const [newStoreLocation, setNewStoreLocation] = useState('');
 
   // Create Product Form
   const [productName, setProductName] = useState('');
@@ -148,24 +140,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
       window.location.reload();
     } catch (err) {
       setError(err.message || 'Failed to disconnect store');
-      setLoading(false);
-    }
-  };
-
-  const handleCreateStore = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    const formData = new FormData();
-    formData.append('name', newStoreName);
-    formData.append('region', newStoreRegion);
-    formData.append('location', newStoreLocation);
-    formData.append('isPublic', 'true');
-    try {
-      await createStoreAndLinkToBrand(brand.id, formData);
-      window.location.reload();
-    } catch (err) {
-      setError(err.message || 'Failed to register store');
       setLoading(false);
     }
   };
@@ -705,46 +679,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         </div>
       )}
 
-      {/* 2. Create Store Modal */}
-      {activeModal === 'createStore' && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[420px] shadow-lg flex flex-col gap-4 animate-slide-down">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="font-display font-bold text-lg text-text-primary">Register &amp; Link Store</h3>
-              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" onClick={() => setActiveModal(null)}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleCreateStore} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Outlet Name</label>
-                <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" value={newStoreName} onChange={(e) => setNewStoreName(e.target.value)} placeholder="e.g. Carrefour Reem Mall" required />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Region</label>
-                  <CustomSelect
-                    options={regions.map(r => ({ value: r, label: r }))}
-                    value={newStoreRegion}
-                    onChange={(val) => setNewStoreRegion(val)}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Coordinates</label>
-                  <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" value={newStoreLocation} onChange={(e) => setNewStoreLocation(e.target.value)} placeholder="Coordinates" />
-                </div>
-              </div>
-              <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg transition-colors" disabled={loading}>
-                {loading && <Loader2 size={14} className="animate-spin" />}
-                <span>Register Store</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 3. Create Product Modal */}
+      {/* Create Product Modal */}
       {activeModal === 'createProduct' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[500px] shadow-lg flex flex-col gap-4 animate-slide-down">

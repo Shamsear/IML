@@ -42,34 +42,33 @@ export default function DashboardShell({ user, children }) {
 
       {/* Sidebar aside */}
       <aside 
-        className={`fixed inset-y-0 left-0 bg-surface z-50 flex flex-col transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] lg:translate-x-0 lg:static lg:h-full lg:overflow-hidden
+        className={`fixed inset-y-0 left-0 bg-surface z-50 flex flex-col transition-[width] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] lg:translate-x-0 lg:static lg:h-full lg:overflow-hidden
           ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
           ${collapsed ? 'lg:w-[72px]' : 'lg:w-64'}
         `}
       >
         {/* Logo area */}
         <div className="flex items-center justify-between px-4 h-14 sm:h-16 border-b border-border flex-shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden w-full">
-            {(!collapsed || mobileOpen) ? (
-              <div className="flex items-center gap-2">
-                <img 
-                  src="/IML LOGO V-C.png" 
-                  alt="IML Group Logo" 
-                  className="h-8 w-auto object-contain block max-w-[140px]" 
-                />
-                <span className="text-[9px] font-bold tracking-wider text-secondary uppercase bg-secondary/10 px-1.5 py-0.5 rounded-md">Admin</span>
-              </div>
-            ) : (
+          <div className="flex items-center w-full min-w-0">
+            {/* Full logo — always rendered, fades */}
+            <div className={`flex items-center gap-2 transition-opacity duration-150 ${(!collapsed || mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} style={{ position: (!collapsed || mobileOpen) ? 'relative' : 'absolute' }}>
               <img 
-                src="/IML LOGO H-C.png" 
-                alt="IML Group Emblem" 
-                className="w-9 h-9 object-contain block mx-auto" 
+                src="/IML LOGO V-C.png" 
+                alt="IML Group Logo" 
+                className="h-8 w-auto object-contain block max-w-[140px]" 
               />
-            )}
+              <span className="text-[9px] font-bold tracking-wider text-secondary uppercase bg-secondary/10 px-1.5 py-0.5 rounded-md">Admin</span>
+            </div>
+            {/* Compact logo — always rendered, fades */}
+            <img 
+              src="/IML LOGO H-C.png" 
+              alt="IML Group Emblem" 
+              className={`w-9 h-9 object-contain block transition-opacity duration-150 ${(!collapsed || mobileOpen) ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 mx-auto'}`}
+            />
           </div>
           
           {/* Collapse sidebar trigger */}
-          <div className="has-tooltip hidden lg:flex">
+          <div className="has-tooltip hidden lg:flex flex-shrink-0">
             <button
               onClick={() => setCollapsed(!collapsed)}
               className="flex items-center justify-center p-1.5 rounded-md hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-colors"
@@ -96,32 +95,30 @@ export default function DashboardShell({ user, children }) {
           <DashboardNav collapsed={collapsed && !mobileOpen} />
         </div>
 
-        {/* Expand hint when collapsed */}
-        {collapsed && !mobileOpen && (
-          <div className="hidden lg:flex flex-col items-center gap-1.5 pb-3 px-2">
-            <button
-              onClick={() => setCollapsed(false)}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[9px] font-bold text-text-muted hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
-              type="button"
-            >
-              <PanelLeftOpen size={14} />
-              <span>Expand</span>
-            </button>
-          </div>
-        )}
+        {/* Expand hint when collapsed — always rendered, fades */}
+        <div className={`hidden lg:flex flex-col items-center gap-1.5 pb-3 px-2 transition-opacity duration-200 ${(collapsed && !mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 pb-0'}`}>
+          <button
+            onClick={() => setCollapsed(false)}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[9px] font-bold text-text-muted hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
+            type="button"
+          >
+            <PanelLeftOpen size={14} />
+            <span>Expand</span>
+          </button>
+        </div>
 
         {/* User Info footer inside sidebar */}
-        <div className="sidebar-footer p-4 border-t border-border flex items-center justify-between gap-2 overflow-hidden bg-surface-elevated/30 relative z-10">
+        <div className="sidebar-footer p-4 border-t border-border flex items-center justify-between gap-2 bg-surface-elevated/30 relative z-10">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
               {user?.name?.charAt(0)?.toUpperCase() || 'A'}
             </div>
-            <div className={`flex flex-col min-w-0 transition-all duration-150 ${(!collapsed || mobileOpen) ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'}`}>
+            <div className={`flex flex-col min-w-0 transition-opacity duration-200 ${(!collapsed || mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <span className="text-xs font-semibold text-text-primary truncate whitespace-nowrap">{user?.name}</span>
               <span className="text-[10px] text-text-secondary truncate whitespace-nowrap">Administrator</span>
             </div>
           </div>
-          <div className={`transition-all duration-150 ${(!collapsed || mobileOpen) ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'}`}>
+          <div className={`transition-opacity duration-200 ${(!collapsed || mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <div className="has-tooltip">
               <button 
                 type="button" 

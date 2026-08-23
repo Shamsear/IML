@@ -10,19 +10,19 @@ import {
   UserCheck, 
   Users, 
   FolderGit, 
-  History,
-  Activity,
-  BarChart3,
-  Settings,
-  ArrowDownLeft,
-  ArrowUpRight,
-  RefreshCw,
-  RotateCcw,
-  Trash2,
-  ShieldAlert,
-  AlertCircle,
-  Shirt,
-  Calendar,
+  History, 
+  Activity, 
+  BarChart3, 
+  Settings, 
+  ArrowDownLeft, 
+  ArrowUpRight, 
+  RefreshCw, 
+  RotateCcw, 
+  Trash2, 
+  ShieldAlert, 
+  AlertCircle, 
+  Shirt, 
+  Calendar, 
   Undo2,
 } from 'lucide-react';
 
@@ -80,17 +80,18 @@ export default function DashboardNav({ collapsed }) {
     <nav className="flex flex-col gap-6">
       {navSections.map((section) => (
         <div key={section.label} className="flex flex-col gap-1.5">
-          <span className={`px-3 text-[11px] font-bold tracking-wider text-text-muted uppercase transition-opacity duration-150 ${collapsed ? 'h-0 overflow-hidden opacity-0 p-0 m-0' : 'opacity-100'}`}>
+          {/* Section label — always rendered, fades */}
+          <span className={`px-3 text-[11px] font-bold tracking-wider text-text-muted uppercase transition-opacity duration-200 whitespace-nowrap overflow-hidden ${collapsed ? 'opacity-0 h-0 px-0 py-0 mb-0 pointer-events-none' : 'opacity-100'}`}>
             {section.label}
           </span>
-          {collapsed && <div className="h-px bg-border my-1 mx-3" />}
+          {/* Divider when collapsed */}
+          <div className={`transition-opacity duration-200 h-px bg-border my-1 mx-3 ${collapsed ? 'opacity-100' : 'opacity-0 h-0 my-0 pointer-events-none'}`} />
           
           <div className="flex flex-col gap-1">
             {section.items.map((item) => {
               const Icon = item.icon;
               let isActive;
               if (item.activePath) {
-                // Items with a specific type query param (e.g. Report Damage / Report Loss)
                 isActive = pathname.startsWith(item.activePath) && searchParams.get('type') === item.activeType;
               } else {
                 isActive = item.href === '/dashboard' 
@@ -102,27 +103,29 @@ export default function DashboardNav({ collapsed }) {
                 <Link 
                   key={item.href} 
                   href={item.href} 
-                  className={`flex items-center rounded-lg text-sm font-semibold transition-colors duration-200 group relative
-                    ${collapsed ? 'justify-center p-2.5 gap-0 has-tooltip' : 'px-3 py-2.5 gap-3'}
+                  className={`flex items-center rounded-lg text-sm font-semibold transition-colors duration-200 group relative has-tooltip
+                    ${collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5 gap-3'}
                     ${isActive 
                       ? 'text-primary bg-primary/10 border-l-2 border-primary rounded-l-none' 
                       : 'text-text-secondary hover:text-text-primary hover:bg-black/5'
                     }
-                  }`}
+                  `}
                 >
                   <Icon 
                     size={18} 
-                    className={`transition-colors duration-200
+                    className={`transition-colors duration-200 flex-shrink-0
                       ${isActive ? 'text-primary' : 'text-text-secondary group-hover:text-text-primary'}
                     `} 
                   />
-                  <span className={`truncate transition-opacity duration-150 ${collapsed ? 'w-0 overflow-hidden opacity-0' : 'opacity-100'}`}>{item.name}</span>
+                  {/* Label — always rendered, fades */}
+                  <span className={`truncate transition-opacity duration-200 whitespace-nowrap overflow-hidden ${collapsed ? 'opacity-0 w-0 pointer-events-none' : 'opacity-100'}`}>
+                    {item.name}
+                  </span>
                   
                   {/* Subtle hover indicator dot if collapsed */}
-                  {isActive && collapsed && (
-                    <div className="absolute right-1 w-1.5 h-1.5 rounded-full bg-primary" />
-                  )}
+                  <div className={`absolute right-1 w-1.5 h-1.5 rounded-full bg-primary transition-opacity duration-200 ${(!isActive || !collapsed) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} />
 
+                  {/* Tooltip — only rendered in collapsed state */}
                   {collapsed && (
                     <span className="tooltip-box tooltip-right">{item.name}</span>
                   )}
