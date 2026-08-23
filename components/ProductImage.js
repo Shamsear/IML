@@ -34,7 +34,7 @@ export default function ProductImage({
 
   if (!src && showPlaceholder) {
     return (
-      <div className={`${sizes[size]} rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 ${onClick ? 'cursor-pointer' : ''} ${className}`}>
+      <div className={`${sizes[size]} rounded-2xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 ${onClick ? 'cursor-pointer' : ''} ${className}`}>
         <Package size={iconSizes[size]} />
       </div>
     );
@@ -46,7 +46,7 @@ export default function ProductImage({
     <img
       src={getOptimizedImageUrl(src, 80, 80)}
       alt={alt}
-      className={`${sizes[size]} rounded-lg object-cover border border-border flex-shrink-0 ${onClick ? 'cursor-zoom-in hover:brightness-95' : ''} transition-all duration-200 ${className}`}
+      className={`${sizes[size]} rounded-2xl object-cover border border-border flex-shrink-0 ${onClick ? 'cursor-zoom-in hover:brightness-95' : ''} transition-all duration-200 ${className}`}
       onClick={onClick}
       onError={(e) => {
         if (e.target.src !== src) {
