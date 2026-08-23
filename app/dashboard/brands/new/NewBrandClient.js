@@ -285,12 +285,12 @@ export default function NewBrandClient() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-text-secondary">Brand Name</label>
                       <input
                         type="text"
-                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
                         value={item.name}
                         onChange={(e) => updateItemField(idx, 'name', e.target.value)}
                         placeholder="e.g. Virgin Mobile"
@@ -302,11 +302,11 @@ export default function NewBrandClient() {
                       <label className="text-xs font-semibold text-text-secondary">Logo Image</label>
                       {(item.logoPreview || item.imageUrl) ? (
                         <div className="relative group">
-                          <div className="w-full h-24 rounded-lg border border-border bg-white overflow-hidden flex items-center justify-center">
-                            <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 200, 200)} alt="Preview" className="max-h-full max-w-full object-contain" />
+                          <div className="w-full h-[42px] rounded-lg border border-border bg-white overflow-hidden flex items-center justify-center">
+                            <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 200, 200)} alt="Preview" className="max-h-full max-w-full object-contain px-1" />
                           </div>
                           <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                            <label className="px-3 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-md cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
+                            <label className="px-2 py-0.5 bg-white text-text-primary text-[10px] font-bold rounded cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
                               Change
                               <input
                                 type="file"
@@ -332,16 +332,16 @@ export default function NewBrandClient() {
                                 updateItemField(idx, 'logoPreview', '');
                                 updateItemField(idx, 'imageUrl', '');
                               }}
-                              className="px-3 py-1.5 bg-white text-danger text-[11px] font-bold rounded-md hover:bg-red-50 transition-colors shadow-sm"
+                              className="px-2 py-0.5 bg-white text-danger text-[10px] font-bold rounded hover:bg-red-50 transition-colors shadow-sm"
                             >
                               Remove
                             </button>
                           </div>
-                          <span className="text-[10px] text-text-secondary mt-1 truncate block">{item.logoFile?.name || 'Current logo'}</span>
+                          <span className="text-[10px] text-text-secondary mt-0.5 truncate block">{item.logoFile?.name || 'Current logo'}</span>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border hover:border-primary/50 rounded-lg bg-surface-elevated/30 hover:bg-surface-elevated/60 cursor-pointer transition-all group">
-                          <Camera size={20} className="text-text-muted group-hover:text-primary transition-colors mb-1" />
+                        <label className="flex items-center justify-center gap-2 w-full h-[42px] border-2 border-dashed border-border hover:border-primary/50 rounded-lg bg-surface-elevated/30 hover:bg-surface-elevated/60 cursor-pointer transition-all group">
+                          <Camera size={14} className="text-text-muted group-hover:text-primary transition-colors" />
                           <span className="text-[11px] font-semibold text-text-secondary group-hover:text-text-primary transition-colors">Click to upload logo</span>
                           <span className="text-[10px] text-text-muted">PNG, JPG up to 5MB</span>
                           <input
@@ -363,14 +363,12 @@ export default function NewBrandClient() {
                         </label>
                       )}
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-text-secondary">Default Warehouse Rack (Optional)</label>
                       <input
                         type="text"
-                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary"
                         value={item.rack || ''}
                         onChange={(e) => updateItemField(idx, 'rack', e.target.value)}
                         placeholder="e.g. Rack A"
@@ -380,7 +378,7 @@ export default function NewBrandClient() {
                       <label className="text-xs font-semibold text-text-secondary">Default Warehouse Shelf (Optional)</label>
                       <input
                         type="text"
-                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary"
                         value={item.shelf || ''}
                         onChange={(e) => updateItemField(idx, 'shelf', e.target.value)}
                         placeholder="e.g. Shelf 3"

@@ -152,12 +152,12 @@ export default function EditBrandClient({ brand }) {
       )}
 
       <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col gap-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Brand Name</label>
             <input
               type="text"
-              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"
+              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none"
               value={item.name}
               onChange={(e) => updateField('name', e.target.value)}
               placeholder="e.g. Virgin Mobile"
@@ -166,38 +166,43 @@ export default function EditBrandClient({ brand }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-text-secondary">Upload Logo Image File</label>
-            <input
-              type="file"
-              accept="image/*"
-              className="w-full bg-surface-elevated text-text-primary border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-              onChange={(e) => {
-                const file = e.target.files[0];
-                if (file) {
-                  setOriginalFile(file);
-                  setCropSrc(URL.createObjectURL(file));
-                  setCropping(true);
-                  setCropZoom(1);
-                  setCropX(0);
-                  setCropY(0);
-                }
-              }}
-            />
-            {(item.logoPreview || item.imageUrl) && (
-              <div className="flex items-center gap-2 mt-1">
-                <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 60, 60)} alt="Preview" className="w-8 h-8 rounded border border-border bg-white object-contain" />
-                <span className="text-[10px] text-text-secondary truncate max-w-xs">{item.logoFile?.name || 'Current Image'}</span>
-              </div>
-            )}
+            <label className="text-xs font-semibold text-text-secondary">Logo Image</label>
+            <div className="flex items-center gap-3">
+              {(item.logoPreview || item.imageUrl) && (
+                <div className="relative group">
+                  <div className="w-[42px] h-[42px] rounded-lg border border-border bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
+                    <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 60, 60)} alt="Preview" className="max-h-full max-w-full object-contain" />
+                  </div>
+                </div>
+              )}
+              <label className="flex-1 flex items-center justify-center gap-1.5 h-[42px] border-2 border-dashed border-border hover:border-primary/50 rounded-lg bg-surface-elevated/30 hover:bg-surface-elevated/60 cursor-pointer transition-all group">
+                <Camera size={13} className="text-text-muted group-hover:text-primary transition-colors" />
+                <span className="text-[11px] font-semibold text-text-secondary group-hover:text-text-primary transition-colors">{item.logoFile?.name ? 'Change logo' : 'Upload logo'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setOriginalFile(file);
+                      setCropSrc(URL.createObjectURL(file));
+                      setCropping(true);
+                      setCropZoom(1);
+                      setCropX(0);
+                      setCropY(0);
+                    }
+                  }}
+                />
+              </label>
+            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Default Warehouse Rack (Optional)</label>
             <input
               type="text"
-              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary"
               value={item.rack}
               onChange={(e) => updateField('rack', e.target.value)}
               placeholder="e.g. Rack A"
@@ -207,7 +212,7 @@ export default function EditBrandClient({ brand }) {
             <label className="text-xs font-semibold text-text-secondary">Default Warehouse Shelf (Optional)</label>
             <input
               type="text"
-              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary"
               value={item.shelf}
               onChange={(e) => updateField('shelf', e.target.value)}
               placeholder="e.g. Shelf 3"
