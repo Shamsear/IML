@@ -140,7 +140,7 @@ export default async function DashboardPage() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {brand.imageUrl ? (
-                      <div className="w-12 h-12 bg-white border border-border rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 bg-white border border-border rounded-sm overflow-hidden flex items-center justify-center flex-shrink-0">
                         <img 
                           src={getOptimizedImageUrl(brand.imageUrl, 80, 80)} 
                           alt={brand.name} 
