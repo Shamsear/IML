@@ -73,7 +73,39 @@ export default function ProductDetailClient({ product }) {
     product.isDisposable && { label: 'Disposable', icon: Trash2, color: 'text-warning' },
     product.trackExpiry && { label: 'Track Expiry', icon: Calendar, color: 'text-danger' },
     product.stockCap && { label: `Cap: ${product.stockCap}`, icon: Package, color: 'text-secondary' },
+    product.isPublic && { label: 'Public', icon: CheckCircle, color: 'text-success' },
   ].filter(Boolean);
+
+  // Compute expiry batches from transactions
+  const expiryBatches = (() => {
+    if (!product.trackExpiry) return [];
+    const batches = {};
+    const now = new Date();
+    transactions.forEach(tx => {
+      const mDate = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
+      const eDate = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
+      const key = `${mDate}|${eDate}`;
+      if (!batches[key]) {
+        batches[key] = {
+          manufactureDate: tx.manufactureDate,
+          expiryDate: tx.expiryDate,
+          quantity: 0,
+        };
+      }
+      if (['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(tx.transactionType)) {
+        batches[key].quantity += tx.quantity;
+      } else if (['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(tx.transactionType)) {
+        batches[key].quantity -= tx.quantity;
+      }
+    });
+    return Object.values(batches)
+      .filter(b => b.quantity > 0)
+      .map(b => ({
+        ...b,
+        isExpired: b.expiryDate && new Date(b.expiryDate) < now,
+        isExpiringSoon: b.expiryDate && !b.isExpired && new Date(b.expiryDate) < new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+      }));
+  })();
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,6 +141,52 @@ export default function ProductDetailClient({ product }) {
         }
       />
 
+      {/* Expiry Batches (for products tracking expiry) */}
+      {product.trackExpiry && expiryBatches.length > 0 && (
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2">
+              <Calendar size={16} className="text-danger" />
+              Expiry Batches ({expiryBatches.length})
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
+                  <th className="pb-2 pr-4">Manufacture Date</th>
+                  <th className="pb-2 pr-4">Expiry Date</th>
+                  <th className="pb-2 pr-4">Available Qty</th>
+                  <th className="pb-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {expiryBatches.map((b, i) => (
+                  <tr key={i} className="hover:bg-surface-elevated/20">
+                    <td className="py-2 pr-4 text-text-secondary">
+                      {b.manufactureDate ? new Date(b.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                    </td>
+                    <td className="py-2 pr-4 text-text-secondary">
+                      {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                    </td>
+                    <td className="py-2 pr-4 font-mono font-bold">{b.quantity}</td>
+                    <td className="py-2">
+                      {b.isExpired ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20">Expired</span>
+                      ) : b.isExpiringSoon ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20">Expiring Soon</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">Valid</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Top Section: Image + Info + Stock */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Product Image & Info */}
@@ -118,11 +196,11 @@ export default function ProductDetailClient({ product }) {
             <img
               src={getOptimizedImageUrl(product.imageUrl, 400, 400)}
               alt={product.name}
-              className="w-full h-48 object-contain bg-background rounded-lg border border-border cursor-zoom-in hover:brightness-95 transition-all"
+              className="w-full aspect-square object-cover bg-background rounded-lg border border-border cursor-zoom-in hover:brightness-95 transition-all"
               onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })}
             />
           ) : (
-            <div className="w-full h-48 bg-primary/5 rounded-lg border border-border flex items-center justify-center">
+            <div className="w-full aspect-square bg-primary/5 rounded-lg border border-border flex items-center justify-center">
               <Package size={48} className="text-primary/30" />
             </div>
           )}
@@ -296,8 +374,10 @@ export default function ProductDetailClient({ product }) {
               <thead>
                 <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
                   <th className="pb-2 pr-4">Barcode</th>
+                  {serialNumbers.some(s => s.secondaryBarcode) && <th className="pb-2 pr-4">Secondary</th>}
                   <th className="pb-2 pr-4">Status</th>
                   <th className="pb-2 pr-4">Location</th>
+                  <th className="pb-2 pr-4">Mfg Date</th>
                   <th className="pb-2 pr-4">Expiry</th>
                   <th className="pb-2">Created</th>
                 </tr>
@@ -306,9 +386,15 @@ export default function ProductDetailClient({ product }) {
                 {serialNumbers.slice(0, 20).map((s) => (
                   <tr key={s.id} className="hover:bg-surface-elevated/20">
                     <td className="py-2 pr-4 font-mono font-semibold">{s.barcode}</td>
+                    {serialNumbers.some(s => s.secondaryBarcode) && (
+                      <td className="py-2 pr-4 font-mono text-text-secondary text-[10px]">{s.secondaryBarcode || '---'}</td>
+                    )}
                     <td className="py-2 pr-4">{serialStatusBadge(s.status)}</td>
                     <td className="py-2 pr-4 text-text-secondary">{s.currentLocationType || '---'}</td>
-                    <td className="py-2 pr-4 text-text-secondary">
+                    <td className="py-2 pr-4 text-text-secondary text-[10px]">
+                      {s.manufactureDate ? new Date(s.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                    </td>
+                    <td className="py-2 pr-4 text-text-secondary text-[10px]">
                       {s.expiryDate ? new Date(s.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
                     </td>
                     <td className="py-2 text-text-secondary">
@@ -351,6 +437,8 @@ export default function ProductDetailClient({ product }) {
                   <th className="pb-2 pr-4">From</th>
                   <th className="pb-2 pr-4">To</th>
                   <th className="pb-2 pr-4">Qty</th>
+                  {product.trackExpiry && <th className="pb-2 pr-4">Mfg Date</th>}
+                  {product.trackExpiry && <th className="pb-2 pr-4">Exp Date</th>}
                   <th className="pb-2 pr-4">Note</th>
                   <th className="pb-2">Status</th>
                 </tr>
@@ -365,13 +453,23 @@ export default function ProductDetailClient({ product }) {
                     <td className="py-2 pr-4 text-text-secondary">{tx.fromEntityType || '---'}</td>
                     <td className="py-2 pr-4 text-text-secondary">{tx.toEntityType || '---'}</td>
                     <td className="py-2 pr-4 font-mono font-bold">{tx.quantity}</td>
+                    {product.trackExpiry && (
+                      <td className="py-2 pr-4 text-text-secondary text-[10px]">
+                        {tx.manufactureDate ? new Date(tx.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                      </td>
+                    )}
+                    {product.trackExpiry && (
+                      <td className="py-2 pr-4 text-text-secondary text-[10px]">
+                        {tx.expiryDate ? new Date(tx.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                      </td>
+                    )}
                     <td className="py-2 pr-4 text-text-secondary max-w-[120px] truncate" title={tx.deliveryNote || tx.notes || ''}>
                       {tx.deliveryNote || tx.notes || '---'}
                     </td>
                     <td className="py-2">
                       {tx.returnStatus && (
                         <span className={`text-[10px] font-bold ${tx.returnStatus === 'RETURNED' ? 'text-success' : 'text-warning'}`}>
-                          {tx.returnStatus}
+                          {tx.returnStatus}{tx.returnedQty ? ` (${tx.returnedQty})` : ''}
                         </span>
                       )}
                     </td>

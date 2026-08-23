@@ -774,6 +774,8 @@ export async function getProductDetail(id) {
           timestamp: true,
           returnStatus: true,
           returnedQty: true,
+          manufactureDate: true,
+          expiryDate: true,
         },
       },
       serialNumbers: {

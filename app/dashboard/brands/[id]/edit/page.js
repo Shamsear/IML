@@ -8,7 +8,8 @@ export const metadata = {
 };
 
 export default async function EditBrandPage({ params }) {
-  const brand = await getBrandWithDetails(params.id);
+  const { id } = await params;
+  const brand = await getBrandWithDetails(id);
   if (!brand) {
     notFound();
   }
