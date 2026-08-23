@@ -213,11 +213,15 @@ export default function ExpiryClient({ initialBatches }) {
               <div key={batch.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    {batch.productImage && (
-                      <img src={batch.productImage} alt={batch.productName} className="w-8 h-8 object-contain rounded-lg border border-border bg-white mb-1.5" />
-                    )}
-                    <span className="font-semibold text-sm text-text-primary block truncate">{batch.productName || 'Unknown'}</span>
-                    <span className="text-[11px] text-text-muted">{batch.productBrand || '---'} · {batch.productCategory || ''}</span>
+                    <div className="flex items-center gap-2.5">
+                      {batch.productImage && (
+                        <img src={batch.productImage} alt={batch.productName} className="w-8 h-8 object-cover rounded-md border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/dashboard/products/${batch.productId}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{batch.productName || 'Unknown'}</Link>
+                        <span className="text-[11px] text-text-muted">{batch.productBrand || '---'} · {batch.productCategory || ''}</span>
+                      </div>
+                    </div>
                   </div>
                   <span className={`badge text-[10px] flex-shrink-0 ${shelfStatus === 'EXPIRED' ? 'badge-danger' : shelfStatus === 'NEAR_EXPIRY' ? 'badge-warning' : 'badge-success'}`}>
                     {shelfStatus === 'NEAR_EXPIRY' ? 'Near Expiry' : shelfStatus}
@@ -290,14 +294,14 @@ export default function ExpiryClient({ initialBatches }) {
                       <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                         <div className="flex items-center gap-3">
                           {batch.productImage ? (
-                            <img src={batch.productImage} alt={batch.productName} className="w-10 h-10 object-contain rounded-lg border border-border bg-white" />
+                            <img src={batch.productImage} alt={batch.productName} className="w-10 h-10 object-cover rounded-md border border-border cursor-zoom-in hover:brightness-95 transition-all duration-200" />
                           ) : (
                             <div className="w-10 h-10 bg-surface-elevated rounded-lg flex items-center justify-center border border-border text-text-muted">
                               <Package size={16} />
                             </div>
                           )}
                           <div className="min-w-0">
-                            <span className="font-semibold text-sm block truncate">{batch.productName}</span>
+                            <Link href={`/dashboard/products/${batch.productId}`} className="font-semibold text-sm block truncate hover:text-primary transition-colors">{batch.productName}</Link>
                             <span className="text-[11px] text-text-muted mt-0.5 block whitespace-nowrap">Brand: {batch.productBrand} • {batch.productCategory}</span>
                           </div>
                         </div>
@@ -315,7 +319,7 @@ export default function ExpiryClient({ initialBatches }) {
                       </td>
                       <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
                         <Link
-                          href={`/dashboard/products?search=${encodeURIComponent(batch.productName)}`}
+                          href={`/dashboard/products/${batch.productId}`}
                           className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-bold"
                         >
                           <span>Product Detail</span>

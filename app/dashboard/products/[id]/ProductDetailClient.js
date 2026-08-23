@@ -73,7 +73,6 @@ export default function ProductDetailClient({ product }) {
     product.isDisposable && { label: 'Disposable', icon: Trash2, color: 'text-warning' },
     product.trackExpiry && { label: 'Track Expiry', icon: Calendar, color: 'text-danger' },
     product.stockCap && { label: `Cap: ${product.stockCap}`, icon: Package, color: 'text-secondary' },
-    product.isPublic && { label: 'Public', icon: CheckCircle, color: 'text-success' },
   ].filter(Boolean);
 
   // Compute expiry batches from transactions
@@ -141,52 +140,6 @@ export default function ProductDetailClient({ product }) {
         }
       />
 
-      {/* Expiry Batches (for products tracking expiry) */}
-      {product.trackExpiry && expiryBatches.length > 0 && (
-        <div className="bg-surface border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2">
-              <Calendar size={16} className="text-danger" />
-              Expiry Batches ({expiryBatches.length})
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-xs">
-              <thead>
-                <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
-                  <th className="pb-2 pr-4">Manufacture Date</th>
-                  <th className="pb-2 pr-4">Expiry Date</th>
-                  <th className="pb-2 pr-4">Available Qty</th>
-                  <th className="pb-2">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {expiryBatches.map((b, i) => (
-                  <tr key={i} className="hover:bg-surface-elevated/20">
-                    <td className="py-2 pr-4 text-text-secondary">
-                      {b.manufactureDate ? new Date(b.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
-                    </td>
-                    <td className="py-2 pr-4 text-text-secondary">
-                      {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
-                    </td>
-                    <td className="py-2 pr-4 font-mono font-bold">{b.quantity}</td>
-                    <td className="py-2">
-                      {b.isExpired ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20">Expired</span>
-                      ) : b.isExpiringSoon ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20">Expiring Soon</span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">Valid</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       {/* Top Section: Image + Info + Stock */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Product Image & Info */}
@@ -200,7 +153,7 @@ export default function ProductDetailClient({ product }) {
               onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })}
             />
           ) : (
-            <div className="w-full aspect-square bg-primary/5 rounded-2xl border border-border flex items-center justify-center">
+            <div className="w-full aspect-square bg-primary/5 rounded-md border border-border flex items-center justify-center">
               <Package size={48} className="text-primary/30" />
             </div>
           )}
@@ -353,6 +306,52 @@ export default function ProductDetailClient({ product }) {
           </div>
         </div>
       </div>
+
+      {/* Expiry Batches (for products tracking expiry) */}
+      {product.trackExpiry && expiryBatches.length > 0 && (
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2">
+              <Calendar size={16} className="text-danger" />
+              Expiry Batches ({expiryBatches.length})
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
+                  <th className="pb-2 pr-4">Manufacture Date</th>
+                  <th className="pb-2 pr-4">Expiry Date</th>
+                  <th className="pb-2 pr-4">Available Qty</th>
+                  <th className="pb-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {expiryBatches.map((b, i) => (
+                  <tr key={i} className="hover:bg-surface-elevated/20">
+                    <td className="py-2 pr-4 text-text-secondary">
+                      {b.manufactureDate ? new Date(b.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                    </td>
+                    <td className="py-2 pr-4 text-text-secondary">
+                      {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                    </td>
+                    <td className="py-2 pr-4 font-mono font-bold">{b.quantity}</td>
+                    <td className="py-2">
+                      {b.isExpired ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20">Expired</span>
+                      ) : b.isExpiringSoon ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20">Expiring Soon</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">Valid</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Serial Numbers (if serialized) */}
       {product.isSerialized && serialNumbers.length > 0 && (

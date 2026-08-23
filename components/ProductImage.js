@@ -46,7 +46,7 @@ export default function ProductImage({
     <img
       src={getOptimizedImageUrl(src, 80, 80)}
       alt={alt}
-      className={`${sizes[size]} rounded-2xl object-cover border border-border flex-shrink-0 ${onClick ? 'cursor-zoom-in hover:brightness-95' : ''} transition-all duration-200 ${className}`}
+      className={`${sizes[size]} rounded-md object-cover border border-border flex-shrink-0 ${onClick ? 'cursor-zoom-in hover:brightness-95' : ''} transition-all duration-200 ${className}`}
       onClick={onClick}
       onError={(e) => {
         if (e.target.src !== src) {

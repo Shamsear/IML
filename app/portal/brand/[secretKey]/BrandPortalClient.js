@@ -133,7 +133,7 @@ export default function BrandPortalClient({ brand }) {
               <img 
                 src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
                 alt={brand.name} 
-                className="w-16 h-16 rounded-2xl object-cover border border-border cursor-pointer hover:border-primary transition-colors"
+                className="w-16 h-16 rounded-md object-cover border border-border cursor-pointer hover:border-primary transition-colors"
                 onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
                 onError={(e) => {
                   if (e.target.src !== brand.imageUrl) {
@@ -302,7 +302,7 @@ export default function BrandPortalClient({ brand }) {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             {p.imageUrl ? (
-                              <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-2xl object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })} />
+                              <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-md object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })} />
                             ) : (
                               <div className="w-10 h-10 rounded-lg bg-primary/5 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold border border-primary/10">{p.name.substring(0, 2).toUpperCase()}</div>
                             )}
@@ -352,7 +352,7 @@ export default function BrandPortalClient({ brand }) {
                                   <img 
                                     src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
                                     alt={p.name} 
-                                    className="w-8 h-8 rounded-2xl object-cover border border-border cursor-pointer hover:border-primary transition-all flex-shrink-0"
+                                    className="w-8 h-8 rounded-md object-cover border border-border cursor-pointer hover:border-primary transition-all flex-shrink-0"
                                     onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
                                     onError={(e) => {
                                       if (e.target.src !== p.imageUrl) {
