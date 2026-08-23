@@ -744,6 +744,71 @@ export async function getProductById(id) {
   });
 }
 
+/**
+ * Fetch full product detail with transactions, serials, and stock calculation.
+ * Used by the product detail page.
+ */
+export async function getProductDetail(id) {
+  await requireAuth();
+  if (!id) return null;
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      brand: { select: { id: true, name: true, imageUrl: true } },
+      _count: { select: { serialNumbers: true, transactions: true } },
+      transactions: {
+        orderBy: { timestamp: 'desc' },
+        take: 100,
+        select: {
+          id: true,
+          transactionType: true,
+          quantity: true,
+          fromEntityType: true,
+          fromEntityId: true,
+          toEntityType: true,
+          toEntityId: true,
+          deliveryNote: true,
+          notes: true,
+          timestamp: true,
+          returnStatus: true,
+          returnedQty: true,
+        },
+      },
+      serialNumbers: {
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        select: {
+          id: true,
+          barcode: true,
+          secondaryBarcode: true,
+          status: true,
+          currentLocationType: true,
+          currentLocationId: true,
+          manufactureDate: true,
+          expiryDate: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
+  if (!product) return null;
+
+  // Compute warehouse stock using the same logic as computeWarehouseStockMap
+  const stockMap = await computeWarehouseStockMap([product]);
+  const warehouseStock = stockMap.get(product.id) || 0;
+
+  // Compute full stock breakdown from transactions
+  const stock = getProductStock(product.transactions);
+
+  return {
+    ...product,
+    warehouseStock,
+    stock,
+  };
+}
+
 export async function createBulkProducts(formData) {
   await requireAuth();
 

@@ -814,7 +814,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-sm text-text-primary truncate block">{product.name}</span>
+                        <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm text-text-primary truncate block hover:text-primary transition-colors">{product.name}</Link>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="badge bg-secondary/15 text-secondary border border-secondary/10 text-[10px]">
                             {product.brand.name}
