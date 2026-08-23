@@ -286,8 +286,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-border">
-        <div className="flex items-center gap-4">
+      <header className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 pb-5 border-b border-border">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <Link href="/dashboard/brands" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors flex-shrink-0">
             <ArrowLeft size={16} />
           </Link>
@@ -323,7 +323,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           </div>
         </div>
         
-        <div className="flex flex-wrap lg:justify-end items-center gap-2">
+        <div className="flex flex-wrap lg:justify-end items-start gap-2">
           <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setStoreToConnect(''); setError(''); setActiveModal('connectStore'); }}>
             <LinkIcon size={14} />
             <span>Link Outlet</span>

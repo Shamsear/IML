@@ -1,20 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { createSupervisor, updateSupervisor, deleteSupervisor } from '@/app/actions/supervisors';
+import { useRouter } from 'next/navigation';
+import { deleteSupervisor } from '@/app/actions/supervisors';
 import { UserCheck, Plus, Edit2, Trash2, Mail, Phone, Loader2, X, Search } from 'lucide-react';
 import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
 
 export default function SupervisorsClient({ initialSupervisors }) {
+  const router = useRouter();
   const [supervisors, setSupervisors] = useState(initialSupervisors);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingSupervisor, setEditingSupervisor] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredSupervisors = supervisors.filter(s =>
@@ -22,54 +18,6 @@ export default function SupervisorsClient({ initialSupervisors }) {
     (s.email && s.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (s.phone && s.phone.toLowerCase().includes(searchQuery.toLowerCase()))
   );
-
-  const openAddModal = () => {
-    setEditingSupervisor(null);
-    setName(''); setEmail(''); setPhone('');
-    setError('');
-    setIsFormOpen(true);
-  };
-
-  const openEditModal = (supervisor) => {
-    setEditingSupervisor(supervisor);
-    setName(supervisor.name);
-    setEmail(supervisor.email || '');
-    setPhone(supervisor.phone || '');
-    setError('');
-    setIsFormOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    if (phone) {
-      const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-      const uaePhoneRegex = /^0(?:5[024568]|[234679])\d{7}$/;
-      if (!uaePhoneRegex.test(cleanPhone)) {
-        setError('Please enter a valid UAE phone number starting with 0 (e.g. 050 123 4567 or 04 123 4567, without country code).');
-        setLoading(false);
-        return;
-      }
-    }
-
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('email', email);
-    formData.append('phone', phone);
-    try {
-      if (editingSupervisor) {
-        await updateSupervisor(editingSupervisor.id, formData);
-      } else {
-        await createSupervisor(formData);
-      }
-      window.location.reload();
-    } catch (err) {
-      setError(err.message || 'Something went wrong.');
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this supervisor? This will unassign them from any promoters.')) return;
@@ -110,75 +58,7 @@ export default function SupervisorsClient({ initialSupervisors }) {
       </header>
 
       <div className="flex flex-col gap-6">
-        {isFormOpen && (
-          <div className="bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col gap-5 animate-slide-down">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h2 className="font-display font-bold text-lg text-text-primary">
-                {editingSupervisor ? 'Edit Supervisor' : 'Add Supervisor'}
-              </h2>
-              <button 
-                className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
-                onClick={() => setIsFormOpen(false)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            {error && (
-              <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold text-center animate-slide-down">
-                {error}
-              </div>
-            )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Full Name</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  placeholder="e.g. Shanawas" 
-                  required 
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Email Address</label>
-                  <input 
-                    type="email" 
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    placeholder="name@imlme.com" 
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Phone Contact</label>
-                  <input 
-                    type="text" 
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none font-mono" 
-                    value={phone} 
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} 
-                    maxLength={10}
-                    placeholder="e.g. 0501234567" 
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border">
-                <button type="button" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200" onClick={() => setIsFormOpen(false)} disabled={loading}>
-                  Cancel
-                </button>
-                <button type="submit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200" disabled={loading}>
-                  {loading && <Loader2 size={16} className="animate-spin" />}
-                  <span>{editingSupervisor ? 'Save Details' : 'Add Supervisor'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
         <div className="w-full flex flex-col gap-4">
           <div className="relative">
@@ -217,7 +97,7 @@ export default function SupervisorsClient({ initialSupervisors }) {
                 <div 
                   className="bg-surface border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col gap-4 group cursor-pointer" 
                   key={supervisor.id}
-                  onClick={() => openEditModal(supervisor)}
+                  onClick={() => router.push(`/dashboard/supervisors/${supervisor.id}/edit`)}
                 >
                   <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                     <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/10 flex items-center justify-center">
@@ -243,10 +123,13 @@ export default function SupervisorsClient({ initialSupervisors }) {
                   </div>
 
                   <div className="flex gap-2 pt-4 border-t border-border mt-2" onClick={(e) => e.stopPropagation()}>
-                    <button className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors duration-200" onClick={() => openEditModal(supervisor)}>
+                    <Link 
+                      href={`/dashboard/supervisors/${supervisor.id}/edit`} 
+                      className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors duration-200"
+                    >
                       <Edit2 size={13} />
                       <span>Edit</span>
-                    </button>
+                    </Link>
                     <div className="has-tooltip">
                       <button className="inline-flex items-center justify-center p-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 rounded-lg text-xs font-semibold transition-colors duration-200" onClick={() => handleDelete(supervisor.id)}>
                         <Trash2 size={14} />

@@ -426,7 +426,7 @@ export default function StoresClient({ initialStores }) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
               {filteredStores.map((store) => (
-                <div key={store.id} className="bg-surface border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-4 group">
+                <div key={store.id} onClick={() => router.push(`/dashboard/stores/${store.id}`)} className="bg-surface border border-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 flex flex-col gap-4 group cursor-pointer">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -444,16 +444,7 @@ export default function StoresClient({ initialStores }) {
                     <span className="leading-relaxed line-clamp-2 h-8">{store.location || 'No coordinates or address specified.'}</span>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3">
-                    <div className="has-tooltip">
-                      <Link
-                        href={`/dashboard/stores/${store.id}`}
-                        className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-md transition-colors cursor-pointer"
-                      >
-                        <Store size={13} />
-                      </Link>
-                      <span className="tooltip-box">Open placement ledger</span>
-                    </div>
+                  <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3" onClick={(e) => e.stopPropagation()}>
                     <div className="has-tooltip">
                       <button 
                         className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer"
