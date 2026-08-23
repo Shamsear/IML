@@ -42,9 +42,9 @@ export default function DashboardShell({ user, children }) {
 
       {/* Sidebar aside */}
       <aside 
-        className={`fixed inset-y-0 left-0 bg-surface z-50 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-full
+        className={`fixed inset-y-0 left-0 bg-surface z-50 flex flex-col transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] lg:translate-x-0 lg:static lg:h-full lg:overflow-hidden
           ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
-          ${collapsed ? 'lg:w-20' : 'lg:w-64'}
+          ${collapsed ? 'lg:w-[72px]' : 'lg:w-64'}
         `}
       >
         {/* Logo area */}
@@ -112,18 +112,16 @@ export default function DashboardShell({ user, children }) {
 
         {/* User Info footer inside sidebar */}
         <div className="sidebar-footer p-4 border-t border-border flex items-center justify-between gap-2 overflow-hidden bg-surface-elevated/30 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
               {user?.name?.charAt(0)?.toUpperCase() || 'A'}
             </div>
-            {(!collapsed || mobileOpen) && (
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-text-primary truncate">{user?.name}</span>
-                <span className="text-[10px] text-text-secondary truncate">Administrator</span>
-              </div>
-            )}
+            <div className={`flex flex-col min-w-0 transition-all duration-150 ${(!collapsed || mobileOpen) ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'}`}>
+              <span className="text-xs font-semibold text-text-primary truncate whitespace-nowrap">{user?.name}</span>
+              <span className="text-[10px] text-text-secondary truncate whitespace-nowrap">Administrator</span>
+            </div>
           </div>
-          {(!collapsed || mobileOpen) && (
+          <div className={`transition-all duration-150 ${(!collapsed || mobileOpen) ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'}`}>
             <div className="has-tooltip">
               <button 
                 type="button" 
@@ -135,7 +133,7 @@ export default function DashboardShell({ user, children }) {
               </button>
               <span className="tooltip-box">Sign Out</span>
             </div>
-          )}
+          </div>
         </div>
       </aside>
 

@@ -80,13 +80,10 @@ export default function DashboardNav({ collapsed }) {
     <nav className="flex flex-col gap-6">
       {navSections.map((section) => (
         <div key={section.label} className="flex flex-col gap-1.5">
-          {!collapsed ? (
-            <span className="px-3 text-[11px] font-bold tracking-wider text-text-muted uppercase">
-              {section.label}
-            </span>
-          ) : (
-            <div className="h-px bg-border my-1 mx-3" />
-          )}
+          <span className={`px-3 text-[11px] font-bold tracking-wider text-text-muted uppercase transition-opacity duration-150 ${collapsed ? 'h-0 overflow-hidden opacity-0 p-0 m-0' : 'opacity-100'}`}>
+            {section.label}
+          </span>
+          {collapsed && <div className="h-px bg-border my-1 mx-3" />}
           
           <div className="flex flex-col gap-1">
             {section.items.map((item) => {
@@ -105,13 +102,13 @@ export default function DashboardNav({ collapsed }) {
                 <Link 
                   key={item.href} 
                   href={item.href} 
-                  className={`flex items-center gap-3 rounded-lg text-sm font-semibold transition-colors duration-200 group relative
-                    ${collapsed ? 'justify-center p-2.5 has-tooltip' : 'px-3 py-2.5'}
+                  className={`flex items-center rounded-lg text-sm font-semibold transition-colors duration-200 group relative
+                    ${collapsed ? 'justify-center p-2.5 gap-0 has-tooltip' : 'px-3 py-2.5 gap-3'}
                     ${isActive 
                       ? 'text-primary bg-primary/10 border-l-2 border-primary rounded-l-none' 
                       : 'text-text-secondary hover:text-text-primary hover:bg-black/5'
                     }
-                  `}
+                  }`}
                 >
                   <Icon 
                     size={18} 
@@ -119,7 +116,7 @@ export default function DashboardNav({ collapsed }) {
                       ${isActive ? 'text-primary' : 'text-text-secondary group-hover:text-text-primary'}
                     `} 
                   />
-                  {!collapsed && <span className="truncate">{item.name}</span>}
+                  <span className={`truncate transition-opacity duration-150 ${collapsed ? 'w-0 overflow-hidden opacity-0' : 'opacity-100'}`}>{item.name}</span>
                   
                   {/* Subtle hover indicator dot if collapsed */}
                   {isActive && collapsed && (

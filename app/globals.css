@@ -542,6 +542,7 @@ body {
   z-index: 99999;
   letter-spacing: 0.025em;
   text-transform: none;
+  isolation: isolate;
 }
 
 

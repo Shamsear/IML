@@ -302,7 +302,7 @@ export default function NewBrandClient() {
                       <label className="text-xs font-semibold text-text-secondary">Logo Image</label>
                       {(item.logoPreview || item.imageUrl) ? (
                         <div className="relative group">
-                          <div className="w-full h-[42px] rounded-lg border border-border bg-white overflow-hidden flex items-center justify-center">
+                          <div className="w-full h-[42px] rounded-sm border border-border bg-white overflow-hidden flex items-center justify-center">
                             <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 200, 200)} alt="Preview" className="max-h-full max-w-full object-contain px-1" />
                           </div>
                           <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">

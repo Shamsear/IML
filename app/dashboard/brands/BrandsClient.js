@@ -98,7 +98,7 @@ export default function BrandsClient({ initialBrands }) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBrands.map((brand) => (
-                <div key={brand.id} className="bg-surface border border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col group relative">
+                <div key={brand.id} className="bg-surface border border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col group relative">
                   {/* Brand Image/Logo Container */}
                   <div className="aspect-square w-full bg-white flex items-center justify-center relative overflow-hidden rounded-t-md">
                     {brand.imageUrl ? (
