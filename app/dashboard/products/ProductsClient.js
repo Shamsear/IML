@@ -806,7 +806,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                         <img 
                           src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
                           alt={product.name} 
-                          className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0"
+                          className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                          onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })}
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">

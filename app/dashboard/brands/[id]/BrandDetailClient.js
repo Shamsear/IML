@@ -420,7 +420,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <input type="checkbox" className="custom-checkbox mt-0.5" checked={checkedProductIds.includes(product.id)} onChange={(e) => { if (e.target.checked) setCheckedProductIds(prev => [...prev, product.id]); else setCheckedProductIds(prev => prev.filter(id => id !== product.id)); }} />
                       {product.imageUrl ? (
-                        <img src={getOptimizedImageUrl(product.imageUrl, 80, 80)} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0" />
+                        <img src={getOptimizedImageUrl(product.imageUrl, 80, 80)} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })} />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
                       )}
