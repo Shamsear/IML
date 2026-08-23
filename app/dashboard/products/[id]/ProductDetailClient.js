@@ -463,7 +463,16 @@ export default function ProductDetailClient({ product }) {
                       </td>
                     )}
                     <td className="py-2 pr-4 text-text-secondary max-w-[120px] truncate" title={tx.deliveryNote || tx.notes || ''}>
-                      {tx.deliveryNote || tx.notes || '---'}
+                      {tx.deliveryNote ? (
+                        <a
+                          href={`/api/dashboard/inbound/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${brand?.id}&dn=${encodeURIComponent(tx.deliveryNote)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline font-semibold"
+                        >
+                          {tx.deliveryNote}
+                        </a>
+                      ) : tx.notes || '---'}
                     </td>
                     <td className="py-2">
                       {tx.returnStatus && (
