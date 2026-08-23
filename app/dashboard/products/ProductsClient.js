@@ -796,7 +796,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               {paginatedProducts.map(product => (
                 <div 
                   key={product.id}
-                  onClick={() => openEditModal(product)}
+                  onClick={() => router.push(`/dashboard/products/${product.id}`)}
                   className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-all"
                 >
                   {/* Top row: image, name, stock */}
@@ -959,7 +959,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                         <tr 
                           key={product.id} 
                           className="hover:bg-surface-elevated/30 transition-all duration-150 cursor-pointer group/row"
-                          onClick={() => openEditModal(product)}
+                          onClick={() => router.push(`/dashboard/products/${product.id}`)}
                         >
                           <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10" onClick={(e) => e.stopPropagation()}>
                             <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
