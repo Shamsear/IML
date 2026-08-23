@@ -806,7 +806,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                         <img 
                           src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
                           alt={product.name} 
-                          className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                          className="w-10 h-10 rounded-2xl object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
                           onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })}
                         />
                       ) : (
@@ -972,7 +972,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                                 <img 
                                   src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
                                   alt={product.name} 
-                                  className="w-8 h-8 rounded-lg object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                  className="w-8 h-8 rounded-2xl object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setLightboxImage({ url: product.imageUrl, name: product.name });
