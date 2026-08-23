@@ -196,7 +196,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
-                          <span className="font-semibold text-sm text-primary truncate">{tx.product?.name}</span>
+                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-primary truncate hover:text-primary-hover transition-colors">{tx.product?.name}</Link>
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
                           <span>{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</span>
@@ -245,7 +245,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/30'}`}>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
-                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-primary max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>{tx.product?.name}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}><Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-primary hover:text-primary-hover transition-colors">{tx.product?.name}</Link></td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
                         </td>

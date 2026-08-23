@@ -200,7 +200,7 @@ export default function TransactionsClient({
               <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <span className="font-semibold text-sm text-text-primary block truncate">{tx.product.name}</span>
+                    <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{tx.product.name}</Link>
                     <span className="text-[11px] text-text-muted font-mono">{tx.product.itemCode || ''}</span>
                   </div>
                   <span className={`badge text-[10px] flex-shrink-0 ${
@@ -262,7 +262,7 @@ export default function TransactionsClient({
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
                         <td className="py-3.5 pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex flex-col">
-                            <span className="font-semibold text-text-primary">{tx.product.name}</span>
+                            <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors">{tx.product.name}</Link>
 
                             {tx.receivedBy && (
                               <span className="text-[10px] text-text-secondary mt-1 font-semibold flex items-center gap-1">

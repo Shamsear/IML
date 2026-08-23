@@ -184,7 +184,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
-                          <span className="font-semibold text-sm text-warning truncate">{tx.product?.name}</span>
+                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-warning truncate hover:text-warning transition-colors">{tx.product?.name}</Link>
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
@@ -230,8 +230,8 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/30'}`}>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
-                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-warning max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
-                          {tx.product?.name}
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
+                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-warning hover:text-warning transition-colors">{tx.product?.name}</Link>
                           <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
