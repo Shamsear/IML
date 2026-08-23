@@ -215,7 +215,7 @@ export default function ExpiryClient({ initialBatches }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2.5">
                       {batch.productImage && (
-                        <img src={batch.productImage} alt={batch.productName} className="w-8 h-8 object-cover rounded-md border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" />
+                        <img src={batch.productImage} alt={batch.productName} className="w-8 h-8 object-cover rounded-sm border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" />
                       )}
                       <div className="min-w-0 flex-1">
                         <Link href={`/dashboard/products/${batch.productId}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{batch.productName || 'Unknown'}</Link>
@@ -294,7 +294,7 @@ export default function ExpiryClient({ initialBatches }) {
                       <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                         <div className="flex items-center gap-3">
                           {batch.productImage ? (
-                            <img src={batch.productImage} alt={batch.productName} className="w-10 h-10 object-cover rounded-md border border-border cursor-zoom-in hover:brightness-95 transition-all duration-200" />
+                            <img src={batch.productImage} alt={batch.productName} className="w-10 h-10 object-cover rounded-sm border border-border cursor-zoom-in hover:brightness-95 transition-all duration-200" />
                           ) : (
                             <div className="w-10 h-10 bg-surface-elevated rounded-lg flex items-center justify-center border border-border text-text-muted">
                               <Package size={16} />
