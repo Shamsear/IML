@@ -514,13 +514,23 @@ body {
 }
 
 /* ============================================================
+   SIDEBAR SCROLLBAR
+   ============================================================ */
+.sidebar-nav::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+.sidebar-nav {
+  scrollbar-width: none;
+}
+
+/* ============================================================
    PREMIUM CUSTOM TOOLTIP UI/UX STYLING (position:fixed)
    ============================================================ */
 .has-tooltip {
   position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
 }
 
 .tooltip-box {

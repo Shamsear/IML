@@ -40,17 +40,14 @@ export default function DashboardShell({ user, children }) {
         />
       )}
 
-      {/* Sidebar aside */}
+      {/* Sidebar aside — width transitions, no overflow-hidden or transform on desktop */}
       <aside 
-        className={`fixed inset-y-0 left-0 bg-surface z-50 flex flex-col transition-[width] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)] lg:translate-x-0 lg:static lg:h-full lg:overflow-hidden
-          ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
-          ${collapsed ? 'lg:w-[72px]' : 'lg:w-64'}
-        `}
+        className={`fixed inset-y-0 left-0 bg-surface z-50 flex flex-col transition-[width] duration-[130ms] ease-[cubic-bezier(0.2,0,0,1)] lg:static lg:h-full ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'} ${collapsed ? 'lg:w-[72px]' : 'lg:w-64'}`}
       >
         {/* Logo area */}
         <div className="flex items-center justify-between px-4 h-14 sm:h-16 border-b border-border flex-shrink-0">
           <div className="flex items-center w-full min-w-0">
-            {/* Full logo — always rendered, fades */}
+            {/* Full logo — fades */}
             <div className={`flex items-center gap-2 transition-opacity duration-150 ${(!collapsed || mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} style={{ position: (!collapsed || mobileOpen) ? 'relative' : 'absolute' }}>
               <img 
                 src="/IML LOGO V-C.png" 
@@ -59,7 +56,7 @@ export default function DashboardShell({ user, children }) {
               />
               <span className="text-[9px] font-bold tracking-wider text-secondary uppercase bg-secondary/10 px-1.5 py-0.5 rounded-md">Admin</span>
             </div>
-            {/* Compact logo — always rendered, fades */}
+            {/* Compact logo — fades */}
             <img 
               src="/IML LOGO H-C.png" 
               alt="IML Group Emblem" 
@@ -75,7 +72,7 @@ export default function DashboardShell({ user, children }) {
               type="button"
             >
               <span className="sr-only">{collapsed ? 'Expand sidebar' : 'Collapse sidebar'}</span>
-            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
             </button>
             <span className="tooltip-box tooltip-right">{collapsed ? 'Expand sidebar' : 'Collapse sidebar'}</span>
           </div>
@@ -91,20 +88,8 @@ export default function DashboardShell({ user, children }) {
         </div>
 
         {/* Navigation list */}
-        <div className="sidebar-nav flex-1 overflow-y-auto py-4 px-3">
+        <div className={`sidebar-nav flex-1 overflow-y-auto py-4 px-3 transition-[padding] duration-[130ms] ease-[cubic-bezier(0.2,0,0,1)] ${collapsed && !mobileOpen ? 'px-2' : 'px-3'}`}>
           <DashboardNav collapsed={collapsed && !mobileOpen} />
-        </div>
-
-        {/* Expand hint when collapsed — always rendered, fades */}
-        <div className={`hidden lg:flex flex-col items-center gap-1.5 pb-3 px-2 transition-opacity duration-200 ${(collapsed && !mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 pb-0'}`}>
-          <button
-            onClick={() => setCollapsed(false)}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[9px] font-bold text-text-muted hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
-            type="button"
-          >
-            <PanelLeftOpen size={14} />
-            <span>Expand</span>
-          </button>
         </div>
 
         {/* User Info footer inside sidebar */}
