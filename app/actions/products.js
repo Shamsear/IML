@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
 import { generateCustomRef, generateSkuCode } from '@/lib/ledger';
+import { getProductStock } from '@/lib/stock';
 
 async function saveFile(file) {
   return uploadToImageKit(file);
