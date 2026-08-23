@@ -328,10 +328,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
             <LinkIcon size={14} />
             <span>Link Outlet</span>
           </button>
-          <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setNewStoreName(''); setNewStoreLocation(''); setError(''); setActiveModal('createStore'); }}>
-            <Store size={14} />
-            <span>Register &amp; Link Outlet</span>
-          </button>
           <button 
             type="button" 
             className={`inline-flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-semibold transition-all duration-200 ${

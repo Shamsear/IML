@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { getStoreInventory } from '@/app/actions/transactions';
 import { 
   Store, MapPin, Globe, EyeOff, Users, 
-  Package, QrCode, ClipboardCheck, ArrowLeft, Printer
+  Package, QrCode, ClipboardCheck, ArrowLeft, Printer, Pencil
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -103,14 +103,23 @@ export default async function StoreDetailPage({ params, searchParams }) {
           <span>Back to Outlets</span>
         </Link>
 
-        <Link 
-          href={`/api/dashboard/stores/${id}/delivery-note`} 
-          target="_blank" 
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200"
-        >
-          <Printer size={16} />
-          <span>Download Store Stock Statement (PDF)</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link 
+            href={`/dashboard/stores/${id}/edit`} 
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors"
+          >
+            <Pencil size={14} />
+            <span>Edit Outlet</span>
+          </Link>
+          <Link 
+            href={`/api/dashboard/stores/${id}/delivery-note`} 
+            target="_blank" 
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200"
+          >
+            <Printer size={16} />
+            <span>Download Store Stock Statement (PDF)</span>
+          </Link>
+        </div>
       </div>
 
       {/* Store Header Card */}

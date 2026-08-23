@@ -170,7 +170,7 @@ export default function EditBrandClient({ brand }) {
             <div className="flex items-center gap-3">
               {(item.logoPreview || item.imageUrl) && (
                 <div className="relative group">
-                  <div className="w-[42px] h-[42px] rounded-lg border border-border bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
+                  <div className="w-[42px] h-[42px] rounded-sm border border-border bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
                     <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 60, 60)} alt="Preview" className="max-h-full max-w-full object-contain" />
                   </div>
                 </div>
