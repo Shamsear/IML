@@ -196,11 +196,11 @@ export default function ProductDetailClient({ product }) {
             <img
               src={getOptimizedImageUrl(product.imageUrl, 400, 400)}
               alt={product.name}
-              className="w-full aspect-square object-cover bg-background rounded-lg border border-border cursor-zoom-in hover:brightness-95 transition-all"
+              className="w-full aspect-square object-cover bg-background rounded-2xl border border-border cursor-zoom-in hover:brightness-95 transition-all"
               onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })}
             />
           ) : (
-            <div className="w-full aspect-square bg-primary/5 rounded-lg border border-border flex items-center justify-center">
+            <div className="w-full aspect-square bg-primary/5 rounded-2xl border border-border flex items-center justify-center">
               <Package size={48} className="text-primary/30" />
             </div>
           )}
