@@ -946,8 +946,8 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                 {showNewStoreForm && (
                   <div className="bg-surface-elevated/60 border border-border rounded-lg p-4 flex flex-col gap-3 animate-slide-down">
                     <p className="text-[11px] text-text-muted">Create a new store and it will be auto-selected for this dispatch.</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="flex flex-col gap-1">
+                    <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
+                      <div className="flex flex-col gap-1 sm:col-span-2">
                         <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Store Name *</label>
                         <input
                           type="text"
@@ -969,16 +969,16 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                           ))}
                         </select>
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Location</label>
-                        <input
-                          type="text"
-                          value={newStoreLocation}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Location</label>
+                      <input
+                        type="text"
+                        value={newStoreLocation}
                           onChange={e => setNewStoreLocation(e.target.value)}
                           placeholder="e.g. Sheikh Zayed Rd"
                           className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
-                        />
-                      </div>
+                      />
                     </div>
                     <button
                       type="button"

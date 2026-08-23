@@ -152,7 +152,7 @@ export default function EditBrandClient({ brand }) {
       )}
 
       <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col gap-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Brand Name</label>
             <input
@@ -192,7 +192,7 @@ export default function EditBrandClient({ brand }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-text-secondary">Default Warehouse Rack (Optional)</label>
             <input

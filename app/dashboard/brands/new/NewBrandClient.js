@@ -285,7 +285,7 @@ export default function NewBrandClient() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-text-secondary">Brand Name</label>
                       <input
@@ -365,7 +365,7 @@ export default function NewBrandClient() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold text-text-secondary">Default Warehouse Rack (Optional)</label>
                       <input
