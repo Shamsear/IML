@@ -446,13 +446,12 @@ export default function StoresClient({ initialStores }) {
 
                   <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3" onClick={(e) => e.stopPropagation()}>
                     <div className="has-tooltip">
-                      <button 
-                        className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer"
-                        onClick={() => openEditModal(store)}
-                        type="button"
+                      <Link 
+                        href={`/dashboard/stores/${store.id}/edit`}
+                        className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer inline-flex"
                       >
                         <Edit2 size={13} />
-                      </button>
+                      </Link>
                       <span className="tooltip-box">Edit outlet details</span>
                     </div>
                     <div className="has-tooltip">
