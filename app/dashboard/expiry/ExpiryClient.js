@@ -114,44 +114,44 @@ export default function ExpiryClient({ initialBatches }) {
       </header>
 
       {/* Stats Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-primary/10 rounded-lg text-primary">
-            <Package size={24} />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <Package size={20} />
           </div>
-          <div>
-            <span className="text-text-secondary text-xs font-semibold block">Total Batches</span>
-            <span className="text-2xl font-extrabold text-text-primary block mt-0.5">{stats.total}</span>
-          </div>
-        </div>
-
-        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('EXPIRED')}>
-          <div className="p-3 bg-danger/10 rounded-lg text-danger">
-            <AlertTriangle size={24} />
-          </div>
-          <div>
-            <span className="text-text-secondary text-xs font-semibold block">Expired Batches</span>
-            <span className="text-2xl font-extrabold text-danger block mt-0.5">{stats.expired}</span>
+          <div className="flex-1">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Total Batches</span>
+            <span className="text-xl font-display font-black text-text-primary block mt-0.5">{stats.total}</span>
           </div>
         </div>
 
-        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('NEAR_EXPIRY')}>
-          <div className="p-3 bg-warning/10 rounded-lg text-warning">
-            <Clock size={24} />
+        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('EXPIRED')}>
+          <div className="w-10 h-10 rounded-lg bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
+            <AlertTriangle size={20} />
           </div>
-          <div>
-            <span className="text-text-secondary text-xs font-semibold block">Near Expiry (&lt;30 days)</span>
-            <span className="text-2xl font-extrabold text-warning block mt-0.5">{stats.nearExpiry}</span>
+          <div className="flex-1">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Expired Batches</span>
+            <span className="text-xl font-display font-black text-danger block mt-0.5">{stats.expired}</span>
           </div>
         </div>
 
-        <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('GOOD')}>
-          <div className="p-3 bg-success/10 rounded-lg text-success">
-            <CheckCircle size={24} />
+        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('NEAR_EXPIRY')}>
+          <div className="w-10 h-10 rounded-lg bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+            <Clock size={20} />
           </div>
-          <div>
-            <span className="text-text-secondary text-xs font-semibold block">Safe Batches</span>
-            <span className="text-2xl font-extrabold text-success block mt-0.5">{stats.good}</span>
+          <div className="flex-1">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Near Expiry (&lt;30 days)</span>
+            <span className="text-xl font-display font-black text-warning block mt-0.5">{stats.nearExpiry}</span>
+          </div>
+        </div>
+
+        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('GOOD')}>
+          <div className="w-10 h-10 rounded-lg bg-success/10 text-success flex items-center justify-center flex-shrink-0">
+            <CheckCircle size={20} />
+          </div>
+          <div className="flex-1">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Safe Batches</span>
+            <span className="text-xl font-display font-black text-success block mt-0.5">{stats.good}</span>
           </div>
         </div>
       </div>

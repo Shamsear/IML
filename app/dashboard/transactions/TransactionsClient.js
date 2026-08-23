@@ -76,8 +76,8 @@ export default function TransactionsClient({
         <History size={250} />
       </div>
       {/* Header */}
-      <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 pb-5 border-b border-border">
-        <div>
+      <header className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 pb-5 border-b border-border">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Inventory Ledger Feed
           </h1>
@@ -85,7 +85,7 @@ export default function TransactionsClient({
             Audit logs of stock dispatches, returns, rebrands, and damages.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap gap-2 justify-start xl:justify-end">
           <ExportToExcel
             data={initialTransactions.map(tx => ({
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
