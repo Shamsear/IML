@@ -105,7 +105,7 @@ export default function BrandsClient({ initialBrands }) {
                       <img 
                         src={getOptimizedImageUrl(brand.imageUrl, 400, 400)} 
                         alt={brand.name} 
-                        className="w-full h-full object-contain p-4 filter group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover filter group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                       />
                     ) : (
