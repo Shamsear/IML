@@ -909,7 +909,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
                       {item.imagePreview || item.imageUrl ? (
-                        <div className="w-11 h-11 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
+                        <div className="w-11 h-11 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
                           <img src={item.imagePreview || item.imageUrl} alt="Preview" className="w-full h-full object-contain" />
                         </div>
                       ) : (
@@ -1336,7 +1336,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                           <label className="text-xs font-semibold text-text-secondary">Product Image</label>
                           <div className="flex items-center gap-4 border border-border border-dashed p-4 rounded-xl bg-surface-elevated/20">
                             {item.imagePreview || item.imageUrl ? (
-                              <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
+                              <div className="relative w-20 h-20 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
                                 <img 
                                   src={item.imagePreview || item.imageUrl} 
                                   alt="Preview" 
@@ -1356,7 +1356,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                 </button>
                               </div>
                             ) : (
-                              <div className="w-20 h-20 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                              <div className="w-20 h-20 rounded-sm bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
                                 <Camera size={24} />
                               </div>
                             )}

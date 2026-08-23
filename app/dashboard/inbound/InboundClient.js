@@ -1107,7 +1107,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                     <div className="flex items-center gap-3.5 min-w-0">
                       {item.isNewProduct ? (
                         item.prodImagePreview ? (
-                          <div className="w-11 h-11 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
+                          <div className="w-11 h-11 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
                             <img src={item.prodImagePreview} alt="Preview" className="w-full h-full object-contain" />
                           </div>
                         ) : (
@@ -1117,7 +1117,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                         )
                       ) : (
                         selectedProd?.imageUrl ? (
-                          <div className="w-11 h-11 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
+                          <div className="w-11 h-11 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
                             <img src={selectedProd.imageUrl} alt="Product" className="w-full h-full object-contain" />
                           </div>
                         ) : (
@@ -1646,7 +1646,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               <label className="text-xs font-semibold text-text-secondary">Product Image</label>
                               <div className="flex items-center gap-4 border border-border border-dashed p-4 rounded-xl bg-surface-elevated/10">
                                 {item.prodImagePreview ? (
-                                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                                  <div className="relative w-20 h-20 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
                                     <img src={item.prodImagePreview} alt="Preview" className="w-full h-full object-contain" />
                                     <button
                                       type="button"

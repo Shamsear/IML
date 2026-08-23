@@ -147,55 +147,57 @@ export default function ReportsClient({ initialProducts, brands }) {
         </>
       }
       />
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 print:grid-cols-6 print:gap-1.5">
-        <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider print:text-[8px]">Filtered Items</span>
-          <span className="text-2xl font-display font-black text-text-primary mt-1 block print:text-lg">
+      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 print:grid-cols-6 print:gap-1.5">
+        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
+          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-text-primary"></span> Filtered Items
+          </span>
+          <span className="text-xl font-display font-black text-text-primary mt-1.5 block print:text-lg">
             {filteredProducts.length}
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider print:text-[8px] flex items-center gap-1">
+        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
+          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-success"></span> Warehouse
           </span>
-          <span className="text-2xl font-display font-black text-success mt-1 block print:text-lg">
+          <span className="text-xl font-display font-black text-success mt-1.5 block print:text-lg">
             {aggregateTotals.warehouse}
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider print:text-[8px] flex items-center gap-1">
+        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
+          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-warning"></span> Store Outlets
           </span>
-          <span className="text-2xl font-display font-black text-warning mt-1 block print:text-lg">
+          <span className="text-xl font-display font-black text-warning mt-1.5 block print:text-lg">
             {aggregateTotals.issued}
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider print:text-[8px] flex items-center gap-1">
+        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
+          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> Promoters/Staff
           </span>
-          <span className="text-2xl font-display font-black text-primary mt-1 block print:text-lg">
+          <span className="text-xl font-display font-black text-primary mt-1.5 block print:text-lg">
             {aggregateTotals.used}
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider print:text-[8px] flex items-center gap-1">
+        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
+          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary/70"></span> With Clients
           </span>
-          <span className="text-2xl font-display font-black text-primary/80 mt-1 block print:text-lg">
+          <span className="text-xl font-display font-black text-primary/80 mt-1.5 block print:text-lg">
             {aggregateTotals.withClient}
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-5 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-danger block uppercase tracking-wider print:text-[8px] flex items-center gap-1">
+        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
+          <span className="text-[10px] font-bold text-danger uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse"></span> Damaged / Lost
           </span>
-          <span className="text-2xl font-display font-black text-danger mt-1 block print:text-lg">
+          <span className="text-xl font-display font-black text-danger mt-1.5 block print:text-lg">
             {aggregateTotals.damage + aggregateTotals.lost}
           </span>
         </div>

@@ -281,9 +281,9 @@ export default function StaffClient({ initialStaff, stores }) {
           <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Shirt size={20} />
           </div>
-          <div>
+          <div className="flex-1">
             <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Total Allocated Logs</span>
-            <span className="text-2xl font-display font-extrabold text-text-primary">{totalAllocationsCount}</span>
+            <span className="text-2xl font-display font-extrabold text-text-primary block">{totalAllocationsCount}</span>
           </div>
         </div>
 
@@ -293,7 +293,7 @@ export default function StaffClient({ initialStaff, stores }) {
           </div>
           <div className="flex-1">
             <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Active Allocations</span>
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-center gap-2">
               <span className="text-2xl font-display font-extrabold text-warning">{activeAllocationsCount}</span>
               {overdueAllocationsCount > 0 && (
                 <span className="text-[10px] font-extrabold text-danger bg-danger/10 border border-danger/15 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 has-tooltip cursor-help">
@@ -309,9 +309,9 @@ export default function StaffClient({ initialStaff, stores }) {
           <div className="w-10 h-10 rounded-lg bg-success/10 text-success flex items-center justify-center flex-shrink-0">
             <CheckCircle size={20} />
           </div>
-          <div>
+          <div className="flex-1">
             <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Returned &amp; Closed</span>
-            <span className="text-2xl font-display font-extrabold text-success">{returnedAllocationsCount}</span>
+            <span className="text-2xl font-display font-extrabold text-success block">{returnedAllocationsCount}</span>
           </div>
         </div>
 
@@ -319,9 +319,9 @@ export default function StaffClient({ initialStaff, stores }) {
           <div className="w-10 h-10 rounded-lg bg-secondary/15 text-secondary flex items-center justify-center flex-shrink-0">
             <Users size={20} />
           </div>
-          <div>
+          <div className="flex-1">
             <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Total Items in Field</span>
-            <span className="text-2xl font-display font-extrabold text-text-primary">{totalActiveQty}</span>
+            <span className="text-2xl font-display font-extrabold text-text-primary block">{totalActiveQty}</span>
           </div>
         </div>
       </div>

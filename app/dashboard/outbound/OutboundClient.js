@@ -1269,7 +1269,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                   >
                     <div className="min-w-0 flex items-center gap-3.5">
                       {selectedProd?.imageUrl ? (
-                        <div className="w-11 h-11 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
+                        <div className="w-11 h-11 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
                           <img src={selectedProd.imageUrl} alt="Product" className="w-full h-full object-contain" />
                         </div>
                       ) : (

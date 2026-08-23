@@ -221,7 +221,7 @@ export default function NewBrandClient() {
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     {item.logoPreview || item.imageUrl ? (
-                      <div className="w-10 h-10 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0">
                         <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 80, 80)} alt="Preview" className="w-full h-full object-contain" />
                       </div>
                     ) : (

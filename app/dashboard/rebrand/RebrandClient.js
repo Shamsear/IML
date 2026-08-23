@@ -844,7 +844,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
               <label className="text-xs font-bold text-text-primary">Target Product Image Replacement (Optional)</label>
               <div className="flex items-center gap-4">
                 {targetProductImagePreview || targetSelectedProduct?.imageUrl ? (
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <div className="relative w-20 h-20 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
                     <img src={targetProductImagePreview || targetSelectedProduct?.imageUrl} alt="Target Product Preview" className="w-full h-full object-contain" />
                     {targetProductImagePreview && (
                       <button
@@ -1009,7 +1009,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                 <label className="text-xs font-semibold text-text-secondary">Product Image</label>
                 <div className="flex items-center gap-4 border border-border border-dashed p-4 rounded-xl bg-surface-elevated/10">
                   {prodImagePreview ? (
-                    <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <div className="relative w-20 h-20 rounded-sm overflow-hidden border border-border bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
                       <img src={prodImagePreview} alt="Preview" className="w-full h-full object-contain" />
                       <button
                         type="button"
