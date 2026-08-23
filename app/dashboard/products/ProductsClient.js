@@ -988,7 +988,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                                 </div>
                               )}
                               <div className="flex flex-col min-w-0">
-                                <span className="font-semibold text-text-primary truncate">{product.name}</span>
+                                <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-text-primary truncate hover:text-primary transition-colors">{product.name}</Link>
                                 {((product.rack || product.shelf) || (product.brand?.rack || product.brand?.shelf)) && (
                                   <span className="text-[10px] text-text-muted mt-0.5 font-medium">
                                     Loc: {product.rack || product.brand?.rack ? `Rack ${product.rack || product.brand?.rack}` : ''}{(product.rack || product.brand?.rack) && (product.shelf || product.brand?.shelf) ? ', ' : ''}{product.shelf || product.brand?.shelf ? `Shelf ${product.shelf || product.brand?.shelf}` : ''}

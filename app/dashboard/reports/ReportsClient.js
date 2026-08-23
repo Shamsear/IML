@@ -227,7 +227,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                     <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
                   )}
                   <div className="min-w-0">
-                    <span className="font-semibold text-sm text-text-primary block truncate">{p.name}</span>
+                    <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{p.name}</Link>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] text-text-muted">{p.brand?.name}</span>
                       <span className="badge bg-surface-elevated text-text-secondary border border-border text-[9px]">{p.category || '---'}</span>
@@ -291,7 +291,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                           </div>
                         )}
                         <div className="flex flex-col min-w-0">
-                          <span className="font-semibold text-text-primary print:font-bold whitespace-nowrap">{p.name}</span>
+                          <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-text-primary print:font-bold whitespace-nowrap hover:text-primary transition-colors">{p.name}</Link>
                           <span className="text-[10px] text-text-muted mt-0.5 font-mono print:text-[8px] whitespace-nowrap">
                             SKU: {p.itemCode || '---'}
                           </span>

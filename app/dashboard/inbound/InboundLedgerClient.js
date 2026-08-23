@@ -197,7 +197,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                   <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-sm text-text-primary block truncate">{tx.product.name}</span>
+                        <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{tx.product.name}</Link>
                         <span className="text-[11px] text-text-muted">{tx.product.brand.name}</span>
                       </div>
                       <span className={`badge text-[10px] flex-shrink-0 ${tx.transactionType === 'RECEIVE' ? 'bg-success/10 border-success/20 text-success' : 'bg-info/10 border-info/20 text-info'}`}>

@@ -188,7 +188,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                   <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-sm text-text-primary block truncate">{tx.product.name}</span>
+                        <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{tx.product.name}</Link>
                         <span className="text-[11px] text-text-muted">{tx.product.brand.name}</span>
                       </div>
                       <span className="badge text-[10px] bg-secondary/15 text-secondary border border-secondary/10 flex-shrink-0">{tx.toEntityType}</span>
