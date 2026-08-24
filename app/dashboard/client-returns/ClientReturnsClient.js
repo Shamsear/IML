@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck, ArrowUpDown } from 'lucide-react';
 import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
-import { getProductBatchesAtLocation } from '@/app/actions/products';
+import { getProductBatchesAtLocation, getAvailableBarcodes } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
@@ -40,6 +40,12 @@ export default function ClientReturnsClient({ brands, products }) {
       barcodesInput: '',
       availableBatches: [],
       selectedBatches: [],
+      // Serialized barcode picker fields
+      availableBarcodes: [],
+      selectedBarcodes: [],
+      rangeMode: false,
+      rangeStart: '',
+      rangeEnd: '',
       notes: '',
       isExpanded: true,
       error: ''
@@ -133,13 +139,16 @@ export default function ClientReturnsClient({ brands, products }) {
 
       if (field === 'list') {
         const currentList = targetItem.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+        const currentSelected = targetItem.selectedBarcodes || [];
         if (!currentList.includes(cleanCode)) {
           const newList = [...currentList, cleanCode];
+          const newSelected = currentSelected.includes(cleanCode) ? currentSelected : [...currentSelected, cleanCode];
           added = true;
           return prev.map((item, i) => i === itemIdx ? {
             ...item,
             barcodesInput: newList.join('\n'),
-            quantity: newList.length
+            selectedBarcodes: newSelected,
+            quantity: newSelected.length
           } : item);
         }
       }
@@ -210,6 +219,7 @@ export default function ClientReturnsClient({ brands, products }) {
                 return itemsPrev.map((x, i) => i === itemIdx ? {
                   ...x,
                   barcodesInput: next.join('\n'),
+                  selectedBarcodes: next,
                   quantity: next.length
                 } : x);
               });
@@ -323,6 +333,11 @@ export default function ClientReturnsClient({ brands, products }) {
         updated.barcodesInput = '';
         updated.availableBatches = [];
         updated.selectedBatches = [];
+        updated.availableBarcodes = [];
+        updated.selectedBarcodes = [];
+        updated.rangeMode = false;
+        updated.rangeStart = '';
+        updated.rangeEnd = '';
 
         // Fetch expiry batches for trackExpiry products
         if (prod?.trackExpiry && !prod?.isSerialized) {
@@ -331,6 +346,15 @@ export default function ClientReturnsClient({ brands, products }) {
               setItems(prev => prev.map((x, i2) => i2 === idx ? { ...x, availableBatches: batches || [] } : x));
             })
             .catch(e => console.error('Failed to fetch batches:', e));
+        }
+
+        // Fetch available barcodes for serialized products
+        if (prod?.isSerialized) {
+          getAvailableBarcodes(val, 'BRAND', brandId)
+            .then(barcodes => {
+              setItems(prev => prev.map((x, i2) => i2 === idx ? { ...x, availableBarcodes: barcodes || [] } : x));
+            })
+            .catch(e => console.error('Failed to fetch barcodes:', e));
         }
       }
 
@@ -352,9 +376,10 @@ export default function ClientReturnsClient({ brands, products }) {
       } else {
         const prod = products.find(p => p.id === item.productId);
         if (prod?.isSerialized) {
-          const list = item.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+          const selected = item.selectedBarcodes || [];
+          const list = selected.length > 0 ? selected : item.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
           if (list.length === 0) {
-            errs.push('At least one barcode must be scanned/entered');
+            errs.push('At least one barcode must be selected/scanned');
           }
         } else if (prod?.trackExpiry) {
           const totalFromBatches = (item.selectedBatches || []).reduce((sum, b) => sum + b.quantity, 0);
@@ -407,7 +432,7 @@ export default function ClientReturnsClient({ brands, products }) {
         items: items.map(x => ({
           productId: x.productId,
           quantity: x.quantity,
-          barcodes: x.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean),
+          barcodes: (x.selectedBarcodes && x.selectedBarcodes.length > 0) ? x.selectedBarcodes : x.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean),
           selectedBatches: x.selectedBatches?.length > 0 ? x.selectedBatches : undefined,
           notes: x.notes || null
         }))
@@ -730,9 +755,10 @@ export default function ClientReturnsClient({ brands, products }) {
                     )}
 
                     {isSerialized && (
-                      <div className="flex flex-col gap-1.5 animate-slide-down">
+                      <div className="flex flex-col gap-3 animate-slide-down">
+                        {/* Scanner buttons */}
                         <div className="flex items-center justify-between pb-1">
-                          <span className="text-[10px] text-text-secondary">Type or scan barcodes separated by commas or lines...</span>
+                          <span className="text-xs font-bold text-text-primary">Select Barcodes</span>
                           <div className="flex items-center gap-2">
                             <div className="has-tooltip">
                               <button
@@ -741,9 +767,9 @@ export default function ClientReturnsClient({ brands, products }) {
                                   setActiveScanTarget({ itemIdx: idx, field: 'list' });
                                   handleOpenMobileScanner();
                                 }}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded text-[10px] font-bold cursor-pointer transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded text-[11px] font-bold cursor-pointer transition-all"
                               >
-                                <Smartphone size={10} /> <span>Companion Sync</span>
+                                <Smartphone size={12} /> <span>Companion</span>
                               </button>
                               <span className="tooltip-box">Pair and scan using smartphone</span>
                             </div>
@@ -754,26 +780,122 @@ export default function ClientReturnsClient({ brands, products }) {
                                   setActiveScanTarget({ itemIdx: idx, field: 'list' });
                                   setIsCameraOpen(true);
                                   setIsBulkScan(true);
-                                  setSessionScans(item.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean));
+                                  setSessionScans(item.selectedBarcodes || []);
                                 }}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[11px] font-bold cursor-pointer transition-all"
                               >
-                                <Camera size={10} /> <span>Webcam Scan</span>
+                                <Camera size={12} /> <span>Webcam</span>
                               </button>
                               <span className="tooltip-box">Scan barcodes using webcam</span>
                             </div>
                           </div>
                         </div>
 
-                        <textarea
-                          rows={4}
-                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary font-mono focus:ring-1 focus:ring-primary/20 leading-relaxed"
-                          placeholder="Type or scan serials here...&#10;e.g.&#10;SIM87600123&#10;SIM87600124"
-                          value={item.barcodesInput}
-                          onChange={(e) => updateItemField(idx, 'barcodesInput', e.target.value)}
-                        />
-                        <div className="flex items-center justify-between text-[10px] text-text-secondary mt-1 font-semibold">
-                          <span>Barcodes parsed: <strong className="text-primary font-extrabold">{item.quantity}</strong></span>
+                        {/* Range mode toggle */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => updateItemField(idx, 'rangeMode', !item.rangeMode)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-all border ${item.rangeMode ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/30'}`}
+                          >
+                            <ArrowUpDown size={12} />
+                            {item.rangeMode ? 'Range Mode ON' : 'Range Mode'}
+                          </button>
+                          {item.selectedBarcodes?.length > 0 && (
+                            <span className="text-[11px] font-bold text-primary">
+                              {item.selectedBarcodes.length} of {item.availableBarcodes?.length || 0} selected
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Range inputs */}
+                        {item.rangeMode && (
+                          <div className="flex items-center gap-2 animate-slide-down">
+                            <input
+                              type="text"
+                              className="flex-1 bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary font-mono"
+                              placeholder="Start serial"
+                              value={item.rangeStart || ''}
+                              onChange={(e) => updateItemField(idx, 'rangeStart', e.target.value)}
+                            />
+                            <span className="text-xs text-text-muted font-bold">to</span>
+                            <input
+                              type="text"
+                              className="flex-1 bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary font-mono"
+                              placeholder="End serial"
+                              value={item.rangeEnd || ''}
+                              onChange={(e) => updateItemField(idx, 'rangeEnd', e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!item.rangeStart || !item.rangeEnd) return;
+                                const available = item.availableBarcodes || [];
+                                const startIdx = available.findIndex(b => b === item.rangeStart);
+                                const endIdx = available.findIndex(b => b === item.rangeEnd);
+                                if (startIdx !== -1 && endIdx !== -1) {
+                                  const lo = Math.min(startIdx, endIdx);
+                                  const hi = Math.max(startIdx, endIdx);
+                                  const range = available.slice(lo, hi + 1);
+                                  const existing = item.selectedBarcodes || [];
+                                  const merged = [...new Set([...existing, ...range])];
+                                  updateItemField(idx, 'selectedBarcodes', merged);
+                                  updateItemField(idx, 'quantity', merged.length);
+                                }
+                              }}
+                              className="px-3 py-2 bg-primary text-white text-[11px] font-bold rounded-lg cursor-pointer hover:bg-primary-hover transition-all"
+                            >
+                              Select Range
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Barcode grid */}
+                        {item.availableBarcodes && item.availableBarcodes.length > 0 ? (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto p-2 bg-surface-elevated/30 border border-border rounded-xl">
+                            {item.availableBarcodes.map((barcode) => {
+                              const isSelected = (item.selectedBarcodes || []).includes(barcode);
+                              return (
+                                <button
+                                  key={barcode}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = item.selectedBarcodes || [];
+                                    const next = isSelected
+                                      ? current.filter(b => b !== barcode)
+                                      : [...current, barcode];
+                                    updateItemField(idx, 'selectedBarcodes', next);
+                                    updateItemField(idx, 'quantity', next.length);
+                                  }}
+                                  className={`px-2 py-1.5 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition-all border ${isSelected ? 'bg-primary text-white border-primary shadow-sm' : 'bg-surface border-border text-text-secondary hover:border-primary/40'}`}
+                                >
+                                  {barcode}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-text-muted italic p-3 bg-surface border border-border rounded-lg">
+                            No barcodes available with client for this product.
+                          </div>
+                        )}
+
+                        {/* Fallback textarea */}
+                        <details className="group">
+                          <summary className="text-[10px] text-text-muted cursor-pointer hover:text-text-secondary font-semibold select-none">
+                            Manual entry (type barcodes separated by commas or lines)
+                          </summary>
+                          <textarea
+                            rows={3}
+                            className="mt-2 w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary font-mono focus:ring-1 focus:ring-primary/20 leading-relaxed"
+                            placeholder="Type or scan serials here..."
+                            value={item.barcodesInput}
+                            onChange={(e) => updateItemField(idx, 'barcodesInput', e.target.value)}
+                          />
+                        </details>
+
+                        <div className="flex items-center justify-between text-[11px] text-text-secondary font-bold">
+                          <span>Total: <strong className="text-primary">{item.quantity}</strong> serial(s)</span>
                         </div>
                       </div>
                     )}
@@ -894,14 +1016,13 @@ export default function ClientReturnsClient({ brands, products }) {
                 <div className="flex justify-between items-center pb-2 border-b border-border mb-3 flex-shrink-0">
                   <span className="text-xs font-bold text-text-primary uppercase">Scanned in this Session ({sessionScans.length})</span>
                   {sessionScans.length > 0 && (
-                    <button 
-                      type="button" 
+                    <button                      type="button"
                       onClick={() => {
                         setSessionScans([]);
                         setItems(prev => {
                           if (!activeScanTarget) return prev;
                           const { itemIdx } = activeScanTarget;
-                          return prev.map((x, i) => i === itemIdx ? { ...x, barcodesInput: '', quantity: 0 } : x);
+                          return prev.map((x, i) => i === itemIdx ? { ...x, barcodesInput: '', selectedBarcodes: [], quantity: 0 } : x);
                         });
                       }}
                       className="text-[10px] font-bold text-danger hover:underline cursor-pointer"
@@ -930,6 +1051,7 @@ export default function ClientReturnsClient({ brands, products }) {
                               return prev.map((x, i) => i === itemIdx ? {
                                 ...x,
                                 barcodesInput: next.join('\n'),
+                                selectedBarcodes: next,
                                 quantity: next.length
                               } : x);
                             });

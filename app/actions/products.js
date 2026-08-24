@@ -642,13 +642,23 @@ export async function getProductStockAtLocation(productId, locationType, locatio
 export async function getProductBatchesAtLocation(productId, locationType, locationId = null) {
   await requireAuth();
 
+  // Determine which transaction types count as inbound/outbound per location
+  // For WAREHOUSE: RECEIVE/RETURN/REBRAND_IN are inbound, ISSUE/DAMAGE/LOST/REBRAND_OUT are outbound
+  // For BRAND: ISSUE/DAMAGE/LOST/REBRAND_OUT are inbound (stock arrives at brand), RECEIVE/RETURN/REBRAND_IN/CLIENT_RETURN are outbound (stock leaves brand)
+  const inboundTypes = locationType === 'BRAND'
+    ? ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT']
+    : ['RECEIVE', 'RETURN', 'REBRAND_IN'];
+  const outboundTypes = locationType === 'BRAND'
+    ? ['RECEIVE', 'RETURN', 'REBRAND_IN', 'CLIENT_RETURN']
+    : ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'];
+
   const [inbounds, outbounds] = await Promise.all([
     prisma.inventoryTransaction.findMany({
       where: {
         productId,
         toEntityType: locationType,
         ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
-        transactionType: { in: ['RECEIVE', 'RETURN', 'REBRAND_IN'] }
+        transactionType: { in: inboundTypes }
       },
       select: {
         quantity: true,
@@ -661,7 +671,7 @@ export async function getProductBatchesAtLocation(productId, locationType, locat
         productId,
         fromEntityType: locationType,
         ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
-        transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] }
+        transactionType: { in: outboundTypes }
       },
       select: {
         quantity: true,

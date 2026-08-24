@@ -27,7 +27,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
   const [returnModal, setReturnModal] = useState(null); // { brandId, brandName, items: [...] }
   const [returnDate, setReturnDate] = useState('');
   const [returnNotes, setReturnNotes] = useState('');
-  const [returnSupervisorName, setReturnSupervisorName] = useState('');
+
   const [returnItems, setReturnItems] = useState([]); // [{ productId, quantity, barcodesInput, notes, isExpanded, error }]
   const [returnLoading, setReturnLoading] = useState(false);
   const [returnError, setReturnError] = useState('');
@@ -152,7 +152,6 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
     const min = String(now.getMinutes()).padStart(2, '0');
     setReturnDate(`${y}-${m}-${d}T${h}:${min}`);
     setReturnNotes('');
-    setReturnSupervisorName('');
     setReturnError('');
     setReturnSuccess('');
   };
@@ -211,7 +210,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
     try {
       const payload = {
         brandId: returnModal.brandId,
-        deliverySupervisorName: returnSupervisorName?.trim() || null,
+        deliverySupervisorName: null,
         transactionDate: returnDate || null,
         globalNotes: returnNotes || null,
         items: returnItems.map(x => {
