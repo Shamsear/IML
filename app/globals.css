@@ -104,6 +104,11 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+/* Prevent all buttons and CTA links from wrapping to multiple lines */
+button, a.inline-flex {
+  white-space: nowrap;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
