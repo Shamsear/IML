@@ -18,6 +18,7 @@ export default function ScanCompanionClient({ session }) {
   const [manualBarcode, setManualBarcode] = useState('');
   const lastScannedBarcodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
+  const scannedBarcodeSetRef = useRef(new Set());
   
   const [cameras, setCameras] = useState([]);
   const [currentCameraIdx, setCurrentCameraIdx] = useState(0);
@@ -147,11 +148,33 @@ export default function ScanCompanionClient({ session }) {
           const code = decodedText.trim();
           const now = Date.now();
 
-          // Cooldown: prevent duplicate scans within 2 seconds
-          if (code.toLowerCase() === lastScannedBarcodeRef.current && (now - lastScannedTimeRef.current < 2000)) {
+          // Skip obviously garbled barcodes (contain *, ~, or other non-alphanumeric noise)
+          if (code.includes('*') || code.includes('~') || code.includes('`')) {
             return;
           }
-          lastScannedBarcodeRef.current = code.toLowerCase();
+
+          // Skip very short barcodes (likely misreads)
+          if (code.length < 4) {
+            return;
+          }
+
+          const lowerCode = code.toLowerCase();
+
+          // Cooldown: prevent duplicate scans within 3 seconds
+          if (lowerCode === lastScannedBarcodeRef.current && (now - lastScannedTimeRef.current < 3000)) {
+            return;
+          }
+
+          // Permanent dedup: skip barcodes already scanned in this session
+          if (scannedBarcodeSetRef.current.has(lowerCode)) {
+            playBeep();
+            triggerVibe();
+            setErrorMessage(`"${code}" was already scanned. Clear history first to re-scan.`);
+            setTimeout(() => setErrorMessage(''), 3000);
+            return;
+          }
+
+          lastScannedBarcodeRef.current = lowerCode;
           lastScannedTimeRef.current = now;
 
           // Send scanned code to backend API endpoint
@@ -165,6 +188,7 @@ export default function ScanCompanionClient({ session }) {
             if (response.ok) {
               playBeep();
               triggerVibe();
+              scannedBarcodeSetRef.current.add(lowerCode);
               setScannedItems(prev => [code, ...prev]);
               
               // Flash visual target overlay feedback
@@ -535,7 +559,7 @@ export default function ScanCompanionClient({ session }) {
                 <span className="text-[10px] font-bold text-text-secondary uppercase">Scanned History ({scannedItems.length})</span>
                 {scannedItems.length > 0 && (
                   <button 
-                    onClick={() => setScannedItems([])} 
+                    onClick={() => { setScannedItems([]); scannedBarcodeSetRef.current.clear(); }} 
                     className="text-[10px] text-danger font-semibold hover:underline"
                   >
                     Clear History
