@@ -2205,6 +2205,8 @@ export async function getClientReturnsBalances() {
       fromEntityType: true,
       fromEntityId: true,
       quantity: true,
+      manufactureDate: true,
+      expiryDate: true,
       product: {
         select: {
           id: true,
@@ -2212,6 +2214,7 @@ export async function getClientReturnsBalances() {
           itemCode: true,
           category: true,
           isSerialized: true,
+          trackExpiry: true,
           brand: {
             select: {
               id: true,
@@ -2244,13 +2247,35 @@ export async function getClientReturnsBalances() {
         itemCode: tx.product.itemCode,
         category: tx.product.category,
         isSerialized: tx.product.isSerialized,
+        trackExpiry: tx.product.trackExpiry || false,
         quantity: 0,
-        serialNumbers: []
+        serialNumbers: [],
+        expiryBatches: []
       };
     }
 
     const qtyChange = isToBrand ? tx.quantity : -tx.quantity;
     balances[key].quantity += qtyChange;
+
+    // Track expiry batches for non-serialized expiry products
+    if (balances[key].trackExpiry && !balances[key].isSerialized) {
+      const mDateStr = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
+      const eDateStr = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
+      const batchKey = `${mDateStr}|${eDateStr}`;
+
+      let batch = balances[key].expiryBatches.find(b => {
+        const bM = b.manufactureDate ? new Date(b.manufactureDate).toISOString().split('T')[0] : '';
+        const bE = b.expiryDate ? new Date(b.expiryDate).toISOString().split('T')[0] : '';
+        return bM === mDateStr && bE === eDateStr;
+      });
+
+      if (!batch) {
+        batch = { manufactureDate: tx.manufactureDate, expiryDate: tx.expiryDate, quantity: 0 };
+        balances[key].expiryBatches.push(batch);
+      }
+
+      batch.quantity += qtyChange;
+    }
   }
 
   const finalBalances = [];
@@ -2274,6 +2299,14 @@ export async function getClientReturnsBalances() {
         });
         bal.serialNumbers = serials;
         bal.quantity = serials.length;
+      }
+
+      // Filter out expired batches and negative-quantity batches for expiry products
+      if (bal.trackExpiry && !bal.isSerialized) {
+        const now = new Date();
+        bal.expiryBatches = bal.expiryBatches.filter(b => b.quantity > 0);
+        // Recompute total from valid batches
+        bal.quantity = bal.expiryBatches.reduce((sum, b) => sum + b.quantity, 0);
       }
       
       if (bal.quantity > 0) {
@@ -2328,7 +2361,7 @@ export async function returnClientItemsToWarehouse(payload) {
     const deliveryNote = await generateCustomRef(tx, 'CRR', brand.name, transactionDate);
 
     for (const item of items) {
-      const { productId, quantity, barcodes = [], notes } = item;
+      const { productId, quantity, barcodes = [], notes, selectedBatches = [] } = item;
 
       if (!productId) throw new Error('Product ID is required for all items');
       if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0');
@@ -2347,6 +2380,42 @@ export async function returnClientItemsToWarehouse(payload) {
         }
       }
 
+      const baseNote = (() => {
+        const itemNote = notes?.trim() || '';
+        const gNotes = globalNotes?.trim() || '';
+        if (gNotes && itemNote) return `Client→Warehouse Return | ${gNotes} | ${itemNote}`;
+        if (gNotes) return `Client→Warehouse Return | ${gNotes}`;
+        if (itemNote) return `Client→Warehouse Return | ${itemNote}`;
+        return 'Client→Warehouse Return';
+      })();
+
+      // For expiry-tracked products, create one transaction per batch
+      if (product.trackExpiry && !product.isSerialized && selectedBatches.length > 0) {
+        for (const batch of selectedBatches) {
+          if (!batch.quantity || batch.quantity <= 0) continue;
+          await tx.inventoryTransaction.create({
+            data: {
+              productId,
+              transactionType: 'CLIENT_RETURN',
+              fromEntityType: 'BRAND',
+              fromEntityId: brandId,
+              toEntityType: 'WAREHOUSE',
+              toEntityId: 'MAIN',
+              quantity: batch.quantity,
+              deliveryNote,
+              notes: baseNote,
+              receivedBy: finalReceivedBy,
+              deliverySupervisorId: supervisorId || null,
+              deliveryStatus: 'Delivered',
+              manufactureDate: batch.manufactureDate ? new Date(batch.manufactureDate) : null,
+              expiryDate: batch.expiryDate ? new Date(batch.expiryDate) : null,
+              timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
+            }
+          });
+        }
+        continue; // Skip the single-transaction creation below
+      }
+
       // Create CLIENT_RETURN transaction (from BRAND → to WAREHOUSE)
       const invTx = await tx.inventoryTransaction.create({
         data: {
@@ -2358,14 +2427,7 @@ export async function returnClientItemsToWarehouse(payload) {
           toEntityId: 'MAIN',
           quantity,
           deliveryNote,
-          notes: (() => {
-            const itemNote = notes?.trim() || '';
-            const gNotes = globalNotes?.trim() || '';
-            if (gNotes && itemNote) return `Client→Warehouse Return | ${gNotes} | ${itemNote}`;
-            if (gNotes) return `Client→Warehouse Return | ${gNotes}`;
-            if (itemNote) return `Client→Warehouse Return | ${itemNote}`;
-            return 'Client→Warehouse Return';
-          })(),
+          notes: baseNote,
           receivedBy: finalReceivedBy,
           deliverySupervisorId: supervisorId || null,
           deliveryStatus: 'Delivered',

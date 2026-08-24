@@ -439,39 +439,35 @@ export default function StoresClient({ initialStores }) {
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+            <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6 animate-fade-in">
               {filteredStores.map((store) => (
-                <div key={store.id} onClick={() => router.push(`/dashboard/stores/${store.id}`)} className="bg-surface border border-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 flex flex-col gap-4 group cursor-pointer">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                        <Store size={18} />
-                      </div>
-                      <div>
-                        <h3 className="font-display font-extrabold text-sm text-text-primary group-hover:text-primary transition-colors">{store.name}</h3>
-                        <span className="text-[10px] text-text-secondary uppercase tracking-wider font-bold">{store.region} Region</span>
+                <div key={store.id} onClick={() => router.push(`/dashboard/stores/${store.id}`)} className="bg-surface border border-border rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 flex sm:flex-col sm:gap-4 gap-2 group cursor-pointer">
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                      <Store size={15} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-display font-extrabold text-xs sm:text-sm text-text-primary group-hover:text-primary transition-colors truncate">{store.name}</h3>
+                      <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-text-secondary mt-0.5">
+                        <span className="font-bold uppercase tracking-wider">{store.region}</span>
+                        {store.location && (<><span className="text-text-muted/40">·</span><span className="truncate">{store.location}</span></>)}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-1.5 text-xs text-text-secondary border-t border-border pt-4 mt-auto">
-                    <MapPin size={14} className="text-text-muted flex-shrink-0 mt-0.5" />
-                    <span className="leading-relaxed line-clamp-2 h-8">{store.location || 'No coordinates or address specified.'}</span>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1.5 sm:gap-2 sm:border-t sm:border-border/60 sm:pt-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                     <div className="has-tooltip">
                       <Link 
                         href={`/dashboard/stores/${store.id}/edit`}
-                        className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer inline-flex"
+                        className="p-1 sm:p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer inline-flex"
                       >
-                        <Edit2 size={13} />
+                        <Edit2 size={12} />
                       </Link>
                       <span className="tooltip-box">Edit outlet details</span>
                     </div>
                     <div className="has-tooltip">
                       <button 
-                        className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors cursor-pointer"
+                        className="p-1 sm:p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors cursor-pointer"
                         onClick={() => handleDelete(store.id)}
                         type="button"
                       >

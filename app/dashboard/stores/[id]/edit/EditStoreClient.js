@@ -7,6 +7,7 @@ import { updateStore } from '@/app/actions/stores';
 import { ArrowLeft, Store, Loader2, AlertCircle } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
 import FormFooter from '@/components/FormFooter';
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 import ConfirmModal from '@/components/ConfirmModal';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
@@ -19,6 +20,8 @@ export default function EditStoreClient({ store }) {
   const [region, setRegion] = useState(store.region || 'DXB');
   const [location, setLocation] = useState(store.location || '');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const isDirty = name !== store.name || region !== (store.region || 'DXB') || location !== (store.location || '');
+  useUnsavedChanges(isDirty && !loading);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

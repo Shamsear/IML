@@ -24,19 +24,19 @@ export default function FormFooter({
   const label = submitLabel || (editMode ? 'Update' : 'Save');
 
   return (
-    <div className={`flex justify-end gap-3 mt-4 pt-4 border-t border-border ${className}`}>
+    <div className={`flex justify-end gap-2 sm:gap-3 mt-4 pt-4 border-t border-border ${className}`}>
       <Link
         href={cancelHref}
-        className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200"
+        className="px-3 sm:px-5 py-2 sm:py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200"
       >
         Cancel
       </Link>
       <button
         type="submit"
-        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+        className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
         disabled={loading}
       >
-        {loading && <Loader2 size={16} className="animate-spin" />}
+        {loading && <Loader2 size={14} className="animate-spin" />}
         <span>{label}</span>
       </button>
     </div>

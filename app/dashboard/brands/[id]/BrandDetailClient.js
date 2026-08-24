@@ -313,26 +313,29 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           </div>
         </div>
         
-        <div className="flex flex-wrap lg:justify-end items-start gap-2">
-          <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-all duration-200" onClick={() => { setStoreToConnect(''); setError(''); setActiveModal('connectStore'); }}>
-            <LinkIcon size={14} />
-            <span>Link Outlet</span>
+        <div className="flex flex-wrap lg:justify-end items-start gap-1.5 sm:gap-2">
+          <button className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200" onClick={() => { setStoreToConnect(''); setError(''); setActiveModal('connectStore'); }}>
+            <LinkIcon size={12} />
+            <span className="hidden xs:inline">Link Outlet</span>
+            <span className="xs:hidden">Link</span>
           </button>
           <button 
             type="button" 
-            className={`inline-flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs font-semibold transition-all duration-200 ${
+            className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 border rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${
               showPortalAccess 
                 ? 'bg-primary/10 border-primary/20 text-primary' 
                 : 'bg-surface border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary'
             }`} 
             onClick={() => setShowPortalAccess(!showPortalAccess)}
           >
-            <Share2 size={14} />
-            <span>Portal Access</span>
+            <Share2 size={12} />
+            <span className="hidden xs:inline">Portal Access</span>
+            <span className="xs:hidden">Portal</span>
           </button>
-          <Link href={`/dashboard/products/new?brandId=${brand.id}`} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-200">
-            <Plus size={14} />
-            <span>Add Product</span>
+          <Link href={`/dashboard/products/new?brandId=${brand.id}`} className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10px] sm:text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+            <Plus size={12} />
+            <span className="hidden xs:inline">Add Product</span>
+            <span className="xs:hidden">Add</span>
           </Link>
         </div>
       </header>

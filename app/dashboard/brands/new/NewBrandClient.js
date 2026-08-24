@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, Trash2, Edit2, Loader2, X, Camera } from 'lucide-react
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import ConfirmModal from '@/components/ConfirmModal';
 import FormFooter from '@/components/FormFooter';
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 export default function NewBrandClient() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function NewBrandClient() {
 
   // State array for brands queue
   const [items, setItems] = useState([createEmptyBrandItem(0)]);
+  useUnsavedChanges(items.length > 0 && !loading);
 
   // Image Cropping Modal states
   const [croppingIdx, setCroppingIdx] = useState(null);

@@ -7,6 +7,7 @@ import { updateSupervisor } from '@/app/actions/supervisors';
 import { ArrowLeft, UserCheck, Loader2, AlertCircle } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
 import FormFooter from '@/components/FormFooter';
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 export default function EditSupervisorClient({ supervisor }) {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function EditSupervisorClient({ supervisor }) {
   const [email, setEmail] = useState(supervisor.email || '');
   const [phone, setPhone] = useState(supervisor.phone || '');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const isDirty = name !== supervisor.name || email !== (supervisor.email || '') || phone !== (supervisor.phone || '');
+  useUnsavedChanges(isDirty && !loading);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

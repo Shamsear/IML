@@ -123,17 +123,34 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
       productId: bal.productId,
       productName: bal.productName,
       itemCode: bal.itemCode,
+      category: bal.category || null,
       maxQty: bal.quantity,
       isSerialized: bal.isSerialized,
+      trackExpiry: bal.trackExpiry || false,
       quantity: bal.isSerialized ? 0 : bal.quantity,
       barcodesInput: '',
+      // Serialized barcode picker fields (like outbound)
+      availableBarcodes: (bal.serialNumbers || []).map(s => ({ id: s.id, barcode: s.barcode })),
+      selectedBarcodes: [],
+      rangeMode: false,
+      rangeStart: '',
+      rangeEnd: '',
+      // Expiry batch fields
+      availableBatches: (bal.expiryBatches || []).filter(b => b.quantity > 0),
+      selectedBatches: [],
       notes: '',
       isExpanded: true,
       error: ''
     }));
     setReturnModal({ brandId: brandGroup.brandId, brandName: brandGroup.brandName });
     setReturnItems(items);
-    setReturnDate('');
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    setReturnDate(`${y}-${m}-${d}T${h}:${min}`);
     setReturnNotes('');
     setReturnSupervisorName('');
     setReturnError('');
@@ -161,10 +178,15 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
     let hasError = false;
     const updated = returnItems.map(item => {
       if (item.isSerialized) {
-        const barcodes = item.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
-        if (barcodes.length === 0) {
+        if (item.selectedBarcodes.length === 0) {
           hasError = true;
           return { ...item, error: 'At least one barcode must be scanned/entered', isExpanded: true };
+        }
+      } else if (item.trackExpiry) {
+        const totalFromBatches = item.selectedBatches.reduce((sum, b) => sum + b.quantity, 0);
+        if (totalFromBatches <= 0) {
+          hasError = true;
+          return { ...item, error: 'Select quantities from at least one batch', isExpanded: true };
         }
       } else {
         const q = parseInt(item.quantity, 10);
@@ -192,12 +214,18 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
         deliverySupervisorName: returnSupervisorName?.trim() || null,
         transactionDate: returnDate || null,
         globalNotes: returnNotes || null,
-        items: returnItems.map(x => ({
-          productId: x.productId,
-          quantity: x.quantity,
-          barcodes: x.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean),
-          notes: x.notes || null
-        }))
+        items: returnItems.map(x => {
+          const qty = x.isSerialized ? x.selectedBarcodes.length
+            : x.trackExpiry ? x.selectedBatches.reduce((s, b) => s + b.quantity, 0)
+            : x.quantity;
+          return {
+            productId: x.productId,
+            quantity: qty,
+            barcodes: x.isSerialized ? x.selectedBarcodes : x.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean),
+            selectedBatches: x.trackExpiry ? x.selectedBatches : undefined,
+            notes: x.notes || null
+          };
+        })
       };
 
       const result = await returnClientItemsToWarehouse(payload);
@@ -674,10 +702,175 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {!item.isSerialized && (
+                    {item.isSerialized ? (
+                      /* ── SERIAL BARCODE PICKER (like outbound) ── */
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">Select Barcodes ({item.selectedBarcodes.length} of {item.availableBarcodes.length})</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => updateReturnItem(idx, 'rangeMode', !item.rangeMode)}
+                              className={`px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer transition-all border
+                                ${item.rangeMode
+                                  ? 'bg-primary text-white border-primary'
+                                  : 'bg-surface border-border hover:bg-surface-elevated text-text-primary'}
+                              `}
+                            >
+                              {item.rangeMode ? 'Barcode Picker' : 'Range Select'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {item.rangeMode ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end p-3 bg-surface border border-border rounded-lg">
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold text-text-secondary uppercase">Start Barcode</label>
+                              <input type="text" className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none" value={item.rangeStart} onChange={(e) => updateReturnItem(idx, 'rangeStart', e.target.value)} placeholder="e.g. SN-0001" />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[10px] font-bold text-text-secondary uppercase">End Barcode</label>
+                              <input type="text" className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none" value={item.rangeEnd} onChange={(e) => updateReturnItem(idx, 'rangeEnd', e.target.value)} placeholder="e.g. SN-0100" />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!item.rangeStart || !item.rangeEnd) return;
+                                const sorted = item.availableBarcodes.map(b => b.barcode).sort();
+                                const startIdx = sorted.indexOf(item.rangeStart);
+                                const endIdx = sorted.indexOf(item.rangeEnd);
+                                if (startIdx === -1 || endIdx === -1) return;
+                                const [from, to] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+                                const range = sorted.slice(from, to + 1);
+                                const newSelected = [...new Set([...item.selectedBarcodes, ...range])];
+                                updateReturnItem(idx, 'selectedBarcodes', newSelected);
+                                updateReturnItem(idx, 'quantity', newSelected.length);
+                              }}
+                              className="w-full py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-md transition-all cursor-pointer border border-primary h-fit"
+                            >
+                              Apply Range
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {item.availableBarcodes.length === 0 ? (
+                              <div className="p-4 text-center text-xs text-text-muted">No serials with client for this product.</div>
+                            ) : (
+                              <div className="max-h-48 overflow-y-auto border border-border bg-surface rounded-lg p-2.5 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {item.availableBarcodes.map((bc) => {
+                                  const isSel = item.selectedBarcodes.includes(bc.barcode);
+                                  return (
+                                    <button
+                                      key={bc.id}
+                                      type="button"
+                                      onClick={() => {
+                                        const nextSel = isSel
+                                          ? item.selectedBarcodes.filter(b => b !== bc.barcode)
+                                          : [...item.selectedBarcodes, bc.barcode];
+                                        updateReturnItem(idx, 'selectedBarcodes', nextSel);
+                                        updateReturnItem(idx, 'quantity', nextSel.length);
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-left transition-all border cursor-pointer
+                                        ${isSel
+                                          ? 'bg-primary/10 border-primary text-primary shadow-sm'
+                                          : 'bg-surface border-border text-text-secondary hover:bg-surface-elevated'}
+                                      `}
+                                    >
+                                      {bc.barcode}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : item.trackExpiry ? (
+                      /* ── EXPIRY BATCH PICKER (like outbound) ── */
+                      <div className="flex flex-col gap-3">
+                        <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">
+                          Select Quantities by Expiry Batch ({item.selectedBatches.length} selected)
+                        </span>
+                        {item.availableBatches.length === 0 ? (
+                          <div className="text-xs text-text-muted italic p-3 bg-surface border border-border rounded-lg">
+                            No available non-expired stock batches found with client for this product.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {item.availableBatches.map((batch, bIdx) => {
+                              const mDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString() : 'N/A';
+                              const eDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A';
+                              const now = new Date();
+                              const isExpired = batch.expiryDate && new Date(batch.expiryDate) < now;
+                              if (isExpired) return null;
+
+                              const selectedQty = item.selectedBatches.find(b => {
+                                const bM = b.manufactureDate ? new Date(b.manufactureDate).toISOString().split('T')[0] : '';
+                                const bE = b.expiryDate ? new Date(b.expiryDate).toISOString().split('T')[0] : '';
+                                const batchM = batch.manufactureDate ? new Date(batch.manufactureDate).toISOString().split('T')[0] : '';
+                                const batchE = batch.expiryDate ? new Date(batch.expiryDate).toISOString().split('T')[0] : '';
+                                return bM === batchM && bE === batchE;
+                              })?.quantity || '';
+
+                              return (
+                                <div key={bIdx} className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface border border-border rounded-xl shadow-sm">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-xs font-bold text-text-primary">Expires: {eDateStr}</span>
+                                    <span className="text-[10px] text-text-secondary">Mfg: {mDateStr} | Available: <strong className="text-primary">{batch.quantity} units</strong></span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-[10px] font-bold text-text-secondary uppercase">Qty:</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={batch.quantity}
+                                      className="w-20 bg-surface border border-border rounded px-2.5 py-1 text-xs text-center focus:outline-none focus:border-primary font-bold text-text-primary"
+                                      value={selectedQty}
+                                      placeholder="0"
+                                      onChange={(e) => {
+                                        const valInt = parseInt(e.target.value, 10) || 0;
+                                        const cappedVal = Math.min(valInt, batch.quantity);
+                                        const batchM = batch.manufactureDate ? new Date(batch.manufactureDate).toISOString().split('T')[0] : '';
+                                        const batchE = batch.expiryDate ? new Date(batch.expiryDate).toISOString().split('T')[0] : '';
+                                        const currentSelected = item.selectedBatches || [];
+                                        const existingIdx = currentSelected.findIndex(b => {
+                                          const bM = b.manufactureDate ? new Date(b.manufactureDate).toISOString().split('T')[0] : '';
+                                          const bE = b.expiryDate ? new Date(b.expiryDate).toISOString().split('T')[0] : '';
+                                          return bM === batchM && bE === batchE;
+                                        });
+
+                                        let nextSelected = [...currentSelected];
+                                        if (existingIdx !== -1) {
+                                          if (cappedVal > 0) {
+                                            nextSelected[existingIdx] = { ...nextSelected[existingIdx], quantity: cappedVal };
+                                          } else {
+                                            nextSelected = nextSelected.filter((_, i) => i !== existingIdx);
+                                          }
+                                        } else if (cappedVal > 0) {
+                                          nextSelected.push({
+                                            manufactureDate: batch.manufactureDate,
+                                            expiryDate: batch.expiryDate,
+                                            quantity: cappedVal
+                                          });
+                                        }
+
+                                        updateReturnItem(idx, 'selectedBatches', nextSelected);
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* ── BULK / UNIFORM: just quantity ── */
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] font-semibold text-text-secondary">Return Qty</label>
+                          <label className="text-[10px] font-semibold text-text-secondary">
+                            {item.category?.toUpperCase() === 'UNIFORM' ? 'Quantity to Return' : 'Return Qty'}
+                          </label>
                           <input
                             type="number"
                             min={1}
@@ -686,36 +879,20 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                             value={item.quantity || ''}
                             onChange={(e) => updateReturnItem(idx, 'quantity', parseInt(e.target.value, 10) || 0)}
                           />
+                          <span className="text-[10px] text-text-muted">Max available: {item.maxQty}</span>
                         </div>
-                      )}
-
-                      {item.isSerialized && (
                         <div className="flex flex-col gap-1.5 sm:col-span-2">
-                          <label className="text-[10px] font-semibold text-text-secondary">Scan / Enter Barcodes (comma or newline separated)</label>
-                          <textarea
-                            rows={3}
-                            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                            placeholder="SIM87600123&#10;SIM87600124"
-                            value={item.barcodesInput}
-                            onChange={(e) => updateReturnItem(idx, 'barcodesInput', e.target.value)}
+                          <label className="text-[10px] font-semibold text-text-secondary">Notes (Optional)</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary"
+                            placeholder="Line notes..."
+                            value={item.notes}
+                            onChange={(e) => updateReturnItem(idx, 'notes', e.target.value)}
                           />
-                          <span className="text-[10px] text-text-secondary font-semibold">
-                            Parsed: <strong className="text-primary font-extrabold">{item.quantity}</strong> serial(s)
-                          </span>
                         </div>
-                      )}
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-semibold text-text-secondary">Notes (Optional)</label>
-                        <input
-                          type="text"
-                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary"
-                          placeholder="Line notes..."
-                          value={item.notes}
-                          onChange={(e) => updateReturnItem(idx, 'notes', e.target.value)}
-                        />
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>

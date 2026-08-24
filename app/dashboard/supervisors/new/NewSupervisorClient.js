@@ -7,6 +7,7 @@ import { createBulkSupervisors } from '@/app/actions/supervisors';
 import { ArrowLeft, UserCheck, Loader2, AlertCircle, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
 import FormFooter from '@/components/FormFooter';
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 const createEmptyItem = (index = 0) => ({
   id: `temp-${Date.now()}-${index}`,
@@ -22,6 +23,7 @@ export default function NewSupervisorClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([createEmptyItem(0)]);
+  useUnsavedChanges(items.length > 0 && !loading);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleAddItem = () => {

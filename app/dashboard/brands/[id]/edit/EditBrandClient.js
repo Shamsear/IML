@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, X, Camera, Save } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import ConfirmModal from '@/components/ConfirmModal';
 import FormFooter from '@/components/FormFooter';
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 export default function EditBrandClient({ brand }) {
   const router = useRouter();
@@ -27,6 +28,8 @@ export default function EditBrandClient({ brand }) {
     shelf: brand.shelf || '',
     isPublic: brand.isPublic,
   });
+  const isDirty = item.name !== brand.name || item.description !== (brand.description || '') || item.rack !== (brand.rack || '') || item.shelf !== (brand.shelf || '') || item.isPublic !== brand.isPublic || item.logoFile !== null || item.logoPreview !== '';
+  useUnsavedChanges(isDirty && !loading);
 
   // Image Cropping Modal states
   const [cropping, setCropping] = useState(false);

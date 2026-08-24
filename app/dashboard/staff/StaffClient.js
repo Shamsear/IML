@@ -677,26 +677,26 @@ export default function StaffClient({ initialStaff, stores }) {
                 />
               </div>
             ) : (
-              <div className="md:hidden flex flex-col gap-3">
+              <div className="md:hidden flex flex-col gap-2.5">
                 {filteredPromoters.map((staff) => (
-                  <div key={staff.id} onClick={() => setSelectedPromoter(staff)} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3 cursor-pointer hover:border-primary/30 transition-all">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full bg-secondary/15 text-secondary flex items-center justify-center text-xs font-bold flex-shrink-0">{staff.name.charAt(0)}</div>
-                        <div className="min-w-0">
-                          <span className="font-semibold text-sm text-text-primary block truncate">{staff.name}</span>
-                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-text-muted">
-                            <span>{staff.phone || 'No Contact'}</span>
-                            <span>·</span>
-                            <span className="badge badge-info text-[9px]"><Shirt size={9} /> {staff.shirtSize || 'M'}</span>
-                          </div>
+                  <div key={staff.id} onClick={() => setSelectedPromoter(staff)} className="bg-surface border border-border rounded-xl p-3 flex flex-col gap-2 cursor-pointer hover:border-primary/30 transition-all">
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-secondary/15 text-secondary flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5">{staff.name.charAt(0)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-[13px] text-text-primary truncate">{staff.name}</span>
+                          <span className="text-[9px] text-text-muted font-semibold flex-shrink-0 px-1.5 py-0.5 bg-surface-elevated rounded border border-border">{staff.shirtSize || 'M'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-text-muted">
+                          <span className="truncate">{staff.phone || 'No Contact'}</span>
+                          {staff.store && (<><span className="text-text-muted/40">·</span><span className="text-primary font-semibold truncate">{staff.store.name}</span></>)}
                         </div>
                       </div>
-                      <span className="text-[10px] text-text-secondary font-semibold text-right flex-shrink-0">{staff.store ? staff.store.name : 'Unassigned'}</span>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} className="text-primary font-semibold hover:underline">Allocate Uniforms</button>
+                    <div className="flex items-center gap-3 pt-1.5 border-t border-border/40 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} className="text-primary font-semibold hover:underline">Allocate</button>
                       <button onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)} className="text-text-secondary hover:text-text-primary">Edit</button>
+                      <button onClick={() => handlePromoterDelete(staff.id)} className="text-danger/70 hover:text-danger ml-auto">Delete</button>
                     </div>
                   </div>
                 ))}

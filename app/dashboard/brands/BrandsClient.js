@@ -109,11 +109,11 @@ export default function BrandsClient({ initialBrands }) {
               </div>
             )
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
               {filteredBrands.map((brand) => (
-                <div key={brand.id} className="bg-surface border border-border rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col group relative">
+                <div key={brand.id} className="bg-surface border border-border rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex sm:flex-col group relative overflow-hidden">
                   {/* Brand Image/Logo Container */}
-                  <div className="aspect-square w-full bg-white flex items-center justify-center relative overflow-hidden rounded-t-md">
+                  <div className="w-16 h-16 sm:w-full sm:h-auto sm:aspect-square bg-white flex items-center justify-center relative overflow-hidden flex-shrink-0 sm:rounded-t-md rounded-l-xl sm:rounded-l-none">
                     {brand.imageUrl ? (
                       <img 
                         src={getOptimizedImageUrl(brand.imageUrl, 400, 400)} 
@@ -122,52 +122,51 @@ export default function BrandsClient({ initialBrands }) {
                         loading="lazy"
                       />
                     ) : (
-                      <div className="flex flex-col items-center gap-1.5 text-text-muted">
-                        <Tag size={40} />
-                        <span className="text-xs uppercase font-bold tracking-wider font-display">No Logo</span>
+                      <div className="flex flex-col items-center gap-0.5 text-text-muted">
+                        <Tag size={20} />
                       </div>
                     )}
                   </div>
 
-                  {/* Brand Info Overlay / Bottom Banner */}
-                  <div className="bg-surface-elevated/95 border-t border-border p-4 flex flex-col gap-1.5 flex-shrink-0 rounded-b-2xl">
+                  {/* Brand Info */}
+                  <div className="bg-surface-elevated/95 sm:border-t border-border p-3 sm:p-4 flex flex-col gap-1 flex-shrink-0 sm:rounded-b-2xl flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-display font-extrabold text-sm text-text-primary truncate">{brand.name}</h3>
+                      <h3 className="font-display font-extrabold text-xs sm:text-sm text-text-primary truncate">{brand.name}</h3>
                       <Link 
                         href={`/dashboard/brands/${brand.id}`} 
-                        className="text-xs font-bold text-primary hover:underline flex-shrink-0 after:absolute after:inset-0 after:content-[''] after:z-0"
+                        className="text-[10px] sm:text-xs font-bold text-primary hover:underline flex-shrink-0 relative z-10"
                       >
-                        Manage ➔
+                        Manage →
                       </Link>
                     </div>
                     
-                    <p className="text-[10px] text-text-secondary leading-relaxed line-clamp-1">
+                    <p className="text-[10px] text-text-secondary leading-relaxed line-clamp-1 hidden sm:block">
                       {brand.description || 'No description provided.'}
                     </p>
 
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-text-muted font-semibold">
-                      <span>
-                        {brand.rack || brand.shelf ? `Loc: ${brand.rack || ''}${brand.rack && brand.shelf ? '/' : ''}${brand.shelf || ''}` : 'No Loc'}
+                    <div className="flex items-center justify-between mt-0.5 sm:mt-1 text-[9px] sm:text-[10px] text-text-muted font-semibold">
+                      <span className="truncate">
+                        {brand.rack || brand.shelf ? `${brand.rack || ''}${brand.rack && brand.shelf ? '/' : ''}${brand.shelf || ''}` : ''}
                       </span>
                       
-                      <div className="flex items-center gap-2 relative z-10">
+                      <div className="flex items-center gap-1.5 sm:gap-2 relative z-10 flex-shrink-0">
                         <div className="has-tooltip">
                           <Link 
                             href={`/dashboard/brands/${brand.id}/edit`}
-                            className="p-1 hover:text-text-primary rounded transition-colors cursor-pointer inline-flex items-center justify-center"
+                            className="p-0.5 sm:p-1 hover:text-text-primary rounded transition-colors cursor-pointer inline-flex items-center justify-center"
                           >
-                            <Edit2 size={12} />
+                            <Edit2 size={11} />
                           </Link>
                           <span className="tooltip-box">Modify name or logo</span>
                         </div>
                         <div className="has-tooltip">
                           <button 
-                            className="p-1 hover:text-danger rounded transition-colors cursor-pointer"
+                            className="p-0.5 sm:p-1 hover:text-danger rounded transition-colors cursor-pointer"
                             onClick={() => handleDelete(brand.id)}
                             type="button"
                             disabled={loading}
                           >
-                            {loading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                            {loading ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                           </button>
                           <span className="tooltip-box">Delete brand</span>
                         </div>

@@ -8,6 +8,7 @@ import { ArrowLeft, Store, Loader2, AlertCircle, Plus, Trash2, ChevronDown, Chev
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import FormFooter from '@/components/FormFooter';
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
@@ -25,6 +26,7 @@ export default function NewStoreClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([createEmptyItem(0)]);
+  useUnsavedChanges(items.length > 0 && !loading);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleAddItem = () => {

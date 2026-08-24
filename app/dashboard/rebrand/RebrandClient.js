@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -11,6 +11,8 @@ import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/Toast';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import { playBeep } from '@/lib/audio';
+import useBarcodeScanner from '@/hooks/useBarcodeScanner';
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 export default function RebrandClient({ products, brands = [], stores = [] }) {
   const router = useRouter();
@@ -53,6 +55,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   
   // Mappings of selected source barcodes to new target barcodes
   const [mappings, setMappings] = useState([]);
+  useUnsavedChanges(mappings.length > 0 && !loading);
 
   // Range Mapping states (for SIM items only)
   const [rangeSrcStart, setRangeSrcStart] = useState('');
@@ -67,7 +70,6 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
 
   // Webcam scanning modal state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const [isBulkScan, setIsBulkScan] = useState(false);
 
   // Wireless Mobile companion scanner states
@@ -81,9 +83,43 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     isBulkScanRef.current = isBulkScan;
   }, [isBulkScan]);
 
-  // Cooldown refs to prevent double-scanning same barcode within 2 seconds
-  const lastScannedBarcodeRef = useRef('');
-  const lastScannedTimeRef = useRef(0);
+  // Barcode scanner hook
+  const onBarcodeScan = useCallback((code) => {
+    if (rebrandActiveScanTarget === 'srcStart') {
+      setRangeSrcStart(code);
+      playBeep();
+      setIsCameraOpen(false);
+      return;
+    }
+    if (rebrandActiveScanTarget === 'srcEnd') {
+      setRangeSrcEnd(code);
+      playBeep();
+      setIsCameraOpen(false);
+      return;
+    }
+    if (rebrandActiveScanTarget === 'tgtStart') {
+      setRangeTgtStart(code);
+      playBeep();
+      setIsCameraOpen(false);
+      return;
+    }
+
+    const matched = availableBarcodes.find(b => b.barcode.toLowerCase() === code.toLowerCase());
+    if (matched) {
+      const added = handleAddMapping(matched.barcode, '');
+      if (added) playBeep();
+    } else {
+      toast.error('Not Available', `Barcode "${code}" is not in the Warehouse.`);
+    }
+
+    if (!isBulkScanRef.current) {
+      setIsCameraOpen(false);
+    }
+  }, [rebrandActiveScanTarget, availableBarcodes]);
+  const { cameraPermissionStatus, retryCameraPermission } = useBarcodeScanner({
+    isOpen: isCameraOpen,
+    onScan: onBarcodeScan,
+  });
 
   // Image Cropping Modal states
   const [cropTarget, setCropTarget] = useState(null); // 'NEW_PRODUCT', 'REPLACEMENT', null
@@ -379,139 +415,6 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
       setScanInput('');
     }
   };
-
-  // Camera permissions check
-  useEffect(() => {
-    if (isCameraOpen) {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          stream.getTracks().forEach(track => track.stop());
-          setCameraPermissionStatus('granted');
-        })
-        .catch(err => {
-          console.error("Camera access error:", err);
-          setCameraPermissionStatus('denied');
-        });
-    } else {
-      setCameraPermissionStatus('prompt');
-    }
-  }, [isCameraOpen]);
-
-  // Camera scanned barcode
-  useEffect(() => {
-    let html5QrcodeScanner = null;
-    if (isCameraOpen && cameraPermissionStatus === 'granted') {
-      const initScanner = async () => {
-        try {
-          const { Html5QrcodeScanner } = await import('html5-qrcode');
-          html5QrcodeScanner = new Html5QrcodeScanner(
-            "camera-reader-element",
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            false
-          );
-          
-          html5QrcodeScanner.render(
-            (decodedText) => {
-              const code = decodedText.trim();
-              const lowercaseCode = code.toLowerCase();
-              const now = Date.now();
-              
-              // Cooldown checks
-              if (lowercaseCode === lastScannedBarcodeRef.current && (now - lastScannedTimeRef.current < 2000)) {
-                return;
-              }
-              lastScannedBarcodeRef.current = lowercaseCode;
-              lastScannedTimeRef.current = now;
-
-              if (rebrandActiveScanTarget === 'srcStart') {
-                setRangeSrcStart(code);
-                playBeep();
-                setIsCameraOpen(false);
-                return;
-              }
-              if (rebrandActiveScanTarget === 'srcEnd') {
-                setRangeSrcEnd(code);
-                playBeep();
-                setIsCameraOpen(false);
-                return;
-              }
-              if (rebrandActiveScanTarget === 'tgtStart') {
-                setRangeTgtStart(code);
-                playBeep();
-                setIsCameraOpen(false);
-                return;
-              }
-
-              const matched = availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
-              if (matched) {
-                const added = handleAddMapping(matched.barcode, '');
-                if (added) {
-                  playBeep();
-                  const flashOverlay = document.querySelector('.custom-scan-overlay > div');
-                  if (flashOverlay) {
-                    flashOverlay.style.borderColor = '#10b981';
-                    flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
-                    setTimeout(() => {
-                      if (flashOverlay) {
-                        flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                        flashOverlay.style.boxShadow = 'none';
-                      }
-                    }, 400);
-                  }
-                }
-              } else {
-                toast.error('Not Available', `Barcode "${decodedText}" is not in the Warehouse.`);
-              }
-
-              if (!isBulkScanRef.current) {
-                setIsCameraOpen(false);
-              }
-            },
-            (err) => {}
-          );
-        } catch (e) {
-          console.error("Scanner failed:", e);
-        }
-      };
-      initScanner();
-    }
-    return () => {
-      if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(e => console.error(e));
-      }
-    };
-  }, [isCameraOpen, cameraPermissionStatus, availableBarcodes]);
-
-  // Hook to dynamically inject scanning laser line & custom corners over the live HTML video container
-  useEffect(() => {
-    if (cameraPermissionStatus === 'granted') {
-      const interval = setInterval(() => {
-        const videoElement = document.querySelector('#camera-reader-element video');
-        if (videoElement) {
-          clearInterval(interval);
-          const videoParent = videoElement.parentElement;
-          if (videoParent) {
-            videoParent.style.position = 'relative';
-            if (!videoParent.querySelector('.custom-scan-overlay')) {
-              const overlay = document.createElement('div');
-              overlay.className = 'custom-scan-overlay absolute inset-0 pointer-events-none flex items-center justify-center z-10';
-              overlay.innerHTML = `
-                <div class="w-[250px] h-[250px] border-2 border-white/30 rounded-lg relative overflow-hidden transition-all duration-300">
-                  <div class="absolute top-0 left-0 right-0 h-0.5 bg-success shadow-[0_0_8px_#10b981] animate-scanner-laser"></div>
-                  <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-success"></div>
-                  <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-success"></div>
-                  <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-success"></div>
-                  <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-success"></div>
-                </div>
-              `;
-              videoParent.appendChild(overlay);
-            }
-          }
-        }
-      }, 200);
-      return () => clearInterval(interval);
-    }
-  }, [cameraPermissionStatus]);
 
   // Mobile pairing setup
   const handleOpenMobileScanner = async () => {
@@ -1429,15 +1332,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                     </div>
                     <button
                       type="button"
-                      onClick={async () => {
-                        try {
-                          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                          stream.getTracks().forEach(track => track.stop());
-                          setCameraPermissionStatus('granted');
-                        } catch (e) {
-                          toast.error('Camera Blocked', 'Camera access is blocked. Enable it in browser settings.');
-                        }
-                      }}
+                      onClick={() => retryCameraPermission()}
                       className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-colors"
                     >
                       Enable Camera Access

@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Loader2, AlertCircle, Plus, Trash2, Smartphone, QrCode
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 import { updateFullTransaction, createSingleTransaction } from '@/app/actions/transactions';
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 export default function EditTransactionClient({ transaction, products, stores }) {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function EditTransactionClient({ transaction, products, stores })
   );
   
   const [newBarcode, setNewBarcode] = useState('');
+  useUnsavedChanges(isCopyMode || formData.timestamp !== dtLocal || formData.productId !== transaction.productId || formData.quantity !== transaction.quantity || formData.notes !== (transaction.notes || '') || !loading);
 
   const selectedProduct = products.find(p => p.id === formData.productId);
   const isSerialized = selectedProduct?.isSerialized;
