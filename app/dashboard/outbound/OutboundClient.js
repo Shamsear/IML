@@ -120,6 +120,45 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
     isBulkScanRef.current = isBulkScan;
   }, [isBulkScan]);
 
+  // Helper to construct empty dispatch item configuration
+  // (must be defined before items state since it's used in items' initializer)
+  const createEmptyOutboundItem = (index = 0) => {
+    const activeFilter = globalBrand || 'ALL';
+
+    return {
+      id: `temp-${Date.now()}-${index}`,
+      productId: '',
+      quantity: 1,
+      selectedBarcodes: [],
+      availableBarcodes: [],
+      notes: '',
+      rangeStart: '',
+      rangeEnd: '',
+      rangeMode: false,
+      isExpanded: true,
+      error: '',
+      brandFilter: activeFilter,
+      promoterAssignment: null,
+      availableBatches: [],
+      selectedBatches: []
+    };
+  };
+
+  // State array for outbound items queue
+  const [items, setItems] = useState(() => {
+    if (initialItems && initialItems.length > 0) {
+      return initialItems.map(item => ({
+        ...item,
+        selectedBarcodes: item.selectedBarcodes || [],
+        availableBarcodes: item.availableBarcodes || [],
+        brandFilter: item.productId ? (products.find(p => p.id === item.productId)?.brandId || 'ALL') : 'ALL',
+      }));
+    }
+    return [];
+  });
+
+  const initializedRef = useRef(false);
+
   // Barcode scanner hook
   const onBarcodeScan = useCallback(async (code) => {
     const activeIdx = items.findIndex(item => item.isExpanded);
@@ -172,44 +211,6 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       }
     }
   }, []);
-
-  // Helper to construct empty dispatch item configuration
-  const createEmptyOutboundItem = (index = 0) => {
-    const activeFilter = globalBrand || 'ALL';
-
-    return {
-      id: `temp-${Date.now()}-${index}`,
-      productId: '',
-      quantity: 1,
-      selectedBarcodes: [],
-      availableBarcodes: [],
-      notes: '',
-      rangeStart: '',
-      rangeEnd: '',
-      rangeMode: false,
-      isExpanded: true,
-      error: '',
-      brandFilter: activeFilter,
-      promoterAssignment: null,
-      availableBatches: [],
-      selectedBatches: []
-    };
-  };
-
-  // State array for outbound items queue
-  const [items, setItems] = useState(() => {
-    if (initialItems && initialItems.length > 0) {
-      return initialItems.map(item => ({
-        ...item,
-        selectedBarcodes: item.selectedBarcodes || [],
-        availableBarcodes: item.availableBarcodes || [],
-        brandFilter: item.productId ? (products.find(p => p.id === item.productId)?.brandId || 'ALL') : 'ALL',
-      }));
-    }
-    return [];
-  });
-
-  const initializedRef = useRef(false);
 
   // Warn before navigating away with unsaved items
   useUnsavedChanges(items.length > 0 && !loading);
