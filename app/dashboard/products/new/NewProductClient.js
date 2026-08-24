@@ -146,6 +146,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
             .then(res => {
               if (res.ok) {
                 setMobileSession(parsed);
+                setIsCompanionActive(true);
               } else {
                 localStorage.removeItem('iml_mobile_scan_session');
               }
@@ -475,6 +476,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
       if (res.ok) {
         const data = await res.json();
         setMobileSession(data);
+        localStorage.setItem('iml_mobile_scan_session', JSON.stringify(data));
         setIsMobileModalOpen(true);
       }
     } catch (e) {

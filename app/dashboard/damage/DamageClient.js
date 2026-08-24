@@ -60,6 +60,30 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
   const [isCompanionActive, setIsCompanionActive] = useState(false);
 
+  // Load saved mobile session on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('iml_mobile_scan_session');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          fetch(`/api/scan-companion?sessionId=${parsed.sessionId}`)
+            .then(res => {
+              if (res.ok) {
+                setMobileSession(parsed);
+                setIsCompanionActive(true);
+              } else {
+                localStorage.removeItem('iml_mobile_scan_session');
+              }
+            })
+            .catch(() => {});
+        } catch (e) {
+          localStorage.removeItem('iml_mobile_scan_session');
+        }
+      }
+    }
+  }, []);
+
   // Sync isBulkScan to Ref to prevent stale closures without re-triggering camera instantiations
   const isBulkScanRef = useRef(isBulkScan);
   useEffect(() => {
@@ -340,6 +364,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       if (res.ok) {
         const data = await res.json();
         setMobileSession(data);
+        localStorage.setItem('iml_mobile_scan_session', JSON.stringify(data));
         setIsMobileModalOpen(true);
       }
     } catch (e) {

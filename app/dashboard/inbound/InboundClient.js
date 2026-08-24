@@ -120,6 +120,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             .then(res => {
               if (res.ok) {
                 setMobileSession(parsed);
+                setIsCompanionActive(true);
               } else {
                 localStorage.removeItem('iml_mobile_scan_session');
               }

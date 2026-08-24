@@ -201,6 +201,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
             .then(res => {
               if (res.ok) {
                 setMobileSession(parsed);
+                setIsCompanionActive(true);
               } else {
                 localStorage.removeItem('iml_mobile_scan_session');
               }
@@ -1089,6 +1090,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                     if (res.ok) {
                       const data = await res.json();
                       setMobileSession(data);
+                      localStorage.setItem('iml_mobile_scan_session', JSON.stringify(data));
                       setIsMobileModalOpen(true);
                     }
                   } catch (e) {
@@ -1616,6 +1618,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                         if (res.ok) {
                                           const data = await res.json();
                                           setMobileSession(data);
+                                          localStorage.setItem('iml_mobile_scan_session', JSON.stringify(data));
                                           setIsMobileModalOpen(true);
                                         }
                                       } catch (e) {
