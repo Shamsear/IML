@@ -14,6 +14,7 @@ import { getAvailableBarcodes, findProductByBarcode, getProductBatchesAtLocation
 import { playBeep } from '@/lib/audio';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
+import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
 function OutboundFormContent({ products, stores, supervisors, directSellers = [], initialItems = null, initialDestinationType = 'STORE', initialDestinationId = '', brands = [], initialDeliverySupervisorId = '', editMode = false, existingDn = '', staffList = [] }) {
   const router = useRouter();
@@ -1601,6 +1602,40 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Serial Barcodes ({item.selectedBarcodes.length} chosen)</span>
                                 <div className="flex items-center gap-2">
+                                  {/* Companion scanner */}
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      setIsCompanionActive(true);
+                                      if (mobileSession?.sessionId) {
+                                        setIsMobileModalOpen(true);
+                                        return;
+                                      }
+                                      try {
+                                        const res = await fetch('/api/scan-companion', { method: 'POST' });
+                                        if (res.ok) {
+                                          const data = await res.json();
+                                          setMobileSession(data);
+                                          setIsMobileModalOpen(true);
+                                        }
+                                      } catch (e) {
+                                        console.error(e);
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary rounded text-[10px] font-bold cursor-pointer transition-colors"
+                                  >
+                                    <Smartphone size={11} />
+                                    <span>Pair</span>
+                                  </button>
+                                  {/* Camera scan */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsCameraOpen(true)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded text-[10px] font-bold cursor-pointer transition-colors"
+                                  >
+                                    <Camera size={11} />
+                                    <span>Scan</span>
+                                  </button>
                                   {/* Range mode toggle */}
                                   <button
                                     type="button"
@@ -1611,7 +1646,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                         : 'bg-surface border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-primary'}
                                     `}
                                   >
-                                    {item.rangeMode ? 'Switch to Barcode Picker' : 'Switch to Range Select'}
+                                    {item.rangeMode ? 'Barcode Picker' : 'Range Select'}
                                   </button>
                                 </div>
                               </div>
@@ -1877,13 +1912,19 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
             </div>
             
             <div className="flex flex-col gap-4 text-center py-4 items-center">
-              <div className="p-3 bg-primary/5 rounded-full text-primary border border-primary/10">
-                <QrCode size={40} />
+              <div className="bg-white p-2 rounded-xl border border-border shadow-sm">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`}
+                  alt="Scan to pair companion"
+                  width={200}
+                  height={200}
+                  className="rounded-lg"
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-extrabold text-text-primary font-mono font-semibold">Pair code: {mobileSession.sessionId}</span>
                 <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed mt-1">
-                  Open the Wireless Companion app on your phone, scan this pairing code or type it in, and scan serial numbers instantly.
+                  Scan this QR code with your phone camera to open the Companion Scanner, or type the pair code manually.
                 </p>
               </div>
             </div>

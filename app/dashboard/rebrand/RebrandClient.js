@@ -1367,13 +1367,19 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
               </button>
             </div>
             <div className="flex flex-col gap-4 text-center py-4 items-center">
-              <div className="p-3 bg-primary/5 rounded-full text-primary border border-primary/10">
-                <QrCode size={40} />
+              <div className="bg-white p-2 rounded-xl border border-border shadow-sm">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`}
+                  alt="Scan to pair companion"
+                  width={200}
+                  height={200}
+                  className="rounded-lg"
+                />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-extrabold text-text-primary font-mono">Pair code: {mobileSession.sessionId}</span>
+                <span className="text-xs font-extrabold text-text-primary font-mono font-semibold">Pair code: {mobileSession.sessionId}</span>
                 <p className="text-[11px] text-text-secondary max-w-xs leading-relaxed mt-1">
-                  Open the Wireless Companion app on your phone, scan this pairing code or type it in, and scan serial numbers instantly.
+                  Scan this QR code with your phone camera to open the Companion Scanner, or type the pair code manually.
                 </p>
               </div>
             </div>

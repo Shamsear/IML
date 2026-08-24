@@ -11,6 +11,7 @@ import ConfirmModal from '@/components/ConfirmModal';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useToast } from '@/components/Toast';
 import { playBeep } from '@/lib/audio';
+import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
 export default function ClientReturnsClient({ brands, products }) {
   const router = useRouter();
@@ -964,11 +965,13 @@ export default function ClientReturnsClient({ brands, products }) {
             </div>
             
             <div className="flex flex-col gap-4 text-center py-4 items-center">
-              <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
+              <div className="bg-white p-2 rounded-xl border border-border shadow-sm">
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`http://${mobileSession.localIp}:${mobileSession.port}/scan-companion?sessionId=${mobileSession.sessionId}`)}`}
-                  alt="Scan QR to pair phone"
-                  className="w-[200px] h-[200px] block"
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`}
+                  alt="Scan to pair companion"
+                  width={200}
+                  height={200}
+                  className="rounded-lg"
                 />
               </div>
               <div className="flex flex-col gap-1.5 max-w-sm">
