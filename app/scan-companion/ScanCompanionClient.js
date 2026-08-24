@@ -74,11 +74,16 @@ export default function ScanCompanionClient({ session }) {
     setConfirmOpen(true);
   };
 
-  // Trigger brief mobile vibration feedback on successful scans
-  const triggerVibe = () => {
+  // Trigger mobile vibration feedback
+  // 'success' = long single buzz, 'duplicate' = short double buzz
+  const triggerVibe = (type = 'success') => {
     try {
       if (typeof window !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(100);
+        if (type === 'duplicate') {
+          navigator.vibrate([40, 50, 40]); // short double buzz
+        } else {
+          navigator.vibrate(150); // long single buzz
+        }
       }
     } catch (e) {}
   };
@@ -167,8 +172,7 @@ export default function ScanCompanionClient({ session }) {
 
           // Permanent dedup: skip barcodes already scanned in this session
           if (scannedBarcodeSetRef.current.has(lowerCode)) {
-            playBeep();
-            triggerVibe();
+            triggerVibe('duplicate');
             setErrorMessage(`"${code}" was already scanned. Clear history first to re-scan.`);
             setTimeout(() => setErrorMessage(''), 3000);
             return;
