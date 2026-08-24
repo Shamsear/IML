@@ -19,6 +19,10 @@ export default function ScanCompanionClient({ session }) {
   const lastScannedBarcodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
   const scannedBarcodeSetRef = useRef(new Set());
+  // Multi-scan consensus: track recent scan attempts for accuracy
+  const pendingScanRef = useRef(null); // { code, rawCode, timestamp, count }
+  const [pendingScan, setPendingScan] = useState(null); // UI mirror of pendingScanRef
+  const pendingTimeoutRef = useRef(null);
   
   const [cameras, setCameras] = useState([]);
   const [currentCameraIdx, setCurrentCameraIdx] = useState(0);
@@ -140,6 +144,82 @@ export default function ScanCompanionClient({ session }) {
     }
   }, [session, cameraPermissionStatus]);
 
+  // Strict barcode validation: only alphanumeric + hyphen + space allowed
+  const isValidBarcode = (raw) => {
+    if (!raw || raw.length < 4) return false;
+    // Reject if contains any non-alphanumeric characters except hyphen and space
+    if (/[^a-zA-Z0-9\- ]/.test(raw)) return false;
+    // Reject if has too many special patterns that indicate misreads
+    // (e.g., repeated chars like 'IIII', '0000' are valid IMEI suffixes so allow them)
+    return true;
+  };
+
+  // Send barcode to PC backend
+  const sendBarcodeToPC = async (rawCode) => {
+    const lowerCode = rawCode.toLowerCase();
+    if (scannedBarcodeSetRef.current.has(lowerCode)) {
+      triggerVibe('duplicate');
+      setErrorMessage(`"${rawCode}" was already scanned. Clear history first to re-scan.`);
+      setTimeout(() => setErrorMessage(''), 3000);
+      return false;
+    }
+    try {
+      const response = await fetch('/api/scan-companion', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: session, barcode: rawCode })
+      });
+      if (response.ok) {
+        playBeep();
+        triggerVibe('success');
+        scannedBarcodeSetRef.current.add(lowerCode);
+        lastScannedBarcodeRef.current = lowerCode;
+        lastScannedTimeRef.current = Date.now();
+        setScannedItems(prev => [rawCode, ...prev]);
+        // Flash overlay
+        const flashOverlay = document.querySelector('.custom-scan-overlay > div');
+        if (flashOverlay) {
+          flashOverlay.style.borderColor = '#10b981';
+          flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
+          setTimeout(() => {
+            if (flashOverlay) {
+              flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              flashOverlay.style.boxShadow = 'none';
+            }
+          }, 400);
+        }
+        return true;
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.error || 'Failed to submit barcode to PC.');
+        setTimeout(() => setErrorMessage(''), 3000);
+        return false;
+      }
+    } catch (err) {
+      setErrorMessage('Network connection lost.');
+      setTimeout(() => setErrorMessage(''), 3000);
+      return false;
+    }
+  };
+
+  // Confirm a pending scan (user tapped Send)
+  const confirmPendingScan = async () => {
+    const pending = pendingScanRef.current;
+    if (!pending) return;
+    pendingScanRef.current = null;
+    setPendingScan(null);
+    if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
+    await sendBarcodeToPC(pending.rawCode);
+  };
+
+  // Reject a pending scan (user tapped Skip)
+  const rejectPendingScan = () => {
+    pendingScanRef.current = null;
+    setPendingScan(null);
+    if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
+    triggerVibe('duplicate');
+  };
+
   const startScanning = async (scannerInstance, cameraId) => {
     try {
       await scannerInstance.start(
@@ -150,72 +230,53 @@ export default function ScanCompanionClient({ session }) {
           aspectRatio: 1.0
         },
         async (decodedText) => {
-          const code = decodedText.trim();
+          const rawCode = decodedText.trim();
           const now = Date.now();
 
-          // Skip obviously garbled barcodes (contain *, ~, or other non-alphanumeric noise)
-          if (code.includes('*') || code.includes('~') || code.includes('`')) {
-            return;
+          // LAYER 1: Strict character filter
+          if (!isValidBarcode(rawCode)) {
+            return; // silently reject garbled scans
           }
 
-          // Skip very short barcodes (likely misreads)
-          if (code.length < 4) {
-            return;
-          }
+          const lowerCode = rawCode.toLowerCase();
 
-          const lowerCode = code.toLowerCase();
-
-          // Cooldown: prevent duplicate scans within 3 seconds
+          // LAYER 2: Cooldown — reject exact duplicate within 3 seconds
           if (lowerCode === lastScannedBarcodeRef.current && (now - lastScannedTimeRef.current < 3000)) {
             return;
           }
 
-          // Permanent dedup: skip barcodes already scanned in this session
+          // LAYER 3: Permanent dedup — already sent to PC this session
           if (scannedBarcodeSetRef.current.has(lowerCode)) {
             triggerVibe('duplicate');
-            setErrorMessage(`"${code}" was already scanned. Clear history first to re-scan.`);
+            setErrorMessage(`"${rawCode}" was already scanned. Clear history first to re-scan.`);
             setTimeout(() => setErrorMessage(''), 3000);
             return;
           }
 
-          lastScannedBarcodeRef.current = lowerCode;
-          lastScannedTimeRef.current = now;
-
-          // Send scanned code to backend API endpoint
-          try {
-            const response = await fetch('/api/scan-companion', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sessionId: session, barcode: code })
-            });
-
-            if (response.ok) {
-              playBeep();
-              triggerVibe();
-              scannedBarcodeSetRef.current.add(lowerCode);
-              setScannedItems(prev => [code, ...prev]);
-              
-              // Flash visual target overlay feedback
-              const flashOverlay = document.querySelector('.custom-scan-overlay > div');
-              if (flashOverlay) {
-                flashOverlay.style.borderColor = '#10b981';
-                flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
-                setTimeout(() => {
-                  if (flashOverlay) {
-                    flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                    flashOverlay.style.boxShadow = 'none';
-                  }
-                }, 400);
-              }
-            } else {
-              const data = await response.json();
-              setErrorMessage(data.error || 'Failed to submit barcode to PC.');
-              setTimeout(() => setErrorMessage(''), 3000);
-            }
-          } catch (err) {
-            setErrorMessage('Network connection lost.');
-            setTimeout(() => setErrorMessage(''), 3000);
+          // LAYER 4: Multi-scan consensus — require 2 matching scans within 5 seconds
+          const pending = pendingScanRef.current;
+          if (pending && pending.lowerCode === lowerCode && (now - pending.timestamp < 5000)) {
+            // MATCH! Second scan confirms the first — auto-send
+            pendingScanRef.current = null;
+            setPendingScan(null);
+            if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
+            await sendBarcodeToPC(rawCode);
+            return;
           }
+
+          // LAYER 5: New barcode — show confirmation card, wait for 2nd scan or manual confirm
+          pendingScanRef.current = { rawCode, lowerCode, timestamp: now, count: 1 };
+          setPendingScan({ rawCode, count: 1 });
+          triggerVibe('success');
+
+          // Auto-dismiss after 8 seconds if no confirmation
+          if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
+          pendingTimeoutRef.current = setTimeout(() => {
+            if (pendingScanRef.current && pendingScanRef.current.lowerCode === lowerCode) {
+              pendingScanRef.current = null;
+              setPendingScan(null);
+            }
+          }, 8000);
         },
         (err) => {}
       );
@@ -344,7 +405,13 @@ export default function ScanCompanionClient({ session }) {
             </div>
           </div>
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-2">
+          {scannedItems.length > 0 && (
+            <div className="px-2.5 py-1 bg-success/10 text-success text-[10px] font-bold rounded-full border border-success/20 flex items-center gap-1">
+              <CheckCircle size={11} />
+              <span>{scannedItems.length} sent</span>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleDisconnect}
@@ -355,27 +422,30 @@ export default function ScanCompanionClient({ session }) {
         </div>
       </header>
 
-      {/* Main scanner container */}
-      <main className="flex-1 overflow-y-auto p-4 max-w-md mx-auto w-full flex flex-col gap-4 min-h-0">
+      {/* Floating toast messages — overlay without pushing layout */}
+      <div className="fixed top-[72px] left-4 right-4 z-[60] flex flex-col gap-2 max-w-md mx-auto pointer-events-none">
         {!isSessionActive && (
-          <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold flex items-center gap-2.5 animate-slide-down">
+          <div className="bg-danger border border-danger/30 text-white rounded-lg px-3 py-2.5 text-xs font-semibold flex items-center gap-2 shadow-lg pointer-events-auto animate-slide-down">
             <AlertCircle size={14} className="flex-shrink-0" />
-            <span>Connection to PC lost. The session has expired or was disconnected. Please pair again.</span>
+            <span>Session expired. Please pair again.</span>
           </div>
         )}
         {errorMessage && (
-          <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold flex items-center gap-2 animate-slide-down">
+          <div className="bg-danger border border-danger/30 text-white rounded-lg px-3 py-2.5 text-xs font-semibold flex items-center gap-2 shadow-lg pointer-events-auto animate-slide-down">
             <AlertCircle size={14} className="flex-shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
-
         {successMessage && (
-          <div className="bg-success/10 border border-success/20 text-success rounded-lg p-3 text-xs font-semibold flex items-center gap-2 animate-slide-down">
+          <div className="bg-success border border-success/30 text-white rounded-lg px-3 py-2.5 text-xs font-semibold flex items-center gap-2 shadow-lg pointer-events-auto animate-slide-down">
             <CheckCircle size={14} className="flex-shrink-0" />
             <span>{successMessage}</span>
           </div>
         )}
+      </div>
+
+      {/* Main scanner container */}
+      <main className="flex-1 overflow-y-auto p-4 max-w-md mx-auto w-full flex flex-col gap-4 min-h-0">
 
         {cameraPermissionStatus === 'prompt' && (
           <div className="flex-1 flex flex-col items-center justify-center py-12 gap-3 bg-surface border border-border rounded-xl">
@@ -553,9 +623,43 @@ export default function ScanCompanionClient({ session }) {
             {/* Instruction Banner */}
             <div className="bg-surface border border-border p-3 rounded-lg text-center">
               <span className="text-[11px] text-text-secondary leading-relaxed">
-                Position a barcode inside the square outline. The phone will vibrate and automatically type the code on your PC.
+                Position a barcode inside the square outline. Scan again to confirm, or tap Send/Skip below.
               </span>
             </div>
+
+            {/* Pending Scan Confirmation Card */}
+            {pendingScan && (
+              <div className="bg-warning/5 border-2 border-warning/30 rounded-xl p-4 flex flex-col items-center gap-3 animate-slide-down">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                  <span className="text-[10px] font-bold text-warning uppercase">Awaiting Confirmation</span>
+                </div>
+                <div className="bg-surface border border-border rounded-lg px-5 py-3 w-full text-center">
+                  <span className="text-lg font-mono font-extrabold text-text-primary tracking-wider">
+                    {pendingScan.rawCode}
+                  </span>
+                </div>
+                <p className="text-[10px] text-text-secondary text-center">
+                  Scan the same barcode again to auto-confirm, or use the buttons below.
+                </p>
+                <div className="flex items-center gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={rejectPendingScan}
+                    className="flex-1 py-2.5 bg-surface border border-border text-text-secondary hover:bg-danger/10 hover:text-danger hover:border-danger/30 text-xs font-bold rounded-lg transition-all"
+                  >
+                    Skip ✗
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmPendingScan}
+                    className="flex-1 py-2.5 bg-success text-white hover:bg-success/90 text-xs font-bold rounded-lg shadow-sm transition-all"
+                  >
+                    Send ✓
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Live Scanned Items Ledger on Phone */}
             <div className="flex-1 bg-surface border border-border rounded-xl p-4 flex flex-col gap-2 min-h-[180px] max-h-[300px]">
