@@ -1120,7 +1120,6 @@ export default function StaffClient({ initialStaff, stores }) {
           </div>
         </div>
       )}
-    </div>
 
       <ConfirmModal
         open={confirmOpen}

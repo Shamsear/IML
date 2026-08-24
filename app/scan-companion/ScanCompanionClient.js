@@ -566,7 +566,6 @@ export default function ScanCompanionClient({ session }) {
           </div>
         )}
       </main>
-    </div>
 
       <ConfirmModal
         open={confirmOpen}
