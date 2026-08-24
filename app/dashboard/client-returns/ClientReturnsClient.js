@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck } from 'lucide-react';
 import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
+import { getProductBatchesAtLocation } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useToast } from '@/components/Toast';
 import { playBeep } from '@/lib/audio';
 
-export default function ClientReturnsClient({ brands, products, supervisors }) {
+export default function ClientReturnsClient({ brands, products }) {
   const router = useRouter();
   const toast = useToast();
 
@@ -19,17 +20,16 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
   const [brandId, setBrandId] = useState('');
   const [receivedBy, setReceivedBy] = useState(''); // Client Rep. Name
   const [deliverySupervisorName, setDeliverySupervisorName] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [highlightedReceiverIdx, setHighlightedReceiverIdx] = useState(-1);
-  const [transactionDate, setTransactionDate] = useState('');
+  const [transactionDate, setTransactionDate] = useState(() => {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${d}T${h}:${min}`;
+  });
   const [globalNotes, setGlobalNotes] = useState('');
-
-  const filteredSuggestions = (supervisors || [])
-    .map(s => s.name)
-    .filter(name => 
-      name.toLowerCase().includes(deliverySupervisorName.toLowerCase()) && 
-      name.toLowerCase() !== deliverySupervisorName.toLowerCase()
-    );
 
   // Queue of return lines
   const [items, setItems] = useState([
@@ -38,6 +38,8 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
       productId: '',
       quantity: 0,
       barcodesInput: '',
+      availableBatches: [],
+      selectedBatches: [],
       notes: '',
       isExpanded: true,
       error: ''
@@ -281,6 +283,8 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
         productId: '',
         quantity: 0,
         barcodesInput: '',
+        availableBatches: [],
+        selectedBatches: [],
         notes: '',
         isExpanded: true,
         error: ''
@@ -317,6 +321,17 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
         const prod = products.find(p => p.id === val);
         updated.quantity = prod?.isSerialized ? 0 : 1;
         updated.barcodesInput = '';
+        updated.availableBatches = [];
+        updated.selectedBatches = [];
+
+        // Fetch expiry batches for trackExpiry products
+        if (prod?.trackExpiry && !prod?.isSerialized) {
+          getProductBatchesAtLocation(val, 'BRAND', brandId)
+            .then(batches => {
+              setItems(prev => prev.map((x, i2) => i2 === idx ? { ...x, availableBatches: batches || [] } : x));
+            })
+            .catch(e => console.error('Failed to fetch batches:', e));
+        }
       }
 
       if (field === 'barcodesInput') {
@@ -340,6 +355,11 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
           const list = item.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
           if (list.length === 0) {
             errs.push('At least one barcode must be scanned/entered');
+          }
+        } else if (prod?.trackExpiry) {
+          const totalFromBatches = (item.selectedBatches || []).reduce((sum, b) => sum + b.quantity, 0);
+          if (totalFromBatches <= 0) {
+            errs.push('Select quantities from at least one expiry batch');
           }
         } else {
           const q = parseInt(item.quantity, 10);
@@ -373,11 +393,6 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
       setError('Please enter the client representative name.');
       return;
     }
-    if (!deliverySupervisorName.trim()) {
-      setError('Please enter the received by staff name.');
-      return;
-    }
-
     if (!validateForm()) return;
 
     setLoading(true);
@@ -386,13 +401,14 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
       const payload = {
         brandId,
         receivedBy: receivedBy.trim(),
-        deliverySupervisorName: deliverySupervisorName.trim(),
+        deliverySupervisorName: deliverySupervisorName?.trim() || null,
         transactionDate: transactionDate || null,
         globalNotes: globalNotes || null,
         items: items.map(x => ({
           productId: x.productId,
           quantity: x.quantity,
           barcodes: x.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean),
+          selectedBatches: x.selectedBatches?.length > 0 ? x.selectedBatches : undefined,
           notes: x.notes || null
         }))
       };
@@ -525,71 +541,7 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5 relative">
-            <label className="text-xs font-semibold text-text-secondary">Received By (Staff)</label>
-            <div className="relative">
-              <input
-                type="text"
-                className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors font-semibold"
-                value={deliverySupervisorName}
-                onChange={(e) => {
-                  setDeliverySupervisorName(e.target.value);
-                  setShowSuggestions(true);
-                  setHighlightedReceiverIdx(0);
-                }}
-                onFocus={() => {
-                  setShowSuggestions(true);
-                  setHighlightedReceiverIdx(0);
-                }}
-                onBlur={() => {
-                  setTimeout(() => {
-                    setShowSuggestions(false);
-                    setHighlightedReceiverIdx(-1);
-                  }, 250);
-                }}
-                onKeyDown={(e) => {
-                  const filtered = filteredSuggestions;
-                  if (filtered.length === 0) return;
 
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setHighlightedReceiverIdx(prev => Math.min(prev + 1, filtered.length - 1));
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setHighlightedReceiverIdx(prev => Math.max(prev - 1, 0));
-                  } else if (e.key === 'Enter') {
-                    if (highlightedReceiverIdx >= 0 && highlightedReceiverIdx < filtered.length) {
-                      e.preventDefault();
-                      setDeliverySupervisorName(filtered[highlightedReceiverIdx]);
-                      setShowSuggestions(false);
-                    }
-                  }
-                }}
-                placeholder="e.g. John Doe"
-                required
-              />
-
-              {showSuggestions && filteredSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-surface border border-border rounded-lg mt-1 shadow-lg max-h-40 overflow-y-auto z-[100] animate-fade-in">
-                  {filteredSuggestions.map((name, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      className={`w-full text-left px-3 py-2 text-xs font-semibold transition-colors ${
-                        idx === highlightedReceiverIdx ? 'bg-primary/10 text-primary' : 'text-text-primary hover:bg-surface-elevated'
-                      }`}
-                      onMouseDown={() => {
-                        setDeliverySupervisorName(name);
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-border/40">
@@ -701,10 +653,81 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
                             className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
                             value={item.quantity || ''}
                             onChange={(e) => updateItemField(idx, 'quantity', parseInt(e.target.value, 10) || 0)}
+                            disabled={selectedProd?.trackExpiry}
+                            placeholder={selectedProd?.trackExpiry ? 'Select batches below' : ''}
                           />
+                          {selectedProd?.trackExpiry && (
+                            <span className="text-[10px] text-text-muted">Quantity is computed from selected batches below.</span>
+                          )}
                         </div>
                       )}
                     </div>
+
+                    {/* Expiry Batch selection section */}
+                    {selectedProd?.trackExpiry && !isSerialized && (
+                      <div className="flex flex-col gap-3 mt-2 bg-surface-elevated/20 p-4 border border-border rounded-xl">
+                        <label className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Quantities by Expiry Batch</label>
+                        <div className="flex flex-col gap-2">
+                          {(!item.availableBatches || item.availableBatches.length === 0) ? (
+                            <div className="text-xs text-text-muted italic p-2 bg-surface border border-border rounded-lg">
+                              No available non-expired stock batches found with client for this product.
+                            </div>
+                          ) : (
+                            item.availableBatches.map((batch, bIdx) => {
+                              const mDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString() : 'N/A';
+                              const eDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A';
+                              const now = new Date();
+                              const isExpired = batch.expiryDate && new Date(batch.expiryDate) < now;
+                              if (isExpired) return null;
+
+                              const selectedQty = item.selectedBatches?.find(b =>
+                                b.manufactureDate === batch.manufactureDate && b.expiryDate === batch.expiryDate
+                              )?.quantity || '';
+
+                              return (
+                                <div key={bIdx} className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface border border-border rounded-xl shadow-sm">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-xs font-bold text-text-primary">Expires: {eDateStr}</span>
+                                    <span className="text-[10px] text-text-secondary">Mfg: {mDateStr} | Available: <strong className="text-primary">{batch.quantity} units</strong></span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-[10px] font-bold text-text-secondary uppercase">Qty:</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={batch.quantity}
+                                      className="w-20 bg-surface border border-border rounded px-2.5 py-1 text-xs text-center focus:outline-none focus:border-primary font-bold text-text-primary"
+                                      value={selectedQty}
+                                      placeholder="0"
+                                      onChange={(e) => {
+                                        const valInt = parseInt(e.target.value, 10) || 0;
+                                        const cappedVal = Math.min(valInt, batch.quantity);
+                                        const currentSelected = item.selectedBatches || [];
+                                        const existingIdx = currentSelected.findIndex(b =>
+                                          b.manufactureDate === batch.manufactureDate && b.expiryDate === batch.expiryDate
+                                        );
+                                        let nextSelected = [...currentSelected];
+                                        if (existingIdx !== -1) {
+                                          if (cappedVal > 0) {
+                                            nextSelected[existingIdx] = { ...nextSelected[existingIdx], quantity: cappedVal };
+                                          } else {
+                                            nextSelected = nextSelected.filter((_, i) => i !== existingIdx);
+                                          }
+                                        } else if (cappedVal > 0) {
+                                          nextSelected.push({ manufactureDate: batch.manufactureDate, expiryDate: batch.expiryDate, quantity: cappedVal });
+                                        }
+                                        const totalQty = nextSelected.reduce((sum, b) => sum + b.quantity, 0);
+                                        setItems(prev => prev.map((x, i) => i === idx ? { ...x, selectedBatches: nextSelected, quantity: totalQty } : x));
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {isSerialized && (
                       <div className="flex flex-col gap-1.5 animate-slide-down">

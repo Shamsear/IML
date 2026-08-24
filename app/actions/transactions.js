@@ -2095,7 +2095,7 @@ export async function createBulkClientReturnTransactions(payload) {
     const deliveryNote = await generateCustomRef(tx, 'CRN', brand.name, transactionDate);
 
     for (const item of items) {
-      const { productId, quantity, barcodes = [], notes } = item;
+      const { productId, quantity, barcodes = [], notes, selectedBatches = [] } = item;
 
       if (!productId) throw new Error('Product ID is required for all items');
       if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0');
@@ -2105,12 +2105,38 @@ export async function createBulkClientReturnTransactions(payload) {
       });
       if (!product) throw new Error(`Product not found for ID: ${productId}`);
 
-      // Verify stock levels in central warehouse for bulk products
-      if (!product.isSerialized) {
-        const currentStock = await getStockAtLocation(productId, 'WAREHOUSE', 'MAIN');
-        if (currentStock < quantity) {
-          throw new Error(`Insufficient stock for "${product.name}". Available warehouse stock is ${currentStock}, requested ${quantity}.`);
+      const baseNote = (() => {
+        const itemNote = notes?.trim() || '';
+        const gNotes = globalNotes?.trim() || '';
+        if (gNotes && itemNote) return `${gNotes} | ${itemNote}`;
+        return gNotes || itemNote || null;
+      })();
+
+      // For expiry-tracked products with batch selection, create one transaction per batch
+      if (product.trackExpiry && !product.isSerialized && selectedBatches.length > 0) {
+        for (const batch of selectedBatches) {
+          if (!batch.quantity || batch.quantity <= 0) continue;
+          await tx.inventoryTransaction.create({
+            data: {
+              productId,
+              transactionType: 'CLIENT_RETURN',
+              fromEntityType: 'WAREHOUSE',
+              fromEntityId: 'MAIN',
+              toEntityType: 'BRAND',
+              toEntityId: brandId,
+              quantity: batch.quantity,
+              deliveryNote,
+              notes: baseNote,
+              receivedBy,
+              deliverySupervisorId: supervisorId || null,
+              deliveryStatus: 'Delivered',
+              manufactureDate: batch.manufactureDate ? new Date(batch.manufactureDate) : null,
+              expiryDate: batch.expiryDate ? new Date(batch.expiryDate) : null,
+              timestamp: transactionDate ? parseTransactionDate(transactionDate) : undefined,
+            }
+          });
         }
+        continue;
       }
 
       // Create transaction record
@@ -2124,12 +2150,7 @@ export async function createBulkClientReturnTransactions(payload) {
           toEntityId: brandId,
           quantity,
           deliveryNote,
-          notes: (() => {
-            const itemNote = notes?.trim() || '';
-            const gNotes = globalNotes?.trim() || '';
-            if (gNotes && itemNote) return `${gNotes} | ${itemNote}`;
-            return gNotes || itemNote || null;
-          })(),
+          notes: baseNote,
           receivedBy,
           deliverySupervisorId: supervisorId || null,
           deliveryStatus: 'Delivered',

@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function NewClientReturnPage() {
-  const [brands, products, supervisors] = await Promise.all([
+  const [brands, products] = await Promise.all([
     prisma.brand.findMany({
       orderBy: { name: 'asc' },
       select: { id: true, name: true }
@@ -22,10 +22,6 @@ export default async function NewClientReturnPage() {
         }
       },
       orderBy: { name: 'asc' }
-    }),
-    prisma.supervisor.findMany({
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true }
     })
   ]);
 
@@ -33,7 +29,6 @@ export default async function NewClientReturnPage() {
     <ClientReturnsClient
       brands={brands}
       products={products}
-      supervisors={supervisors}
     />
   );
 }
