@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck, ArrowUpDown } from 'lucide-react';
 import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
-import { getProductBatchesAtLocation, getAvailableBarcodes } from '@/app/actions/products';
+import { getProductBatchesAtLocation, getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
@@ -111,6 +111,69 @@ export default function ClientReturnsClient({ brands, products }) {
     }
   };
 
+  // Global barcode lookup — finds product by barcode and auto-assigns to first empty item
+  const processGlobalBarcode = async (code) => {
+    const cleanCode = code.trim();
+    if (!cleanCode) return;
+
+    try {
+      const serial = await findProductByBarcode(cleanCode);
+      if (!serial) {
+        toast.error('Not Found', `Barcode "${cleanCode}" was not found in the catalogue.`);
+        return;
+      }
+      const prod = serial.product;
+
+      const existingIdx = items.findIndex(item => item.productId === prod.id);
+      if (existingIdx !== -1) {
+        const item = items[existingIdx];
+        const currentList = item.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+        if (!currentList.includes(cleanCode)) {
+          const newList = [...currentList, cleanCode];
+          const currentSelected = item.selectedBarcodes || [];
+          const newSelected = currentSelected.includes(cleanCode) ? currentSelected : [...currentSelected, cleanCode];
+          setItems(prev => prev.map((x, idx) => idx === existingIdx ? {
+            ...x,
+            barcodesInput: newList.join('\n'),
+            selectedBarcodes: newSelected,
+            quantity: newSelected.length,
+            isExpanded: true,
+          } : { ...x, isExpanded: false }));
+          playBeep();
+        }
+      } else {
+        const emptyIdx = items.findIndex(item => !item.productId);
+        if (emptyIdx !== -1) {
+          setItems(prev => prev.map((x, idx) => idx === emptyIdx ? {
+            ...x,
+            productId: prod.id,
+            quantity: prod.isSerialized ? 1 : 1,
+            barcodesInput: prod.isSerialized ? cleanCode : '',
+            selectedBarcodes: prod.isSerialized ? [cleanCode] : [],
+            isExpanded: true,
+            error: '',
+          } : { ...x, isExpanded: false }));
+          playBeep();
+        } else {
+          setItems(prev => prev.map(x => ({ ...x, isExpanded: false })).concat({
+            id: `temp-${Date.now()}-${prev.length}`,
+            productId: prod.id,
+            quantity: prod.isSerialized ? 1 : 1,
+            barcodesInput: prod.isSerialized ? cleanCode : '',
+            selectedBarcodes: prod.isSerialized ? [cleanCode] : [],
+            notes: '',
+            isExpanded: true,
+            error: '',
+          }));
+          playBeep();
+        }
+      }
+    } catch (err) {
+      console.error('Global scan query failed:', err);
+      toast.error('Server Error', 'Error fetching barcode from server.');
+    }
+  };
+
   const addBarcodeToActiveItem = (code) => {
     const cleanCode = code.trim();
     if (!cleanCode) return false;
@@ -169,12 +232,14 @@ export default function ClientReturnsClient({ brands, products }) {
           if (res.ok) {
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
-              data.barcodes.forEach(code => {
-                const added = addBarcodeToActiveItem(code);
-                if (added) {
-                  playBeep();
+              for (const code of data.barcodes) {
+                if (activeScanTarget) {
+                  const added = addBarcodeToActiveItem(code);
+                  if (added) playBeep();
+                } else {
+                  await processGlobalBarcode(code);
                 }
-              });
+              }
             }
           }
         } catch (e) {
@@ -185,7 +250,7 @@ export default function ClientReturnsClient({ brands, products }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mobileSession, activeScanTarget, isCompanionActive]);
+  }, [mobileSession, activeScanTarget, isCompanionActive, items]);
 
   // Webcam scanning hooks
   useEffect(() => {

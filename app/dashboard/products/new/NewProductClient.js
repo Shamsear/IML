@@ -15,6 +15,7 @@ import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import DashboardLoading from '@/app/dashboard/loading';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
+import { findProductByBarcode } from '@/app/actions/products';
 import { playBeep } from '@/lib/audio';
 
 export default function NewProductClient({ brands, stores = [], editId: propEditId = null, existingCategories = [], recentSuppliers = [], recentReceivers = [] }) {
@@ -494,16 +495,48 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
           if (res.ok) {
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
-              data.barcodes.forEach(code => {
-                const added = addBarcodeToActiveItem(code);
-                if (added) {
-                  playBeep();
-                  if (activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
-                    setIsMobileModalOpen(false);
-                    setActiveScanTarget(null);
+              for (const code of data.barcodes) {
+                if (activeScanTarget) {
+                  const added = addBarcodeToActiveItem(code);
+                  if (added) {
+                    playBeep();
+                    if (activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
+                      setIsMobileModalOpen(false);
+                      setActiveScanTarget(null);
+                    }
+                  }
+                } else {
+                  // No scan target — cross-check barcode then add to first item's first inbound list
+                  const cleanCode = code.trim();
+                  if (!cleanCode) continue;
+                  try {
+                    const existing = await findProductByBarcode(cleanCode);
+                    if (existing) {
+                      toast.error('Duplicate Barcode', `Barcode "${cleanCode}" already exists in the system (Product: ${existing.product?.name || 'Unknown'}).`);
+                      continue;
+                    }
+                  } catch (e) {
+                    console.error('Barcode check failed:', e);
+                  }
+                  if (items.length > 0 && items[0].inbounds?.length > 0) {
+                    setItems(prev => {
+                      const firstItem = prev[0];
+                      const firstInbound = firstItem.inbounds[0];
+                      const currentList = firstInbound.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+                      if (!currentList.includes(cleanCode)) {
+                        const newList = [...currentList, cleanCode];
+                        const updatedInbounds = firstItem.inbounds.map((inb, j) => {
+                          if (j !== 0) return inb;
+                          return { ...inb, initialBarcodes: newList.join('\n') };
+                        });
+                        playBeep();
+                        return prev.map((item, i) => i === 0 ? { ...item, inbounds: updatedInbounds } : item);
+                      }
+                      return prev;
+                    });
                   }
                 }
-              });
+              }
             }
           }
         } catch (e) {
@@ -514,7 +547,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mobileSession, activeScanTarget, isCompanionActive]);
+  }, [mobileSession, activeScanTarget, isCompanionActive, items]);
 
   // Add brand-new empty product configuration to queue
   const handleAddNewItem = () => {

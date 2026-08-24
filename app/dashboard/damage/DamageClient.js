@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkDamageTransactions } from '@/app/actions/transactions';
-import { getAvailableBarcodes, getProductStockAtLocation, getProductBatchesAtLocation } from '@/app/actions/products';
+import { getAvailableBarcodes, getProductStockAtLocation, getProductBatchesAtLocation, findProductByBarcode } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/Toast';
@@ -372,37 +372,104 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     }
   };
 
+  // Global barcode lookup for damage — finds product by barcode and auto-assigns to first empty row
+  const processGlobalBarcode = async (code) => {
+    const cleanCode = code.trim();
+    if (!cleanCode) return;
+
+    try {
+      const serial = await findProductByBarcode(cleanCode);
+      if (!serial) {
+        toast.error('Not Found', `Barcode "${cleanCode}" was not found in the catalogue.`);
+        return;
+      }
+      const prod = serial.product;
+
+      // Find existing row for this product
+      const existingIdx = items.findIndex(item => item.productId === prod.id);
+      if (existingIdx !== -1) {
+        const item = items[existingIdx];
+        if (!item.selectedBarcodes.includes(cleanCode)) {
+          let available = item.availableBarcodes;
+          if (available.length === 0) {
+            available = await getAvailableBarcodes(prod.id, 'WAREHOUSE', null);
+          }
+          setItems(prev => prev.map((x, idx) => idx === existingIdx ? {
+            ...x,
+            availableBarcodes: available || [],
+            selectedBarcodes: [...x.selectedBarcodes, cleanCode],
+            quantity: x.selectedBarcodes.length + 1,
+          } : x));
+          playBeep();
+        }
+      } else {
+        // Find empty slot or add new row
+        const emptyIdx = items.findIndex(item => !item.productId);
+        const available = await getAvailableBarcodes(prod.id, 'WAREHOUSE', null);
+        if (emptyIdx !== -1) {
+          setItems(prev => prev.map((x, idx) => idx === emptyIdx ? {
+            ...x,
+            productId: prod.id,
+            quantity: 1,
+            selectedBarcodes: [cleanCode],
+            availableBarcodes: available || [],
+            currentStock: 0,
+            notes: '',
+          } : x));
+          playBeep();
+        } else {
+          setItems(prev => [...prev, {
+            productId: prod.id,
+            quantity: 1,
+            selectedBarcodes: [cleanCode],
+            availableBarcodes: available || [],
+            currentStock: 0,
+            notes: '',
+            availableBatches: [],
+            selectedBatches: [],
+          }]);
+          playBeep();
+        }
+      }
+    } catch (err) {
+      console.error('Global scan query failed:', err);
+      toast.error('Server Error', 'Error fetching barcode from server.');
+    }
+  };
+
   // Poll for mobile scanned items
   useEffect(() => {
     let interval = null;
-    if (mobileSession?.sessionId && activeCameraRow !== null && isCompanionActive) {
+    if (mobileSession?.sessionId && isCompanionActive) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
           if (res.ok) {
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
-              data.barcodes.forEach(code => {
-                const cleanCode = code.trim();
-                const lowercaseCode = cleanCode.toLowerCase();
-                
-                setItems(prev => {
-                  const item = prev[activeCameraRow];
-                  if (!item) return prev;
-
-                  const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
-                  if (matched) {
-                    if (!item.selectedBarcodes.includes(matched.barcode)) {
-                      playBeep();
-                      const newSelected = [...item.selectedBarcodes, matched.barcode];
-                      return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
+              for (const code of data.barcodes) {
+                if (activeCameraRow !== null) {
+                  const cleanCode = code.trim();
+                  const lowercaseCode = cleanCode.toLowerCase();
+                  setItems(prev => {
+                    const item = prev[activeCameraRow];
+                    if (!item) return prev;
+                    const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
+                    if (matched) {
+                      if (!item.selectedBarcodes.includes(matched.barcode)) {
+                        playBeep();
+                        const newSelected = [...item.selectedBarcodes, matched.barcode];
+                        return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
+                      }
+                    } else {
+                      toast.error('Not Available', `Scanned barcode "${cleanCode}" is not in the Warehouse.`);
                     }
-                  } else {
-                    toast.error('Not Available', `Scanned barcode "${cleanCode}" is not in the Warehouse.`);
-                  }
-                  return prev;
-                });
-              });
+                    return prev;
+                  });
+                } else {
+                  await processGlobalBarcode(code);
+                }
+              }
             }
           }
         } catch (e) {
@@ -413,7 +480,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mobileSession, activeCameraRow, isCompanionActive]);
+  }, [mobileSession, activeCameraRow, isCompanionActive, items]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

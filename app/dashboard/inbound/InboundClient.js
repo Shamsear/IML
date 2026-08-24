@@ -14,6 +14,7 @@ import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import { playBeep } from '@/lib/audio';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
+import { findProductByBarcode } from '@/app/actions/products';
 
 function InboundFormContent({ products, brands = [], stores = [], recentReceivers = [], recentSuppliers = [], initialItems = null, initialSupplier = '', editMode = false, existingDn = '' }) {
   const router = useRouter();
@@ -90,10 +91,18 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   }, [isBulkScan]);
 
   // Barcode scanner hook
-  const onBarcodeScan = useCallback((code) => {
-    const added = addBarcodeToActiveItem(code);
-    if (added) {
-      playBeep();
+  const onBarcodeScan = useCallback(async (code) => {
+    if (activeScanTarget) {
+      const added = addBarcodeToActiveItem(code);
+      if (added) {
+        playBeep();
+        setSessionScans(prev => {
+          if (!prev.includes(code)) return [...prev, code];
+          return prev;
+        });
+      }
+    } else {
+      await processGlobalBarcode(code);
       setSessionScans(prev => {
         if (!prev.includes(code)) return [...prev, code];
         return prev;
@@ -316,6 +325,43 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     }));
   };
 
+  // Cross-check barcode against DB and add to active item's barcode list
+  // Used when no scan target is explicitly selected — just enters the barcode text
+  const processGlobalBarcode = async (code) => {
+    const cleanCode = code.trim();
+    if (!cleanCode) return;
+
+    try {
+      // Cross-check: does this barcode already exist in the system?
+      const existing = await findProductByBarcode(cleanCode);
+      if (existing) {
+        toast.error('Duplicate Barcode', `Barcode "${cleanCode}" already exists in the system (Product: ${existing.product?.name || 'Unknown'}).`);
+        return;
+      }
+
+      // Barcode is new — add to the first expanded item's barcode list
+      const activeIdx = items.findIndex(item => item.isExpanded);
+      const targetIdx = activeIdx !== -1 ? activeIdx : 0;
+      if (targetIdx >= items.length) return;
+
+      setItems(prev => {
+        const targetItem = prev[targetIdx];
+        const currentList = targetItem.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+        if (currentList.includes(cleanCode)) return prev;
+        const newList = [...currentList, cleanCode];
+        return prev.map((item, i) => i === targetIdx ? {
+          ...item,
+          barcodesInput: newList.join('\n'),
+          quantity: newList.length,
+        } : item);
+      });
+      playBeep();
+    } catch (err) {
+      console.error('Barcode check failed:', err);
+      toast.error('Server Error', 'Error checking barcode from server.');
+    }
+  };
+
   const addBarcodeToActiveItem = (code) => {
     const cleanCode = code.trim();
     if (!cleanCode) return false;
@@ -416,16 +462,20 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           if (res.ok) {
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
-              data.barcodes.forEach(code => {
-                const added = addBarcodeToActiveItem(code);
-                if (added) {
-                  playBeep();
-                  if (activeScanTarget?.field === 'productId' || activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
-                    setIsMobileModalOpen(false);
-                    setActiveScanTarget(null);
+              for (const code of data.barcodes) {
+                if (activeScanTarget) {
+                  const added = addBarcodeToActiveItem(code);
+                  if (added) {
+                    playBeep();
+                    if (activeScanTarget?.field === 'productId' || activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
+                      setIsMobileModalOpen(false);
+                      setActiveScanTarget(null);
+                    }
                   }
+                } else {
+                  await processGlobalBarcode(code);
                 }
-              });
+              }
             }
           }
         } catch (e) {
@@ -436,7 +486,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mobileSession, activeScanTarget, isCompanionActive]);
+  }, [mobileSession, activeScanTarget, isCompanionActive, items]);
 
   const handleExpandItem = (idx) => {
     setItems(prev => prev.map((item, i) => ({ ...item, isExpanded: i === idx })));
