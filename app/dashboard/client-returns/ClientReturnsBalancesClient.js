@@ -157,11 +157,6 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
     setReturnError('');
     setReturnSuccess('');
 
-    if (!returnSupervisorName.trim()) {
-      setReturnError('Please enter the received by staff name.');
-      return;
-    }
-
     // Validate items
     let hasError = false;
     const updated = returnItems.map(item => {
@@ -194,7 +189,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
     try {
       const payload = {
         brandId: returnModal.brandId,
-        deliverySupervisorName: returnSupervisorName.trim(),
+        deliverySupervisorName: returnSupervisorName?.trim() || null,
         transactionDate: returnDate || null,
         globalNotes: returnNotes || null,
         items: returnItems.map(x => ({
@@ -450,7 +445,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                       <span className="text-[11px] text-text-muted">{tx.product?.brand?.name || '—'}</span>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
-                      <span className="text-text-muted">{formattedDate} · {tx.receivedBy || '—'}</span>
+                      <span className="text-text-muted">{formattedDate}</span>
                       {tx.deliveryNote && <span className="text-primary font-mono font-semibold">{tx.deliveryNote}</span>}
                     </div>
                   </div>
@@ -470,14 +465,13 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                   <th className="py-3 px-4 font-semibold">Brand</th>
                   <th className="py-3 px-4 text-center font-semibold">Qty</th>
                   <th className="py-3 px-4 font-semibold">Date</th>
-                  <th className="py-3 px-4 font-semibold">Received By</th>
                   <th className="py-3 px-4 text-right font-semibold">PDF</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {filteredHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-text-muted text-xs">
+                    <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
                       No transactions found.
                     </td>
                   </tr>
@@ -515,7 +509,6 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                           <span className="font-semibold text-text-secondary">{formattedDate}</span>
                           <span className="text-[10px] text-text-muted block mt-0.5">{formattedTime}</span>
                         </td>
-                        <td className="py-3 px-4 text-text-secondary font-medium">{tx.receivedBy || '—'}</td>
                         <td className="py-3 px-4 text-right">
                           <button
                             type="button"
@@ -634,18 +627,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
 
             <form onSubmit={handleSubmitReturn} className="flex flex-col gap-4 overflow-y-auto pr-1">
               {/* Header fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Received By (Staff) *</label>
-                  <input
-                    type="text"
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-semibold"
-                    value={returnSupervisorName}
-                    onChange={(e) => setReturnSupervisorName(e.target.value)}
-                    placeholder="e.g. John Doe"
-                    required
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-text-secondary">Transaction Date</label>
                   <input
