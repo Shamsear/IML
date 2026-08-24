@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, ShieldCheck, Database, Image, Bell, Info, Trash2, CheckCircle2 } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
+import { useToast } from '@/components/Toast';
 
 export default function SettingsClient({ config, user }) {
   const [cacheStatus, setCacheStatus] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const toast = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState({ title: '', message: '' });
   const [pushStatus, setPushStatus] = useState('default');
@@ -21,7 +23,7 @@ export default function SettingsClient({ config, user }) {
 
   const handleEnableNotifications = async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
-      alert('This browser does not support desktop push notifications.');
+      toast.error('Not Supported', 'This browser does not support desktop push notifications.');
       return;
     }
     
@@ -32,7 +34,7 @@ export default function SettingsClient({ config, user }) {
         setConfirmData({ title: 'Notifications Enabled', message: 'Push notifications are now active for this browser.' });
         setConfirmOpen(true);
       } else if (permission === 'denied') {
-        alert('Notification permission was denied. Please reset the site settings in your browser address bar to allow notifications.');
+        toast.error('Permission Denied', 'Please reset site settings in your browser address bar to allow notifications.');
       }
     } catch (err) {
       console.error('Error requesting notification permission:', err);

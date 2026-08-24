@@ -8,13 +8,16 @@ import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/
 import { createStore } from '@/app/actions/stores';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
+import { useToast } from '@/components/Toast';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getAvailableBarcodes, findProductByBarcode, getProductBatchesAtLocation } from '@/app/actions/products';
 import { playBeep } from '@/lib/audio';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
+import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 
 function OutboundFormContent({ products, stores, supervisors, directSellers = [], initialItems = null, initialDestinationType = 'STORE', initialDestinationId = '', brands = [], initialDeliverySupervisorId = '', editMode = false, existingDn = '', staffList = [] }) {
   const router = useRouter();
+  const toast = useToast();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -101,7 +104,6 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   // Webcam scanning modal state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [sessionScans, setSessionScans] = useState([]);
-  const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied'
   const [isBulkScan, setIsBulkScan] = useState(false);
 
   // Wireless Mobile companion scanner states
@@ -112,15 +114,41 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   const [highlightedSellerIdx, setHighlightedSellerIdx] = useState(-1);
   const [globalNotes, setGlobalNotes] = useState('');
 
-  // Cooldown refs to prevent double-scanning same barcode within 2 seconds
-  const lastScannedBarcodeRef = useRef('');
-  const lastScannedTimeRef = useRef(0);
-
   // Sync isBulkScan to Ref
   const isBulkScanRef = useRef(isBulkScan);
   useEffect(() => {
     isBulkScanRef.current = isBulkScan;
   }, [isBulkScan]);
+
+  // Barcode scanner hook
+  const onBarcodeScan = useCallback(async (code) => {
+    const activeIdx = items.findIndex(item => item.isExpanded);
+    if (activeIdx === -1) {
+      // If no active item expanded, process as global scan
+      playBeep();
+      await processGlobalBarcode(code);
+      setSessionScans(prev => {
+        if (!prev.includes(code)) return [...prev, code];
+        return prev;
+      });
+    } else {
+      const added = addBarcodeToActiveItem(code);
+      if (added) {
+        playBeep();
+        setSessionScans(prev => {
+          if (!prev.includes(code)) return [...prev, code];
+          return prev;
+        });
+      }
+    }
+    if (!isBulkScanRef.current) {
+      setIsCameraOpen(false);
+    }
+  }, [items]);
+  const { cameraPermissionStatus, retryCameraPermission } = useBarcodeScanner({
+    isOpen: isCameraOpen,
+    onScan: onBarcodeScan,
+  });
 
   // Load saved mobile session on mount
   useEffect(() => {
@@ -390,7 +418,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
             } : item);
           }
         } else {
-          alert(`Scanned Barcode "${code.trim()}" is not available in the Warehouse.`);
+          toast.error('Not Available', `Barcode "${code.trim()}" is not available in the Warehouse.`);
         }
         return prev;
       }
@@ -406,7 +434,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       const serial = await findProductByBarcode(cleanCode);
       if (serial) {
         if (serial.status !== 'AVAILABLE') {
-          alert(`Serial "${cleanCode}" is registered but currently has status "${serial.status}". It cannot be issued.`);
+          toast.error('Cannot Issue', `Serial "${cleanCode}" has status "${serial.status}" and cannot be issued.`);
           return;
         }
 
@@ -448,11 +476,11 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           playBeep();
         }
       } else {
-        alert(`Scanned Barcode "${cleanCode}" was not found in the catalogue.`);
+        toast.error('Not Found', `Barcode "${cleanCode}" was not found in the catalogue.`);
       }
     } catch (err) {
       console.error("Global scan query failed:", err);
-      alert("Error fetching barcode from server.");
+      toast.error('Server Error', 'Error fetching barcode from server.');
     }
   };
 
@@ -466,128 +494,6 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       }
     }
   };
-
-  // Webcam scanning permissions
-  useEffect(() => {
-    if (isCameraOpen) {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          stream.getTracks().forEach(track => track.stop());
-          setCameraPermissionStatus('granted');
-        })
-        .catch(err => {
-          console.error("Camera access error:", err);
-          setCameraPermissionStatus('denied');
-        });
-    } else {
-      setCameraPermissionStatus('prompt');
-    }
-  }, [isCameraOpen]);
-
-  useEffect(() => {
-    let html5QrcodeScanner = null;
-    if (isCameraOpen && cameraPermissionStatus === 'granted') {
-      setSessionScans([]);
-      const initScanner = async () => {
-        try {
-          const { Html5QrcodeScanner } = await import('html5-qrcode');
-          html5QrcodeScanner = new Html5QrcodeScanner(
-            "camera-reader-element",
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            false
-          );
-          
-          html5QrcodeScanner.render(
-            async (decodedText) => {
-              const code = decodedText.trim();
-              const now = Date.now();
-              
-              if (code.toLowerCase() === lastScannedBarcodeRef.current && (now - lastScannedTimeRef.current < 2000)) {
-                return;
-              }
-              lastScannedBarcodeRef.current = code.toLowerCase();
-              lastScannedTimeRef.current = now;
-
-              const activeIdx = items.findIndex(item => item.isExpanded);
-              if (activeIdx === -1) {
-                // If no active item expanded, process as global scan!
-                playBeep();
-                await processGlobalBarcode(code);
-                setSessionScans(prev => {
-                  if (!prev.includes(code)) return [...prev, code];
-                  return prev;
-                });
-              } else {
-                const added = addBarcodeToActiveItem(code);
-                if (added) {
-                  playBeep();
-                  setSessionScans(prev => {
-                    if (!prev.includes(code)) return [...prev, code];
-                    return prev;
-                  });
-                  const flashOverlay = document.querySelector('.custom-scan-overlay > div');
-                  if (flashOverlay) {
-                    flashOverlay.style.borderColor = '#10b981';
-                    flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
-                    setTimeout(() => {
-                      if (flashOverlay) {
-                        flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                        flashOverlay.style.boxShadow = 'none';
-                      }
-                    }, 400);
-                  }
-                }
-              }
-
-              if (!isBulkScanRef.current) {
-                setIsCameraOpen(false);
-              }
-            },
-            (err) => {}
-          );
-        } catch (e) {
-          console.error("Scanner failed:", e);
-        }
-      };
-      initScanner();
-    }
-    return () => {
-      if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(e => console.error("Failed to clear scanner:", e));
-      }
-    };
-  }, [isCameraOpen, cameraPermissionStatus]);
-
-  // Inject scan laser overlay
-  useEffect(() => {
-    if (cameraPermissionStatus === 'granted') {
-      const interval = setInterval(() => {
-        const videoElement = document.querySelector('#camera-reader-element video');
-        if (videoElement) {
-          clearInterval(interval);
-          const videoParent = videoElement.parentElement;
-          if (videoParent) {
-            videoParent.style.position = 'relative';
-            if (!videoParent.querySelector('.custom-scan-overlay')) {
-              const overlay = document.createElement('div');
-              overlay.className = 'custom-scan-overlay absolute inset-0 pointer-events-none flex items-center justify-center z-10';
-              overlay.innerHTML = `
-                <div class="w-[250px] h-[250px] border-2 border-white/30 rounded-lg relative overflow-hidden transition-all duration-300">
-                  <div class="absolute top-0 left-0 right-0 h-0.5 bg-success shadow-[0_0_8px_#10b981] animate-scanner-laser"></div>
-                  <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-success"></div>
-                  <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-success"></div>
-                  <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-success"></div>
-                  <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-success"></div>
-                </div>
-              `;
-              videoParent.appendChild(overlay);
-            }
-          }
-        }
-      }, 200);
-      return () => clearInterval(interval);
-    }
-  }, [cameraPermissionStatus]);
 
   // Poll mobile scans
   useEffect(() => {
@@ -627,7 +533,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
     const start = item.rangeStart.trim().toLowerCase();
     const end = item.rangeEnd.trim().toLowerCase();
     if (!start || !end) {
-      alert("Please enter both starting and ending barcodes.");
+      toast.error('Missing Barcodes', 'Please enter both starting and ending barcodes.');
       return;
     }
 
@@ -636,7 +542,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       .filter(bc => bc.toLowerCase() >= start && bc.toLowerCase() <= end);
 
     if (matched.length === 0) {
-      alert("No available barcodes found in this range.");
+      toast.error('No Barcodes', 'No available barcodes found in this range.');
       return;
     }
 
@@ -1273,7 +1179,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                           <img src={selectedProd.imageUrl} alt="Product" className="w-full h-full object-contain" />
                         </div>
                       ) : (
-                        <div className="w-11 h-11 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                        <div className="w-11 h-11 rounded-sm bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
                           <Camera size={18} />
                         </div>
                       )}
@@ -1410,7 +1316,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                 <img 
                                   src={selectedProd.imageUrl} 
                                   alt={selectedProd.name} 
-                                  className="w-12 h-12 rounded-md object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                  className="w-12 h-12 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
                                   onClick={() => setLightboxImage({ url: selectedProd.imageUrl, name: selectedProd.name })}
                                 />
                                 <div className="flex flex-col min-w-0">
@@ -1880,15 +1786,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                     </div>
                     <button
                       type="button"
-                      onClick={async () => {
-                        try {
-                          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                          stream.getTracks().forEach(track => track.stop());
-                          setCameraPermissionStatus('granted');
-                        } catch (e) {
-                          alert("Camera access is still blocked. Please enable it in site settings.");
-                        }
-                      }}
+                      onClick={() => retryCameraPermission()}
                       className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-colors"
                     >
                       Enable Camera Access

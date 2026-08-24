@@ -7,9 +7,11 @@ import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Lo
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
+import { useToast } from '@/components/Toast';
 
 export default function ClientReturnsLedgerClient({ transactions, totalCount, totalPages, page, brands }) {
   const router = useRouter();
+  const toast = useToast();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -143,7 +145,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
       document.body.removeChild(a);
       URL.revokeObjectURL(fileUrl);
     } catch (e) {
-      alert(e.message || 'Failed to download Gate Pass PDF.');
+      toast.error('Download Failed', e.message || 'Could not download Gate Pass PDF.');
     } finally {
       setPdfLoadingKey(null);
     }

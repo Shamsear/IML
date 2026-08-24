@@ -18,17 +18,22 @@ import {
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
 import ImageLightbox from '@/components/ImageLightbox';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 
 const shirtSizes = ['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'];
 
 export default function ProductsClient({ initialProducts, brands, stores = [] }) {
   const router = useRouter();
+  const toast = useToast();
   const [products, setProducts] = useState(initialProducts);
   const [activePanel, setActivePanel] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
 
   const [name, setName] = useState('');
   const [brandId, setBrandId] = useState(brands[0]?.id || '');
@@ -210,7 +215,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   const handleCSVSubmit = async () => {
     if (csvPreview.length === 0) return;
     setLoading(true); setCsvError('');
-    try { const count = await bulkCreateProducts(csvPreview); alert(`Imported ${count} products!`); window.location.reload(); }
+    try { const count = await bulkCreateProducts(csvPreview); toast.success('Import Complete', `${count} products imported successfully.`); router.refresh(); }
     catch (err) { setCsvError(err.message); setLoading(false); }
   };
 
@@ -230,16 +235,26 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
         }
         return p;
       }));
-      setSelectedProductIds([]); alert('Updated!');
-    } catch (err) { alert(err.message); } finally { setLoading(false); }
+      setSelectedProductIds([]);
+      toast.success('Products Updated', 'Bulk update applied successfully.');
+    } catch (err) { toast.error('Update Failed', err.message); } finally { setLoading(false); }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedProductIds.length === 0) return;
-    if (!confirm(`Delete ${selectedProductIds.length} selected products?`)) return;
-    setLoading(true);
-    try { await bulkDeleteProducts(selectedProductIds); setProducts(prev => prev.filter(p => !selectedProductIds.includes(p.id))); setSelectedProductIds([]); }
-    catch (err) { alert(err.message); } finally { setLoading(false); }
+    const count = selectedProductIds.length;
+    setConfirmData({
+      title: `Delete ${count} Products?`,
+      message: `This will permanently delete ${count} selected product${count > 1 ? 's' : ''} and all their stock transactions.`,
+      danger: true,
+      confirmLabel: 'Delete Products',
+      onConfirm: async () => {
+        setLoading(true);
+        try { await bulkDeleteProducts(selectedProductIds); setProducts(prev => prev.filter(p => !selectedProductIds.includes(p.id))); setSelectedProductIds([]); toast.success('Products Deleted', `${count} products removed.`); }
+        catch (err) { toast.error('Delete Failed', err.message); } finally { setLoading(false); }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   const handleBulkDuplicate = async () => {
@@ -250,8 +265,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
         const prod = products.find(p => p.id === id);
         return { name: `${prod.name} (Copy)`, brandId: prod.brandId, itemCode: prod.itemCode ? `${prod.itemCode}-COPY` : null, category: prod.category || 'STANDS', isReturnable: prod.isReturnable, isPublic: prod.isPublic, isSerialized: prod.isSerialized, stockCap: prod.stockCap };
       });
-      const count = await bulkCreateProducts(clonedList); alert(`Duplicated ${count} products!`); window.location.reload();
-    } catch (err) { alert(err.message); setLoading(false); }
+      const count = await bulkCreateProducts(clonedList); toast.success('Products Duplicated', `${count} copies created.`); router.refresh();
+    } catch (err) { toast.error('Duplicate Failed', err.message); setLoading(false); }
   };
 
   const openSerialModal = async (product) => {
@@ -259,7 +274,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
     setEntryMode('SINGLES'); setStartBarcode(''); setEndBarcode(''); setImportQty(100); setScanInput('');
     setLoading(true);
     try { const serials = await getProductSerials(product.id); setSerialsList(serials); setActivePanel('serials'); }
-    catch { alert('Failed to load serials.'); } finally { setLoading(false); }
+    catch { toast.error('Load Failed', 'Could not load serial numbers.'); } finally { setLoading(false); }
   };
 
 
@@ -283,9 +298,9 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
         deliveryNote: addQtyDN || null,
         notes: addQtyNotes || 'Direct manual stock add',
       });
-      alert(`Added ${addQtyValue} units of ${addQtyProduct.name} to Warehouse successfully!`);
+      toast.success('Stock Added', `${addQtyValue} units of ${addQtyProduct.name} added to Warehouse.`);
       setAddQtyProduct(null);
-      window.location.reload();
+      router.refresh();
     } catch (err) {
       setAddQtyError(err.message || 'Failed to add quantity.');
       setLoading(false);
@@ -358,11 +373,19 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this product and all stock transactions?')) return;
-    setLoading(true);
-    try { await deleteProduct(id); setProducts(prev => prev.filter(p => p.id !== id)); }
-    catch (err) { alert(err.message); } finally { setLoading(false); }
+  const handleDelete = (id) => {
+    setConfirmData({
+      title: 'Delete Product?',
+      message: 'This will permanently delete this product and all stock transactions.',
+      danger: true,
+      confirmLabel: 'Delete Product',
+      onConfirm: async () => {
+        setLoading(true);
+        try { await deleteProduct(id); setProducts(prev => prev.filter(p => p.id !== id)); toast.success('Product Deleted', 'Product and all transactions removed.'); }
+        catch (err) { toast.error('Delete Failed', err.message); } finally { setLoading(false); }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   const filteredProducts = products.filter(p => {
@@ -810,7 +833,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                           onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })}
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
                           <Package size={18} />
                         </div>
                       )}
@@ -984,7 +1007,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                                   }}
                                 />
                               ) : (
-                                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                                <div className="w-8 h-8 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
                                   <Package size={15} />
                                 </div>
                               )}
@@ -1177,6 +1200,17 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
       </div>
 
       <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmData.onConfirm}
+        type="confirm"
+        danger={confirmData.danger}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmLabel={confirmData.confirmLabel}
+      />
     </div>
   </div>
   );

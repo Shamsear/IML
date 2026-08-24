@@ -6,8 +6,11 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, BarChart3, Tag, ClipboardList, Info, X, RotateCcw, Loader2, CheckCircle, AlertCircle, History, ArrowUpRight, ArrowDownLeft, FileText } from 'lucide-react';
 import { returnClientItemsToWarehouse } from '@/app/actions/transactions';
 import ExportToExcel from '@/components/ExportToExcel';
+import { useToast } from '@/components/Toast';
+import TabNav from '@/components/TabNav';
 
 export default function ClientReturnsBalancesClient({ balances, recentTransactions = [] }) {
+  const toast = useToast();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSerialList, setActiveSerialList] = useState(null); // { productName, serials: [...] }
@@ -108,7 +111,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
       document.body.removeChild(a);
       URL.revokeObjectURL(fileUrl);
     } catch (e) {
-      alert(e.message || 'Failed to download Gate Pass PDF.');
+      toast.error('Download Failed', e.message || 'Could not download Gate Pass PDF.');
     } finally {
       setHistoryPdfLoading(null);
     }
@@ -294,30 +297,14 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
       </header>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-border">
-        <button
-          onClick={() => setActiveTab('stock')}
-          className={`px-4 py-2 border-b-2 text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'stock'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <ClipboardList size={15} />
-          Stock With Clients
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`px-4 py-2 border-b-2 text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 ${
-            activeTab === 'history'
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <History size={15} />
-          History
-        </button>
-      </div>
+      <TabNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        tabs={[
+          { key: 'stock', label: 'Stock With Clients', icon: <ClipboardList size={15} /> },
+          { key: 'history', label: 'History', icon: <History size={15} /> },
+        ]}
+      />
 
       {activeTab === 'stock' ? (
         <>
@@ -596,7 +583,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                 onClick={() => {
                   const text = activeSerialList.serials.map(s => s.barcode).join('\n');
                   navigator.clipboard.writeText(text);
-                  alert('Serials copied to clipboard!');
+                  toast.success('Copied', 'Serial barcodes copied to clipboard.');
                 }}
                 className="px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-lg transition-colors border border-primary/20 cursor-pointer"
               >

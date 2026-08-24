@@ -133,7 +133,7 @@ export default function BrandPortalClient({ brand }) {
               <img 
                 src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
                 alt={brand.name} 
-                className="w-16 h-16 rounded-md object-cover border border-border cursor-pointer hover:border-primary transition-colors"
+                className="w-16 h-16 rounded-sm object-cover border border-border cursor-pointer hover:border-primary transition-colors"
                 onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
                 onError={(e) => {
                   if (e.target.src !== brand.imageUrl) {
@@ -171,7 +171,7 @@ export default function BrandPortalClient({ brand }) {
         {/* Aggregate Stock Metrics Grid */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-surface border border-border p-5 rounded-xl shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
               <Package size={22} />
             </div>
             <div>
@@ -183,7 +183,7 @@ export default function BrandPortalClient({ brand }) {
           </div>
 
           <div className="bg-surface border border-border p-5 rounded-xl shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-success/10 text-success flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-sm bg-success/10 text-success flex items-center justify-center flex-shrink-0">
               <ArrowDownLeft size={22} />
             </div>
             <div>
@@ -195,7 +195,7 @@ export default function BrandPortalClient({ brand }) {
           </div>
 
           <div className="bg-surface border border-border p-5 rounded-xl shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-sm bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
               <ArrowUpRight size={22} />
             </div>
             <div>
@@ -207,7 +207,7 @@ export default function BrandPortalClient({ brand }) {
           </div>
 
           <div className="bg-surface border border-border p-5 rounded-xl shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-sm bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
               <ShieldAlert size={22} />
             </div>
             <div>
@@ -304,7 +304,7 @@ export default function BrandPortalClient({ brand }) {
                             {p.imageUrl ? (
                               <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })} />
                             ) : (
-                              <div className="w-10 h-10 rounded-lg bg-primary/5 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold border border-primary/10">{p.name.substring(0, 2).toUpperCase()}</div>
+                              <div className="w-10 h-10 rounded-sm bg-primary/5 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold border border-primary/10">{p.name.substring(0, 2).toUpperCase()}</div>
                             )}
                             <div className="min-w-0">
                               <span className="font-semibold text-sm text-text-primary block truncate">{p.name}</span>
@@ -361,7 +361,7 @@ export default function BrandPortalClient({ brand }) {
                                     }}
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center font-display font-extrabold text-[10px] border border-primary/10 flex-shrink-0">
+                                  <div className="w-8 h-8 rounded-sm bg-primary/5 text-primary flex items-center justify-center font-display font-extrabold text-[10px] border border-primary/10 flex-shrink-0">
                                     {p.name.substring(0, 2).toUpperCase()}
                                   </div>
                                 )}

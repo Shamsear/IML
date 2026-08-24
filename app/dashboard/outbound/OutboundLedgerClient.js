@@ -8,6 +8,7 @@ import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
+import TabNav from '@/components/TabNav';
 import PageHeader from '@/components/PageHeader';
 
 export default function OutboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {}, stores = [], supervisorNames = {} }) {
@@ -134,20 +135,14 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-border">
-        <button
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'transactions' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'}`}
-          onClick={() => changeTab('transactions')}
-        >
-          Transactions Ledger
-        </button>
-        <button
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${activeTab === 'delivery_notes' ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'}`}
-          onClick={() => changeTab('delivery_notes')}
-        >
-          Grouped Delivery Notes
-        </button>
-      </div>
+      <TabNav
+        activeTab={activeTab}
+        onTabChange={changeTab}
+        tabs={[
+          { key: 'transactions', label: 'Transactions Ledger' },
+          { key: 'delivery_notes', label: 'Grouped Delivery Notes' },
+        ]}
+      />
 
       {activeTab === 'transactions' && (
         <div className="flex flex-col gap-4 animate-fade-in">

@@ -34,7 +34,7 @@ export default function ProductImage({
 
   if (!src && showPlaceholder) {
     return (
-      <div className={`${sizes[size]} rounded-2xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 ${onClick ? 'cursor-pointer' : ''} ${className}`}>
+      <div className={`${sizes[size]} rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 ${onClick ? 'cursor-pointer' : ''} ${className}`}>
         <Package size={iconSizes[size]} />
       </div>
     );

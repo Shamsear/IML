@@ -225,7 +225,7 @@ export default function NewBrandClient() {
                         <img src={item.logoPreview || getOptimizedImageUrl(item.imageUrl, 80, 80)} alt="Preview" className="w-full h-full object-contain" />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                      <div className="w-10 h-10 rounded-sm bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
                         <Camera size={16} />
                       </div>
                     )}

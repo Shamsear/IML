@@ -6,12 +6,17 @@ import { deleteSupervisor } from '@/app/actions/supervisors';
 import { UserCheck, Plus, Edit2, Trash2, Mail, Phone, Loader2, X, Search } from 'lucide-react';
 import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function SupervisorsClient({ initialSupervisors }) {
   const router = useRouter();
+  const toast = useToast();
   const [supervisors, setSupervisors] = useState(initialSupervisors);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
 
   const filteredSupervisors = supervisors.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -19,17 +24,26 @@ export default function SupervisorsClient({ initialSupervisors }) {
     (s.phone && s.phone.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this supervisor? This will unassign them from any promoters.')) return;
-    setLoading(true);
-    try {
-      await deleteSupervisor(id);
-      setSupervisors(prev => prev.filter(s => s.id !== id));
-    } catch (err) {
-      alert(err.message || 'Failed to delete.');
-    } finally {
-      setLoading(false);
-    }
+  const handleDelete = (id) => {
+    setConfirmData({
+      title: 'Delete Supervisor?',
+      message: 'This will unassign them from any promoters.',
+      danger: true,
+      confirmLabel: 'Delete Supervisor',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await deleteSupervisor(id);
+          setSupervisors(prev => prev.filter(s => s.id !== id));
+          toast.success('Supervisor Deleted', 'The supervisor has been removed.');
+        } catch (err) {
+          toast.error('Delete Failed', err.message || 'Could not delete supervisor.');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   return (
@@ -100,7 +114,7 @@ export default function SupervisorsClient({ initialSupervisors }) {
                   onClick={() => router.push(`/dashboard/supervisors/${supervisor.id}/edit`)}
                 >
                   <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-sm bg-primary/10 border border-primary/10 flex items-center justify-center">
                       <UserCheck size={18} className="text-primary" />
                     </div>
                     <span className="badge bg-surface-elevated text-text-secondary border border-border text-[10px]">
@@ -143,6 +157,17 @@ export default function SupervisorsClient({ initialSupervisors }) {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmData.onConfirm}
+        type="confirm"
+        danger={confirmData.danger}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmLabel={confirmData.confirmLabel}
+      />
     </div>
   );
 }

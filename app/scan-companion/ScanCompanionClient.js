@@ -3,13 +3,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera, QrCode, Loader2, AlertCircle, CheckCircle, Smartphone } from 'lucide-react';
 import { playBeep } from '@/lib/audio';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function ScanCompanionClient({ session }) {
+  const toast = useToast();
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt'); // 'prompt', 'granted', 'denied', 'unsupported'
   const [scannedItems, setScannedItems] = useState([]);
   const [isSessionActive, setIsSessionActive] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
   const [manualBarcode, setManualBarcode] = useState('');
   const lastScannedBarcodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
@@ -48,17 +53,24 @@ export default function ScanCompanionClient({ session }) {
     }
   };
 
-  const handleDisconnect = async () => {
-    if (window.confirm("Disconnect this scanner session?")) {
-      try {
-        await fetch(`/api/scan-companion?sessionId=${session}`, {
-          method: 'DELETE'
-        });
-      } catch (e) {
-        console.error(e);
-      }
-      window.location.href = '/scan-companion';
-    }
+  const handleDisconnect = () => {
+    setConfirmData({
+      title: 'Disconnect Scanner?',
+      message: 'This will end the current scanner session.',
+      danger: true,
+      confirmLabel: 'Disconnect',
+      onConfirm: async () => {
+        try {
+          await fetch(`/api/scan-companion?sessionId=${session}`, {
+            method: 'DELETE'
+          });
+        } catch (e) {
+          console.error(e);
+        }
+        window.location.href = '/scan-companion';
+      },
+    });
+    setConfirmOpen(true);
   };
 
   // Trigger brief mobile vibration feedback on successful scans
@@ -439,7 +451,7 @@ export default function ScanCompanionClient({ session }) {
                   stream.getTracks().forEach(track => track.stop());
                   setCameraPermissionStatus('granted');
                 } catch (e) {
-                  alert("Access still blocked. Please check browser privacy/security settings manually.");
+                  toast.error('Camera Blocked', 'Access is blocked. Check browser privacy settings manually.');
                 }
               }}
               className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow w-full"
@@ -554,6 +566,18 @@ export default function ScanCompanionClient({ session }) {
           </div>
         )}
       </main>
+    </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmData.onConfirm}
+        type="confirm"
+        danger={confirmData.danger}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmLabel={confirmData.confirmLabel}
+      />
     </div>
   );
 }

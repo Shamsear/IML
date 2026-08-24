@@ -6,29 +6,42 @@ import { Tag, Plus, Edit2, Trash2, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import EmptyState from '@/components/EmptyState';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function BrandsClient({ initialBrands }) {
+  const toast = useToast();
   const [brands, setBrands] = useState(initialBrands);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
 
   const filteredBrands = brands.filter(b =>
     b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (b.description && b.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this brand? This will permanently delete all associated products and projects.')) return;
-    
-    setLoading(true);
-    try {
-      await deleteBrand(id);
-      setBrands(prev => prev.filter(b => b.id !== id));
-    } catch (err) {
-      alert(err.message || 'Failed to delete brand.');
-    } finally {
-      setLoading(false);
-    }
+  const handleDelete = (id) => {
+    setConfirmData({
+      title: 'Delete Brand?',
+      message: 'This will permanently delete this brand and all associated products and projects.',
+      danger: true,
+      confirmLabel: 'Delete Brand',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await deleteBrand(id);
+          setBrands(prev => prev.filter(b => b.id !== id));
+          toast.success('Brand Deleted', 'The brand and all associated data have been removed.');
+        } catch (err) {
+          toast.error('Delete Failed', err.message || 'Could not delete brand.');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   return (
@@ -167,6 +180,17 @@ export default function BrandsClient({ initialBrands }) {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmData.onConfirm}
+        type="confirm"
+        danger={confirmData.danger}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmLabel={confirmData.confirmLabel}
+      />
     </div>
   );
 }

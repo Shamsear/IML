@@ -140,6 +140,7 @@ export async function getProductsSlim() {
     select: {
       id: true,
       name: true,
+      itemCode: true,
       isSerialized: true,
       trackExpiry: true,
       category: true,

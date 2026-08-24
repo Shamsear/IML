@@ -8,10 +8,12 @@ import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import { useToast } from '@/components/Toast';
 import { playBeep } from '@/lib/audio';
 
 export default function ClientReturnsClient({ brands, products, supervisors }) {
   const router = useRouter();
+  const toast = useToast();
 
   // Core Form States
   const [brandId, setBrandId] = useState('');
@@ -122,7 +124,7 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
             error: ''
           } : item);
         } else {
-          alert(`Product not found for SKU: "${cleanCode}"`);
+          toast.error('Product Not Found', `No product matches SKU: "${cleanCode}"`);
         }
         return prev;
       }
@@ -244,7 +246,7 @@ export default function ClientReturnsClient({ brands, products, supervisors }) {
             const cameraId = backLensIdx !== -1 ? devices[backLensIdx].id : devices[0].id;
             await startCamera(html5Qrcode, cameraId);
           } else {
-            alert("No camera device discovered.");
+            toast.error('No Camera', 'No camera device discovered on this device.');
           }
         } catch (e) {
           console.error(e);

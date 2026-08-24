@@ -116,7 +116,7 @@ export default function ExpiryClient({ initialBatches }) {
       {/* Stats Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Package size={20} />
           </div>
           <div className="flex-1">
@@ -126,7 +126,7 @@ export default function ExpiryClient({ initialBatches }) {
         </div>
 
         <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('EXPIRED')}>
-          <div className="w-10 h-10 rounded-lg bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-sm bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
             <AlertTriangle size={20} />
           </div>
           <div className="flex-1">
@@ -136,7 +136,7 @@ export default function ExpiryClient({ initialBatches }) {
         </div>
 
         <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('NEAR_EXPIRY')}>
-          <div className="w-10 h-10 rounded-lg bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-sm bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
             <Clock size={20} />
           </div>
           <div className="flex-1">
@@ -146,7 +146,7 @@ export default function ExpiryClient({ initialBatches }) {
         </div>
 
         <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:bg-surface-elevated/20 transition-colors" onClick={() => setStatusFilter('GOOD')}>
-          <div className="w-10 h-10 rounded-lg bg-success/10 text-success flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-sm bg-success/10 text-success flex items-center justify-center flex-shrink-0">
             <CheckCircle size={20} />
           </div>
           <div className="flex-1">

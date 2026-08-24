@@ -8,11 +8,13 @@ import { createBulkRebrandTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
+import { useToast } from '@/components/Toast';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import { playBeep } from '@/lib/audio';
 
 export default function RebrandClient({ products, brands = [], stores = [] }) {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -293,7 +295,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     const tgtStart = rangeTgtStart.trim();
 
     if (!srcStart || !srcEnd || !tgtStart) {
-      alert("Please fill in all range boundaries (Source Start, Source End, and Target Start).");
+      toast.error('Missing Fields', 'Please fill in all range boundaries (Source Start, Source End, and Target Start).');
       return;
     }
 
@@ -307,7 +309,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
       );
 
       if (unavailable.length > 0) {
-        alert(`Some barcodes in the source range are not available in the Warehouse (e.g. ${unavailable.slice(0, 3).join(', ')}).`);
+        toast.error('Unavailable Barcodes', `Some source barcodes are not in the Warehouse (e.g. ${unavailable.slice(0, 3).join(', ')}).`);
         return;
       }
 
@@ -329,7 +331,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
       setRangeTgtStart('');
       playBeep();
     } catch (e) {
-      alert(e.message || "Failed to generate range mappings.");
+      toast.error('Generation Failed', e.message || 'Could not generate range mappings.');
     }
   };
 
@@ -372,7 +374,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         const added = handleAddMapping(matched.barcode, '');
         if (added) playBeep();
       } else {
-        alert(`Barcode "${scanInput}" is not available in the Warehouse for this source product.`);
+        toast.error('Not Available', `Barcode "${scanInput}" is not available for this source product.`);
       }
       setScanInput('');
     }
@@ -458,7 +460,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                   }
                 }
               } else {
-                alert(`Barcode "${decodedText}" is not available in the Warehouse.`);
+                toast.error('Not Available', `Barcode "${decodedText}" is not in the Warehouse.`);
               }
 
               if (!isBulkScanRef.current) {
@@ -570,7 +572,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                   const added = handleAddMapping(matched.barcode, '');
                   if (added) playBeep();
                 } else {
-                  alert(`Mobile Scanned Barcode "${cleanCode}" is not available in the Warehouse.`);
+                  toast.error('Not Available', `Scanned barcode "${cleanCode}" is not in the Warehouse.`);
                 }
               });
             }
@@ -860,7 +862,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                     )}
                   </div>
                 ) : (
-                  <div className="w-20 h-20 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                  <div className="w-20 h-20 rounded-sm bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
                     <Camera size={24} />
                   </div>
                 )}
@@ -1023,7 +1025,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                       </button>
                     </div>
                   ) : (
-                    <div className="w-20 h-20 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                    <div className="w-20 h-20 rounded-sm bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
                       <Camera size={24} />
                     </div>
                   )}
@@ -1433,7 +1435,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                           stream.getTracks().forEach(track => track.stop());
                           setCameraPermissionStatus('granted');
                         } catch (e) {
-                          alert("Camera access is still blocked. Please enable it in site settings.");
+                          toast.error('Camera Blocked', 'Camera access is blocked. Enable it in browser settings.');
                         }
                       }}
                       className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-colors"

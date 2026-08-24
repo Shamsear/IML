@@ -7,11 +7,14 @@ import { Store, Plus, Edit2, Trash2, MapPin, Search, Loader2, X } from 'lucide-r
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 import EmptyState from '@/components/EmptyState';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
 export default function StoresClient({ initialStores }) {
   const router = useRouter();
+  const toast = useToast();
   const [stores, setStores] = useState(initialStores);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
@@ -20,6 +23,8 @@ export default function StoresClient({ initialStores }) {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState('ALL');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
 
   // Queue item creator helper
   const createEmptyStoreItem = (index = 0) => ({
@@ -128,7 +133,8 @@ export default function StoresClient({ initialStores }) {
         await createBulkStores(formData);
       }
 
-      window.location.reload();
+      toast.success(editingStore ? 'Store Updated' : 'Stores Created', `${items.length} store(s) saved successfully.`);
+      router.refresh();
       setIsFormOpen(false);
     } catch (err) {
       setError(err.message || 'Something went wrong.');
@@ -137,17 +143,26 @@ export default function StoresClient({ initialStores }) {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this store? Campaign mappings will be removed.')) return;
-    setLoading(true);
-    try {
-      await deleteStore(id);
-      setStores(prev => prev.filter(s => s.id !== id));
-    } catch (err) { 
-      alert(err.message || 'Failed.'); 
-    } finally { 
-      setLoading(false); 
-    }
+  const handleDelete = (id) => {
+    setConfirmData({
+      title: 'Delete Store?',
+      message: 'Campaign mappings will be removed.',
+      danger: true,
+      confirmLabel: 'Delete Store',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await deleteStore(id);
+          setStores(prev => prev.filter(s => s.id !== id));
+          toast.success('Store Deleted', 'The store has been removed.');
+        } catch (err) {
+          toast.error('Delete Failed', err.message || 'Could not delete store.');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   const filteredStores = stores.filter(store => {
@@ -221,7 +236,7 @@ export default function StoresClient({ initialStores }) {
                         className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/10 transition-colors"
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
-                          <div className="w-10 h-10 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-secondary flex-shrink-0">
+                          <div className="w-10 h-10 rounded-sm bg-surface-elevated flex items-center justify-center border border-border text-text-secondary flex-shrink-0">
                             <Store size={18} />
                           </div>
                           <div className="min-w-0">
@@ -471,6 +486,17 @@ export default function StoresClient({ initialStores }) {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmData.onConfirm}
+        type="confirm"
+        danger={confirmData.danger}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmLabel={confirmData.confirmLabel}
+      />
     </div>
   );
 }

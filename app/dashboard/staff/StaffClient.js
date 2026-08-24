@@ -8,15 +8,21 @@ import {
   CheckCircle, Building2, Inbox, Calendar, Edit2, AlertCircle, X
 } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
+import TabNav from '@/components/TabNav';
 
 export default function StaffClient({ initialStaff, stores }) {
   const router = useRouter();
+  const toast = useToast();
   const [staffList, setStaffList] = useState(initialStaff);
   const [activeTab, setActiveTab] = useState('ledger'); // 'ledger' or 'promoters'
   
   // Loading & search state
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [ledgerFilter, setLedgerFilter] = useState('all'); // 'all', 'active', 'returned'
   
@@ -129,30 +135,48 @@ export default function StaffClient({ initialStaff, stores }) {
     };
   }, [allAllocations]);
 
-  const handlePromoterDelete = async (id) => {
-    if (!confirm('Delete this promoter profile? All associated allocations will be deleted.')) return;
-    setLoading(true);
-    try {
-      await deleteStaff(id);
-      setStaffList(prev => prev.filter(s => s.id !== id));
-    } catch (err) { 
-      alert(err.message || 'Failed to delete promoter.'); 
-    } finally { 
-      setLoading(false); 
-    }
+  const handlePromoterDelete = (id) => {
+    setConfirmData({
+      title: 'Delete Promoter?',
+      message: 'All associated allocations will be deleted.',
+      danger: true,
+      confirmLabel: 'Delete Promoter',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await deleteStaff(id);
+          setStaffList(prev => prev.filter(s => s.id !== id));
+          toast.success('Promoter Deleted', 'The promoter profile has been removed.');
+        } catch (err) {
+          toast.error('Delete Failed', err.message || 'Could not delete promoter.');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+    setConfirmOpen(true);
   };
 
-  const handleAllocationDelete = async (id) => {
-    if (!confirm('Undo / Delete this uniform allocation record?')) return;
-    setLoading(true);
-    try {
-      await deleteAllocation(id);
-      router.refresh();
-    } catch (err) {
-      alert(err.message || 'Failed to delete allocation.');
-    } finally {
-      setLoading(false);
-    }
+  const handleAllocationDelete = (id) => {
+    setConfirmData({
+      title: 'Delete Allocation?',
+      message: 'This will undo / delete this uniform allocation record.',
+      danger: true,
+      confirmLabel: 'Delete Allocation',
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await deleteAllocation(id);
+          router.refresh();
+          toast.success('Allocation Deleted', 'The allocation record has been removed.');
+        } catch (err) {
+          toast.error('Delete Failed', err.message || 'Could not delete allocation.');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   const [returnItemsState, setReturnItemsState] = useState({ legacyUniform: false, legacyCap: false, itemIds: [] });
@@ -221,7 +245,8 @@ export default function StaffClient({ initialStaff, stores }) {
       }
       setIsReturnModalOpen(false);
       setSelectedAllocIds([]);
-      window.location.reload();
+      toast.success('Return Processed', 'Items have been marked as returned.');
+      router.refresh();
     } catch (err) {
       setReturnError(err.message || 'Failed to submit return.');
       setIsSubmittingReturn(false);
@@ -278,7 +303,7 @@ export default function StaffClient({ initialStaff, stores }) {
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-surface border border-border p-4 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Shirt size={20} />
           </div>
           <div className="flex-1">
@@ -288,7 +313,7 @@ export default function StaffClient({ initialStaff, stores }) {
         </div>
 
         <div className="bg-surface border border-border p-4 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-sm bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
             <Inbox size={20} />
           </div>
           <div className="flex-1">
@@ -306,7 +331,7 @@ export default function StaffClient({ initialStaff, stores }) {
         </div>
 
         <div className="bg-surface border border-border p-4 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-success/10 text-success flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-sm bg-success/10 text-success flex items-center justify-center flex-shrink-0">
             <CheckCircle size={20} />
           </div>
           <div className="flex-1">
@@ -316,7 +341,7 @@ export default function StaffClient({ initialStaff, stores }) {
         </div>
 
         <div className="bg-surface border border-border p-4 rounded-xl shadow-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-secondary/15 text-secondary flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-sm bg-secondary/15 text-secondary flex items-center justify-center flex-shrink-0">
             <Users size={20} />
           </div>
           <div className="flex-1">
@@ -327,32 +352,14 @@ export default function StaffClient({ initialStaff, stores }) {
       </div>
 
       {/* Tabs Selector */}
-      <div className="flex border-b border-border gap-6">
-        <button
-          onClick={() => setActiveTab('ledger')}
-          className={`pb-3 font-display font-bold text-sm border-b-2 transition-all cursor-pointer flex items-center gap-2
-            ${activeTab === 'ledger' 
-              ? 'border-primary text-primary' 
-              : 'border-transparent text-text-secondary hover:text-text-primary'
-            }
-          `}
-        >
-          <Inbox size={15} />
-          <span>Allocations Ledger</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('promoters')}
-          className={`pb-3 font-display font-bold text-sm border-b-2 transition-all cursor-pointer flex items-center gap-2
-            ${activeTab === 'promoters' 
-              ? 'border-primary text-primary' 
-              : 'border-transparent text-text-secondary hover:text-text-primary'
-            }
-          `}
-        >
-          <Users size={15} />
-          <span>Promoters Directory</span>
-        </button>
-      </div>
+      <TabNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        tabs={[
+          { key: 'ledger', label: 'Allocations Ledger', icon: <Inbox size={15} /> },
+          { key: 'promoters', label: 'Promoters Directory', icon: <Users size={15} /> },
+        ]}
+      />
 
       {/* Main Tab Content */}
       <div className="w-full flex flex-col gap-4">
@@ -1113,6 +1120,18 @@ export default function StaffClient({ initialStaff, stores }) {
           </div>
         </div>
       )}
+    </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmData.onConfirm}
+        type="confirm"
+        danger={confirmData.danger}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmLabel={confirmData.confirmLabel}
+      />
     </div>
   );
 }

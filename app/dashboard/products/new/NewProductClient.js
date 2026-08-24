@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { createBulkProducts, getProductById, updateProduct } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
+import { useToast } from '@/components/Toast';
 import FormFooter from '@/components/FormFooter';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
@@ -16,6 +17,7 @@ import { playBeep } from '@/lib/audio';
 
 export default function NewProductClient({ brands, stores = [], editId: propEditId = null, existingCategories = [], recentSuppliers = [], recentReceivers = [] }) {
   const router = useRouter();
+  const toast = useToast();
   const searchParams = useSearchParams();
   const editId = searchParams.get('editId') || propEditId;
   const [loading, setLoading] = useState(false);
@@ -419,7 +421,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
     const start = targetInbound.rangeStart.trim();
     const end = targetInbound.rangeEnd.trim();
     if (!start || !end) {
-      alert("Please enter both starting and ending barcodes.");
+      toast.error('Missing Barcodes', 'Please enter both starting and ending barcodes.');
       return;
     }
 
@@ -443,7 +445,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
       }));
       playBeep();
     } catch (e) {
-      alert(e.message || "Failed to generate range.");
+      toast.error('Generation Failed', e.message || 'Could not generate barcode range.');
     }
   };
 
@@ -913,7 +915,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                           <img src={item.imagePreview || item.imageUrl} alt="Preview" className="w-full h-full object-contain" />
                         </div>
                       ) : (
-                        <div className="w-11 h-11 rounded-lg bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
+                        <div className="w-11 h-11 rounded-sm bg-surface-elevated flex items-center justify-center border border-border text-text-muted flex-shrink-0">
                           <Camera size={18} />
                         </div>
                       )}
@@ -1880,7 +1882,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                           stream.getTracks().forEach(track => track.stop());
                           setCameraPermissionStatus('granted');
                         } catch (e) {
-                          alert("Camera access is still blocked. Please enable it in site settings.");
+                          toast.error('Camera Blocked', 'Camera access is blocked. Enable it in browser settings.');
                         }
                       }}
                       className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-all"

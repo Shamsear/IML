@@ -17,13 +17,18 @@ import StockBreakdown from '@/components/StockBreakdown';
 import ImageLightbox from '@/components/ImageLightbox';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
+import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function BrandDetailClient({ brand, allStores, supervisors, staff }) {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
 
   // Portal link copy state
   const [copied, setCopied] = useState(false);
@@ -124,24 +129,34 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     setError('');
     try {
       await connectStoreToBrand(brand.id, storeToConnect);
-      window.location.reload();
+      toast.success('Outlet Connected', 'The store has been linked to this brand.');
+      router.refresh();
     } catch (err) {
       setError(err.message || 'Failed to connect store');
       setLoading(false);
     }
   };
 
-  const handleDisconnectStore = async (storeId) => {
-    if (!confirm('Are you sure you want to disconnect this store outlet from this brand?')) return;
-    setLoading(true);
-    setError('');
-    try {
-      await disconnectStoreFromBrand(brand.id, storeId);
-      window.location.reload();
-    } catch (err) {
-      setError(err.message || 'Failed to disconnect store');
-      setLoading(false);
-    }
+  const handleDisconnectStore = (storeId) => {
+    setConfirmData({
+      title: 'Disconnect Store Outlet?',
+      message: 'Are you sure you want to disconnect this store outlet from this brand?',
+      danger: true,
+      confirmLabel: 'Disconnect',
+      onConfirm: async () => {
+        setLoading(true);
+        setError('');
+        try {
+          await disconnectStoreFromBrand(brand.id, storeId);
+          toast.success('Outlet Disconnected', 'The store has been unlinked from this brand.');
+          router.refresh();
+        } catch (err) {
+          setError(err.message || 'Failed to disconnect store');
+          setLoading(false);
+        }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   const handleCreateProduct = async (e) => {
@@ -164,7 +179,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     }
     try {
       await createProduct(formData);
-      window.location.reload();
+      toast.success('Product Created', 'New product has been added to the catalog.');
+      router.refresh();
     } catch (err) {
       setError(err.message || 'Failed to create product');
       setLoading(false);
@@ -270,7 +286,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
             <img 
               src={getOptimizedImageUrl(brand.imageUrl, 120, 120)} 
               alt={brand.name} 
-              className="w-12 h-12 rounded-md object-cover border border-border flex-shrink-0 cursor-pointer hover:border-primary transition-all shadow-sm"
+              className="w-12 h-12 rounded-sm object-cover border border-border flex-shrink-0 cursor-pointer hover:border-primary transition-all shadow-sm"
               onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
               onError={(e) => {
                 if (e.target.src !== brand.imageUrl) {
@@ -392,7 +408,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                       {product.imageUrl ? (
                         <img src={getOptimizedImageUrl(product.imageUrl, 80, 80)} alt={product.name} className="w-10 h-10 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })} />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
+                        <div className="w-10 h-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
                       )}
                       <div className="min-w-0">
                         <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{product.name}</Link>
@@ -491,7 +507,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                                 }}
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                              <div className="w-8 h-8 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
                                 <Package size={15} />
                               </div>
                             )}
@@ -991,6 +1007,17 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
       )}
 
       <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
+
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmData.onConfirm}
+        type="confirm"
+        danger={confirmData.danger}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmLabel={confirmData.confirmLabel}
+      />
     </div>
   );
 }

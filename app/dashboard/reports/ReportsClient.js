@@ -227,7 +227,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                   {p.imageUrl ? (
                     <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })} />
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
+                    <div className="w-10 h-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
                   )}
                   <div className="min-w-0">
                     <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{p.name}</Link>
@@ -289,7 +289,7 @@ export default function ReportsClient({ initialProducts, brands }) {
                             }}
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 print:hidden">
+                          <div className="w-8 h-8 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 print:hidden">
                             <Package size={15} />
                           </div>
                         )}
