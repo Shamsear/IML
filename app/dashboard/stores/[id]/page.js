@@ -111,15 +111,16 @@ export default async function StoreDetailPage({ params, searchParams }) {
             <Pencil size={14} />
             <span>Edit Outlet</span>
           </Link>
-          <Link 
+          <a 
             href={`/api/dashboard/stores/${id}/delivery-note`} 
             target="_blank" 
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200"
           >
             <Printer size={16} />
             <span className="hidden sm:inline">Download Store Stock Statement (PDF)</span>
             <span className="sm:hidden">Download PDF</span>
-          </Link>
+          </a>
         </div>
       </div>
 
@@ -318,14 +319,15 @@ export default async function StoreDetailPage({ params, searchParams }) {
                           {disp.date} — {disp.brandName}
                         </span>
                       </div>
-                      <Link
+                      <a
                         href={`/api/dashboard/stores/${id}/delivery-note?date=${disp.date}&brandId=${disp.brandId}&dn=${disp.deliveryNote}`}
                         target="_blank"
+                        rel="noopener noreferrer"
                         className="p-1.5 hover:bg-success/10 text-success rounded-md transition-colors flex-shrink-0"
                         title="Print Delivery Note"
                       >
                         <Printer size={13} />
-                      </Link>
+                      </a>
                     </div>
                   ))}
                 </div>
