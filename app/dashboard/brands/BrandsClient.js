@@ -112,11 +112,6 @@ export default function BrandsClient({ initialBrands }) {
             <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
               {filteredBrands.map((brand) => (
                 <div key={brand.id} className="bg-surface border border-border rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex sm:flex-col group relative overflow-hidden">
-                  <Link 
-                    href={`/dashboard/brands/${brand.id}`}
-                    className="absolute inset-0 z-0"
-                    aria-label={`Manage ${brand.name}`}
-                  />
                   {/* Brand Image/Logo Container */}
                   <div className="w-16 h-16 sm:w-full sm:h-auto sm:aspect-square bg-white flex items-center justify-center relative overflow-hidden flex-shrink-0 sm:rounded-t-md rounded-l-xl sm:rounded-l-none">
                     {brand.imageUrl ? (
@@ -139,7 +134,7 @@ export default function BrandsClient({ initialBrands }) {
                       <h3 className="font-display font-extrabold text-xs sm:text-sm text-text-primary truncate">{brand.name}</h3>
                       <Link 
                         href={`/dashboard/brands/${brand.id}`} 
-                        className="text-[10px] sm:text-xs font-bold text-primary hover:underline flex-shrink-0 relative z-10"
+                        className="text-[10px] sm:text-xs font-bold text-primary hover:underline flex-shrink-0 sm:relative z-0 sm:z-10 after:absolute after:inset-0 after:content-[''] sm:after:hidden"
                       >
                         Manage →
                       </Link>
