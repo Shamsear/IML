@@ -30,7 +30,7 @@ export default function PageHeader({ icon: Icon, title, description, actions, cl
           )}
         </div>
         {actions && (
-          <div className="flex items-center gap-2 flex-shrink-0 print:hidden">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 print:hidden">
             {actions}
           </div>
         )}

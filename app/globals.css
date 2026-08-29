@@ -592,3 +592,19 @@ button, a.inline-flex {
     opacity: 1;
   }
 }
+
+/* Mobile-responsive overrides to prevent button overflows and excessive space */
+@media (max-width: 640px) {
+  header button,
+  header a.inline-flex,
+  .print\:hidden button,
+  .print\:hidden a.inline-flex {
+    padding-left: 0.75rem !important; /* px-3 */
+    padding-right: 0.75rem !important; /* px-3 */
+    padding-top: 0.375rem !important;  /* py-1.5 */
+    padding-bottom: 0.375rem !important; /* py-1.5 */
+    font-size: 0.75rem !important;       /* text-xs */
+    gap: 0.25rem !important;
+  }
+}
+

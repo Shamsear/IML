@@ -117,7 +117,8 @@ export default async function StoreDetailPage({ params, searchParams }) {
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200"
           >
             <Printer size={16} />
-            <span>Download Store Stock Statement (PDF)</span>
+            <span className="hidden sm:inline">Download Store Stock Statement (PDF)</span>
+            <span className="sm:hidden">Download PDF</span>
           </Link>
         </div>
       </div>
@@ -164,7 +165,8 @@ export default async function StoreDetailPage({ params, searchParams }) {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto -mx-5">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto -mx-5">
                 <div className="inline-block min-w-full align-middle px-5">
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead>
@@ -200,6 +202,40 @@ export default async function StoreDetailPage({ params, searchParams }) {
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden flex flex-col gap-3">
+                {paginatedInventory.map((item) => (
+                  <div key={item.productId} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-bold text-sm text-text-primary block leading-tight">{item.name}</span>
+                        <span className="badge badge-info mt-1.5 text-[9px]">{item.brandName}</span>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-[10px] text-text-secondary block font-semibold">Qty</span>
+                        <span className="font-mono font-black text-lg text-text-primary">{item.quantity}</span>
+                      </div>
+                    </div>
+                    {item.isSerialized ? (
+                      <div className="pt-2 border-t border-border/50 flex flex-col gap-1 text-[11px] text-text-secondary">
+                        <span className="font-semibold flex items-center gap-1.5"><QrCode size={12} className="text-success" /> Serials:</span>
+                        <div className="flex flex-wrap gap-1.5 mt-0.5">
+                          {item.serials.map(s => (
+                            <span key={s.barcode} className="font-mono bg-surface-elevated px-1.5 py-0.5 rounded text-[10px] select-all">
+                              {s.barcode}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-border/50 text-[11px] text-text-muted">
+                        Bulk Goods
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
 
               {/* Inventory Pagination Controls */}

@@ -125,10 +125,11 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
           />
           <Link 
             href="/dashboard/outbound/new" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
           >
             <Plus size={16} />
-            <span>New Outbound Dispatch</span>
+            <span className="hidden sm:inline">New Outbound Dispatch</span>
+            <span className="sm:hidden">New</span>
           </Link>
         </>
       }
@@ -376,9 +377,10 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                             router.push(`/dashboard/outbound/${encodeURIComponent(group.deliveryNote)}/edit`);
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors"
+                          title="Edit Outbound"
                         >
                           <Edit2 size={14} />
-                          <span>Edit</span>
+                          <span className="hidden sm:inline">Edit</span>
                         </button>
                         <button
                           onClick={(e) => {
@@ -386,9 +388,10 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                             router.push(`/dashboard/outbound/new?copyDn=${group.deliveryNote}`);
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-2 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors"
+                          title="Duplicate Outbound"
                         >
                           <CopyPlus size={14} />
-                          <span>Duplicate</span>
+                          <span className="hidden sm:inline">Duplicate</span>
                         </button>
                         {group.items.some(tx => tx.product.isReturnable) && (
                           <button
@@ -397,9 +400,10 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                               router.push(`/dashboard/returns?dn=${encodeURIComponent(group.deliveryNote)}`);
                             }}
                             className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors"
+                            title="Return Items"
                           >
                             <RotateCcw size={14} />
-                            <span>Return</span>
+                            <span className="hidden sm:inline">Return</span>
                           </button>
                         )}
                         {group.items.some(tx => tx.product.isDisposable) && (
@@ -409,9 +413,10 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                               router.push(`/dashboard/used?dn=${encodeURIComponent(group.deliveryNote)}`);
                             }}
                             className="inline-flex items-center gap-1.5 px-3 py-2 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 font-bold text-xs rounded-lg transition-colors"
+                            title="Mark Items as Used"
                           >
                             <Trash2 size={14} />
-                            <span>Mark Used</span>
+                            <span className="hidden sm:inline">Mark Used</span>
                           </button>
                         )}
                         <button
@@ -423,11 +428,12 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                           }}
                           disabled={pdfLoadingKey === groupKey}
                           className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-lg transition-colors border border-primary/20 disabled:opacity-60 disabled:cursor-wait"
+                          title="View PDF"
                         >
                           {pdfLoadingKey === groupKey ? (
-                            <><Loader2 size={13} className="animate-spin" /><span>Loading…</span></>
+                            <><Loader2 size={13} className="animate-spin" /><span className="hidden sm:inline">Loading…</span></>
                           ) : (
-                            <span>View PDF</span>
+                            <><FileText size={14} /><span className="hidden sm:inline">View PDF</span></>
                           )}
                         </button>
                       </div>

@@ -812,7 +812,7 @@ export async function createBulkReceiveTransactions(formData) {
     });
 
     for (const [brandName, brandGroup] of Object.entries(itemsByBrand)) {
-      const deliveryNote = await generateCustomRef(tx, 'RCV', brandName, transactionDate);
+      const deliveryNote = await generateCustomRef(tx, 'REC', brandName, transactionDate);
 
       for (const { item, idx } of brandGroup) {
         let { productId, quantity, barcodes = [], notes, manufactureDate, expiryDate, isNewProduct } = item;

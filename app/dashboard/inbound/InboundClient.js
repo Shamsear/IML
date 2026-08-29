@@ -91,18 +91,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   }, [isBulkScan]);
 
   // Barcode scanner hook
-  const onBarcodeScan = useCallback(async (code) => {
-    if (activeScanTarget) {
-      const added = addBarcodeToActiveItem(code);
-      if (added) {
-        playBeep();
-        setSessionScans(prev => {
-          if (!prev.includes(code)) return [...prev, code];
-          return prev;
-        });
-      }
-    } else {
-      await processGlobalBarcode(code);
+  const onBarcodeScan = useCallback((code) => {
+    const added = addBarcodeToActiveItem(code);
+    if (added) {
+      playBeep();
       setSessionScans(prev => {
         if (!prev.includes(code)) return [...prev, code];
         return prev;
@@ -368,7 +360,67 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
     let added = false;
     setItems(prev => {
-      if (!activeScanTarget) return prev;
+      // Helper: check if barcode already exists in any item
+      const isDuplicate = (itemsToCheck, barcode) => {
+        return itemsToCheck.some(item => {
+          if (item.rangeStart?.trim().toLowerCase() === barcode.toLowerCase()) return true;
+          if (item.rangeEnd?.trim().toLowerCase() === barcode.toLowerCase()) return true;
+          const list = item.barcodesInput.split(/[\n,]+/).map(b => b.trim().toLowerCase()).filter(Boolean);
+          if (list.includes(barcode.toLowerCase())) return true;
+          return false;
+        });
+      };
+
+      // When no scan target is explicitly set, auto-route based on item mode
+      if (!activeScanTarget) {
+        const activeIdx = prev.findIndex(item => item.isExpanded);
+        if (activeIdx === -1) return prev;
+        const activeItem = prev[activeIdx];
+
+        // Range mode: auto-fill rangeStart then rangeEnd
+        if (activeItem.rangeMode) {
+          if (!activeItem.rangeStart.trim()) {
+            // Check if barcode already used in any item or in rangeEnd of this item
+            if (isDuplicate(prev, cleanCode)) {
+              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in this receipt.`);
+              return prev;
+            }
+            added = true;
+            return prev.map((item, i) => i === activeIdx ? { ...item, rangeStart: cleanCode } : item);
+          } else if (!activeItem.rangeEnd.trim()) {
+            if (cleanCode.toLowerCase() === activeItem.rangeStart.trim().toLowerCase()) {
+              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is the same as Range Start.`);
+              return prev;
+            }
+            if (isDuplicate(prev, cleanCode)) {
+              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in this receipt.`);
+              return prev;
+            }
+            added = true;
+            return prev.map((item, i) => i === activeIdx ? { ...item, rangeEnd: cleanCode } : item);
+          }
+          return prev;
+        }
+
+        // Standard list mode: add to barcode list
+        const currentList = activeItem.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+        if (currentList.map(b => b.toLowerCase()).includes(cleanCode.toLowerCase())) {
+          toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already in this item's list.`);
+          return prev;
+        }
+        if (isDuplicate(prev.filter((_, i) => i !== activeIdx), cleanCode)) {
+          toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in another item.`);
+          return prev;
+        }
+        const newList = [...currentList, cleanCode];
+        added = true;
+        return prev.map((item, i) => i === activeIdx ? {
+          ...item,
+          barcodesInput: newList.join('\n'),
+          quantity: newList.length
+        } : item);
+      }
+
       const { itemIdx, field } = activeScanTarget;
 
       const targetItem = prev[itemIdx];
@@ -463,17 +515,13 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
               for (const code of data.barcodes) {
-                if (activeScanTarget) {
-                  const added = addBarcodeToActiveItem(code);
-                  if (added) {
-                    playBeep();
-                    if (activeScanTarget?.field === 'productId' || activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
-                      setIsMobileModalOpen(false);
-                      setActiveScanTarget(null);
-                    }
+                const added = addBarcodeToActiveItem(code);
+                if (added) {
+                  playBeep();
+                  if (activeScanTarget?.field === 'productId' || activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
+                    setIsMobileModalOpen(false);
+                    setActiveScanTarget(null);
                   }
-                } else {
-                  await processGlobalBarcode(code);
                 }
               }
             }

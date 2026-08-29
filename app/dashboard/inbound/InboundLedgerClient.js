@@ -134,10 +134,11 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
           />
           <Link 
             href="/dashboard/inbound/new" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
           >
             <Plus size={16} />
-            <span>New Inbound Receipt</span>
+            <span className="hidden sm:inline">New Inbound Receipt</span>
+            <span className="sm:hidden">New</span>
           </Link>
         </>
       }
@@ -211,7 +212,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                             {tx.deliveryNote}
                           </Link>
                         )}
-                        <TransactionActions txId={tx.id} notes={tx.notes || ''} deliveryNote={tx.deliveryNote || ''} showDeliveryNote={true} copyDnUrl={tx.deliveryNote ? `/dashboard/inbound/new?copyDn=${tx.deliveryNote}` : null} />
+                        <TransactionActions txId={tx.id} notes={tx.notes || ''} deliveryNote={tx.deliveryNote || ''} showDeliveryNote={true} copyDnUrl={tx.deliveryNote ? `/dashboard/inbound/new?copyDn=${tx.deliveryNote}` : null} transactionType={tx.transactionType} />
                       </div>
                     </div>
                   </div>
@@ -296,6 +297,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                                 deliveryNote={tx.deliveryNote || ''}
                                 showDeliveryNote={true}
                                 copyDnUrl={tx.deliveryNote ? `/dashboard/inbound/new?copyDn=${tx.deliveryNote}` : null}
+                                transactionType={tx.transactionType}
                               />
                             </td>
                           </tr>
@@ -349,6 +351,11 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
               filteredGroups.map(group => {
                 const groupKey = `${group.deliveryNote}_${group.sourceId || 'unknown'}`;
                 const isExpanded = expandedDn[groupKey];
+                const isGroupReturn = group.deliveryNote?.startsWith('RET-') || 
+                                     group.deliveryNote?.startsWith('RTN-') || 
+                                     group.deliveryNote?.startsWith('CRN-') || 
+                                     group.deliveryNote?.startsWith('CRR-') || 
+                                     group.items.some(tx => tx.transactionType === 'RETURN' || tx.transactionType === 'CLIENT_RETURN');
 
                 return (
                   <div key={groupKey} className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
@@ -371,25 +378,29 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/dashboard/inbound/${encodeURIComponent(group.deliveryNote)}/edit`);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors"
-                        >
-                          <Edit2 size={14} />
-                          <span>Edit</span>
-                        </button>
+                        {!isGroupReturn && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/dashboard/inbound/${encodeURIComponent(group.deliveryNote)}/edit`);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors"
+                            title="Edit Inbound"
+                          >
+                            <Edit2 size={14} />
+                            <span className="hidden sm:inline">Edit</span>
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/dashboard/inbound/new?copyDn=${group.deliveryNote}`);
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-2 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors"
+                          title="Duplicate Inbound"
                         >
                           <CopyPlus size={14} />
-                          <span>Duplicate</span>
+                          <span className="hidden sm:inline">Duplicate</span>
                         </button>
                         <button
                           onClick={(e) => {
@@ -400,11 +411,12 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                           }}
                           disabled={pdfLoadingKey === groupKey}
                           className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-lg transition-colors border border-primary/20 disabled:opacity-60 disabled:cursor-wait"
+                          title="View PDF"
                         >
                           {pdfLoadingKey === groupKey ? (
-                            <><Loader2 size={13} className="animate-spin" /><span>Loading…</span></>
+                            <><Loader2 size={13} className="animate-spin" /><span className="hidden sm:inline">Loading…</span></>
                           ) : (
-                            <span>View PDF</span>
+                            <><FileText size={14} /><span className="hidden sm:inline">View PDF</span></>
                           )}
                         </button>
                       </div>
@@ -435,6 +447,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                                     notes={tx.notes || ''}
                                     deliveryNote={tx.deliveryNote || ''}
                                     showDeliveryNote={true}
+                                    transactionType={tx.transactionType}
                                   />
                                 </td>
                               </tr>

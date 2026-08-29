@@ -20,6 +20,15 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
     ? getTransactionNoteName(transactionType, deliveryNote)
     : (copyType === 'inbound' ? 'Receive Note' : copyType === 'outbound' ? 'Delivery Note' : 'Note');
 
+  const isReturn = transactionType === 'RETURN' || 
+                   transactionType === 'CLIENT_RETURN' ||
+                   (deliveryNote && (
+                     deliveryNote.startsWith('RET-') || 
+                     deliveryNote.startsWith('RTN-') || 
+                     deliveryNote.startsWith('CRN-') || 
+                     deliveryNote.startsWith('CRR-')
+                   ));
+
   const handleOpenDelete = (e) => {
     e.stopPropagation();
     setDeleteError('');
@@ -42,22 +51,24 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
   return (
     <>
       <div className="flex items-center gap-1.5">
-        <div className="has-tooltip">
-          <Link
-            href={
-              deliveryNote && (copyType === 'inbound' || copyType === 'outbound')
-                ? `/dashboard/${copyType}/${encodeURIComponent(deliveryNote)}/edit`
-                : `/dashboard/transactions/${txId}/edit`
-            }
-            className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
-            aria-label={deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : 'Edit transaction'}
-          >
-            <Edit2 size={13} />
-          </Link>
-          <span className="tooltip-box tooltip-left">
-            {deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : "Edit transaction"}
-          </span>
-        </div>
+        {!isReturn && (
+          <div className="has-tooltip">
+            <Link
+              href={
+                deliveryNote && (copyType === 'inbound' || copyType === 'outbound')
+                  ? `/dashboard/${copyType}/${encodeURIComponent(deliveryNote)}/edit`
+                  : `/dashboard/transactions/${txId}/edit`
+              }
+              className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
+              aria-label={deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : 'Edit transaction'}
+            >
+              <Edit2 size={13} />
+            </Link>
+            <span className="tooltip-box tooltip-left">
+              {deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : "Edit transaction"}
+            </span>
+          </div>
+        )}
         <div className="has-tooltip">
           <Link
             href={

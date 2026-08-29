@@ -124,7 +124,7 @@ export default function ExportToExcel({
       className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-surface border border-border hover:bg-surface-elevated text-text-primary font-semibold text-xs sm:text-sm rounded-lg shadow-sm hover:shadow transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap ${className}`}
     >
       <Download size={16} />
-      Export Excel
+      <span className="hidden sm:inline">Export Excel</span>
     </button>
   );
 }

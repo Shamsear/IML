@@ -356,7 +356,67 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
     let added = false;
     setItems(prev => {
-      if (!activeScanTarget) return prev;
+      // Helper: check if barcode already exists in any item's inbounds
+      const isDuplicate = (itemsToCheck, barcode) => {
+        return itemsToCheck.some(item => {
+          return (item.inbounds || []).some(inb => {
+            if (inb.rangeStart?.trim().toLowerCase() === barcode.toLowerCase()) return true;
+            if (inb.rangeEnd?.trim().toLowerCase() === barcode.toLowerCase()) return true;
+            const list = (inb.initialBarcodes || '').split(/[\n,]+/).map(b => b.trim().toLowerCase()).filter(Boolean);
+            if (list.includes(barcode.toLowerCase())) return true;
+            return false;
+          });
+        });
+      };
+
+      // When no scan target is explicitly set, auto-route based on item mode
+      if (!activeScanTarget) {
+        const activeIdx = prev.findIndex(item => item.isExpanded);
+        if (activeIdx === -1) return prev;
+        const activeItem = prev[activeIdx];
+        const firstInbound = activeItem.inbounds[0];
+        if (!firstInbound) return prev;
+
+        if (firstInbound.rangeMode) {
+          if (!firstInbound.rangeStart.trim()) {
+            if (isDuplicate(prev, cleanCode)) {
+              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in this product.`);
+              return prev;
+            }
+            added = true;
+            const updatedInbounds = activeItem.inbounds.map((inb, j) => j === 0 ? { ...inb, rangeStart: cleanCode } : inb);
+            return prev.map((item, i) => i === activeIdx ? { ...item, inbounds: updatedInbounds } : item);
+          } else if (!firstInbound.rangeEnd.trim()) {
+            if (cleanCode.toLowerCase() === firstInbound.rangeStart.trim().toLowerCase()) {
+              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is the same as Range Start.`);
+              return prev;
+            }
+            if (isDuplicate(prev, cleanCode)) {
+              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in this product.`);
+              return prev;
+            }
+            added = true;
+            const updatedInbounds = activeItem.inbounds.map((inb, j) => j === 0 ? { ...inb, rangeEnd: cleanCode } : inb);
+            return prev.map((item, i) => i === activeIdx ? { ...item, inbounds: updatedInbounds } : item);
+          }
+          return prev;
+        }
+
+        const currentList = firstInbound.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
+        if (currentList.map(b => b.toLowerCase()).includes(cleanCode.toLowerCase())) {
+          toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already in this item's list.`);
+          return prev;
+        }
+        if (isDuplicate(prev.filter((_, i) => i !== activeIdx), cleanCode)) {
+          toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in another item.`);
+          return prev;
+        }
+        const newList = [...currentList, cleanCode];
+        added = true;
+        const updatedInbounds = activeItem.inbounds.map((inb, j) => j === 0 ? { ...inb, initialBarcodes: newList.join('\n') } : inb);
+        return prev.map((item, i) => i === activeIdx ? { ...item, inbounds: updatedInbounds } : item);
+      }
+
       const { itemIdx, inboundIdx, field } = activeScanTarget;
 
       const targetItem = prev[itemIdx];
@@ -496,44 +556,12 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
             const data = await res.json();
             if (data.barcodes && data.barcodes.length > 0) {
               for (const code of data.barcodes) {
-                if (activeScanTarget) {
-                  const added = addBarcodeToActiveItem(code);
-                  if (added) {
-                    playBeep();
-                    if (activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
-                      setIsMobileModalOpen(false);
-                      setActiveScanTarget(null);
-                    }
-                  }
-                } else {
-                  // No scan target — cross-check barcode then add to first item's first inbound list
-                  const cleanCode = code.trim();
-                  if (!cleanCode) continue;
-                  try {
-                    const existing = await findProductByBarcode(cleanCode);
-                    if (existing) {
-                      toast.error('Duplicate Barcode', `Barcode "${cleanCode}" already exists in the system (Product: ${existing.product?.name || 'Unknown'}).`);
-                      continue;
-                    }
-                  } catch (e) {
-                    console.error('Barcode check failed:', e);
-                  }
-                  if (items.length > 0 && items[0].inbounds?.length > 0) {
-                    setItems(prev => {
-                      const firstItem = prev[0];
-                      const firstInbound = firstItem.inbounds[0];
-                      const currentList = firstInbound.initialBarcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
-                      if (!currentList.includes(cleanCode)) {
-                        const newList = [...currentList, cleanCode];
-                        const updatedInbounds = firstItem.inbounds.map((inb, j) => {
-                          if (j !== 0) return inb;
-                          return { ...inb, initialBarcodes: newList.join('\n') };
-                        });
-                        playBeep();
-                        return prev.map((item, i) => i === 0 ? { ...item, inbounds: updatedInbounds } : item);
-                      }
-                      return prev;
-                    });
+                const added = addBarcodeToActiveItem(code);
+                if (added) {
+                  playBeep();
+                  if (activeScanTarget?.field === 'rangeStart' || activeScanTarget?.field === 'rangeEnd') {
+                    setIsMobileModalOpen(false);
+                    setActiveScanTarget(null);
                   }
                 }
               }
