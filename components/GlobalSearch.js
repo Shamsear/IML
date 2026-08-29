@@ -129,7 +129,7 @@ export default function GlobalSearch() {
           <input
             ref={inputRef}
             type="text"
-            className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted ml-2"
+            className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted ml-2 min-w-0"
             placeholder="Search barcode, promoter, store..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -138,7 +138,7 @@ export default function GlobalSearch() {
         ) : (
           <button
             onClick={() => setIsOpen(true)}
-            className="flex-1 text-left text-sm text-text-secondary ml-2 bg-transparent border-none outline-none cursor-pointer"
+            className="flex-1 text-left text-sm text-text-secondary ml-2 bg-transparent border-none outline-none cursor-pointer truncate"
           >
             Quick search...
           </button>
@@ -147,12 +147,12 @@ export default function GlobalSearch() {
         {isOpen ? (
           <button
             onClick={() => setIsOpen(false)}
-            className="text-[10px] bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-muted font-mono flex-shrink-0 cursor-pointer hover:bg-border/30 transition-colors"
+            className="hidden sm:block text-[10px] bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-muted font-mono flex-shrink-0 cursor-pointer hover:bg-border/30 transition-colors"
           >
             ESC
           </button>
         ) : (
-          <kbd className="text-xs bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-secondary font-mono flex-shrink-0">Ctrl K</kbd>
+          <kbd className="hidden sm:inline-block text-xs bg-surface-elevated border border-border px-1.5 py-0.5 rounded text-text-secondary font-mono flex-shrink-0">Ctrl K</kbd>
         )}
       </div>
 
