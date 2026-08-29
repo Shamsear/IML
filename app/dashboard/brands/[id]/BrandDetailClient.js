@@ -354,8 +354,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
 
       {/* Brand Portal Share Card (Collapsible) */}
       {showPortalAccess && (
-        <div className="bg-surface border border-primary/25 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-slide-down">
-          <div className="flex-1 min-w-0">
+        <div className="bg-surface border border-primary/25 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-slide-down w-full overflow-hidden">
+          <div className="flex-1 min-w-0 w-full overflow-hidden">
             <div className="flex items-center gap-2">
               <QrCode size={16} className="text-primary animate-pulse-once" />
               <h4 className="font-display font-bold text-sm text-text-primary">Brand Partner Portal Link</h4>
@@ -363,7 +363,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
             <p className="text-[11px] text-text-secondary mt-1">
               Provide your brand client with this secure link to view their catalog products, live stocks, inbound dispatches, and warehouse ledger logs.
             </p>
-            <span className="text-xs font-mono font-semibold text-primary truncate block select-all mt-1.5 bg-primary/5 px-2.5 py-1 rounded border border-primary/10">
+            <span className="text-xs font-mono font-semibold text-primary truncate block select-all mt-1.5 bg-primary/5 px-2.5 py-1 rounded border border-primary/10 w-full overflow-hidden" title={typeof window !== 'undefined' ? `${window.location.origin}/portal/brand/${brand.secretKey}` : `/portal/brand/${brand.secretKey}`}>
               {typeof window !== 'undefined' ? `${window.location.origin}/portal/brand/${brand.secretKey}` : `/portal/brand/${brand.secretKey}`}
             </span>
           </div>
