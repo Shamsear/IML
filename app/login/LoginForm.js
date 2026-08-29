@@ -46,7 +46,7 @@ export default function LoginForm() {
     <div className="relative h-[100dvh] overflow-hidden flex flex-col lg:flex-row animate-fade-in" style={{ background: 'var(--bg-base)' }}>
       
       {/* ═══════ LEFT: Teal Identity Panel ═══════ */}
-      <div className="relative w-full lg:w-[55%] h-[45vh] lg:h-full overflow-hidden flex flex-col justify-between p-5 sm:p-8 lg:px-14 lg:py-8">
+      <div className="relative hidden lg:flex w-full lg:w-[55%] h-[45vh] lg:h-full overflow-hidden flex-col justify-between p-5 sm:p-8 lg:px-14 lg:py-8">
         
         {/* Deep gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a4d47] via-[#0f766e] to-[#0d9488]" />
@@ -132,7 +132,7 @@ export default function LoginForm() {
       </div>
 
       {/* ═══════ RIGHT: Login Form Panel ═══════ */}
-      <div className="relative w-full lg:w-[45%] h-[55vh] lg:h-full flex flex-col items-center justify-center p-5 sm:p-8 lg:p-12 bg-surface">
+      <div className="relative w-full lg:w-[45%] h-full flex flex-col items-center justify-center p-5 sm:p-8 lg:p-12 bg-surface">
         
         {/* Subtle dot pattern */}
         <div 
