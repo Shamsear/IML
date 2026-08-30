@@ -169,50 +169,50 @@ export default function BrandPortalClient({ brand }) {
         </header>
 
         {/* Aggregate Stock Metrics Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-surface border border-border p-5 rounded-xl shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-              <Package size={22} />
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+              <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <span className="text-xs font-bold text-text-secondary block uppercase">Catalog Items</span>
-              <span className="text-2xl font-display font-black text-text-primary mt-1 block">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Catalog Items</span>
+              <span className="text-lg sm:text-2xl font-display font-black text-text-primary mt-0.5 sm:mt-1 block">
                 {brand.products.length}
               </span>
             </div>
           </div>
 
-          <div className="bg-surface border border-border p-5 rounded-xl shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-sm bg-success/10 text-success flex items-center justify-center flex-shrink-0">
-              <ArrowDownLeft size={22} />
+          <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-sm bg-success/10 text-success flex items-center justify-center flex-shrink-0">
+              <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <span className="text-xs font-bold text-text-secondary block uppercase">Warehouse Stock</span>
-              <span className="text-2xl font-display font-black text-success mt-1 block">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Warehouse</span>
+              <span className="text-lg sm:text-2xl font-display font-black text-success mt-0.5 sm:mt-1 block">
                 {totals.warehouse}
               </span>
             </div>
           </div>
 
-          <div className="bg-surface border border-border p-5 rounded-xl shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-sm bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
-              <ArrowUpRight size={22} />
+          <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-sm bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+              <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <span className="text-xs font-bold text-text-secondary block uppercase">Active Dispatches</span>
-              <span className="text-2xl font-display font-black text-warning mt-1 block">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Dispatches</span>
+              <span className="text-lg sm:text-2xl font-display font-black text-warning mt-0.5 sm:mt-1 block">
                 {totals.dispatched}
               </span>
             </div>
           </div>
 
-          <div className="bg-surface border border-border p-5 rounded-xl shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 rounded-sm bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
-              <ShieldAlert size={22} />
+          <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-sm bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
+              <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <span className="text-xs font-bold text-text-secondary block uppercase">Damaged / Lost</span>
-              <span className="text-2xl font-display font-black text-danger mt-1 block">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Damaged / Lost</span>
+              <span className="text-lg sm:text-2xl font-display font-black text-danger mt-0.5 sm:mt-1 block">
                 {totals.damaged}
               </span>
             </div>

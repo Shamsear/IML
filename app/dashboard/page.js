@@ -83,21 +83,21 @@ export default async function DashboardPage() {
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Link 
               href={stat.href} 
               key={stat.name} 
-              className="bg-surface border border-border rounded-xl p-5 flex items-center justify-between shadow-sm hover:shadow-md hover:border-border-strong transition-all duration-200 group"
+              className="bg-surface border border-border rounded-xl p-3 sm:p-5 flex items-center justify-between shadow-sm hover:shadow-md hover:border-border-strong transition-all duration-200 group"
             >
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{stat.name}</span>
-                <span className="text-2xl font-display font-bold text-text-primary group-hover:text-primary transition-colors">{stat.count}</span>
+              <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0">
+                <span className="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase tracking-wider truncate">{stat.name}</span>
+                <span className="text-lg sm:text-2xl font-display font-bold text-text-primary group-hover:text-primary transition-colors">{stat.count}</span>
               </div>
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center border ${stat.color}`}>
-                <Icon size={20} />
+              <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center border flex-shrink-0 ${stat.color}`}>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </Link>
           );
