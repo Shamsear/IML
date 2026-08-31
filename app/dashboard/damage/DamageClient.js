@@ -1177,19 +1177,6 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
           )}
         </div>
       )}
-                        ) : (
-                          <div className="flex flex-wrap gap-1.5 p-1.5 bg-surface rounded border border-border/40">
-                            {scannedBarcodesList.map((code, idx) => (
-                              <span 
-                                key={idx} 
-                                className="inline-flex items-center gap-1 bg-danger/10 text-danger border border-danger/20 text-[10px] font-mono px-2 py-0.5 rounded font-semibold animate-pulse-once"
-                              >
-                                {code}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
 
       {/* Mobile Scanner Pairing Modal */}
       {isMobileModalOpen && mobileSession && (
