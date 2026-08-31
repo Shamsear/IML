@@ -74,6 +74,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   const [sessionScans, setSessionScans] = useState([]);
   const [isBulkScan, setIsBulkScan] = useState(false);
   const [activeScanTarget, setActiveScanTarget] = useState(null); // { itemIdx, field: 'productId' | 'quantity' | 'rangeStart' | 'rangeEnd' | 'list' }
+  const activeScanTargetRef = useRef(activeScanTarget);
+  useEffect(() => { activeScanTargetRef.current = activeScanTarget; }, [activeScanTarget]);
 
   // Wireless Mobile companion scanner states
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
@@ -350,9 +352,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     }
   };
 
-  const addBarcodeToActiveItem = (code) => {
+  const addBarcodeToActiveItem = (code, overrideTarget) => {
     const cleanCode = code.trim();
     if (!cleanCode) return false;
+    const target = overrideTarget || activeScanTarget;
 
     let added = false;
     setItems(prev => {
@@ -368,7 +371,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
       };
 
       // When no scan target is explicitly set, auto-route based on item mode
-      if (!activeScanTarget) {
+      if (!target) {
         const activeIdx = prev.findIndex(item => item.isExpanded);
         if (activeIdx === -1) return prev;
         const activeItem = prev[activeIdx];
@@ -417,7 +420,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         } : item);
       }
 
-      const { itemIdx, field } = activeScanTarget;
+      const { itemIdx, field } = target;
 
       const targetItem = prev[itemIdx];
       if (!targetItem) return prev;
@@ -514,7 +517,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         try {
           const data = JSON.parse(event.data);
           if (data.barcode) {
-            const added = addBarcodeToActiveItem(data.barcode);
+            const added = addBarcodeToActiveItem(data.barcode, activeScanTargetRef.current);
             if (added) {
               playBeep();
             }
@@ -538,7 +541,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                 const data = await res.json();
                 if (data.barcodes && data.barcodes.length > 0) {
                   for (const code of data.barcodes) {
-                    const added = addBarcodeToActiveItem(code);
+                    const added = addBarcodeToActiveItem(code, activeScanTargetRef.current);
                     if (added) playBeep();
                   }
                 }
@@ -557,7 +560,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
       if (eventSource) eventSource.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
     };
-  }, [mobileSession, activeScanTarget, isCompanionActive, items]);
+  }, [mobileSession, isCompanionActive]);
 
   const handleExpandItem = (idx) => {
     setItems(prev => prev.map((item, i) => ({ ...item, isExpanded: i === idx })));

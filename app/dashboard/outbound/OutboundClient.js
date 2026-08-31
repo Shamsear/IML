@@ -560,7 +560,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       if (eventSource) eventSource.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
     };
-  }, [isCompanionActive, mobileSession, items]);
+  }, [isCompanionActive, mobileSession]);
 
   const handleApplyRange = (idx) => {
     const item = items[idx];

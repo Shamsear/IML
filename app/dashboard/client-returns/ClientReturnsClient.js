@@ -72,6 +72,8 @@ export default function ClientReturnsClient({ brands, products }) {
   const [mobileSession, setMobileSession] = useState(null);
   const [isCompanionActive, setIsCompanionActive] = useState(false);
   const [activeScanTarget, setActiveScanTarget] = useState(null); // { itemIdx, field: 'productId' | 'list' }
+  const activeScanTargetRef = useRef(activeScanTarget);
+  useEffect(() => { activeScanTargetRef.current = activeScanTarget; }, [activeScanTarget]);
 
   // Load mobile session on mount
   useEffect(() => {
@@ -174,14 +176,15 @@ export default function ClientReturnsClient({ brands, products }) {
     }
   };
 
-  const addBarcodeToActiveItem = (code) => {
+  const addBarcodeToActiveItem = (code, overrideTarget) => {
     const cleanCode = code.trim();
     if (!cleanCode) return false;
+    const target = overrideTarget || activeScanTarget;
 
     let added = false;
     setItems(prev => {
-      if (!activeScanTarget) return prev;
-      const { itemIdx, field } = activeScanTarget;
+      if (!target) return prev;
+      const { itemIdx, field } = target;
       const targetItem = prev[itemIdx];
       if (!targetItem) return prev;
 
@@ -236,8 +239,8 @@ export default function ClientReturnsClient({ brands, products }) {
         try {
           const data = JSON.parse(event.data);
           if (data.barcode) {
-            if (activeScanTarget) {
-              const added = addBarcodeToActiveItem(data.barcode);
+            if (activeScanTargetRef.current) {
+              const added = addBarcodeToActiveItem(data.barcode, activeScanTargetRef.current);
               if (added) playBeep();
             } else {
               await processGlobalBarcode(data.barcode);
@@ -262,8 +265,8 @@ export default function ClientReturnsClient({ brands, products }) {
                 const data = await res.json();
                 if (data.barcodes && data.barcodes.length > 0) {
                   for (const code of data.barcodes) {
-                    if (activeScanTarget) {
-                      const added = addBarcodeToActiveItem(code);
+                    if (activeScanTargetRef.current) {
+                      const added = addBarcodeToActiveItem(code, activeScanTargetRef.current);
                       if (added) playBeep();
                     } else {
                       await processGlobalBarcode(code);
@@ -285,7 +288,7 @@ export default function ClientReturnsClient({ brands, products }) {
       if (eventSource) eventSource.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
     };
-  }, [mobileSession, activeScanTarget, isCompanionActive, items]);
+  }, [mobileSession, isCompanionActive]);
 
   // Webcam scanning hooks
   useEffect(() => {

@@ -40,6 +40,8 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
   // Active target slot for webcam/companion barcode scans: { itemIdx, inboundIdx }
   const [activeScanTarget, setActiveScanTarget] = useState(null);
+  const activeScanTargetRef = useRef(activeScanTarget);
+  useEffect(() => { activeScanTargetRef.current = activeScanTarget; }, [activeScanTarget]);
   
   // Custom suggestions active targets
   const [activeCategorySuggestionsTarget, setActiveCategorySuggestionsTarget] = useState(null); // idx
@@ -346,9 +348,10 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
     }));
   };
 
-  const addBarcodeToActiveItem = (code) => {
+  const addBarcodeToActiveItem = (code, overrideTarget) => {
     const cleanCode = code.trim();
     if (!cleanCode) return false;
+    const target = overrideTarget || activeScanTarget;
 
     let added = false;
     setItems(prev => {
@@ -366,7 +369,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
       };
 
       // When no scan target is explicitly set, auto-route based on item mode
-      if (!activeScanTarget) {
+      if (!target) {
         const activeIdx = prev.findIndex(item => item.isExpanded);
         if (activeIdx === -1) return prev;
         const activeItem = prev[activeIdx];
@@ -413,7 +416,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
         return prev.map((item, i) => i === activeIdx ? { ...item, inbounds: updatedInbounds } : item);
       }
 
-      const { itemIdx, inboundIdx, field } = activeScanTarget;
+      const { itemIdx, inboundIdx, field } = target;
 
       const targetItem = prev[itemIdx];
       if (!targetItem) return prev;
@@ -555,7 +558,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
         try {
           const data = JSON.parse(event.data);
           if (data.barcode) {
-            const added = addBarcodeToActiveItem(data.barcode);
+            const added = addBarcodeToActiveItem(data.barcode, activeScanTargetRef.current);
             if (added) playBeep();
           }
         } catch (e) {
@@ -577,7 +580,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                 const data = await res.json();
                 if (data.barcodes && data.barcodes.length > 0) {
                   for (const code of data.barcodes) {
-                    const added = addBarcodeToActiveItem(code);
+                    const added = addBarcodeToActiveItem(code, activeScanTargetRef.current);
                     if (added) playBeep();
                   }
                 }
@@ -596,7 +599,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
       if (eventSource) eventSource.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
     };
-  }, [mobileSession, activeScanTarget, isCompanionActive, items]);
+  }, [mobileSession, isCompanionActive]);
 
   // Add brand-new empty product configuration to queue
   const handleAddNewItem = () => {

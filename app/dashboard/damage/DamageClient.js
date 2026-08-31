@@ -509,7 +509,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       if (eventSource) eventSource.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
     };
-  }, [mobileSession, activeCameraRow, isCompanionActive, items]);
+  }, [mobileSession, activeCameraRow, isCompanionActive]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
