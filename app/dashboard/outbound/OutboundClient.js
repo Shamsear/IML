@@ -288,6 +288,30 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
     initRows();
   }, [searchParams, products, initialItems]);
 
+  // Auto-refresh availableBarcodes for serialized items that have empty lists
+  // (handles items loaded before the getAvailableBarcodes query fix)
+  useEffect(() => {
+    const staleItems = items.filter(item => {
+      const prod = products.find(p => p.id === item.productId);
+      return prod?.isSerialized && item.availableBarcodes.length === 0;
+    });
+    if (staleItems.length === 0) return;
+
+    const refresh = async () => {
+      for (const item of staleItems) {
+        try {
+          const available = await getAvailableBarcodes(item.productId, 'WAREHOUSE', null);
+          if (available && available.length > 0) {
+            setItems(prev => prev.map(x => x.id === item.id ? { ...x, availableBarcodes: available } : x));
+          }
+        } catch (e) {
+          console.error('Failed to refresh availableBarcodes:', e);
+        }
+      }
+    };
+    refresh();
+  }, [items, products]);
+
   // Prefill globalNotes from initialItems on edit or copy
   useEffect(() => {
     if (initialItems && initialItems.length > 0) {
@@ -496,16 +520,20 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   };
 
   // Listen to mobile companion scanned barcodes in real-time via SSE
+  const itemsRef = useRef(items);
+  useEffect(() => { itemsRef.current = items; }, [items]);
+
   useEffect(() => {
     if (!mobileSession?.sessionId || !isCompanionActive) return;
 
     let eventSource = null;
     let fallbackInterval = null;
-    const activeIdx = items.findIndex(item => item.isExpanded);
 
     const processCode = async (code) => {
       const cleanCode = code.trim();
-      if (activeIdx === -1) {
+      const currentItems = itemsRef.current;
+      const expandedIdx = currentItems.findIndex(item => item.isExpanded);
+      if (expandedIdx === -1) {
         playBeep();
         await processGlobalBarcode(cleanCode);
       } else {

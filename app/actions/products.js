@@ -561,9 +561,11 @@ export async function getAvailableBarcodes(productId, locationType, locationId =
   return prisma.productSerialNumber.findMany({
     where: {
       productId,
-      currentLocationType: locationType,
-      currentLocationId: locationId ? locationId : null,
-      status: 'AVAILABLE'
+      status: 'AVAILABLE',
+      OR: [
+        { currentLocationType: locationType },
+        { currentLocationType: null }
+      ]
     },
     select: {
       id: true,
