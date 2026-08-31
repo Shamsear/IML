@@ -1178,49 +1178,24 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         </div>
       )}
 
-      {/* Mobile Scanner Pairing Modal */}
+      {/* Mobile Companion Pairing (floating panel) */}
       {isMobileModalOpen && mobileSession && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down text-center">
-            <div className="flex justify-between items-center pb-2 border-b border-border">
-              <h3 className="font-display font-bold text-sm text-text-primary">Pair Mobile Barcode Scanner</h3>
-              <button 
-                type="button" 
-                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
-                onClick={() => { setIsMobileModalOpen(false); setActiveCameraRow(null); }}
-              >
-                <X size={16} />
+        <div className="fixed bottom-4 left-4 z-[999] w-[360px] max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col animate-slide-up overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface-elevated/50 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Smartphone size={14} className="text-primary" />
+                <span className="text-xs font-bold text-text-primary">Pair Companion</span>
+              </div>
+              <button type="button" className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => { setIsMobileModalOpen(false); setActiveCameraRow(null); }}>
+                <X size={14} />
               </button>
             </div>
-
-            <div className="flex flex-col items-center gap-4 py-2">
-              {/* QR Code Container */}
-              <div className="p-3 bg-white border border-border rounded-lg shadow-sm">
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`}
-                  alt="Scan QR to pair phone"
-                  className="w-[200px] h-[200px] block"
-                />
+            <div className="flex flex-col gap-3 text-center py-3 items-center">
+              <div className="p-2 bg-white border border-border rounded-lg shadow-sm">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=8&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`} alt="Scan QR to pair" className="w-[150px] h-[150px] block" />
               </div>
-
-              <div className="flex flex-col gap-1.5 max-w-sm">
-                <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mx-auto">
-                  Pairing Code: {mobileSession.sessionId}
-                </span>
-                <p className="text-xs text-text-secondary leading-relaxed px-4 mt-2">
-                  1. Scan this QR code with your phone's camera.<br/>
-                  2. Keep both phone and PC on the same Wi-Fi.<br/>
-                  3. Scan barcodes with your phone to sync instantly!
-                </p>
-              </div>
-
-              {/* Loader indicator */}
-              <div className="flex items-center justify-center gap-2 mt-2 py-1.5 px-4 bg-surface-elevated rounded-lg border border-border">
-                <Loader2 size={14} className="animate-spin text-primary" />
-                <span className="text-[11px] font-bold text-text-secondary uppercase">Waiting for mobile scans...</span>
-              </div>
+              <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full font-mono">{mobileSession.sessionId}</span>
             </div>
-          </div>
         </div>
       )}
     </div>
