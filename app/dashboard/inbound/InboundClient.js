@@ -455,7 +455,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
       if (field === 'rangeStart') {
         added = true;
-        setTimeout(() => setActiveScanTarget(null), 0);
+        // Auto-advance to rangeEnd after scanning start
+        setTimeout(() => setActiveScanTarget({ itemIdx, field: 'rangeEnd' }), 0);
         return prev.map((item, i) => i === itemIdx ? { ...item, rangeStart: cleanCode } : item);
       }
 
@@ -615,6 +616,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
       updateItemField(idx, 'barcodesInput', mergedList.join('\n'));
       updateItemField(idx, 'rangeStart', '');
       updateItemField(idx, 'rangeEnd', '');
+      updateItemField(idx, 'rangeMode', false);
+      toast.success('Range Generated', `${generated.length} barcodes added to the list.`);
       playBeep();
     } catch (e) {
       toast.error('Generation Failed', e.message || 'Could not generate barcode series.');
