@@ -52,6 +52,8 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
 
   // Available barcodes in warehouse for selected source product
   const [availableBarcodes, setAvailableBarcodes] = useState([]);
+  const availableBarcodesRef = useRef(availableBarcodes);
+  useEffect(() => { availableBarcodesRef.current = availableBarcodes; }, [availableBarcodes]);
   
   // Mappings of selected source barcodes to new target barcodes
   const [mappings, setMappings] = useState([]);
@@ -62,6 +64,9 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   const [rangeSrcEnd, setRangeSrcEnd] = useState('');
   const [rangeTgtStart, setRangeTgtStart] = useState('');
   const [rebrandActiveScanTarget, setRebrandActiveScanTarget] = useState('queue'); // 'queue', 'srcStart', 'srcEnd', 'tgtStart'
+  const rebrandActiveScanTargetRef = useRef(rebrandActiveScanTarget);
+  useEffect(() => { rebrandActiveScanTargetRef.current = rebrandActiveScanTarget; }, [rebrandActiveScanTarget]);
+  const [companionScans, setCompanionScans] = useState([]);
   const [useRangeRebrand, setUseRangeRebrand] = useState(false);
   const [nonSerializedQty, setNonSerializedQty] = useState('1');
 
@@ -83,32 +88,33 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     isBulkScanRef.current = isBulkScan;
   }, [isBulkScan]);
 
-  // Barcode scanner hook
+  // Barcode scanner hook — use refs to avoid stale closures
   const onBarcodeScan = useCallback((code) => {
-    if (rebrandActiveScanTarget === 'srcStart') {
+    const target = rebrandActiveScanTargetRef.current;
+    if (target === 'srcStart') {
       setRangeSrcStart(code);
       playBeep();
       return;
     }
-    if (rebrandActiveScanTarget === 'srcEnd') {
+    if (target === 'srcEnd') {
       setRangeSrcEnd(code);
       playBeep();
       return;
     }
-    if (rebrandActiveScanTarget === 'tgtStart') {
+    if (target === 'tgtStart') {
       setRangeTgtStart(code);
       playBeep();
       return;
     }
 
-    const matched = availableBarcodes.find(b => b.barcode.toLowerCase() === code.toLowerCase());
+    const matched = availableBarcodesRef.current.find(b => b.barcode.toLowerCase() === code.toLowerCase());
     if (matched) {
       const added = handleAddMapping(matched.barcode, '');
       if (added) playBeep();
     } else {
       toast.error('Not Available', `Barcode "${code}" is not in the Warehouse.`);
     }
-  }, [rebrandActiveScanTarget, availableBarcodes]);
+  }, []);
   const { cameraPermissionStatus, retryCameraPermission } = useBarcodeScanner({
     isOpen: isCameraOpen,
     onScan: onBarcodeScan,
@@ -440,25 +446,26 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
 
     const processCode = async (code) => {
       const cleanCode = code.trim();
+      const target = rebrandActiveScanTargetRef.current;
 
-      if (rebrandActiveScanTarget === 'srcStart') {
+      if (target === 'srcStart') {
         setRangeSrcStart(cleanCode);
         playBeep();
         return;
       }
-      if (rebrandActiveScanTarget === 'srcEnd') {
+      if (target === 'srcEnd') {
         setRangeSrcEnd(cleanCode);
         playBeep();
         return;
       }
-      if (rebrandActiveScanTarget === 'tgtStart') {
+      if (target === 'tgtStart') {
         setRangeTgtStart(cleanCode);
         playBeep();
         return;
       }
 
       const lowercaseCode = cleanCode.toLowerCase();
-      const matched = availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
+      const matched = availableBarcodesRef.current.find(b => b.barcode.toLowerCase() === lowercaseCode);
       if (matched) {
         const added = handleAddMapping(matched.barcode, '');
         if (added) playBeep();
@@ -475,6 +482,10 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
           const data = JSON.parse(event.data);
           if (data.barcode) {
             await processCode(data.barcode);
+            setCompanionScans(prev => {
+              if (!prev.includes(data.barcode)) return [...prev, data.barcode];
+              return prev;
+            });
           }
         } catch (e) {
           console.error("SSE parse error:", e);
@@ -513,7 +524,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
       if (eventSource) eventSource.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
     };
-  }, [mobileSession, availableBarcodes, isCompanionActive, rebrandActiveScanTarget]);
+  }, [mobileSession, isCompanionActive]);
 
   // Get current session barcodes for bulk list view
   const scannedBarcodesList = mappings.map(m => m.sourceBarcode).filter(Boolean);
@@ -1375,6 +1386,27 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=8&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`} alt="Scan to pair" className="w-[150px] h-[150px] block" />
               </div>
               <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full font-mono">{mobileSession.sessionId}</span>
+              {companionScans.length === 0 ? (
+                <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-surface-elevated rounded-lg border border-border">
+                  <Loader2 size={12} className="animate-spin text-primary" />
+                  <span className="text-[10px] font-bold text-text-secondary uppercase">Waiting for scans...</span>
+                </div>
+              ) : (
+                <div className="w-full flex flex-col gap-1.5">
+                  <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-success/10 rounded-lg border border-success/20">
+                    <CheckCircle size={12} className="text-success" />
+                    <span className="text-[10px] font-bold text-success uppercase">{companionScans.length} scan{companionScans.length !== 1 ? 's' : ''} received</span>
+                  </div>
+                  <div className="max-h-[80px] overflow-y-auto flex flex-col gap-1 px-1">
+                    {companionScans.slice(-5).reverse().map((bc, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-[9px] font-mono text-text-secondary">
+                        <CheckCircle size={9} className="text-success flex-shrink-0" />
+                        <span className="truncate">{bc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
         </div>
       )}

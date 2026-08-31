@@ -71,6 +71,7 @@ export default function ClientReturnsClient({ brands, products }) {
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null);
   const [isCompanionActive, setIsCompanionActive] = useState(false);
+  const [companionScans, setCompanionScans] = useState([]);
   const [activeScanTarget, setActiveScanTarget] = useState(null); // { itemIdx, field: 'productId' | 'list' }
   const activeScanTargetRef = useRef(activeScanTarget);
   useEffect(() => { activeScanTargetRef.current = activeScanTarget; }, [activeScanTarget]);
@@ -241,7 +242,13 @@ export default function ClientReturnsClient({ brands, products }) {
           if (data.barcode) {
             if (activeScanTargetRef.current) {
               const added = addBarcodeToActiveItem(data.barcode, activeScanTargetRef.current);
-              if (added) playBeep();
+              if (added) {
+                playBeep();
+                setCompanionScans(prev => {
+                  if (!prev.includes(data.barcode)) return [...prev, data.barcode];
+                  return prev;
+                });
+              }
             } else {
               await processGlobalBarcode(data.barcode);
             }
@@ -314,13 +321,14 @@ export default function ClientReturnsClient({ brands, products }) {
           if (!code) return;
 
           playBeep();
+          const target = activeScanTargetRef.current;
           if (isBulkScan) {
             setSessionScans(prev => {
               if (prev.includes(code)) return prev;
               const next = [...prev, code];
               setItems(itemsPrev => {
-                if (!activeScanTarget) return itemsPrev;
-                const { itemIdx } = activeScanTarget;
+                if (!target) return itemsPrev;
+                const { itemIdx } = target;
                 return itemsPrev.map((x, i) => i === itemIdx ? {
                   ...x,
                   barcodesInput: next.join('\n'),
@@ -331,7 +339,7 @@ export default function ClientReturnsClient({ brands, products }) {
               return next;
             });
           } else {
-            const added = addBarcodeToActiveItem(code);
+            const added = addBarcodeToActiveItem(code, target);
             // Keep scanner open for next scan
           }
         },
@@ -1065,6 +1073,27 @@ export default function ClientReturnsClient({ brands, products }) {
                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=8&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`} alt="Scan to pair" className="w-[150px] h-[150px] block" />
               </div>
               <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full font-mono">{mobileSession.sessionId}</span>
+              {companionScans.length === 0 ? (
+                <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-surface-elevated rounded-lg border border-border">
+                  <Loader2 size={12} className="animate-spin text-primary" />
+                  <span className="text-[10px] font-bold text-text-secondary uppercase">Waiting for scans...</span>
+                </div>
+              ) : (
+                <div className="w-full flex flex-col gap-1.5">
+                  <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-success/10 rounded-lg border border-success/20">
+                    <CheckCircle size={12} className="text-success" />
+                    <span className="text-[10px] font-bold text-success uppercase">{companionScans.length} scan{companionScans.length !== 1 ? 's' : ''} received</span>
+                  </div>
+                  <div className="max-h-[80px] overflow-y-auto flex flex-col gap-1 px-1">
+                    {companionScans.slice(-5).reverse().map((bc, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-[9px] font-mono text-text-secondary">
+                        <CheckCircle size={9} className="text-success flex-shrink-0" />
+                        <span className="truncate">{bc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
         </div>
       )}

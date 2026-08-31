@@ -54,11 +54,14 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [activeCameraRow, setActiveCameraRow] = useState(null);
   const [isBulkScan, setIsBulkScan] = useState(false);
+  const activeCameraRowRef = useRef(activeCameraRow);
+  useEffect(() => { activeCameraRowRef.current = activeCameraRow; }, [activeCameraRow]);
 
   // Wireless Mobile companion scanner states
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(null); // { sessionId, localIp, port }
   const [isCompanionActive, setIsCompanionActive] = useState(false);
+  const [companionScans, setCompanionScans] = useState([]);
 
   // Load saved mobile session on mount
   useEffect(() => {
@@ -90,11 +93,12 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     isBulkScanRef.current = isBulkScan;
   }, [isBulkScan]);
 
-  // Barcode scanner hook
+  // Barcode scanner hook — use ref for row to avoid stale closures
   const onBarcodeScan = useCallback((code) => {
     const lowercaseCode = code.toLowerCase();
+    const rowIdx = activeCameraRowRef.current;
     setItems(prev => {
-      const item = prev[activeCameraRow];
+      const item = prev[rowIdx];
       if (!item) return prev;
 
       const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
@@ -102,14 +106,14 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         if (!item.selectedBarcodes.includes(matched.barcode)) {
           playBeep();
           const newSelected = [...item.selectedBarcodes, matched.barcode];
-          return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
+          return prev.map((x, idx) => idx === rowIdx ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
         }
       } else {
         toast.error('Not Found', `Barcode "${code}" is not in the Warehouse.`);
       }
       return prev;
     });
-  }, [activeCameraRow]);
+  }, []);
   const { cameraPermissionStatus, retryCameraPermission } = useBarcodeScanner({
     isOpen: isCameraOpen && activeCameraRow !== null,
     onScan: onBarcodeScan,
@@ -440,18 +444,25 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     let fallbackInterval = null;
 
     const processCode = async (code) => {
-      if (activeCameraRow !== null) {
+      const rowIdx = activeCameraRowRef.current;
+      if (rowIdx !== null) {
         const cleanCode = code.trim();
         const lowercaseCode = cleanCode.toLowerCase();
+        let added = false;
         setItems(prev => {
-          const item = prev[activeCameraRow];
+          const item = prev[rowIdx];
           if (!item) return prev;
           const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
           if (matched) {
             if (!item.selectedBarcodes.includes(matched.barcode)) {
+              added = true;
               playBeep();
+              setCompanionScans(prev => {
+                if (!prev.includes(code)) return [...prev, code];
+                return prev;
+              });
               const newSelected = [...item.selectedBarcodes, matched.barcode];
-              return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
+              return prev.map((x, idx) => idx === rowIdx ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
             }
           } else {
             toast.error('Not Available', `Scanned barcode "${cleanCode}" is not in the Warehouse.`);
@@ -509,7 +520,7 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       if (eventSource) eventSource.close();
       if (fallbackInterval) clearInterval(fallbackInterval);
     };
-  }, [mobileSession, activeCameraRow, isCompanionActive]);
+  }, [mobileSession, isCompanionActive]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1195,6 +1206,27 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=8&data=${encodeURIComponent(getClientScanCompanionUrl(mobileSession.sessionId, mobileSession.localIp, mobileSession.port))}`} alt="Scan QR to pair" className="w-[150px] h-[150px] block" />
               </div>
               <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full font-mono">{mobileSession.sessionId}</span>
+              {companionScans.length === 0 ? (
+                <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-surface-elevated rounded-lg border border-border">
+                  <Loader2 size={12} className="animate-spin text-primary" />
+                  <span className="text-[10px] font-bold text-text-secondary uppercase">Waiting for scans...</span>
+                </div>
+              ) : (
+                <div className="w-full flex flex-col gap-1.5">
+                  <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-success/10 rounded-lg border border-success/20">
+                    <CheckCircle size={12} className="text-success" />
+                    <span className="text-[10px] font-bold text-success uppercase">{companionScans.length} scan{companionScans.length !== 1 ? 's' : ''} received</span>
+                  </div>
+                  <div className="max-h-[80px] overflow-y-auto flex flex-col gap-1 px-1">
+                    {companionScans.slice(-5).reverse().map((bc, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-[9px] font-mono text-text-secondary">
+                        <CheckCircle size={9} className="text-success flex-shrink-0" />
+                        <span className="truncate">{bc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
         </div>
       )}

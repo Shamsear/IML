@@ -72,6 +72,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   // Webcam scanning state
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [sessionScans, setSessionScans] = useState([]);
+  const [companionScans, setCompanionScans] = useState([]);
   const [isBulkScan, setIsBulkScan] = useState(false);
   const [activeScanTarget, setActiveScanTarget] = useState(null); // { itemIdx, field: 'productId' | 'quantity' | 'rangeStart' | 'rangeEnd' | 'list' }
   const activeScanTargetRef = useRef(activeScanTarget);
@@ -92,9 +93,9 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     isBulkScanRef.current = isBulkScan;
   }, [isBulkScan]);
 
-  // Barcode scanner hook
+  // Barcode scanner hook — use ref for target to avoid stale closures
   const onBarcodeScan = useCallback((code) => {
-    const added = addBarcodeToActiveItem(code);
+    const added = addBarcodeToActiveItem(code, activeScanTargetRef.current);
     if (added) {
       playBeep();
       setSessionScans(prev => {
@@ -102,7 +103,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         return prev;
       });
     }
-  }, [activeScanTarget]);
+  }, []);
   const { cameraPermissionStatus, retryCameraPermission } = useBarcodeScanner({
     isOpen: isCameraOpen,
     onScan: onBarcodeScan,
@@ -520,6 +521,10 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
             const added = addBarcodeToActiveItem(data.barcode, activeScanTargetRef.current);
             if (added) {
               playBeep();
+              setCompanionScans(prev => {
+                if (!prev.includes(data.barcode)) return [...prev, data.barcode];
+                return prev;
+              });
             }
           }
         } catch (e) {
@@ -2079,10 +2084,27 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
               <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full font-mono">
                 {mobileSession.sessionId}
               </span>
-              <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-surface-elevated rounded-lg border border-border">
-                <Loader2 size={12} className="animate-spin text-primary" />
-                <span className="text-[10px] font-bold text-text-secondary uppercase">Waiting for scans...</span>
-              </div>
+              {companionScans.length === 0 ? (
+                <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-surface-elevated rounded-lg border border-border">
+                  <Loader2 size={12} className="animate-spin text-primary" />
+                  <span className="text-[10px] font-bold text-text-secondary uppercase">Waiting for scans...</span>
+                </div>
+              ) : (
+                <div className="w-full flex flex-col gap-1.5">
+                  <div className="flex items-center justify-center gap-1.5 py-1 px-3 bg-success/10 rounded-lg border border-success/20">
+                    <CheckCircle size={12} className="text-success" />
+                    <span className="text-[10px] font-bold text-success uppercase">{companionScans.length} scan{companionScans.length !== 1 ? 's' : ''} received</span>
+                  </div>
+                  <div className="max-h-[80px] overflow-y-auto flex flex-col gap-1 px-1">
+                    {companionScans.slice(-5).reverse().map((bc, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-[9px] font-mono text-text-secondary">
+                        <CheckCircle size={9} className="text-success flex-shrink-0" />
+                        <span className="truncate">{bc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
         </div>
       )}
