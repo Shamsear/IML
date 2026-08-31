@@ -181,6 +181,8 @@ export default function useBarcodeScanner({
         parent.removeChild(canvas);
       }
       streamRef.current = null;
+      // Reset seen codes so reopening the modal scans fresh
+      scannedCodesRef.current.clear();
     };
   // onScan intentionally excluded — we use onScanRef to avoid camera restarts
   // eslint-disable-next-line react-hooks/exhaustive-deps
