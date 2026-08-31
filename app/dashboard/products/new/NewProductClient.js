@@ -1666,33 +1666,32 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                               <span>Enter starting and ending package serial numbers to auto-generate the list.</span>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                              {/* Shared scan controls — one set for both fields */}
+                                              <div className="sm:col-span-2 flex items-center justify-end gap-3">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: inb.rangeStart ? 'rangeEnd' : 'rangeStart' });
+                                                    handleOpenMobileScanner();
+                                                  }}
+                                                  className="text-[10px] text-text-secondary hover:text-text-primary font-semibold inline-flex items-center gap-0.5 cursor-pointer"
+                                                  title="Sync via companion scanner"
+                                                >
+                                                  <Smartphone size={10} /> <span>Sync</span>
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: inb.rangeStart ? 'rangeEnd' : 'rangeStart' });
+                                                    setIsCameraOpen(true);
+                                                  }}
+                                                  className="text-[10px] text-primary hover:underline font-bold inline-flex items-center gap-0.5 cursor-pointer"
+                                                >
+                                                  <Camera size={10} /> <span>Scan</span>
+                                                </button>
+                                              </div>
                                               <div className="flex flex-col gap-1.5">
-                                                <div className="flex items-center justify-between">
-                                                  <label className="text-xs font-semibold text-text-secondary">Range Start Barcode</label>
-                                                  <div className="flex items-center gap-2">
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'rangeStart' });
-                                                        handleOpenMobileScanner();
-                                                      }}
-                                                      className="text-[10px] text-text-secondary hover:text-text-primary font-semibold inline-flex items-center gap-0.5 cursor-pointer"
-                                                      title="Sync via companion scanner"
-                                                    >
-                                                      <Smartphone size={10} /> <span>Sync</span>
-                                                    </button>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'rangeStart' });
-                                                        setIsCameraOpen(true);
-                                                      }}
-                                                      className="text-[10px] text-primary hover:underline font-bold inline-flex items-center gap-0.5 cursor-pointer"
-                                                    >
-                                                      <Camera size={10} /> <span>Scan</span>
-                                                    </button>
-                                                  </div>
-                                                </div>
+                                                <label className="text-xs font-semibold text-text-secondary">Range Start Barcode</label>
                                                 <input
                                                   type="text"
                                                   className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
@@ -1702,32 +1701,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                                 />
                                               </div>
                                               <div className="flex flex-col gap-1.5">
-                                                <div className="flex items-center justify-between">
-                                                  <label className="text-xs font-semibold text-text-secondary">Range End Barcode</label>
-                                                  <div className="flex items-center gap-2">
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'rangeEnd' });
-                                                        handleOpenMobileScanner();
-                                                      }}
-                                                      className="text-[10px] text-text-secondary hover:text-text-primary font-semibold inline-flex items-center gap-0.5 cursor-pointer"
-                                                      title="Sync via companion scanner"
-                                                    >
-                                                      <Smartphone size={10} /> <span>Sync</span>
-                                                    </button>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        setActiveScanTarget({ itemIdx: idx, inboundIdx: subIdx, field: 'rangeEnd' });
-                                                        setIsCameraOpen(true);
-                                                      }}
-                                                      className="text-[10px] text-primary hover:underline font-bold inline-flex items-center gap-0.5 cursor-pointer"
-                                                    >
-                                                      <Camera size={10} /> <span>Scan</span>
-                                                    </button>
-                                                  </div>
-                                                </div>
+                                                <label className="text-xs font-semibold text-text-secondary">Range End Barcode</label>
                                                 <input
                                                   type="text"
                                                   className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono"
