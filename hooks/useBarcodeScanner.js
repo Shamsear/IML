@@ -19,7 +19,7 @@ export default function useBarcodeScanner({
 }) {
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt');
   const streamRef = useRef(null);
-  const scannedCodesRef = useRef(new Set());
+  const scannedCodesRef = useRef(new Map());
 
   // Keep a stable ref to onScan so the scan loop always uses the latest
   // callback without needing to restart the camera stream on every change.
@@ -146,9 +146,11 @@ export default function useBarcodeScanner({
               const code = rawCode.trim();
               const lowerCode = code.toLowerCase();
 
-              // Unique barcode checking
-              if (!scannedCodesRef.current.has(lowerCode)) {
-                scannedCodesRef.current.add(lowerCode);
+              // Debounce: ignore same barcode within 500ms to prevent double-fire from scan loop
+              const now = Date.now();
+              const lastSeen = scannedCodesRef.current.get(lowerCode);
+              if (!lastSeen || now - lastSeen > 500) {
+                scannedCodesRef.current.set(lowerCode, now);
                 console.log(`[Scanner] Detected: ${code}`);
 
                 // Beep and vibration feedback
@@ -185,7 +187,7 @@ export default function useBarcodeScanner({
         parent.removeChild(canvas);
       }
       streamRef.current = null;
-      // Reset seen codes so reopening the modal scans fresh
+      // Reset seen codes so reopening the scanner scans fresh
       scannedCodesRef.current.clear();
     };
   // onScan intentionally excluded — we use onScanRef to avoid camera restarts

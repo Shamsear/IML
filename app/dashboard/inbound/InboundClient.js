@@ -371,38 +371,34 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         });
       };
 
-      // When no scan target is explicitly set, auto-route based on item mode
+      // When no scan target is explicitly set, always route to the barcode list
       if (!target) {
         const activeIdx = prev.findIndex(item => item.isExpanded);
         if (activeIdx === -1) return prev;
         const activeItem = prev[activeIdx];
 
-        // Range mode: auto-fill rangeStart then rangeEnd
-        if (activeItem.rangeMode) {
-          if (!activeItem.rangeStart.trim()) {
-            // Check if barcode already used in any item or in rangeEnd of this item
-            if (isDuplicate(prev, cleanCode)) {
-              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in this receipt.`);
-              return prev;
-            }
-            added = true;
-            return prev.map((item, i) => i === activeIdx ? { ...item, rangeStart: cleanCode } : item);
-          } else if (!activeItem.rangeEnd.trim()) {
-            if (cleanCode.toLowerCase() === activeItem.rangeStart.trim().toLowerCase()) {
-              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is the same as Range Start.`);
-              return prev;
-            }
-            if (isDuplicate(prev, cleanCode)) {
-              toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in this receipt.`);
-              return prev;
-            }
-            added = true;
-            return prev.map((item, i) => i === activeIdx ? { ...item, rangeEnd: cleanCode } : item);
+        // If in range mode, auto-fill rangeStart then rangeEnd
+        if (activeItem.rangeMode && !activeItem.rangeStart.trim()) {
+          if (isDuplicate(prev, cleanCode)) {
+            toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in this receipt.`);
+            return prev;
           }
-          return prev;
+          added = true;
+          return prev.map((item, i) => i === activeIdx ? { ...item, rangeStart: cleanCode } : item);
+        } else if (activeItem.rangeMode && !activeItem.rangeEnd.trim()) {
+          if (cleanCode.toLowerCase() === activeItem.rangeStart.trim().toLowerCase()) {
+            toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is the same as Range Start.`);
+            return prev;
+          }
+          if (isDuplicate(prev, cleanCode)) {
+            toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already used in this receipt.`);
+            return prev;
+          }
+          added = true;
+          return prev.map((item, i) => i === activeIdx ? { ...item, rangeEnd: cleanCode } : item);
         }
 
-        // Standard list mode: add to barcode list
+        // Default: add to barcode list
         const currentList = activeItem.barcodesInput.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
         if (currentList.map(b => b.toLowerCase()).includes(cleanCode.toLowerCase())) {
           toast.error('Duplicate Barcode', `Barcode "${cleanCode}" is already in this item's list.`);
