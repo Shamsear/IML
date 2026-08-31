@@ -104,6 +104,7 @@ export default function ContinuousBarcodeScanner({ onScan, isOpen = true, onClos
       }
 
       // 3. Start high-frequency scan loop (every 150ms)
+      console.log(`[CompanionScanner] ${detector ? 'Native BarcodeDetector' : 'zxing-wasm'} ready, scanning...`);
       scanInterval = setInterval(async () => {
         if (!active || !videoRef.current) return;
         
@@ -145,6 +146,7 @@ export default function ContinuousBarcodeScanner({ onScan, isOpen = true, onClos
             // Strict duplication prevention via Set
             if (!scannedBarcodesRef.current.has(lowerCode)) {
               scannedBarcodesRef.current.add(lowerCode);
+              console.log(`[CompanionScanner] Detected: ${code}`);
               
               // Audio + Tactile Feedback
               playBeep();
@@ -167,7 +169,7 @@ export default function ContinuousBarcodeScanner({ onScan, isOpen = true, onClos
             }
           }
         } catch (e) {
-          // Ignore scanning cycle errors to avoid breaking the loop
+          console.warn('[CompanionScanner] Scan loop error:', e);
         }
       }, 150);
     };

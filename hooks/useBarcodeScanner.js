@@ -92,6 +92,7 @@ export default function useBarcodeScanner({
         });
         streamRef.current = stream;
         video.srcObject = stream;
+        console.log('[Scanner] Camera stream started:', stream.getVideoTracks()[0]?.label);
 
         // Check native support
         if ('BarcodeDetector' in window) {
@@ -113,6 +114,8 @@ export default function useBarcodeScanner({
             return;
           }
         }
+
+        console.log(`[Scanner] ${detector ? 'Native BarcodeDetector' : 'zxing-wasm'} ready, scanning...`);
 
         // Start scanning loop (every 150ms)
         scanInterval = setInterval(async () => {
@@ -146,6 +149,7 @@ export default function useBarcodeScanner({
               // Unique barcode checking
               if (!scannedCodesRef.current.has(lowerCode)) {
                 scannedCodesRef.current.add(lowerCode);
+                console.log(`[Scanner] Detected: ${code}`);
 
                 // Beep and vibration feedback
                 playBeep();
@@ -158,11 +162,11 @@ export default function useBarcodeScanner({
               }
             }
           } catch (e) {
-            // Ignore scan loop errors
+            console.warn('[Scanner] Scan loop error:', e);
           }
         }, 150);
       } catch (err) {
-        console.error('Failed to init camera or scanner:', err);
+        console.error('[Scanner] Failed to init camera or scanner:', err);
       }
     };
 
