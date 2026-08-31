@@ -1733,6 +1733,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                         <div className="flex flex-col gap-1.5">
                           <div className="flex items-center justify-between">
                             <label className="text-xs font-semibold text-text-secondary">Quantity to Receive</label>
+                            {selectedProd?.itemCode && (
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
@@ -1757,6 +1758,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                 <Camera size={10} /> <span>Scan Units</span>
                               </button>
                             </div>
+                            )}
                           </div>
                           <input
                             type="number"
