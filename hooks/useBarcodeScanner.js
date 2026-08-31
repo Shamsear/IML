@@ -21,6 +21,13 @@ export default function useBarcodeScanner({
   const streamRef = useRef(null);
   const scannedCodesRef = useRef(new Set());
 
+  // Keep a stable ref to onScan so the scan loop always uses the latest
+  // callback without needing to restart the camera stream on every change.
+  const onScanRef = useRef(onScan);
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
+
   // 1. Camera permission check
   useEffect(() => {
     if (isOpen) {
@@ -122,7 +129,7 @@ export default function useBarcodeScanner({
               canvas.width = video.videoWidth || 640;
               canvas.height = video.videoHeight || 480;
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              
+
               const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
               const results = await zxingReader(imageData, {
                 formats: ['Code128', 'EAN13', 'EAN8', 'QRCode', 'UPCA', 'UPCE'],
@@ -139,15 +146,15 @@ export default function useBarcodeScanner({
               // Unique barcode checking
               if (!scannedCodesRef.current.has(lowerCode)) {
                 scannedCodesRef.current.add(lowerCode);
-                
+
                 // Beep and vibration feedback
                 playBeep();
                 if (typeof window !== 'undefined' && navigator.vibrate) {
                   navigator.vibrate(100);
                 }
 
-                // Call client onScan callback
-                if (onScan) onScan(code);
+                // Call client onScan callback via ref — no camera restart needed
+                if (onScanRef.current) onScanRef.current(code);
               }
             }
           } catch (e) {
@@ -175,7 +182,9 @@ export default function useBarcodeScanner({
       }
       streamRef.current = null;
     };
-  }, [elementId, isOpen, cameraPermissionStatus, onScan]);
+  // onScan intentionally excluded — we use onScanRef to avoid camera restarts
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elementId, isOpen, cameraPermissionStatus]);
 
   const retryCameraPermission = useCallback(async () => {
     try {
