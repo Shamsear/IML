@@ -1,29 +1,25 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { playBeep } from '@/lib/audio';
 
 /**
- * Reusable barcode scanner hook using html5-qrcode.
- * Handles camera permission, initialization, dedup, laser overlay, and cleanup.
+ * High-performance reusable barcode scanner hook.
+ * Uses native BarcodeDetector API if available, falling back to zxing-wasm.
  *
  * @param {Object} options
- * @param {string} options.elementId - DOM element ID for the scanner
+ * @param {string} options.elementId - DOM element ID for the scanner container
  * @param {boolean} options.isOpen - Whether the scanner modal is open
  * @param {Function} options.onScan - Called with decoded text on successful scan
- * @param {Object} [options.config] - Scanner config override
- * @param {string} [options.laserContainerSelector] - Selector for the video container to inject laser overlay
  */
 export default function useBarcodeScanner({
   elementId = 'camera-reader-element',
   isOpen = false,
   onScan,
-  config = {},
-  laserContainerSelector = '#camera-reader-element video',
 }) {
-  const scannerRef = useRef(null);
-  const lastScannedRef = useRef('');
-  const lastTimeRef = useRef(0);
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState('prompt');
+  const streamRef = useRef(null);
+  const scannedCodesRef = useRef(new Set());
 
   // 1. Camera permission check
   useEffect(() => {
@@ -42,120 +38,145 @@ export default function useBarcodeScanner({
     }
   }, [isOpen]);
 
-  // 2. Scanner initialization
+  // 2. Scanner initialization & scan loop
   useEffect(() => {
     if (!isOpen || cameraPermissionStatus !== 'granted') return;
 
-    let cancelled = false;
-    let scanner = null;
+    let active = true;
+    let stream = null;
+    let scanInterval = null;
+    let detector = null;
+    let zxingReader = null;
+    let canvas = null;
+    let video = null;
+    let parent = null;
 
     const init = async () => {
       // Wait for DOM element to be ready
       let attempts = 0;
-      while (!document.getElementById(elementId) && attempts < 10 && !cancelled) {
+      while (!document.getElementById(elementId) && attempts < 20 && active) {
         await new Promise(r => setTimeout(r, 100));
         attempts++;
       }
 
-      if (cancelled || !document.getElementById(elementId)) return;
+      parent = document.getElementById(elementId);
+      if (!parent || !active) return;
 
       try {
-        const { Html5QrcodeScanner } = await import('html5-qrcode');
-        if (cancelled) return;
+        // Create video element
+        video = document.createElement('video');
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = true;
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'cover';
+        parent.innerHTML = ''; // clear parent loading/old elements
+        parent.appendChild(video);
 
-        scanner = new Html5QrcodeScanner(
-          elementId,
-          { fps: 10, qrbox: { width: 250, height: 250 }, ...config },
-          false
-        );
+        // Create hidden canvas for WASM fallback
+        canvas = document.createElement('canvas');
+        canvas.style.display = 'none';
+        parent.appendChild(canvas);
 
-        scanner.render(
-          (decodedText) => {
-            const code = decodedText.trim();
-            const now = Date.now();
+        // Start video stream
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        streamRef.current = stream;
+        video.srcObject = stream;
 
-            // Deduplicate within 2 seconds
-            if (
-              code.toLowerCase() === lastScannedRef.current &&
-              now - lastTimeRef.current < 2000
-            ) {
-              return;
+        // Check native support
+        if ('BarcodeDetector' in window) {
+          try {
+            detector = new window.BarcodeDetector({
+              formats: ['code_128', 'ean_13', 'ean_8', 'qr_code', 'upc_a', 'upc_e']
+            });
+          } catch (e) {
+            console.warn('Native BarcodeDetector fallback:', e);
+          }
+        }
+
+        if (!detector) {
+          try {
+            const { readBarcodes } = await import('zxing-wasm');
+            zxingReader = readBarcodes;
+          } catch (err) {
+            console.error('Failed to load zxing-wasm:', err);
+            return;
+          }
+        }
+
+        // Start scanning loop (every 150ms)
+        scanInterval = setInterval(async () => {
+          if (!active || !video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+          try {
+            let detectedCodes = [];
+
+            if (detector) {
+              const barcodes = await detector.detect(video);
+              detectedCodes = barcodes.map(b => b.rawValue);
+            } else if (zxingReader) {
+              const ctx = canvas.getContext('2d');
+              canvas.width = video.videoWidth || 640;
+              canvas.height = video.videoHeight || 480;
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const results = await zxingReader(imageData, {
+                formats: ['Code128', 'EAN13', 'EAN8', 'QRCode', 'UPCA', 'UPCE'],
+                tryHarder: false
+              });
+              detectedCodes = results.map(r => r.text);
             }
 
-            lastScannedRef.current = code.toLowerCase();
-            lastTimeRef.current = now;
+            for (const rawCode of detectedCodes) {
+              if (!rawCode) continue;
+              const code = rawCode.trim();
+              const lowerCode = code.toLowerCase();
 
-            // Flash feedback
-            const flashOverlay = document.querySelector('.custom-scan-overlay > div');
-            if (flashOverlay) {
-              flashOverlay.style.borderColor = '#10b981';
-              flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
-              setTimeout(() => {
-                if (flashOverlay) {
-                  flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                  flashOverlay.style.boxShadow = 'none';
+              // Unique barcode checking
+              if (!scannedCodesRef.current.has(lowerCode)) {
+                scannedCodesRef.current.add(lowerCode);
+                
+                // Beep and vibration feedback
+                playBeep();
+                if (typeof window !== 'undefined' && navigator.vibrate) {
+                  navigator.vibrate(100);
                 }
-              }, 400);
+
+                // Call client onScan callback
+                if (onScan) onScan(code);
+              }
             }
-
-            if (onScan) onScan(code);
-          },
-          () => {} // Ignore scanning errors
-        );
-
-        scannerRef.current = scanner;
+          } catch (e) {
+            // Ignore scan loop errors
+          }
+        }, 150);
       } catch (err) {
-        console.error('Failed to init barcode scanner:', err);
+        console.error('Failed to init camera or scanner:', err);
       }
     };
 
     init();
 
     return () => {
-      cancelled = true;
-      if (scanner) {
-        try {
-          scanner.clear();
-        } catch (err) {
-          console.error('Failed to clear scanner:', err);
-        }
+      active = false;
+      if (scanInterval) clearInterval(scanInterval);
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
       }
-      scannerRef.current = null;
+      if (parent && video && parent.contains(video)) {
+        parent.removeChild(video);
+      }
+      if (parent && canvas && parent.contains(canvas)) {
+        parent.removeChild(canvas);
+      }
+      streamRef.current = null;
     };
-  }, [elementId, isOpen, cameraPermissionStatus, onScan, config]);
+  }, [elementId, isOpen, cameraPermissionStatus, onScan]);
 
-  // 3. Inject scan laser overlay
-  useEffect(() => {
-    if (cameraPermissionStatus !== 'granted') return;
-
-    const interval = setInterval(() => {
-      const videoElement = document.querySelector(laserContainerSelector);
-      if (videoElement) {
-        clearInterval(interval);
-        const videoParent = videoElement.parentElement;
-        if (videoParent) {
-          videoParent.style.position = 'relative';
-          if (!videoParent.querySelector('.custom-scan-overlay')) {
-            const overlay = document.createElement('div');
-            overlay.className = 'custom-scan-overlay absolute inset-0 pointer-events-none flex items-center justify-center z-10';
-            overlay.innerHTML = `
-              <div class="w-[250px] h-[250px] border-2 border-white/30 rounded-lg relative overflow-hidden transition-all duration-300">
-                <div class="absolute top-0 left-0 right-0 h-0.5 bg-success shadow-[0_0_8px_#10b981] animate-scanner-laser"></div>
-                <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-success"></div>
-                <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-success"></div>
-                <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-success"></div>
-                <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-success"></div>
-              </div>
-            `;
-            videoParent.appendChild(overlay);
-          }
-        }
-      }
-    }, 200);
-    return () => clearInterval(interval);
-  }, [cameraPermissionStatus, laserContainerSelector]);
-
-  // 4. Retry camera permission
   const retryCameraPermission = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -166,15 +187,10 @@ export default function useBarcodeScanner({
     }
   }, []);
 
-  // 5. Manual stop
   const stop = useCallback(() => {
-    if (scannerRef.current) {
-      try {
-        scannerRef.current.clear();
-      } catch (err) {
-        console.error('Failed to stop scanner:', err);
-      }
-      scannerRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
     }
   }, []);
 

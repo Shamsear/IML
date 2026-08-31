@@ -438,58 +438,92 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     }
   };
 
-  // Poll for mobile scanned items
+  // Listen to mobile companion scanned barcodes in real-time via SSE
   useEffect(() => {
-    let interval = null;
-    if (mobileSession?.sessionId && isCompanionActive) {
-      interval = setInterval(async () => {
+    if (!mobileSession?.sessionId || !isCompanionActive) return;
+
+    let eventSource = null;
+    let fallbackInterval = null;
+
+    const processCode = async (code) => {
+      const cleanCode = code.trim();
+
+      if (rebrandActiveScanTarget === 'srcStart') {
+        setRangeSrcStart(cleanCode);
+        playBeep();
+        setIsMobileModalOpen(false);
+        return;
+      }
+      if (rebrandActiveScanTarget === 'srcEnd') {
+        setRangeSrcEnd(cleanCode);
+        playBeep();
+        setIsMobileModalOpen(false);
+        return;
+      }
+      if (rebrandActiveScanTarget === 'tgtStart') {
+        setRangeTgtStart(cleanCode);
+        playBeep();
+        setIsMobileModalOpen(false);
+        return;
+      }
+
+      const lowercaseCode = cleanCode.toLowerCase();
+      const matched = availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
+      if (matched) {
+        const added = handleAddMapping(matched.barcode, '');
+        if (added) playBeep();
+      } else {
+        toast.error('Not Available', `Scanned barcode "${cleanCode}" is not in the Warehouse.`);
+      }
+    };
+
+    const setupSSE = () => {
+      eventSource = new EventSource(`/api/scan-companion/sync?sessionId=${mobileSession.sessionId}`);
+
+      eventSource.onmessage = async (event) => {
         try {
-          const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.barcodes && data.barcodes.length > 0) {
-              data.barcodes.forEach(code => {
-                const cleanCode = code.trim();
-
-                if (rebrandActiveScanTarget === 'srcStart') {
-                  setRangeSrcStart(cleanCode);
-                  playBeep();
-                  setIsMobileModalOpen(false);
-                  return;
-                }
-                if (rebrandActiveScanTarget === 'srcEnd') {
-                  setRangeSrcEnd(cleanCode);
-                  playBeep();
-                  setIsMobileModalOpen(false);
-                  return;
-                }
-                if (rebrandActiveScanTarget === 'tgtStart') {
-                  setRangeTgtStart(cleanCode);
-                  playBeep();
-                  setIsMobileModalOpen(false);
-                  return;
-                }
-
-                const lowercaseCode = cleanCode.toLowerCase();
-                const matched = availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
-                if (matched) {
-                  const added = handleAddMapping(matched.barcode, '');
-                  if (added) playBeep();
-                } else {
-                  toast.error('Not Available', `Scanned barcode "${cleanCode}" is not in the Warehouse.`);
-                }
-              });
-            }
+          const data = JSON.parse(event.data);
+          if (data.barcode) {
+            await processCode(data.barcode);
           }
         } catch (e) {
-          console.error("Polling error:", e);
+          console.error("SSE parse error:", e);
         }
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
+      };
+
+      eventSource.onerror = (err) => {
+        console.warn("SSE connection lost, falling back to polling...", err);
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(async () => {
+            try {
+              const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data.barcodes && data.barcodes.length > 0) {
+                  for (const code of data.barcodes) {
+                    await processCode(code);
+                  }
+                }
+              }
+            } catch (e) {
+              console.error("Polling fallback error:", e);
+            }
+          }, 500);
+        }
+      };
     };
-  }, [mobileSession, availableBarcodes, isCompanionActive]);
+
+    setupSSE();
+
+    return () => {
+      if (eventSource) eventSource.close();
+      if (fallbackInterval) clearInterval(fallbackInterval);
+    };
+  }, [mobileSession, availableBarcodes, isCompanionActive, rebrandActiveScanTarget]);
 
   // Get current session barcodes for bulk list view
   const scannedBarcodesList = mappings.map(m => m.sourceBarcode).filter(Boolean);

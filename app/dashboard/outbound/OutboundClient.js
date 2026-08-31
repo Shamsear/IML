@@ -498,36 +498,70 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
     }
   };
 
-  // Poll mobile scans
+  // Listen to mobile companion scanned barcodes in real-time via SSE
   useEffect(() => {
-    let interval = null;
+    if (!mobileSession?.sessionId || !isCompanionActive) return;
+
+    let eventSource = null;
+    let fallbackInterval = null;
     const activeIdx = items.findIndex(item => item.isExpanded);
-    if (mobileSession?.sessionId && isCompanionActive) {
-      interval = setInterval(async () => {
+
+    const processCode = async (code) => {
+      const cleanCode = code.trim();
+      if (activeIdx === -1) {
+        playBeep();
+        await processGlobalBarcode(cleanCode);
+      } else {
+        const added = addBarcodeToActiveItem(cleanCode);
+        if (added) playBeep();
+      }
+    };
+
+    const setupSSE = () => {
+      eventSource = new EventSource(`/api/scan-companion/sync?sessionId=${mobileSession.sessionId}`);
+
+      eventSource.onmessage = async (event) => {
         try {
-          const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.barcodes && data.barcodes.length > 0) {
-              for (const code of data.barcodes) {
-                const cleanCode = code.trim();
-                if (activeIdx === -1) {
-                  playBeep();
-                  await processGlobalBarcode(cleanCode);
-                } else {
-                  const added = addBarcodeToActiveItem(cleanCode);
-                  if (added) playBeep();
-                }
-              }
-            }
+          const data = JSON.parse(event.data);
+          if (data.barcode) {
+            await processCode(data.barcode);
           }
         } catch (e) {
-          console.error("Failed polling mobile scans:", e);
+          console.error("SSE parse error:", e);
         }
-      }, 1000);
-    }
+      };
+
+      eventSource.onerror = (err) => {
+        console.warn("SSE connection lost, falling back to polling...", err);
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(async () => {
+            try {
+              const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data.barcodes && data.barcodes.length > 0) {
+                  for (const code of data.barcodes) {
+                    await processCode(code);
+                  }
+                }
+              }
+            } catch (e) {
+              console.error("Polling fallback error:", e);
+            }
+          }, 500);
+        }
+      };
+    };
+
+    setupSSE();
+
     return () => {
-      if (interval) clearInterval(interval);
+      if (eventSource) eventSource.close();
+      if (fallbackInterval) clearInterval(fallbackInterval);
     };
   }, [isCompanionActive, mobileSession, items]);
 

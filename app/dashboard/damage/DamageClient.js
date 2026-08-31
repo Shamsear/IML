@@ -437,48 +437,82 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     }
   };
 
-  // Poll for mobile scanned items
+  // Listen to mobile companion scanned barcodes in real-time via SSE
   useEffect(() => {
-    let interval = null;
-    if (mobileSession?.sessionId && isCompanionActive) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.barcodes && data.barcodes.length > 0) {
-              for (const code of data.barcodes) {
-                if (activeCameraRow !== null) {
-                  const cleanCode = code.trim();
-                  const lowercaseCode = cleanCode.toLowerCase();
-                  setItems(prev => {
-                    const item = prev[activeCameraRow];
-                    if (!item) return prev;
-                    const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
-                    if (matched) {
-                      if (!item.selectedBarcodes.includes(matched.barcode)) {
-                        playBeep();
-                        const newSelected = [...item.selectedBarcodes, matched.barcode];
-                        return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
-                      }
-                    } else {
-                      toast.error('Not Available', `Scanned barcode "${cleanCode}" is not in the Warehouse.`);
-                    }
-                    return prev;
-                  });
-                } else {
-                  await processGlobalBarcode(code);
-                }
-              }
+    if (!mobileSession?.sessionId || !isCompanionActive) return;
+
+    let eventSource = null;
+    let fallbackInterval = null;
+
+    const processCode = async (code) => {
+      if (activeCameraRow !== null) {
+        const cleanCode = code.trim();
+        const lowercaseCode = cleanCode.toLowerCase();
+        setItems(prev => {
+          const item = prev[activeCameraRow];
+          if (!item) return prev;
+          const matched = item.availableBarcodes.find(b => b.barcode.toLowerCase() === lowercaseCode);
+          if (matched) {
+            if (!item.selectedBarcodes.includes(matched.barcode)) {
+              playBeep();
+              const newSelected = [...item.selectedBarcodes, matched.barcode];
+              return prev.map((x, idx) => idx === activeCameraRow ? { ...x, selectedBarcodes: newSelected, quantity: newSelected.length } : x);
             }
+          } else {
+            toast.error('Not Available', `Scanned barcode "${cleanCode}" is not in the Warehouse.`);
+          }
+          return prev;
+        });
+      } else {
+        await processGlobalBarcode(code);
+      }
+    };
+
+    const setupSSE = () => {
+      eventSource = new EventSource(`/api/scan-companion/sync?sessionId=${mobileSession.sessionId}`);
+
+      eventSource.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.barcode) {
+            await processCode(data.barcode);
           }
         } catch (e) {
-          console.error("Polling error:", e);
+          console.error("SSE parse error:", e);
         }
-      }, 1000);
-    }
+      };
+
+      eventSource.onerror = (err) => {
+        console.warn("SSE connection lost, falling back to polling...", err);
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(async () => {
+            try {
+              const res = await fetch(`/api/scan-companion?sessionId=${mobileSession.sessionId}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data.barcodes && data.barcodes.length > 0) {
+                  for (const code of data.barcodes) {
+                    await processCode(code);
+                  }
+                }
+              }
+            } catch (e) {
+              console.error("Polling fallback error:", e);
+            }
+          }, 500);
+        }
+      };
+    };
+
+    setupSSE();
+
     return () => {
-      if (interval) clearInterval(interval);
+      if (eventSource) eventSource.close();
+      if (fallbackInterval) clearInterval(fallbackInterval);
     };
   }, [mobileSession, activeCameraRow, isCompanionActive, items]);
 

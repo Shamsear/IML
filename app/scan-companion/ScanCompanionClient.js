@@ -5,6 +5,7 @@ import { Camera, QrCode, Loader2, AlertCircle, CheckCircle, Smartphone } from 'l
 import { playBeep } from '@/lib/audio';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
+import ContinuousBarcodeScanner from '@/components/ContinuousBarcodeScanner';
 
 export default function ScanCompanionClient({ session }) {
   const toast = useToast();
@@ -16,22 +17,26 @@ export default function ScanCompanionClient({ session }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
   const [manualBarcode, setManualBarcode] = useState('');
-  const lastScannedBarcodeRef = useRef('');
-  const lastScannedTimeRef = useRef(0);
   const scannedBarcodeSetRef = useRef(new Set());
-  // Multi-scan consensus: track recent scan attempts for accuracy
-  const pendingScanRef = useRef(null); // { code, rawCode, timestamp, count }
-  const [pendingScan, setPendingScan] = useState(null); // UI mirror of pendingScanRef
-  const pendingTimeoutRef = useRef(null);
-  
-  const [cameras, setCameras] = useState([]);
-  const [currentCameraIdx, setCurrentCameraIdx] = useState(0);
-  const html5QrCodeRef = useRef(null);
 
   const handleManualSubmit = async (e) => {
     if (e) e.preventDefault();
     const code = manualBarcode.trim();
     if (!code) return;
+
+    if (!isValidBarcode(code)) {
+      setErrorMessage(`"${code}" is not a valid barcode format.`);
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
+
+    const lowerCode = code.toLowerCase();
+    if (scannedBarcodeSetRef.current.has(lowerCode)) {
+      triggerVibe('duplicate');
+      setErrorMessage(`"${code}" was already scanned.`);
+      setTimeout(() => setErrorMessage(''), 3000);
+      return;
+    }
 
     try {
       const response = await fetch('/api/scan-companion', {
@@ -42,7 +47,8 @@ export default function ScanCompanionClient({ session }) {
 
       if (response.ok) {
         playBeep();
-        triggerVibe();
+        triggerVibe('success');
+        scannedBarcodeSetRef.current.add(lowerCode);
         setScannedItems(prev => [code, ...prev]);
         setSuccessMessage(`Barcode "${code}" sent successfully!`);
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -78,21 +84,19 @@ export default function ScanCompanionClient({ session }) {
     setConfirmOpen(true);
   };
 
-  // Trigger mobile vibration feedback
-  // 'success' = long single buzz, 'duplicate' = short double buzz
   const triggerVibe = (type = 'success') => {
     try {
       if (typeof window !== 'undefined' && navigator.vibrate) {
         if (type === 'duplicate') {
-          navigator.vibrate([40, 50, 40]); // short double buzz
+          navigator.vibrate([40, 50, 40]);
         } else {
-          navigator.vibrate(150); // long single buzz
+          navigator.vibrate(150);
         }
       }
     } catch (e) {}
   };
 
-  // Check if session remains active on the host database (not deleted or expired)
+  // Check if session remains active on the host database
   useEffect(() => {
     if (!session) return;
     const interval = setInterval(async () => {
@@ -111,8 +115,7 @@ export default function ScanCompanionClient({ session }) {
     return () => clearInterval(interval);
   }, [session]);
 
-  // Check camera permissions
-  // Determine initial state: respect past permission approvals to prevent annoying duplicate browser prompts on scanning QR
+  // Check camera permissions on mount
   useEffect(() => {
     if (session) {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -144,50 +147,35 @@ export default function ScanCompanionClient({ session }) {
     }
   }, [session, cameraPermissionStatus]);
 
-  // Strict barcode validation: only alphanumeric + hyphen + space allowed
   const isValidBarcode = (raw) => {
     if (!raw || raw.length < 4) return false;
-    // Reject if contains any non-alphanumeric characters except hyphen and space
     if (/[^a-zA-Z0-9\- ]/.test(raw)) return false;
-    // Reject if has too many special patterns that indicate misreads
-    // (e.g., repeated chars like 'IIII', '0000' are valid IMEI suffixes so allow them)
     return true;
   };
 
   // Send barcode to PC backend
   const sendBarcodeToPC = async (rawCode) => {
-    const lowerCode = rawCode.toLowerCase();
+    const cleanCode = rawCode.trim();
+    if (!isValidBarcode(cleanCode)) return false;
+
+    const lowerCode = cleanCode.toLowerCase();
     if (scannedBarcodeSetRef.current.has(lowerCode)) {
       triggerVibe('duplicate');
-      setErrorMessage(`"${rawCode}" was already scanned. Clear history first to re-scan.`);
+      setErrorMessage(`"${cleanCode}" was already scanned.`);
       setTimeout(() => setErrorMessage(''), 3000);
       return false;
     }
+
     try {
       const response = await fetch('/api/scan-companion', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: session, barcode: rawCode })
+        body: JSON.stringify({ sessionId: session, barcode: cleanCode })
       });
       if (response.ok) {
-        playBeep();
         triggerVibe('success');
         scannedBarcodeSetRef.current.add(lowerCode);
-        lastScannedBarcodeRef.current = lowerCode;
-        lastScannedTimeRef.current = Date.now();
-        setScannedItems(prev => [rawCode, ...prev]);
-        // Flash overlay
-        const flashOverlay = document.querySelector('.custom-scan-overlay > div');
-        if (flashOverlay) {
-          flashOverlay.style.borderColor = '#10b981';
-          flashOverlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
-          setTimeout(() => {
-            if (flashOverlay) {
-              flashOverlay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-              flashOverlay.style.boxShadow = 'none';
-            }
-          }, 400);
-        }
+        setScannedItems(prev => [cleanCode, ...prev]);
         return true;
       } else {
         const data = await response.json();
@@ -202,177 +190,6 @@ export default function ScanCompanionClient({ session }) {
     }
   };
 
-  // Confirm a pending scan (user tapped Send)
-  const confirmPendingScan = async () => {
-    const pending = pendingScanRef.current;
-    if (!pending) return;
-    pendingScanRef.current = null;
-    setPendingScan(null);
-    if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
-    await sendBarcodeToPC(pending.rawCode);
-  };
-
-  // Reject a pending scan (user tapped Skip)
-  const rejectPendingScan = () => {
-    pendingScanRef.current = null;
-    setPendingScan(null);
-    if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
-    triggerVibe('duplicate');
-  };
-
-  const startScanning = async (scannerInstance, cameraId) => {
-    try {
-      await scannerInstance.start(
-        cameraId,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0
-        },
-        async (decodedText) => {
-          const rawCode = decodedText.trim();
-          const now = Date.now();
-
-          // LAYER 1: Strict character filter
-          if (!isValidBarcode(rawCode)) {
-            return; // silently reject garbled scans
-          }
-
-          const lowerCode = rawCode.toLowerCase();
-
-          // LAYER 2: Cooldown — reject exact duplicate within 3 seconds
-          if (lowerCode === lastScannedBarcodeRef.current && (now - lastScannedTimeRef.current < 3000)) {
-            return;
-          }
-
-          // LAYER 3: Permanent dedup — already sent to PC this session
-          if (scannedBarcodeSetRef.current.has(lowerCode)) {
-            triggerVibe('duplicate');
-            setErrorMessage(`"${rawCode}" was already scanned. Clear history first to re-scan.`);
-            setTimeout(() => setErrorMessage(''), 3000);
-            return;
-          }
-
-          // LAYER 4: Multi-scan consensus — require 2 matching scans within 5 seconds
-          const pending = pendingScanRef.current;
-          if (pending && pending.lowerCode === lowerCode && (now - pending.timestamp < 5000)) {
-            // MATCH! Second scan confirms the first — auto-send
-            pendingScanRef.current = null;
-            setPendingScan(null);
-            if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
-            await sendBarcodeToPC(rawCode);
-            return;
-          }
-
-          // LAYER 5: New barcode — show confirmation card, wait for 2nd scan or manual confirm
-          pendingScanRef.current = { rawCode, lowerCode, timestamp: now, count: 1 };
-          setPendingScan({ rawCode, count: 1 });
-          triggerVibe('success');
-
-          // Auto-dismiss after 8 seconds if no confirmation
-          if (pendingTimeoutRef.current) clearTimeout(pendingTimeoutRef.current);
-          pendingTimeoutRef.current = setTimeout(() => {
-            if (pendingScanRef.current && pendingScanRef.current.lowerCode === lowerCode) {
-              pendingScanRef.current = null;
-              setPendingScan(null);
-            }
-          }, 8000);
-        },
-        (err) => {}
-      );
-    } catch (e) {
-      console.error("Failed to start scanning:", e);
-    }
-  };
-
-  // html5-qrcode scanner lifecycle
-  useEffect(() => {
-    let html5Qrcode = null;
-    if (session && cameraPermissionStatus === 'granted') {
-      const initScanner = async () => {
-        try {
-          const { Html5Qrcode } = await import('html5-qrcode');
-          html5Qrcode = new Html5Qrcode("mobile-reader-element");
-          html5QrCodeRef.current = html5Qrcode;
-
-          const devices = await Html5Qrcode.getCameras();
-          if (devices && devices.length > 0) {
-            setCameras(devices);
-            
-            // Auto select best back/environment camera
-            let defaultIdx = devices.findIndex(d => 
-              d.label.toLowerCase().includes('back') || 
-              d.label.toLowerCase().includes('rear') || 
-              d.label.toLowerCase().includes('environment')
-            );
-            if (defaultIdx === -1) defaultIdx = 0;
-            
-            setCurrentCameraIdx(defaultIdx);
-            await startScanning(html5Qrcode, devices[defaultIdx].id);
-          } else {
-            setErrorMessage("No cameras found on this device.");
-          }
-        } catch (e) {
-          console.error("Scanner init error:", e);
-          setErrorMessage("Failed to start camera feed.");
-        }
-      };
-      initScanner();
-    }
-    return () => {
-      if (html5Qrcode) {
-        html5Qrcode.stop().catch(e => console.error("Failed to stop scanner:", e));
-      }
-    };
-  }, [session, cameraPermissionStatus]);
-
-  const handleCycleCamera = async () => {
-    if (cameras.length <= 1 || !html5QrCodeRef.current) return;
-    
-    try {
-      await html5QrCodeRef.current.stop();
-      const nextIdx = (currentCameraIdx + 1) % cameras.length;
-      setCurrentCameraIdx(nextIdx);
-      await startScanning(html5QrCodeRef.current, cameras[nextIdx].id);
-    } catch (e) {
-      console.error("Failed to switch camera:", e);
-      setErrorMessage("Error switching camera lens.");
-      setTimeout(() => setErrorMessage(''), 3000);
-    }
-  };
-
-  // Hook to dynamically inject scanning laser line & custom corners over the live HTML video container
-  useEffect(() => {
-    if (cameraPermissionStatus === 'granted') {
-      const interval = setInterval(() => {
-        const videoElement = document.querySelector('#mobile-reader-element video');
-        if (videoElement) {
-          clearInterval(interval);
-          const videoParent = videoElement.parentElement;
-          if (videoParent) {
-            videoParent.style.position = 'relative';
-            if (!videoParent.querySelector('.custom-scan-overlay')) {
-              const overlay = document.createElement('div');
-              overlay.className = 'custom-scan-overlay absolute inset-0 pointer-events-none flex items-center justify-center z-10';
-              overlay.innerHTML = `
-                <div class="w-[250px] h-[250px] border-2 border-white/30 rounded-lg relative overflow-hidden transition-transform duration-300">
-                  <div class="absolute top-0 left-0 right-0 h-0.5 bg-success shadow-[0_0_8px_#10b981] animate-scanner-laser"></div>
-                  <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-success"></div>
-                  <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-success"></div>
-                  <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-success"></div>
-                  <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-success"></div>
-                </div>
-              `;
-              videoParent.appendChild(overlay);
-            }
-          }
-        }
-      }, 200);
-      return () => clearInterval(interval);
-    }
-  }, [cameraPermissionStatus]);
-
-  // Error/Success state displays
   if (!session) {
     return (
       <div className="h-[100dvh] bg-background flex flex-col items-center justify-center p-6 text-center font-sans overflow-hidden">
@@ -422,7 +239,7 @@ export default function ScanCompanionClient({ session }) {
         </div>
       </header>
 
-      {/* Floating toast messages — overlay without pushing layout */}
+      {/* Floating toast messages */}
       <div className="fixed top-[72px] left-4 right-4 z-[60] flex flex-col gap-2 max-w-md mx-auto pointer-events-none">
         {!isSessionActive && (
           <div className="bg-danger border border-danger/30 text-white rounded-lg px-3 py-2.5 text-xs font-semibold flex items-center gap-2 shadow-lg pointer-events-auto animate-slide-down">
@@ -509,7 +326,7 @@ export default function ScanCompanionClient({ session }) {
             
             {/* Manual Fallback Input Form */}
             <form onSubmit={handleManualSubmit} className="w-full flex flex-col gap-2 mt-2">
-              <label className="text-[11px] font-bold text-text-secondary text-left">Type/Scan Barcode Manually:</label>
+              <label className="text-[11px] font-bold text-text-secondary text-left font-sans uppercase">Type/Scan Barcode Manually:</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -581,24 +398,11 @@ export default function ScanCompanionClient({ session }) {
 
         {cameraPermissionStatus === 'granted' && (
           <div className="flex flex-col gap-4 flex-1">
-            {/* Live Camera Viewport */}
-            <div className="relative w-full rounded-xl overflow-hidden border border-border bg-surface shadow-sm">
-              <div id="mobile-reader-element" className="w-full"></div>
-            </div>
-
-            {/* Dynamic Camera Cycle Switch Button */}
-            {cameras.length > 1 && (
-              <div className="flex justify-center flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={handleCycleCamera}
-                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-bold shadow-sm transition-colors"
-                >
-                  <Camera size={14} className="text-primary animate-pulse" />
-                  <span>Switch Camera ({currentCameraIdx + 1}/{cameras.length}: {cameras[currentCameraIdx]?.label || 'Lens'})</span>
-                </button>
-              </div>
-            )}
+            {/* High Performance Continuous Camera Scanner */}
+            <ContinuousBarcodeScanner
+              onScan={sendBarcodeToPC}
+              isOpen={true}
+            />
 
             {/* Manual scan form fallback */}
             <form onSubmit={handleManualSubmit} className="bg-surface border border-border p-3 rounded-lg flex flex-col gap-2 shadow-sm">
@@ -623,43 +427,9 @@ export default function ScanCompanionClient({ session }) {
             {/* Instruction Banner */}
             <div className="bg-surface border border-border p-3 rounded-lg text-center">
               <span className="text-[11px] text-text-secondary leading-relaxed">
-                Position a barcode inside the square outline. Scan again to confirm, or tap Send/Skip below.
+                Aim camera at a barcode. It will scan and send automatically. Duplicate codes will be ignored.
               </span>
             </div>
-
-            {/* Pending Scan Confirmation Card */}
-            {pendingScan && (
-              <div className="bg-warning/5 border-2 border-warning/30 rounded-xl p-4 flex flex-col items-center gap-3 animate-slide-down">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-warning animate-pulse" />
-                  <span className="text-[10px] font-bold text-warning uppercase">Awaiting Confirmation</span>
-                </div>
-                <div className="bg-surface border border-border rounded-lg px-5 py-3 w-full text-center">
-                  <span className="text-lg font-mono font-extrabold text-text-primary tracking-wider">
-                    {pendingScan.rawCode}
-                  </span>
-                </div>
-                <p className="text-[10px] text-text-secondary text-center">
-                  Scan the same barcode again to auto-confirm, or use the buttons below.
-                </p>
-                <div className="flex items-center gap-3 w-full">
-                  <button
-                    type="button"
-                    onClick={rejectPendingScan}
-                    className="flex-1 py-2.5 bg-surface border border-border text-text-secondary hover:bg-danger/10 hover:text-danger hover:border-danger/30 text-xs font-bold rounded-lg transition-all"
-                  >
-                    Skip ✗
-                  </button>
-                  <button
-                    type="button"
-                    onClick={confirmPendingScan}
-                    className="flex-1 py-2.5 bg-success text-white hover:bg-success/90 text-xs font-bold rounded-lg shadow-sm transition-all"
-                  >
-                    Send ✓
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Live Scanned Items Ledger on Phone */}
             <div className="flex-1 bg-surface border border-border rounded-xl p-4 flex flex-col gap-2 min-h-[180px] max-h-[300px]">

@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import os from 'os';
 import { prisma } from '@/lib/prisma';
+import { EventEmitter } from 'events';
+
+if (!global.scanEmitter) {
+  global.scanEmitter = new EventEmitter();
+  global.scanEmitter.setMaxListeners(100);
+}
 
 // Helper to get local IP address of the server host PC
 function getLocalIpAddress() {
@@ -118,6 +124,9 @@ export async function PUT(request) {
         }
       }
     });
+
+    // Broadcast scan event to SSE listeners
+    global.scanEmitter.emit(`scan:${cleanSessionId}`, barcode.trim());
 
     return NextResponse.json({ success: true });
   } catch (e) {
