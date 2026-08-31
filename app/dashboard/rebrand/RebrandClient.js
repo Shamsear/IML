@@ -88,19 +88,16 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     if (rebrandActiveScanTarget === 'srcStart') {
       setRangeSrcStart(code);
       playBeep();
-      setIsCameraOpen(false);
       return;
     }
     if (rebrandActiveScanTarget === 'srcEnd') {
       setRangeSrcEnd(code);
       playBeep();
-      setIsCameraOpen(false);
       return;
     }
     if (rebrandActiveScanTarget === 'tgtStart') {
       setRangeTgtStart(code);
       playBeep();
-      setIsCameraOpen(false);
       return;
     }
 
@@ -110,10 +107,6 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
       if (added) playBeep();
     } else {
       toast.error('Not Available', `Barcode "${code}" is not in the Warehouse.`);
-    }
-
-    if (!isBulkScanRef.current) {
-      setIsCameraOpen(false);
     }
   }, [rebrandActiveScanTarget, availableBarcodes]);
   const { cameraPermissionStatus, retryCameraPermission } = useBarcodeScanner({
@@ -451,19 +444,16 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
       if (rebrandActiveScanTarget === 'srcStart') {
         setRangeSrcStart(cleanCode);
         playBeep();
-        setIsMobileModalOpen(false);
         return;
       }
       if (rebrandActiveScanTarget === 'srcEnd') {
         setRangeSrcEnd(cleanCode);
         playBeep();
-        setIsMobileModalOpen(false);
         return;
       }
       if (rebrandActiveScanTarget === 'tgtStart') {
         setRangeTgtStart(cleanCode);
         playBeep();
-        setIsMobileModalOpen(false);
         return;
       }
 
@@ -1322,65 +1312,49 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         </div>
       </form>
 
-      {/* Webcam camera scanner overlay modal */}
+      {/* Floating Webcam Scanner Panel */}
       {isCameraOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] sm:max-w-[850px] max-h-[90vh] shadow-lg flex flex-col gap-4 animate-slide-down overflow-hidden">
-            <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
-              <h3 className="font-display font-bold text-sm text-text-primary">Camera Barcode Scanner</h3>
-              <div className="flex items-center gap-3">
-                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    className="custom-checkbox"
-                    checked={isBulkScan}
-                    onChange={(e) => setIsBulkScan(e.target.checked)}
-                  />
-                  <span className="text-[10px] font-bold text-text-secondary uppercase">Bulk Scan</span>
-                </label>
-                <button 
-                  type="button" 
-                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" 
-                  onClick={() => setIsCameraOpen(false)}
-                >
-                  <X size={16} />
-                </button>
-              </div>
+        <div className="fixed bottom-4 right-4 z-[999] w-[520px] max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col animate-slide-up overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface-elevated/50 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-xs font-bold text-text-primary">Camera Scanner</span>
             </div>
-            {cameraPermissionStatus !== 'granted' ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
-                {cameraPermissionStatus === 'prompt' ? (
-                  <>
-                    <Loader2 size={32} className="animate-spin text-primary" />
-                    <span className="text-xs text-text-secondary">Requesting camera access...</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-16 h-16 rounded-full bg-danger/10 text-danger flex items-center justify-center">
-                      <Camera size={32} />
-                    </div>
-                    <div className="flex flex-col gap-1.5 max-w-sm">
-                      <h4 className="font-display font-extrabold text-base text-text-primary">Camera Access Blocked</h4>
-                      <p className="text-xs text-text-secondary leading-relaxed">
-                        Camera permissions are required to scan barcodes. Please enable it in browser settings.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => retryCameraPermission()}
-                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-colors"
-                    >
-                      Enable Camera Access
-                    </button>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="relative overflow-hidden rounded-xl border border-border flex-1 bg-black flex items-center justify-center">
-                <div id="camera-reader-element" className="w-full h-full"></div>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" className="custom-checkbox" checked={isBulkScan} onChange={(e) => setIsBulkScan(e.target.checked)} />
+                <span className="text-[10px] font-bold text-text-secondary uppercase">Bulk</span>
+              </label>
+              <button type="button" className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setIsCameraOpen(false)}>
+                <X size={14} />
+              </button>
+            </div>
           </div>
+
+          {rebrandActiveScanTarget && (
+            <div className="px-4 py-2 bg-primary/5 border-b border-border flex items-center gap-2 flex-shrink-0">
+              <span className="text-[10px] font-bold text-primary">Scanning into:</span>
+              <span className="text-[10px] font-semibold text-text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                {rebrandActiveScanTarget === 'srcStart' ? 'Source Range Start' : rebrandActiveScanTarget === 'srcEnd' ? 'Source Range End' : 'Target Range Start'}
+              </span>
+            </div>
+          )}
+          {!rebrandActiveScanTarget && (
+            <div className="px-4 py-2.5 bg-warning/5 border-b border-border flex items-center gap-2 flex-shrink-0">
+              <AlertCircle size={12} className="text-warning flex-shrink-0" />
+              <span className="text-[11px] font-semibold text-warning">Click a Scan button on the form to select target</span>
+            </div>
+          )}
+
+          {cameraPermissionStatus !== 'granted' ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-3 px-4">
+              {cameraPermissionStatus === 'prompt' ? (<><Loader2 size={24} className="animate-spin text-primary" /><span className="text-[11px] text-text-secondary">Requesting camera access...</span></>) : (
+                <><div className="w-10 h-10 rounded-full bg-danger/10 text-danger flex items-center justify-center"><Camera size={20} /></div><span className="text-[11px] text-text-secondary">Camera access blocked.</span><button type="button" onClick={() => retryCameraPermission()} className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-[11px] font-bold rounded-lg">Retry</button></>
+              )}
+            </div>
+          ) : (
+            <div className="relative h-[200px] bg-black"><div id="camera-reader-element" className="w-full h-full"></div></div>
+          )}
         </div>
       )}
 

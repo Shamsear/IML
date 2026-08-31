@@ -329,9 +329,7 @@ export default function ClientReturnsClient({ brands, products }) {
             });
           } else {
             const added = addBarcodeToActiveItem(code);
-            if (added) {
-              setIsCameraOpen(false);
-            }
+            // Keep scanner open for next scan
           }
         },
         () => {}
@@ -1093,93 +1091,58 @@ export default function ClientReturnsClient({ brands, products }) {
         </div>
       )}
 
-      {/* Webcam scanner modal */}
+      {/* Floating Webcam Scanner Panel */}
       {isCameraOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[650px] shadow-2xl flex flex-col gap-4 animate-slide-down">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5">
-                <Camera size={16} className="text-primary" />
-                <span>Webcam Barcode Scanner</span>
-              </h3>
-              <button 
-                type="button" 
-                className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer" 
-                onClick={() => setIsCameraOpen(false)}
-              >
-                <X size={16} />
+        <div className="fixed bottom-4 right-4 z-[999] w-[520px] max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col animate-slide-up overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface-elevated/50 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-xs font-bold text-text-primary">Camera Scanner</span>
+              <span className="text-[10px] font-semibold text-text-muted">{sessionScans.length} scanned</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" className="custom-checkbox" checked={isBulkScan} onChange={(e) => setIsBulkScan(e.target.checked)} />
+                <span className="text-[10px] font-bold text-text-secondary uppercase">Bulk</span>
+              </label>
+              <button type="button" className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setIsCameraOpen(false)}>
+                <X size={14} />
               </button>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden min-h-[250px]">
-              <div className="relative overflow-hidden rounded-xl border border-border bg-black flex items-center justify-center">
-                <div id="camera-reader-element" className="w-full h-full"></div>
-              </div>
-              
-              <div className="flex flex-col border border-border rounded-xl bg-surface-elevated/40 p-4 overflow-hidden">
-                <div className="flex justify-between items-center pb-2 border-b border-border mb-3 flex-shrink-0">
-                  <span className="text-xs font-bold text-text-primary uppercase">Scanned in this Session ({sessionScans.length})</span>
-                  {sessionScans.length > 0 && (
-                    <button                      type="button"
-                      onClick={() => {
-                        setSessionScans([]);
-                        setItems(prev => {
-                          if (!activeScanTarget) return prev;
-                          const { itemIdx } = activeScanTarget;
-                          return prev.map((x, i) => i === itemIdx ? { ...x, barcodesInput: '', selectedBarcodes: [], quantity: 0 } : x);
-                        });
-                      }}
-                      className="text-[10px] font-bold text-danger hover:underline cursor-pointer"
-                    >
-                      Clear All
-                    </button>
-                  )}
-                </div>
-                <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 pr-1 font-mono text-xs max-h-[200px]">
-                  {sessionScans.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-text-muted text-[11px] font-sans">
-                      No barcodes scanned yet.
-                    </div>
-                  ) : (
-                    sessionScans.map((bc, sIdx) => (
-                      <div key={sIdx} className="flex justify-between items-center py-1.5 px-2 bg-surface border border-border rounded-lg shadow-sm">
-                        <code className="text-text-primary text-[11px]">{bc}</code>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = sessionScans.filter((_, i) => i !== sIdx);
-                            setSessionScans(next);
-                            setItems(prev => {
-                              if (!activeScanTarget) return prev;
-                              const { itemIdx } = activeScanTarget;
-                              return prev.map((x, i) => i === itemIdx ? {
-                                ...x,
-                                barcodesInput: next.join('\n'),
-                                selectedBarcodes: next,
-                                quantity: next.length
-                              } : x);
-                            });
-                          }}
-                          className="text-[10px] text-danger font-bold hover:underline cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+          {activeScanTarget && (
+            <div className="px-4 py-2 bg-primary/5 border-b border-border flex items-center gap-2 flex-shrink-0">
+              <span className="text-[10px] font-bold text-primary">Scanning into:</span>
+              <span className="text-[10px] font-semibold text-text-primary bg-primary/10 px-2 py-0.5 rounded-full">Item #{activeScanTarget.itemIdx + 1} → {activeScanTarget.field === 'productId' ? 'Product' : 'Barcode List'}</span>
             </div>
-            
-            <div className="flex justify-end gap-2 border-t border-border pt-3">
-              <button
-                type="button"
-                onClick={() => setIsCameraOpen(false)}
-                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow cursor-pointer transition-colors"
-              >
-                Done Scanning
-              </button>
+          )}
+          {!activeScanTarget && (
+            <div className="px-4 py-2.5 bg-warning/5 border-b border-border flex items-center gap-2 flex-shrink-0">
+              <AlertCircle size={12} className="text-warning flex-shrink-0" />
+              <span className="text-[11px] font-semibold text-warning">Select a scan target on the form first</span>
             </div>
+          )}
+
+          <div className="flex flex-col">
+            <div className="relative h-[180px] bg-black"><div id="camera-reader-element" className="w-full h-full"></div></div>
+            {sessionScans.length > 0 && (
+              <div className="max-h-[100px] overflow-y-auto flex flex-col gap-1 p-3 bg-surface-elevated/30 border-t border-border">
+                {sessionScans.slice(-10).reverse().map((bc, sIdx) => (
+                  <div key={sIdx} className="flex justify-between items-center py-1 px-2 bg-surface border border-border rounded text-[11px] font-mono">
+                    <span className="text-text-primary">{bc}</span>
+                    <button type="button" onClick={() => {
+                      const next = sessionScans.filter((_, i) => i !== sessionScans.length - 1 - sIdx);
+                      setSessionScans(next);
+                      if (activeScanTarget) {
+                        const { itemIdx } = activeScanTarget;
+                        setItems(prev => prev.map((x, i) => i === itemIdx ? { ...x, barcodesInput: next.join('\n'), selectedBarcodes: next, quantity: next.length } : x));
+                      }
+                    }} className="text-[10px] font-bold text-danger hover:underline px-1">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

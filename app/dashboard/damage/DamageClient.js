@@ -109,11 +109,6 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
       }
       return prev;
     });
-
-    if (!isBulkScanRef.current) {
-      setIsCameraOpen(false);
-      setActiveCameraRow(null);
-    }
   }, [activeCameraRow]);
   const { cameraPermissionStatus, retryCameraPermission } = useBarcodeScanner({
     isOpen: isCameraOpen && activeCameraRow !== null,
@@ -1127,101 +1122,61 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         </div>
       </form>
 
-      {/* Webcam Scanning Modal Overlay */}
+      {/* Floating Webcam Scanner Panel */}
       {isCameraOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] sm:max-w-[850px] max-h-[90vh] shadow-lg flex flex-col gap-4 animate-slide-down overflow-hidden">
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
-              <h3 className="font-display font-bold text-sm text-text-primary">Scan Damaged Barcode</h3>
-              
-              <div className="flex items-center gap-3">
-                {/* Bulk Scan Toggle */}
-                <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    className="custom-checkbox"
-                    checked={isBulkScan}
-                    onChange={(e) => setIsBulkScan(e.target.checked)}
-                  />
-                  <span className="text-[10px] font-bold text-text-secondary uppercase">Bulk Scan</span>
-                </label>
-
-                <button 
-                  type="button" 
-                  className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" 
-                  onClick={() => { setIsCameraOpen(false); setActiveCameraRow(null); }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
+        <div className="fixed bottom-4 right-4 z-[999] w-[520px] max-w-[calc(100vw-2rem)] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col animate-slide-up overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-surface-elevated/50 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-xs font-bold text-text-primary">Scan Damaged Barcode</span>
+              <span className="text-[10px] font-semibold text-text-muted">{currentScannedCount} scanned</span>
             </div>
-            
-            {cameraPermissionStatus !== 'granted' ? (
-              // Full-screen modal content for prompt/denied states
-              <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
-                {cameraPermissionStatus === 'prompt' ? (
-                  <>
-                    <Loader2 size={32} className="animate-spin text-primary" />
-                    <span className="text-xs text-text-secondary">Requesting camera access...</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-16 h-16 rounded-full bg-danger/10 text-danger flex items-center justify-center">
-                      <Camera size={32} />
-                    </div>
-                    <div className="flex flex-col gap-1.5 max-w-sm">
-                      <h4 className="font-display font-extrabold text-base text-text-primary">Camera Permissions Blocked</h4>
-                      <p className="text-xs text-text-secondary leading-relaxed">
-                        Camera permissions are required to scan barcodes. Please click the button below to request access or adjust your browser address bar settings.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => retryCameraPermission()}
-                      className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-colors"
-                    >
-                      Enable Camera Access
-                    </button>
-                  </>
-                )}
-              </div>
-            ) : (
-              // Responsive Split Grid when granted
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch overflow-y-auto sm:overflow-hidden min-h-[300px]">
-                
-                {/* Left Column: Camera Viewport */}
-                <div className="flex flex-col gap-2 min-h-[260px] sm:min-h-0 justify-center">
-                  <div className="relative w-full rounded-lg overflow-hidden border border-border bg-surface flex items-center justify-center">
-                    {/* The html5-qrcode element */}
-                    <div id="camera-reader-element" className="w-full"></div>
-                  </div>
-                </div>
+            <div className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox" className="custom-checkbox" checked={isBulkScan} onChange={(e) => setIsBulkScan(e.target.checked)} />
+                <span className="text-[10px] font-bold text-text-secondary uppercase">Bulk</span>
+              </label>
+              <button type="button" className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => { setIsCameraOpen(false); setActiveCameraRow(null); }}>
+                <X size={14} />
+              </button>
+            </div>
+          </div>
 
-                {/* Right Column: Scanned list status logs */}
-                <div className="flex flex-col gap-3 min-h-[160px] sm:min-h-0 sm:overflow-hidden">
-                  {isBulkScan ? (
-                    <div className="flex-1 flex flex-col gap-2 p-3 bg-surface-elevated border border-border/65 rounded-lg overflow-hidden">
-                      <div className="flex justify-between items-center flex-shrink-0">
-                        <span className="text-[10px] font-bold text-text-secondary uppercase">
-                          Scanned Barcodes ({currentScannedCount})
-                        </span>
-                        {currentScannedCount > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => handleFieldChange(activeCameraRow, 'selectedBarcodes', [])}
-                            className="text-[10px] text-danger hover:underline font-semibold"
-                          >
-                            Clear All
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex-1 overflow-y-auto pr-1">
-                        {currentScannedCount === 0 ? (
-                          <span className="text-[11px] text-text-muted italic block py-4 text-center">
-                            Ready to scan... Position code in video container overlay.
-                          </span>
+          {activeCameraRow !== null && (
+            <div className="px-4 py-2 bg-primary/5 border-b border-border flex items-center gap-2 flex-shrink-0">
+              <span className="text-[10px] font-bold text-primary">Scanning into:</span>
+              <span className="text-[10px] font-semibold text-text-primary bg-primary/10 px-2 py-0.5 rounded-full">Item #{activeCameraRow + 1}</span>
+            </div>
+          )}
+          {activeCameraRow === null && (
+            <div className="px-4 py-2.5 bg-warning/5 border-b border-border flex items-center gap-2 flex-shrink-0">
+              <AlertCircle size={12} className="text-warning flex-shrink-0" />
+              <span className="text-[11px] font-semibold text-warning">Select an item's Scan button on the form first</span>
+            </div>
+          )}
+
+          {cameraPermissionStatus !== 'granted' ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-3 px-4">
+              {cameraPermissionStatus === 'prompt' ? (
+                <><Loader2 size={24} className="animate-spin text-primary" /><span className="text-[11px] text-text-secondary">Requesting camera access...</span></>
+              ) : (
+                <><div className="w-10 h-10 rounded-full bg-danger/10 text-danger flex items-center justify-center"><Camera size={20} /></div><span className="text-[11px] text-text-secondary">Camera access blocked.</span><button type="button" onClick={() => retryCameraPermission()} className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-[11px] font-bold rounded-lg">Retry</button></>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              <div className="relative h-[180px] bg-black"><div id="camera-reader-element" className="w-full h-full"></div></div>
+              {isBulkScan && currentScannedCount > 0 && (
+                <div className="max-h-[100px] overflow-y-auto flex flex-wrap gap-1.5 p-3 bg-surface-elevated/30 border-t border-border">
+                  {scannedBarcodesList.map((code, idx) => (
+                    <span key={idx} className="inline-flex items-center gap-1 bg-danger/10 text-danger border border-danger/20 text-[10px] font-mono px-2 py-0.5 rounded font-semibold">{code}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
                         ) : (
                           <div className="flex flex-wrap gap-1.5 p-1.5 bg-surface rounded border border-border/40">
                             {scannedBarcodesList.map((code, idx) => (
@@ -1235,22 +1190,6 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                           </div>
                         )}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col gap-2 p-4 bg-surface-elevated rounded-lg border border-border text-center text-text-secondary justify-center">
-                      <QrCode className="mx-auto text-text-muted mb-2" size={32} />
-                      <span className="text-xs font-bold text-text-primary">Single Scan Mode</span>
-                      <p className="text-[11px] text-text-secondary leading-relaxed px-2">
-                        Align a barcode inside the target box. The scanner will register the code and close the window automatically.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Mobile Scanner Pairing Modal */}
       {isMobileModalOpen && mobileSession && (
