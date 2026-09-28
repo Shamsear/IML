@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, BarChart3, Tag, ClipboardList, Info, X, RotateCcw, Loader2, CheckCircle, AlertCircle, History, ArrowUpRight, ArrowDownLeft, FileText } from 'lucide-react';
@@ -8,6 +8,7 @@ import { returnClientItemsToWarehouse } from '@/app/actions/transactions';
 import ExportToExcel from '@/components/ExportToExcel';
 import { useToast } from '@/components/Toast';
 import TabNav from '@/components/TabNav';
+import Pagination from '@/components/Pagination';
 
 export default function ClientReturnsBalancesClient({ balances, recentTransactions = [] }) {
   const toast = useToast();
@@ -18,10 +19,24 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
   // Tab state
   const [activeTab, setActiveTab] = useState('stock'); // 'stock' or 'history'
 
+  // Pagination states
+  const [stockPage, setStockPage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
+  const stockItemsPerPage = 12;
+  const historyItemsPerPage = 25;
+
+  useEffect(() => {
+    setStockPage(1);
+  }, [searchQuery]);
+
   // History tab state
   const [historySearch, setHistorySearch] = useState('');
   const [historyDirection, setHistoryDirection] = useState('all'); // 'all', 'toClient', 'fromClient'
   const [historyPdfLoading, setHistoryPdfLoading] = useState(null);
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historySearch, historyDirection]);
   
   // Return-to-warehouse modal state
   const [returnModal, setReturnModal] = useState(null); // { brandId, brandName, items: [...] }
@@ -65,6 +80,11 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
     return (balances || []).reduce((acc, curr) => acc + curr.quantity, 0);
   }, [balances]);
 
+  const totalStockPages = Math.ceil(balancesByBrand.length / stockItemsPerPage);
+  const paginatedBrands = useMemo(() => {
+    return balancesByBrand.slice((stockPage - 1) * stockItemsPerPage, stockPage * stockItemsPerPage);
+  }, [balancesByBrand, stockPage, stockItemsPerPage]);
+
   // --- History tab helpers ---
   const filteredHistory = useMemo(() => {
     return (recentTransactions || []).filter(tx => {
@@ -86,6 +106,11 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
       return matchDirection && matchSearch;
     });
   }, [recentTransactions, historySearch, historyDirection]);
+
+  const totalHistoryPages = Math.ceil(filteredHistory.length / historyItemsPerPage);
+  const paginatedHistory = useMemo(() => {
+    return filteredHistory.slice((historyPage - 1) * historyItemsPerPage, historyPage * historyItemsPerPage);
+  }, [filteredHistory, historyPage, historyItemsPerPage]);
 
   const handleHistoryDownloadPDF = async (tx) => {
     const isFromClient = tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE';
@@ -233,8 +258,8 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
         setReturnSuccess('Successfully returned items to warehouse! Generating gate pass PDF...');
 
         // Download gate pass PDF
-        const refNo = result[0].deliveryNote;
-        const dateStr = returnDate || new Date().toISOString().split('T')[0];
+        const refNo = result[0]?.deliveryNote || result?.deliveryNote;
+        const dateStr = (returnDate ? returnDate.split('T')[0] : '') || new Date().toISOString().split('T')[0];
         const url = `/api/dashboard/client-returns/return-gate-pass?dn=${encodeURIComponent(refNo)}&brandId=${returnModal.brandId}&date=${dateStr}`;
         try {
           const pdfRes = await fetch(url);
@@ -288,26 +313,18 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
         <div className="flex items-center gap-3">
           <ExportToExcel
             data={filteredBalances.map(b => ({
+              SKU: b.itemCode || '',
               Product: b.productName,
-              Brand: b.productBrand,
-              Category: b.productCategory || '',
-              Client: b.clientName || '',
-              'Client Type': b.clientType || '',
-              Quantity: b.totalQuantity,
-              'With Client': b.totalWithClient,
-              Dispatched: b.totalDispatched,
-              Returned: b.totalReturned,
+              Brand: b.brandName,
+              Category: b.category || '',
+              Quantity: b.quantity,
             }))}
             columns={[
+              { header: 'SKU', key: 'SKU', width: 15 },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'Category', key: 'Category', width: 16 },
-              { header: 'Client', key: 'Client', width: 20 },
-              { header: 'Client Type', key: 'Client Type', width: 12 },
-              { header: 'Quantity', key: 'Quantity', width: 10 },
-              { header: 'With Client', key: 'With Client', width: 12 },
-              { header: 'Dispatched', key: 'Dispatched', width: 12 },
-              { header: 'Returned', key: 'Returned', width: 10 },
+              { header: 'Quantity', key: 'Quantity', width: 12 },
             ]}
             filename="IML-Client-Balances"
           />
@@ -347,6 +364,20 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
             </span>
           </div>
 
+          {/* Top Pagination */}
+          {balancesByBrand.length > 0 && (
+            <div className="bg-surface border border-border rounded-xl px-4 py-2 shadow-sm">
+              <Pagination
+                currentPage={stockPage}
+                totalPages={totalStockPages}
+                totalItems={balancesByBrand.length}
+                itemsPerPage={stockItemsPerPage}
+                onPageChange={setStockPage}
+                itemLabel="brands"
+              />
+            </div>
+          )}
+
           {/* Brand Summary Cards */}
           <div className="grid grid-cols-1 gap-6">
             {balancesByBrand.length === 0 ? (
@@ -354,7 +385,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                 No items are currently recorded as "With Client".
               </div>
             ) : (
-              balancesByBrand.map(brandGroup => (
+              paginatedBrands.map(brandGroup => (
                 <div key={brandGroup.brandId} className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col gap-4 p-5">
                   <h3 className="font-display font-extrabold text-base text-primary flex items-center gap-2 pb-2.5 border-b border-border">
                     <Tag size={16} />
@@ -412,6 +443,20 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
               ))
             )}
           </div>
+
+          {/* Bottom Pagination */}
+          {balancesByBrand.length > 0 && (
+            <div className="bg-surface border border-border rounded-xl px-4 py-2 shadow-sm">
+              <Pagination
+                currentPage={stockPage}
+                totalPages={totalStockPages}
+                totalItems={balancesByBrand.length}
+                itemsPerPage={stockItemsPerPage}
+                onPageChange={setStockPage}
+                itemLabel="brands"
+              />
+            </div>
+          )}
         </>
       ) : (
         /* TAB 2: HISTORY */
@@ -452,12 +497,26 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
             </span>
           </div>
 
+          {/* Top Pagination */}
+          {filteredHistory.length > 0 && (
+            <div className="bg-surface border border-border rounded-xl px-4 py-2 shadow-sm">
+              <Pagination
+                currentPage={historyPage}
+                totalPages={totalHistoryPages}
+                totalItems={filteredHistory.length}
+                itemsPerPage={historyItemsPerPage}
+                onPageChange={setHistoryPage}
+                itemLabel="transactions"
+              />
+            </div>
+          )}
+
           {/* Mobile Card View */}
           <div className="md:hidden flex flex-col gap-3">
             {filteredHistory.length === 0 ? (
               <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-muted text-xs shadow-sm">No transactions found.</div>
             ) : (
-              filteredHistory.map((tx) => {
+              paginatedHistory.map((tx) => {
                 const isFromClient = tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE';
                 const dateObj = new Date(tx.timestamp);
                 const formattedDate = dateObj.toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' });
@@ -503,7 +562,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                     </td>
                   </tr>
                 ) : (
-                  filteredHistory.map((tx) => {
+                  paginatedHistory.map((tx) => {
                     const isFromClient = tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE';
                     const direction = isFromClient ? 'fromClient' : 'toClient';
                     const dateObj = new Date(tx.timestamp);
@@ -558,6 +617,20 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
               </tbody>
             </table>
           </div>
+
+          {/* Bottom Pagination */}
+          {filteredHistory.length > 0 && (
+            <div className="bg-surface border border-border rounded-xl px-4 py-2 shadow-sm">
+              <Pagination
+                currentPage={historyPage}
+                totalPages={totalHistoryPages}
+                totalItems={filteredHistory.length}
+                itemsPerPage={historyItemsPerPage}
+                onPageChange={setHistoryPage}
+                itemLabel="transactions"
+              />
+            </div>
+          )}
         </div>
       )}
 

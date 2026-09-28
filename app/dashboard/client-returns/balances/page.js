@@ -54,8 +54,8 @@ export default async function ClientReturnsBalancesPage() {
 
   return (
     <ClientReturnsBalancesClient
-      balances={balances}
-      recentTransactions={recentTransactions}
+      balances={JSON.parse(JSON.stringify(balances))}
+      recentTransactions={JSON.parse(JSON.stringify(recentTransactions))}
     />
   );
 }

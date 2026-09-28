@@ -9,6 +9,7 @@ import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
 import ExportToExcel from '@/components/ExportToExcel';
 import PageHeader from '@/components/PageHeader';
+import Pagination from '@/components/Pagination';
 
 export default function ReturnsClient({ transactions, stores, pastReturns = [] }) {
   const router = useRouter();
@@ -19,9 +20,11 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
 
   const changeTab = (tab) => {
     setActiveTab(tab);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
     params.set('tab', tab);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
+    }
   };
 
   const [searchDN, setSearchDN] = useState(initialDN);
@@ -33,12 +36,26 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
   const [success, setSuccess] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Pagination states
+  const [txPage, setTxPage] = useState(1);
+  const [groupPage, setGroupPage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
+  const itemsPerPage = 25;
+
+  useEffect(() => {
+    setTxPage(1);
+    setGroupPage(1);
+  }, [searchDN, searchStore]);
+
   // --- Filtering ---
   const filteredTransactions = useMemo(() => transactions.filter(tx => {
     const matchDN = !searchDN || tx.deliveryNote?.toLowerCase().includes(searchDN.toLowerCase());
     const matchStore = !searchStore || tx.toEntityId === searchStore;
     return matchDN && matchStore;
   }), [transactions, searchDN, searchStore]);
+
+  const totalTxPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const paginatedTransactions = filteredTransactions.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
 
   // --- Grouping by Return Note ---
   const deliveryNoteGroups = useMemo(() => {
@@ -52,6 +69,12 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
     });
     return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [filteredTransactions, stores]);
+
+  const totalGroupPages = Math.ceil(deliveryNoteGroups.length / itemsPerPage);
+  const paginatedGroups = deliveryNoteGroups.slice((groupPage - 1) * itemsPerPage, groupPage * itemsPerPage);
+
+  const totalHistoryPages = Math.ceil(pastReturns.length / itemsPerPage);
+  const paginatedHistory = pastReturns.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage);
 
   // --- Selection helpers ---
   const handleSelect = (txId, isSelected) => {
@@ -95,7 +118,11 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
     setIsSubmitting(true);
     try {
       const res = await processOutboundReturns(payload);
-      if (res.success) { setConfirmOpen(true); setProcessingItems({}); }
+      if (res.success) { 
+        setConfirmOpen(true); 
+        setProcessingItems({}); 
+        router.refresh();
+      }
     } catch (err) {
       setError(err.message || 'An error occurred');
     } finally { setIsSubmitting(false); }
@@ -183,11 +210,21 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
           {/* ── TAB: ALL ITEMS ── */}
           {activeTab === 'transactions' && (
             <>
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={txPage}
+              totalPages={totalTxPages}
+              totalItems={filteredTransactions.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setTxPage}
+              itemLabel="items"
+            />
+
             {/* Mobile Card View */}
             <div className="md:hidden flex flex-col gap-3 p-4">
               {filteredTransactions.length === 0 ? (
                 <div className="py-12 text-center text-text-muted flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returnable items found.</span></div>
-              ) : filteredTransactions.map(tx => {
+              ) : paginatedTransactions.map(tx => {
                 const isSelected = !!processingItems[tx.id];
                 const remainingQty = tx.quantity - (tx.returnedQty || 0);
                 const itemState = processingItems[tx.id];
@@ -195,9 +232,14 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                   <div key={tx.id} className={`bg-surface border rounded-xl p-4 flex flex-col gap-2.5 transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
                           <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-primary truncate hover:text-primary-hover transition-colors">{tx.product?.name}</Link>
+                          {tx.product?.isReturnable && tx.product?.isDisposable ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
                           <span>{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</span>
@@ -239,14 +281,21 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     <tr><td colSpan="8" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returnable items found.</span></div>
                     </td></tr>
-                  ) : filteredTransactions.map(tx => {
+                  ) : paginatedTransactions.map(tx => {
                     const isSelected = !!processingItems[tx.id];
                     const remainingQty = tx.quantity - (tx.returnedQty || 0);
                     const itemState = processingItems[tx.id];
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/30'}`}>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
-                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}><Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-primary hover:text-primary-hover transition-colors">{tx.product?.name}</Link></td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
+                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-primary hover:text-primary-hover transition-colors">{tx.product?.name}</Link>
+                          {tx.product?.isReturnable && tx.product?.isDisposable ? (
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                          ) : (
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
+                          )}
+                        </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
                         </td>
@@ -283,18 +332,39 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                 </tbody>
               </table>
             </div>
+
+            {/* Bottom Pagination */}
+            <Pagination
+              currentPage={txPage}
+              totalPages={totalTxPages}
+              totalItems={filteredTransactions.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setTxPage}
+              itemLabel="items"
+            />
             </>
           )}
 
           {/* ── TAB: BY RETURN NOTE ── */}
           {activeTab === 'grouped' && (
+            <>
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={groupPage}
+              totalPages={totalGroupPages}
+              totalItems={deliveryNoteGroups.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setGroupPage}
+              itemLabel="delivery notes"
+            />
+
             <div className="flex flex-col divide-y divide-border">
               {deliveryNoteGroups.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
                   <Package size={48} className="opacity-20" />
                   <span className="font-semibold">No returnable delivery notes found.</span>
                 </div>
-              ) : deliveryNoteGroups.map(group => {
+              ) : paginatedGroups.map(group => {
                 const isExpanded = !!expandedGroups[group.dn];
                 const allSelected = group.items.length > 0 && group.items.every(tx => !!processingItems[tx.id]);
                 const someSelected = group.items.some(tx => !!processingItems[tx.id]);
@@ -360,7 +430,14 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                                   <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-16">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
                                   </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-primary">{tx.product?.name}</td>
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-primary">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span>{tx.product?.name}</span>
+                                      {tx.product?.isReturnable && tx.product?.isDisposable && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                                      )}
+                                    </div>
+                                  </td>
                                   <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs">{remainingQty}</td>
                                   <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                                     <input type="number" min="1" max={remainingQty} disabled={!isSelected}
@@ -383,10 +460,32 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                 );
               })}
             </div>
+
+            {/* Bottom Pagination */}
+            <Pagination
+              currentPage={groupPage}
+              totalPages={totalGroupPages}
+              totalItems={deliveryNoteGroups.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setGroupPage}
+              itemLabel="delivery notes"
+            />
+            </>
           )}
 
           {/* ── TAB: RETURNS HISTORY ── */}
           {activeTab === 'history' && (
+            <>
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={historyPage}
+              totalPages={totalHistoryPages}
+              totalItems={pastReturns.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setHistoryPage}
+              itemLabel="returns"
+            />
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
@@ -404,7 +503,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                     <tr><td colSpan="6" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returns logs found.</span></div>
                     </td></tr>
-                  ) : pastReturns.map(tx => {
+                  ) : paginatedHistory.map(tx => {
                     const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
@@ -429,6 +528,17 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
                 </tbody>
               </table>
             </div>
+
+            {/* Bottom Pagination */}
+            <Pagination
+              currentPage={historyPage}
+              totalPages={totalHistoryPages}
+              totalItems={pastReturns.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setHistoryPage}
+              itemLabel="returns"
+            />
+            </>
           )}
 
           {/* Footer */}
@@ -451,7 +561,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        onClose={() => { setConfirmOpen(false); router.refresh(); }}
         type="success"
         title="Stock Returned"
         message="Selected items have been returned to the warehouse successfully."

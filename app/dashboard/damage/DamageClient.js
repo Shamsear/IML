@@ -658,7 +658,11 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/damage'); }}
+        onClose={() => { 
+          setConfirmOpen(false); 
+          router.push((lockedType === 'LOST' || reportType === 'LOST') ? '/dashboard/loss' : '/dashboard/damage'); 
+          router.refresh(); 
+        }}
         type="success"
         title={confirmData.title}
         message={confirmData.message}

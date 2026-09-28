@@ -112,7 +112,7 @@ export default function EditStoreClient({ store }) {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push(`/dashboard/stores/${store.id}`); }}
+        onClose={() => { setConfirmOpen(false); router.push(`/dashboard/stores/${store.id}`); router.refresh(); }}
         type="success"
         title="Store Updated"
         message={`"${name}" has been updated successfully.`}

@@ -19,9 +19,11 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
 
   const changeTab = (tab) => {
     setActiveTab(tab);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
     params.set('tab', tab);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
+    }
   };
   const [pdfLoadingKey, setPdfLoadingKey] = useState(null); // tracks which group's PDF button is loading
   
@@ -168,6 +170,21 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
               />
             </div>
           </div>
+
+          {/* Top Pagination */}
+          {totalPages > 1 && !productFilter && !storeId && (
+            <div className="flex items-center justify-between px-5 py-3 border border-border bg-surface rounded-xl shadow-sm text-xs print:hidden">
+              <span className="text-text-muted">
+                Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{" "}
+                <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{" "}
+                <strong className="text-text-primary">{totalCount}</strong> dispatches
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Link href={`/dashboard/outbound?page=${Math.max(1, page - 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}>Previous</Link>
+                <Link href={`/dashboard/outbound?page=${Math.min(totalPages, page + 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === totalPages ? 'pointer-events-none opacity-50' : ''}`}>Next</Link>
+              </div>
+            </div>
+          )}
 
           {/* Mobile Card View */}
           {filteredTransactions.length === 0 ? (

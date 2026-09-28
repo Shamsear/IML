@@ -293,6 +293,37 @@ export default function BrandPortalClient({ brand }) {
               </div>
             ) : (
               <>
+                {/* Top Product Pagination */}
+                {totalProductPages > 1 && (
+                  <div className="flex items-center justify-between px-3 py-2 border border-border bg-surface-elevated/20 text-[10px] mb-2 rounded-lg print:hidden">
+                    <span className="text-text-muted">
+                      Showing <strong className="text-text-primary">{productPage * itemsPerPage + 1}</strong> to{" "}
+                      <strong className="text-text-primary">
+                        {Math.min((productPage + 1) * itemsPerPage, filteredProducts.length)}
+                      </strong> of{" "}
+                      <strong className="text-text-primary">{filteredProducts.length}</strong> items
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        disabled={productPage === 0}
+                        onClick={() => setProductPage(prev => Math.max(0, prev - 1))}
+                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
+                      >
+                        Prev
+                      </button>
+                      <button
+                        type="button"
+                        disabled={productPage === totalProductPages - 1}
+                        onClick={() => setProductPage(prev => Math.min(totalProductPages - 1, prev + 1))}
+                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Mobile Card View */}
                 <div className="md:hidden flex flex-col gap-3">
                   {paginatedProducts.map(p => {
@@ -499,6 +530,37 @@ export default function BrandPortalClient({ brand }) {
                 </div>
               </div>
             </div>
+
+            {/* Top Logs Pagination */}
+            {totalLogPages > 1 && (
+              <div className="flex items-center justify-between px-3 py-2 border border-border bg-surface-elevated/20 text-[10px] flex-shrink-0 mb-1 rounded-lg print:hidden">
+                <span className="text-text-muted">
+                  Showing <strong className="text-text-primary">{logPage * itemsPerPage + 1}</strong> to{" "}
+                  <strong className="text-text-primary">
+                    {Math.min((logPage + 1) * itemsPerPage, filteredTransactions.length)}
+                  </strong> of{" "}
+                  <strong className="text-text-primary">{filteredTransactions.length}</strong> logs
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={logPage === 0}
+                    onClick={() => setLogPage(prev => Math.max(0, prev - 1))}
+                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    disabled={logPage === totalLogPages - 1}
+                    onClick={() => setLogPage(prev => Math.min(totalLogPages - 1, prev + 1))}
+                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-6">
               {filteredTransactions.length === 0 ? (

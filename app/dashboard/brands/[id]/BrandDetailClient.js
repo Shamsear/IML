@@ -130,6 +130,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     try {
       await connectStoreToBrand(brand.id, storeToConnect);
       toast.success('Outlet Connected', 'The store has been linked to this brand.');
+      setActiveModal(null);
+      setStoreToConnect('');
       router.refresh();
     } catch (err) {
       setError(err.message || 'Failed to connect store');
@@ -180,6 +182,12 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     try {
       await createProduct(formData);
       toast.success('Product Created', 'New product has been added to the catalog.');
+      setActiveModal(null);
+      setProductName('');
+      setProductCode('');
+      setProductCategory('');
+      setProductCap('');
+      setProductFile(null);
       router.refresh();
     } catch (err) {
       setError(err.message || 'Failed to create product');
@@ -399,6 +407,37 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           </div>
         ) : (
           <>
+          {/* Top Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border border-border bg-surface-elevated/20 text-xs rounded-xl print:hidden">
+              <span className="text-text-muted">
+                Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{" "}
+                <strong className="text-text-primary">
+                  {Math.min((currentPage + 1) * itemsPerPage, brand.products.length)}
+                </strong> of{" "}
+                <strong className="text-text-primary">{brand.products.length}</strong> products
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={currentPage === 0}
+                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages - 1}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-all duration-200"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Mobile Card View */}
           <div className="md:hidden flex flex-col gap-3">
             {paginatedProducts.map(product => {

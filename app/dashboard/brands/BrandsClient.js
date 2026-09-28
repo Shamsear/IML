@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { deleteBrand } from '@/app/actions/brands';
 import { Tag, Plus, Edit2, Trash2, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
@@ -8,19 +9,35 @@ import { getOptimizedImageUrl } from '@/lib/imagekit';
 import EmptyState from '@/components/EmptyState';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
+import Pagination from '@/components/Pagination';
 
 export default function BrandsClient({ initialBrands }) {
+  const router = useRouter();
   const toast = useToast();
   const [brands, setBrands] = useState(initialBrands);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 24;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
+
+  useEffect(() => {
+    setBrands(initialBrands);
+  }, [initialBrands]);
 
   const filteredBrands = brands.filter(b =>
     b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (b.description && b.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const totalPages = Math.ceil(filteredBrands.length / itemsPerPage);
+  const paginatedBrands = filteredBrands.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleDelete = (id) => {
     setConfirmData({
@@ -34,6 +51,7 @@ export default function BrandsClient({ initialBrands }) {
           await deleteBrand(id);
           setBrands(prev => prev.filter(b => b.id !== id));
           toast.success('Brand Deleted', 'The brand and all associated data have been removed.');
+          router.refresh();
         } catch (err) {
           toast.error('Delete Failed', err.message || 'Could not delete brand.');
         } finally {
@@ -88,6 +106,16 @@ export default function BrandsClient({ initialBrands }) {
             />
           </div>
 
+          {/* Top Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredBrands.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            itemLabel="brands"
+          />
+
           {filteredBrands.length === 0 ? (
             searchQuery ? (
               <div className="bg-surface border border-border rounded-xl shadow-sm">
@@ -110,7 +138,7 @@ export default function BrandsClient({ initialBrands }) {
             )
           ) : (
             <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
-              {filteredBrands.map((brand) => (
+              {paginatedBrands.map((brand) => (
                 <div key={brand.id} className="bg-surface border border-border rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex sm:flex-col group relative overflow-hidden">
                   {/* Brand Image/Logo Container */}
                   <div className="w-16 h-16 sm:w-full sm:h-auto sm:aspect-square bg-white flex items-center justify-center relative overflow-hidden flex-shrink-0 sm:rounded-t-md rounded-l-xl sm:rounded-l-none">
@@ -177,6 +205,16 @@ export default function BrandsClient({ initialBrands }) {
               ))}
             </div>
           )}
+
+          {/* Bottom Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredBrands.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            itemLabel="brands"
+          />
         </div>
       </div>
 

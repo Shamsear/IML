@@ -213,6 +213,16 @@ export default function ReportsClient({ initialProducts, brands }) {
         ]}
       />
 
+      {/* Top Pagination */}
+      <Pagination
+        currentPage={currentPage + 1}
+        totalPages={totalPages}
+        totalItems={filteredProducts.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={(page) => setCurrentPage(page - 1)}
+        itemLabel="products"
+      />
+
       {/* Mobile Card View */}
       {filteredProducts.length === 0 ? (
         <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm text-center py-12 text-sm text-text-secondary italic">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createStore, updateStore, deleteStore, createBulkStores } from '@/app/actions/stores';
 import { Store, Plus, Edit2, Trash2, MapPin, Search, Loader2, X } from 'lucide-react';
@@ -9,6 +9,7 @@ import CustomSelect from '@/components/CustomSelect';
 import EmptyState from '@/components/EmptyState';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
+import Pagination from '@/components/Pagination';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
@@ -20,9 +21,20 @@ export default function StoresClient({ initialStores }) {
   const [editingStore, setEditingStore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setStores(initialStores);
+  }, [initialStores]);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 24;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedRegionFilter]);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
 
@@ -155,6 +167,7 @@ export default function StoresClient({ initialStores }) {
           await deleteStore(id);
           setStores(prev => prev.filter(s => s.id !== id));
           toast.success('Store Deleted', 'The store has been removed.');
+          router.refresh();
         } catch (err) {
           toast.error('Delete Failed', err.message || 'Could not delete store.');
         } finally {
@@ -171,6 +184,9 @@ export default function StoresClient({ initialStores }) {
     const matchesRegion = selectedRegionFilter === 'ALL' || store.region === selectedRegionFilter;
     return matchesSearch && matchesRegion;
   });
+
+  const totalPages = Math.ceil(filteredStores.length / itemsPerPage);
+  const paginatedStores = filteredStores.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="flex flex-col gap-6 relative">
@@ -426,6 +442,18 @@ export default function StoresClient({ initialStores }) {
           </div>
         )}
 
+        {/* Top Pagination */}
+        {!isFormOpen && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredStores.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            itemLabel="stores"
+          />
+        )}
+
         {/* Grid List */}
         <div className="w-full">
           {filteredStores.length === 0 ? (
@@ -440,7 +468,7 @@ export default function StoresClient({ initialStores }) {
             </div>
           ) : (
             <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6 animate-fade-in">
-              {filteredStores.map((store) => (
+              {paginatedStores.map((store) => (
                 <div key={store.id} onClick={() => router.push(`/dashboard/stores/${store.id}`)} className="bg-surface border border-border rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 flex sm:flex-col sm:gap-4 gap-2 group cursor-pointer">
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -481,6 +509,18 @@ export default function StoresClient({ initialStores }) {
             </div>
           )}
         </div>
+
+        {/* Bottom Pagination */}
+        {!isFormOpen && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredStores.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            itemLabel="stores"
+          />
+        )}
       </div>
 
       <ConfirmModal

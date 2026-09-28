@@ -30,9 +30,11 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
 
   const changeTab = (tab) => {
     setActiveTab(tab);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
     params.set('tab', tab);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
+    }
   };
 
   const toggleDnExpand = (dnKey) => {
@@ -483,30 +485,63 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
         </button>
       </div>
 
+      {/* Top Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
+          <span className="text-text-muted">
+            Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{' '}
+            <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{' '}
+            <strong className="text-text-primary">{totalCount}</strong> entries
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => changePage(page - 1)}
+              disabled={page <= 1}
+              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={() => changePage(page + 1)}
+              disabled={page >= totalPages}
+              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       {activeTab === 'dispatched' && renderGroupedGatePasses(filteredDispatchedGroups, 'No dispatch gate passes logged yet.')}
       {activeTab === 'dispatched-flat' && renderFlatTransactions(filteredDispatchedTxs)}
       {activeTab === 'returned' && renderGroupedGatePasses(filteredReturnedGroups, 'No return gate passes logged yet.')}
       {activeTab === 'returned-flat' && renderFlatTransactions(filteredReturnedTxs)}
 
-      {/* Pagination Controls */}
+      {/* Bottom Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4 border-t border-border mt-2 flex-shrink-0">
-          <span className="text-xs text-text-secondary font-medium">
-            Page <strong>{page}</strong> of {totalPages} ({totalCount} total entries)
+        <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
+          <span className="text-text-muted">
+            Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{' '}
+            <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{' '}
+            <strong className="text-text-primary">{totalCount}</strong> entries
           </span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
             <button
+              type="button"
               onClick={() => changePage(page - 1)}
               disabled={page <= 1}
-              className="px-3.5 py-1.5 border border-border bg-surface text-text-secondary hover:bg-surface-elevated text-xs font-semibold rounded-lg shadow-sm disabled:opacity-40 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
             >
               Previous
             </button>
             <button
+              type="button"
               onClick={() => changePage(page + 1)}
               disabled={page >= totalPages}
-              className="px-3.5 py-1.5 border border-border bg-surface text-text-secondary hover:bg-surface-elevated text-xs font-semibold rounded-lg shadow-sm disabled:opacity-40 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
             >
               Next
             </button>

@@ -31,6 +31,12 @@ export default function TransactionsClient({
   const [filterProduct, setFilterProduct] = useState(initialProductId);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
 
+  useEffect(() => {
+    setFilterType(initialType);
+    setFilterProduct(initialProductId);
+    setSearchQuery(initialSearch);
+  }, [initialType, initialProductId, initialSearch]);
+
   // Reference to prevent searching on mount
   const searchTimeoutRef = useRef(null);
 
@@ -76,57 +82,63 @@ export default function TransactionsClient({
         <History size={250} />
       </div>
       {/* Header */}
-      <header className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 pb-5 border-b border-border">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
-            Inventory Ledger Feed
-          </h1>
-          <p className="text-text-secondary text-sm mt-1">
-            Audit logs of stock dispatches, returns, rebrands, and damages.
-          </p>
+      <header className="flex flex-col gap-4 pb-5 border-b border-border">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
+              Inventory Ledger Feed
+            </h1>
+            <p className="text-text-secondary text-sm mt-1">
+              Audit logs of stock dispatches, returns, rebrands, and damages.
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <ExportToExcel
+              data={initialTransactions.map(tx => ({
+                Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
+                Type: tx.transactionType,
+                Barcode: tx.barcode,
+                Product: tx.product?.name || '',
+                Brand: tx.product?.brand?.name || '',
+                Quantity: tx.quantity,
+                'From': tx.fromEntityType || '',
+                'To': tx.toEntityType || '',
+                'Delivery Note': tx.deliveryNote || '',
+                Notes: tx.notes || '',
+              }))}
+              columns={[
+                { header: 'Date', key: 'Date', width: 18 },
+                { header: 'Type', key: 'Type', width: 16 },
+                { header: 'Barcode', key: 'Barcode', width: 22 },
+                { header: 'Product', key: 'Product', width: 25 },
+                { header: 'Brand', key: 'Brand', width: 18 },
+                { header: 'Quantity', key: 'Quantity', width: 10 },
+                { header: 'From', key: 'From', width: 14 },
+                { header: 'To', key: 'To', width: 14 },
+                { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
+                { header: 'Notes', key: 'Notes', width: 25 },
+              ]}
+              filename="IML-Transaction-Ledger"
+            />
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2 justify-start xl:justify-end">
-          <ExportToExcel
-            data={initialTransactions.map(tx => ({
-              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
-              Type: tx.transactionType,
-              Barcode: tx.barcode,
-              Product: tx.product?.name || '',
-              Brand: tx.product?.brand?.name || '',
-              Quantity: tx.quantity,
-              'From': tx.fromEntityType || '',
-              'To': tx.toEntityType || '',
-              'Delivery Note': tx.deliveryNote || '',
-              Notes: tx.notes || '',
-            }))}
-            columns={[
-              { header: 'Date', key: 'Date', width: 18 },
-              { header: 'Type', key: 'Type', width: 16 },
-              { header: 'Barcode', key: 'Barcode', width: 22 },
-              { header: 'Product', key: 'Product', width: 25 },
-              { header: 'Brand', key: 'Brand', width: 18 },
-              { header: 'Quantity', key: 'Quantity', width: 10 },
-              { header: 'From', key: 'From', width: 14 },
-              { header: 'To', key: 'To', width: 14 },
-              { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
-              { header: 'Notes', key: 'Notes', width: 25 },
-            ]}
-            filename="IML-Transaction-Ledger"
-          />
-          <Link href="/dashboard/inbound" className="inline-flex items-center gap-2 px-4 py-2.5 bg-success/15 hover:bg-success text-success hover:text-white border border-success/30 rounded-lg text-sm font-semibold transition-colors duration-200">
-            <ArrowDownLeft size={16} />
+
+        {/* Quick Navigation Action Pills */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <Link href="/dashboard/inbound" className="inline-flex items-center gap-2 px-3.5 py-2 bg-success/10 hover:bg-success text-success hover:text-white border border-success/30 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
+            <ArrowDownLeft size={15} />
             <span>Inbound (Receive)</span>
           </Link>
-          <Link href="/dashboard/outbound" className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary/15 hover:bg-primary text-primary hover:text-white border border-primary/30 rounded-lg text-sm font-semibold transition-colors duration-200">
-            <ArrowUpRight size={16} />
+          <Link href="/dashboard/outbound" className="inline-flex items-center gap-2 px-3.5 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/30 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
+            <ArrowUpRight size={15} />
             <span>Outbound (Dispatch)</span>
           </Link>
-          <Link href="/dashboard/rebrand" className="inline-flex items-center gap-2 px-4 py-2.5 bg-secondary/15 hover:bg-secondary text-secondary hover:text-white border border-secondary/30 rounded-lg text-sm font-semibold transition-colors duration-200">
-            <RefreshCw size={16} />
+          <Link href="/dashboard/rebrand" className="inline-flex items-center gap-2 px-3.5 py-2 bg-secondary/10 hover:bg-secondary text-secondary hover:text-white border border-secondary/30 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
+            <RefreshCw size={15} />
             <span>Rebrand Stock</span>
           </Link>
-          <Link href="/dashboard/damage" className="inline-flex items-center gap-2 px-4 py-2.5 bg-danger/15 hover:bg-danger text-danger hover:text-white border border-danger/30 rounded-lg text-sm font-semibold transition-colors duration-200">
-            <ShieldAlert size={16} />
+          <Link href="/dashboard/damage" className="inline-flex items-center gap-2 px-3.5 py-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/30 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
+            <ShieldAlert size={15} />
             <span>Log Damage</span>
           </Link>
         </div>
@@ -184,6 +196,58 @@ export default function TransactionsClient({
           </div>
           <span className="text-xs font-semibold text-text-muted pb-2 flex-shrink-0">{totalCount} logs total</span>
         </div>
+
+        {/* Top Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs font-semibold print:hidden">
+            <span className="text-text-muted">
+              Showing <strong className="text-text-primary">{totalCount === 0 ? 0 : (page - 1) * 50 + 1}</strong> to{" "}
+              <strong className="text-text-primary">
+                {Math.min(page * 50, totalCount)}
+              </strong> of{" "}
+              <strong className="text-text-primary">{totalCount}</strong> movements
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                disabled={page === 1}
+                onClick={() => updateUrlParams({ page: page - 1 })}
+                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-colors duration-200 cursor-pointer"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                .map((p, pIdx, arr) => {
+                  const prevPage = arr[pIdx - 1];
+                  return (
+                    <div key={p} className="flex items-center gap-1">
+                      {prevPage && p - prevPage > 1 && <span className="text-text-muted px-1">...</span>}
+                      <button
+                        type="button"
+                        onClick={() => updateUrlParams({ page: p })}
+                        className={`px-3 py-1.5 border rounded-lg font-semibold transition-all duration-200 cursor-pointer ${
+                          p === page
+                            ? 'bg-primary border-primary text-white'
+                            : 'bg-surface border-border hover:bg-surface-elevated text-text-secondary'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    </div>
+                  );
+                })}
+              <button
+                type="button"
+                disabled={page === totalPages}
+                onClick={() => updateUrlParams({ page: page + 1 })}
+                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface disabled:hover:text-text-secondary rounded-lg font-semibold transition-colors duration-200 cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Card View */}
         {paginatedTransactions.length === 0 ? (

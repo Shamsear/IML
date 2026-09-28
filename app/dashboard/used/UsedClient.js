@@ -9,6 +9,7 @@ import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
 import ExportToExcel from '@/components/ExportToExcel';
 import PageHeader from '@/components/PageHeader';
+import Pagination from '@/components/Pagination';
 
 export default function UsedClient({ transactions, stores, pastUsed = [] }) {
   const router = useRouter();
@@ -19,9 +20,11 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
 
   const changeTab = (tab) => {
     setActiveTab(tab);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
     params.set('tab', tab);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
+    }
   };
   const [searchDN, setSearchDN] = useState(initialDN);
   const [searchStore, setSearchStore] = useState('');
@@ -32,11 +35,21 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
   const [success, setSuccess] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Pagination states
+  const [txPage, setTxPage] = useState(1);
+  const [groupPage, setGroupPage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
+  const itemsPerPage = 25;
+
+  // Reset pages on filter
   const filteredTransactions = useMemo(() => transactions.filter(tx => {
     const matchDN = !searchDN || tx.deliveryNote?.toLowerCase().includes(searchDN.toLowerCase());
     const matchStore = !searchStore || tx.toEntityId === searchStore;
     return matchDN && matchStore;
   }), [transactions, searchDN, searchStore]);
+
+  const totalTxPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const paginatedTransactions = filteredTransactions.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
 
   const deliveryNoteGroups = useMemo(() => {
     const groups = {};
@@ -50,10 +63,18 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
     return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [filteredTransactions, stores]);
 
+  const totalGroupPages = Math.ceil(deliveryNoteGroups.length / itemsPerPage);
+  const paginatedGroups = deliveryNoteGroups.slice((groupPage - 1) * itemsPerPage, groupPage * itemsPerPage);
+
+  const totalHistoryPages = Math.ceil(pastUsed.length / itemsPerPage);
+  const paginatedHistory = pastUsed.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage);
+
   const handleSelect = (txId, isSelected) => {
     setSelectedIds(prev => {
       if (!isSelected) { const next = { ...prev }; delete next[txId]; return next; }
-      return { ...prev, [txId]: { notes: '' } };
+      const tx = transactions.find(t => t.id === txId);
+      const remainingQty = tx ? (tx.quantity - (tx.returnedQty || 0)) : 1;
+      return { ...prev, [txId]: { notes: '', qty: remainingQty } };
     });
   };
 
@@ -61,12 +82,23 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
     setSelectedIds(prev => ({ ...prev, [txId]: { ...prev[txId], notes: value } }));
   };
 
+  const handleQty = (txId, value) => {
+    setSelectedIds(prev => ({ ...prev, [txId]: { ...prev[txId], qty: value } }));
+  };
+
   const handleSelectGroup = (group) => {
     const allSelected = group.items.every(tx => !!selectedIds[tx.id]);
     setSelectedIds(prev => {
       const next = { ...prev };
       if (allSelected) { group.items.forEach(tx => delete next[tx.id]); }
-      else { group.items.forEach(tx => { if (!next[tx.id]) next[tx.id] = { notes: '' }; }); }
+      else {
+        group.items.forEach(tx => {
+          if (!next[tx.id]) {
+            const remainingQty = tx.quantity - (tx.returnedQty || 0);
+            next[tx.id] = { notes: '', qty: remainingQty };
+          }
+        });
+      }
       return next;
     });
   };
@@ -77,14 +109,26 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
     e.preventDefault();
     setError(''); setSuccess('');
     const payload = Object.keys(selectedIds).map(id => ({
-      transactionId: id, actionType: 'USED', qty: 0,
+      transactionId: id,
+      actionType: 'USED',
+      qty: parseInt(selectedIds[id].qty || '0', 10),
       notes: selectedIds[id].notes || 'Marked as used/consumed',
     }));
     if (payload.length === 0) { setError('Select at least one item to mark as used.'); return; }
+    for (const item of payload) {
+      if (!item.qty || item.qty <= 0) {
+        setError('Quantity to mark as used must be greater than 0.');
+        return;
+      }
+    }
     setIsSubmitting(true);
     try {
       const res = await processOutboundReturns(payload);
-      if (res.success) { setConfirmOpen(true); setSelectedIds({}); }
+      if (res.success) { 
+        setConfirmOpen(true); 
+        setSelectedIds({}); 
+        router.refresh();
+      }
     } catch (err) {
       setError(err.message || 'An error occurred');
     } finally { setIsSubmitting(false); }
@@ -172,21 +216,35 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
           {/* ── TAB: ALL ITEMS ── */}
           {activeTab === 'transactions' && (
             <>
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={txPage}
+              totalPages={totalTxPages}
+              totalItems={filteredTransactions.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setTxPage}
+              itemLabel="items"
+            />
+
             {/* Mobile Card View */}
             <div className="md:hidden flex flex-col gap-3 p-4">
               {filteredTransactions.length === 0 ? (
                 <div className="py-12 text-center text-text-muted flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No disposable items pending.</span></div>
-              ) : filteredTransactions.map(tx => {
+              ) : paginatedTransactions.map(tx => {
                 const isSelected = !!selectedIds[tx.id];
                 const remainingQty = tx.quantity - (tx.returnedQty || 0);
                 return (
                   <div key={tx.id} className={`bg-surface border rounded-xl p-4 flex flex-col gap-2.5 transition-all ${isSelected ? 'border-warning bg-warning/5' : 'border-border'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
                           <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-warning truncate hover:text-warning transition-colors">{tx.product?.name}</Link>
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
+                          {tx.product?.isReturnable && tx.product?.isDisposable ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
                           <span>{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</span>
@@ -198,7 +256,18 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                     </div>
                     {tx.deliveryNote && <div className="text-[11px] text-text-muted font-mono">DN: {tx.deliveryNote}</div>}
                     {isSelected && (
-                      <div className="pt-2 border-t border-border/50">
+                      <div className="pt-2 border-t border-border/50 flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-text-secondary font-semibold">Qty to Mark Used:</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={remainingQty}
+                            value={selectedIds[tx.id]?.qty ?? remainingQty}
+                            onChange={(e) => handleQty(tx.id, e.target.value)}
+                            className="w-20 bg-surface text-text-primary border border-border rounded-lg px-2 py-1 text-xs font-mono font-bold text-center"
+                          />
+                        </div>
                         <input type="text" placeholder="Notes..." value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)} className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs" />
                       </div>
                     )}
@@ -225,7 +294,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                     <tr><td colSpan="6" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No disposable items pending.</span></div>
                     </td></tr>
-                  ) : filteredTransactions.map(tx => {
+                  ) : paginatedTransactions.map(tx => {
                     const isSelected = !!selectedIds[tx.id];
                     const remainingQty = tx.quantity - (tx.returnedQty || 0);
                     return (
@@ -233,14 +302,31 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
                           <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-warning hover:text-warning transition-colors">{tx.product?.name}</Link>
-                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
+                          {tx.product?.isReturnable && tx.product?.isDisposable ? (
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                          ) : (
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
+                          )}
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
                           <div className="font-mono text-xs text-text-muted mt-0.5">{tx.deliveryNote || 'No DN'}</div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
-                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary">{remainingQty}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary whitespace-nowrap">
+                          {isSelected ? (
+                            <input
+                              type="number"
+                              min={1}
+                              max={remainingQty}
+                              value={selectedIds[tx.id]?.qty ?? remainingQty}
+                              onChange={(e) => handleQty(tx.id, e.target.value)}
+                              className="w-16 bg-surface text-text-primary font-mono font-bold text-center border border-warning rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-warning"
+                            />
+                          ) : (
+                            <span>{remainingQty}</span>
+                          )}
+                        </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                           <input type="text" placeholder="Optional notes..." disabled={!isSelected}
                             value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
@@ -252,18 +338,39 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                 </tbody>
               </table>
             </div>
+
+            {/* Bottom Pagination */}
+            <Pagination
+              currentPage={txPage}
+              totalPages={totalTxPages}
+              totalItems={filteredTransactions.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setTxPage}
+              itemLabel="items"
+            />
             </>
           )}
 
           {/* ── TAB: BY USAGE NOTE ── */}
           {activeTab === 'grouped' && (
+            <>
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={groupPage}
+              totalPages={totalGroupPages}
+              totalItems={deliveryNoteGroups.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setGroupPage}
+              itemLabel="delivery notes"
+            />
+
             <div className="flex flex-col divide-y divide-border">
               {deliveryNoteGroups.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
                   <Package size={48} className="opacity-20" />
                   <span className="font-semibold">No disposable delivery notes found.</span>
                 </div>
-              ) : deliveryNoteGroups.map(group => {
+              ) : paginatedGroups.map(group => {
                 const isExpanded = !!expandedGroups[group.dn];
                 const allSelected = group.items.length > 0 && group.items.every(tx => !!selectedIds[tx.id]);
                 const someSelected = group.items.some(tx => !!selectedIds[tx.id]);
@@ -313,8 +420,28 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                                   <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-16">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
                                   </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-warning">{tx.product?.name}</td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs">{remainingQty}</td>
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-warning">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span>{tx.product?.name}</span>
+                                      {tx.product?.isReturnable && tx.product?.isDisposable && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">
+                                    {isSelected ? (
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        max={remainingQty}
+                                        value={selectedIds[tx.id]?.qty ?? remainingQty}
+                                        onChange={(e) => handleQty(tx.id, e.target.value)}
+                                        className="w-16 bg-surface text-text-primary font-mono font-bold text-center border border-warning rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-warning"
+                                      />
+                                    ) : (
+                                      <span>{remainingQty}</span>
+                                    )}
+                                  </td>
                                   <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                                     <input type="text" placeholder="Optional notes..." disabled={!isSelected}
                                       value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
@@ -331,10 +458,32 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                 );
               })}
             </div>
+
+            {/* Bottom Pagination */}
+            <Pagination
+              currentPage={groupPage}
+              totalPages={totalGroupPages}
+              totalItems={deliveryNoteGroups.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setGroupPage}
+              itemLabel="delivery notes"
+            />
+            </>
           )}
 
           {/* ── TAB: CONSUMED HISTORY ── */}
           {activeTab === 'history' && (
+            <>
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={historyPage}
+              totalPages={totalHistoryPages}
+              totalItems={pastUsed.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setHistoryPage}
+              itemLabel="entries"
+            />
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
@@ -352,7 +501,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                     <tr><td colSpan="6" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No consumed logs found.</span></div>
                     </td></tr>
-                  ) : pastUsed.map(tx => {
+                  ) : paginatedHistory.map(tx => {
                     const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
@@ -377,6 +526,17 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                 </tbody>
               </table>
             </div>
+
+            {/* Bottom Pagination */}
+            <Pagination
+              currentPage={historyPage}
+              totalPages={totalHistoryPages}
+              totalItems={pastUsed.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setHistoryPage}
+              itemLabel="entries"
+            />
+            </>
           )}
 
           {/* Footer */}
@@ -399,7 +559,7 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        onClose={() => { setConfirmOpen(false); router.refresh(); }}
         type="success"
         title="Items Marked as Used"
         message="Selected items have been marked as used/consumed. Stock will not return to warehouse."

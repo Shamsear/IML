@@ -6,6 +6,7 @@ import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Ca
 import Link from 'next/link';
 import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/actions/transactions';
 import { createStore } from '@/app/actions/stores';
+import { createSupervisor } from '@/app/actions/supervisors';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/Toast';
@@ -43,6 +44,11 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   // Delivery supervisor (who carried goods to the store)
   const [deliverySupervisorId, setDeliverySupervisorId] = useState(initialDeliverySupervisorId || '');
   const [supervisorList, setSupervisorList] = useState(supervisors);
+  const [showNewSupervisorForm, setShowNewSupervisorForm] = useState(false);
+  const [newSupervisorName, setNewSupervisorName] = useState('');
+  const [newSupervisorEmail, setNewSupervisorEmail] = useState('');
+  const [newSupervisorPhone, setNewSupervisorPhone] = useState('');
+  const [creatingSupervisor, setCreatingSupervisor] = useState(false);
 
   // Inline store creation
   const [showNewStoreForm, setShowNewStoreForm] = useState(false);
@@ -51,6 +57,14 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
   const [newStoreLocation, setNewStoreLocation] = useState('');
   const [storeList, setStoreList] = useState(stores);
   const [creatingStore, setCreatingStore] = useState(false);
+
+  useEffect(() => {
+    setSupervisorList(supervisors);
+  }, [supervisors]);
+
+  useEffect(() => {
+    setStoreList(stores);
+  }, [stores]);
 
   // Global brand filter — sets all items at once; per-item pills override individually
   const [globalBrand, setGlobalBrand] = useState('ALL');
@@ -751,14 +765,17 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         }
         // Auto-assign store from target
         pa.storeId = toId;
-        if (!pa.storeId || toType !== 'STORE') {
-          updateItemField(i, 'error', 'Please select a valid destination Store at the top of the page for this uniform dispatch.');
-          handleExpandItem(i);
-          setLoading(false);
-          return;
-        }
-        // Auto-assign size from product
-        pa.promoterShirtSize = prod.size || 'Medium';
+        // Auto-assign size & allocatedItems from product
+        pa.promoterShirtSize = prod.size || pa.promoterShirtSize || 'Medium';
+        pa.allocatedItems = [{
+          id: `item-${Date.now()}-${i}`,
+          type: prod.name,
+          size: prod.size || pa.promoterShirtSize || 'Medium',
+          qty: String(prod.isSerialized ? item.selectedBarcodes.length : (item.quantity || 1)),
+          productId: prod.id,
+          returned: false,
+          returnedAt: null
+        }];
       }
     }
 
@@ -870,7 +887,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/outbound'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/outbound'); router.refresh(); }}
         type="success"
         title={confirmData.title}
         message={confirmData.message}
@@ -1098,13 +1115,19 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                 <UserCheck size={13} />
                 Delivered By (Supervisor) <span className="text-text-muted font-normal">— optional</span>
               </label>
-              <Link
-                href="/dashboard/supervisors/new"
-                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+              <button
+                type="button"
+                onClick={() => { 
+                  setShowNewSupervisorForm(!showNewSupervisorForm); 
+                  setNewSupervisorName(''); 
+                  setNewSupervisorEmail(''); 
+                  setNewSupervisorPhone(''); 
+                }}
+                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Plus size={11} />
-                Create new supervisor
-              </Link>
+                {showNewSupervisorForm ? 'Cancel' : 'Create new supervisor'}
+              </button>
             </div>
 
             <CustomSelect
@@ -1116,6 +1139,81 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
               onChange={val => setDeliverySupervisorId(val)}
               placeholder="-- Select delivering supervisor --"
             />
+
+            {showNewSupervisorForm && (
+              <div className="bg-surface-elevated/60 border border-border rounded-lg p-4 flex flex-col gap-3 animate-slide-down mt-3">
+                <p className="text-[11px] text-text-muted">Create a new supervisor and it will be auto-selected for this dispatch.</p>
+                <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Supervisor Name *</label>
+                    <input
+                      type="text"
+                      value={newSupervisorName}
+                      onChange={e => setNewSupervisorName(e.target.value)}
+                      placeholder="e.g. Shanawas"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Email (Optional)</label>
+                    <input
+                      type="email"
+                      value={newSupervisorEmail}
+                      onChange={e => setNewSupervisorEmail(e.target.value)}
+                      placeholder="supervisor@imlme.com"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Phone (Optional)</label>
+                    <input
+                      type="text"
+                      value={newSupervisorPhone}
+                      onChange={e => setNewSupervisorPhone(e.target.value)}
+                      placeholder="+971 50 123 4567"
+                      className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={creatingSupervisor || !newSupervisorName.trim()}
+                  onClick={async () => {
+                    if (!newSupervisorName.trim()) return;
+                    setCreatingSupervisor(true);
+                    try {
+                      const fd = new FormData();
+                      fd.set('name', newSupervisorName.trim());
+                      fd.set('email', newSupervisorEmail.trim());
+                      fd.set('phone', newSupervisorPhone.trim());
+                      const created = await createSupervisor(fd);
+                      const { getSupervisors } = await import('@/app/actions/supervisors');
+                      const updatedSupervisors = await getSupervisors();
+                      setSupervisorList(updatedSupervisors);
+                      if (created?.id) {
+                        setDeliverySupervisorId(created.id);
+                      } else {
+                        const match = updatedSupervisors.find(s => s.name === newSupervisorName.trim());
+                        if (match) setDeliverySupervisorId(match.id);
+                      }
+                      setShowNewSupervisorForm(false);
+                      setNewSupervisorName('');
+                      setNewSupervisorEmail('');
+                      setNewSupervisorPhone('');
+                      toast.success('Supervisor Created', 'New supervisor has been added and selected.');
+                    } catch (err) {
+                      setError(err.message || 'Failed to create supervisor');
+                    } finally {
+                      setCreatingSupervisor(false);
+                    }
+                  }}
+                  className="self-start inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {creatingSupervisor ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  <span>{creatingSupervisor ? 'Creating...' : 'Create & Select Supervisor'}</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

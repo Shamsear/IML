@@ -18,6 +18,7 @@ import {
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
 import ImageLightbox from '@/components/ImageLightbox';
+import Pagination from '@/components/Pagination';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 
@@ -34,6 +35,10 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
 
   const [name, setName] = useState('');
   const [brandId, setBrandId] = useState(brands[0]?.id || '');
@@ -230,6 +235,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
           if (updateData.brandId !== undefined) { updated.brandId = updateData.brandId; updated.brand = brands.find(b => b.id === updateData.brandId) || updated.brand; }
           if (updateData.category !== undefined) updated.category = updateData.category;
           if (updateData.isReturnable !== undefined) updated.isReturnable = updateData.isReturnable;
+          if (updateData.isDisposable !== undefined) updated.isDisposable = updateData.isDisposable;
           if (updateData.isPublic !== undefined) updated.isPublic = updateData.isPublic;
           return updated;
         }
@@ -237,6 +243,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
       }));
       setSelectedProductIds([]);
       toast.success('Products Updated', 'Bulk update applied successfully.');
+      router.refresh();
     } catch (err) { toast.error('Update Failed', err.message); } finally { setLoading(false); }
   };
 
@@ -250,7 +257,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
       confirmLabel: 'Delete Products',
       onConfirm: async () => {
         setLoading(true);
-        try { await bulkDeleteProducts(selectedProductIds); setProducts(prev => prev.filter(p => !selectedProductIds.includes(p.id))); setSelectedProductIds([]); toast.success('Products Deleted', `${count} products removed.`); }
+        try { 
+          await bulkDeleteProducts(selectedProductIds); 
+          setProducts(prev => prev.filter(p => !selectedProductIds.includes(p.id))); 
+          setSelectedProductIds([]); 
+          toast.success('Products Deleted', `${count} products removed.`); 
+          router.refresh();
+        }
         catch (err) { toast.error('Delete Failed', err.message); } finally { setLoading(false); }
       },
     });
@@ -381,7 +394,12 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
       confirmLabel: 'Delete Product',
       onConfirm: async () => {
         setLoading(true);
-        try { await deleteProduct(id); setProducts(prev => prev.filter(p => p.id !== id)); toast.success('Product Deleted', 'Product and all transactions removed.'); }
+        try { 
+          await deleteProduct(id); 
+          setProducts(prev => prev.filter(p => p.id !== id)); 
+          toast.success('Product Deleted', 'Product and all transactions removed.'); 
+          router.refresh();
+        }
         catch (err) { toast.error('Delete Failed', err.message); } finally { setLoading(false); }
       },
     });
@@ -430,10 +448,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 'Item Code': p.itemCode || '',
                 Brand: p.brand?.name || '',
                 Category: p.category || '',
-                'Shirt Size': p.shirtSize || '',
+                'Shirt Size': p.size || p.shirtSize || '',
                 Barcode: p.barcode || '',
                 Supplier: p.supplier || '',
                 'Unit Price': p.unitPrice || '',
+                Returnable: p.isReturnable ? 'Yes' : 'No',
+                Disposable: p.isDisposable ? 'Yes' : 'No',
+                'Track Expiry': p.trackExpiry ? 'Yes' : 'No',
                 Status: p.status || '',
               }))}
               columns={[
@@ -445,6 +466,9 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 { header: 'Barcode', key: 'Barcode', width: 22 },
                 { header: 'Supplier', key: 'Supplier', width: 20 },
                 { header: 'Unit Price', key: 'Unit Price', width: 12 },
+                { header: 'Returnable', key: 'Returnable', width: 12 },
+                { header: 'Disposable', key: 'Disposable', width: 12 },
+                { header: 'Track Expiry', key: 'Track Expiry', width: 14 },
                 { header: 'Status', key: 'Status', width: 12 },
               ]}
               filename="IML-Products"
@@ -803,6 +827,16 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
             </div>
           )}
 
+          {/* Top Pagination */}
+          <Pagination
+            currentPage={currentPage + 1}
+            totalPages={totalPages}
+            totalItems={filteredProducts.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={(p) => setCurrentPage(p - 1)}
+            itemLabel="products"
+          />
+
           {/* Mobile Card View */}
           {filteredProducts.length === 0 ? (
             <div className="md:hidden">
@@ -839,7 +873,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                       )}
                       <div className="min-w-0 flex-1">
                         <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm text-text-primary truncate block hover:text-primary transition-colors">{product.name}</Link>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                           <span className="badge bg-secondary/15 text-secondary border border-secondary/10 text-[10px]">
                             {product.brand.name}
                           </span>
@@ -848,6 +882,12 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                           </span>
                           {product.isReturnable && (
                             <span className="badge badge-warning text-[10px]"><ShieldAlert size={9} /> Returnable</span>
+                          )}
+                          {product.isDisposable && (
+                            <span className="badge bg-warning/15 text-warning border border-warning/20 text-[10px]">Disposable</span>
+                          )}
+                          {product.trackExpiry && (
+                            <span className="badge bg-danger/15 text-danger border border-danger/20 text-[10px]">Track Expiry</span>
                           )}
                         </div>
                       </div>
@@ -917,37 +957,6 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
             </div>
           )}
 
-          {/* Shared Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs">
-              <span className="text-text-muted">
-                Showing <strong className="text-text-primary">{currentPage * itemsPerPage + 1}</strong> to{' '}
-                <strong className="text-text-primary">
-                  {Math.min((currentPage + 1) * itemsPerPage, filteredProducts.length)}
-                </strong> of{' '}
-                <strong className="text-text-primary">{filteredProducts.length}</strong> products
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  disabled={currentPage === 0}
-                  onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
-                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all"
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  disabled={currentPage === totalPages - 1}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
-                  className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Desktop Table View */}
           <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
             {filteredProducts.length === 0 ? (
@@ -975,6 +984,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                         <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Type</th>
                         <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Category</th>
                         <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Returnable</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Disposable</th>
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Track Expiry</th>
                         <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -1076,6 +1087,20 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               <span className="badge badge-success text-[10px]"><CheckCircle size={10} /> No</span>
                             )}
                           </td>
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
+                            {product.isDisposable ? (
+                              <span className="badge bg-warning/15 text-warning border border-warning/20 text-[10px] font-bold">Yes</span>
+                            ) : (
+                              <span className="badge bg-surface-elevated text-text-muted border border-border text-[10px]">No</span>
+                            )}
+                          </td>
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
+                            {product.trackExpiry ? (
+                              <span className="badge bg-danger/15 text-danger border border-danger/20 text-[10px] font-bold">Yes</span>
+                            ) : (
+                              <span className="badge bg-surface-elevated text-text-muted border border-border text-[10px]">No</span>
+                            )}
+                          </td>
                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-2">
                               {!product.isSerialized && (
@@ -1120,6 +1145,16 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               </div>
             )}
           </div>
+
+          {/* Bottom Pagination */}
+          <Pagination
+            currentPage={currentPage + 1}
+            totalPages={totalPages}
+            totalItems={filteredProducts.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={(p) => setCurrentPage(p - 1)}
+            itemLabel="products"
+          />
 
         {addQtyProduct && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">

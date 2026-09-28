@@ -116,7 +116,7 @@ export default function EditSupervisorClient({ supervisor }) {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/supervisors'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/supervisors'); router.refresh(); }}
         type="success"
         title="Supervisor Updated"
         message={`"${name}" has been updated successfully.`}

@@ -23,15 +23,17 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState({ title: '', message: '' });
 
-  // Source product selection (only allow non-serialized products per user request)
-  const sourceProducts = products.filter(p => !p.isSerialized);
+  // Source product selection (allow all catalog products)
+  const sourceProducts = products;
 
   const [sourceProductId, setSourceProductId] = useState(sourceProducts[0]?.id || '');
-  const [targetProductId, setTargetProductId] = useState(products[0]?.id || '');
+  const [targetProductId, setTargetProductId] = useState(products.find(p => p.id !== sourceProducts[0]?.id)?.id || products[0]?.id || '');
   const [remarks, setRemarks] = useState('');
 
   // Brand filter for source product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
+  // Brand filter for target product selection
+  const [targetBrandFilter, setTargetBrandFilter] = useState('ALL');
 
   // Inline product registration states for rebranding target product
   const [isNewProduct, setIsNewProduct] = useState(false);
@@ -40,6 +42,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   const [prodItemCode, setProdItemCode] = useState('');
   const [prodLowStockAlert, setProdLowStockAlert] = useState('10');
   const [prodIsReturnable, setProdIsReturnable] = useState(false);
+  const [prodIsDisposable, setProdIsDisposable] = useState(false);
   const [prodImageFile, setProdImageFile] = useState(null);
   const [prodImagePreview, setProdImagePreview] = useState('');
   const [prodSimStoreId, setProdSimStoreId] = useState(stores[0]?.id || '');
@@ -601,6 +604,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         formData.append('prodCategory', sourceSelectedProduct?.category || 'SIM');
         formData.append('prodLowStockAlert', prodLowStockAlert);
         formData.append('prodIsReturnable', prodIsReturnable ? 'true' : 'false');
+        formData.append('prodIsDisposable', prodIsDisposable ? 'true' : 'false');
         if (prodImageFile) {
           formData.append('targetProductImage', prodImageFile);
         }
@@ -671,7 +675,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/rebrand'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/rebrand'); router.refresh(); }}
         type="success"
         title={confirmData.title}
         message={confirmData.message}
@@ -757,16 +761,30 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slide-down">
             <div className="flex flex-col gap-1.5 relative sm:col-span-2">
               <label className="text-xs font-semibold text-text-secondary">Target Product (Convert To)</label>
+              {/* Target Brand filter pills */}
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTargetBrandFilter('ALL')}
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${targetBrandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                >All Brands</button>
+                {brands.map(b => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => {
+                      setTargetBrandFilter(b.id);
+                      const matched = products.find(p => (p.brandId === b.id || p.brand?.id === b.id) && p.id !== sourceProductId);
+                      setTargetProductId(matched ? matched.id : '');
+                    }}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${targetBrandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                  >{b.name}</button>
+                ))}
+              </div>
               <CustomSelect
-                options={products.filter(p => 
-                  p.isSerialized && 
-                  p.brandId === sourceSelectedProduct?.brandId && (
-                    p.category?.toUpperCase().includes('SIM') ||
-                    p.category?.toUpperCase().includes('ROUTER') ||
-                    p.name?.toUpperCase().includes('SIM') ||
-                    p.name?.toUpperCase().includes('ROUTER')
-                  )
-                ).map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
+                options={products
+                  .filter(p => (targetBrandFilter === 'ALL' || p.brandId === targetBrandFilter || p.brand?.id === targetBrandFilter) && p.id !== sourceProductId)
+                  .map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'General'})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
                 value={targetProductId}
                 onChange={(val) => setTargetProductId(val)}
                 placeholder="Select Target Product..."
@@ -775,7 +793,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
               {targetSelectedProduct?.imageUrl && (
                 <div className="mt-2 flex items-center gap-2 bg-surface-elevated/40 p-2 border border-border rounded-lg max-w-fit animate-fade-in">
                   <img src={targetSelectedProduct.imageUrl} alt="Target Preview" className="w-10 h-10 rounded border border-border bg-white object-contain flex-shrink-0" />
-                  <span className="text-[10px] text-text-secondary font-medium">Target Product Picture</span>
+                  <span className="text-[10px] text-text-secondary font-medium">Target Product Picture ({targetSelectedProduct.brand?.name || 'General'})</span>
                 </div>
               )}
             </div>
@@ -844,12 +862,13 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Associated Brand</label>
-                <input
-                  type="text"
-                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none disabled:bg-surface-elevated/40 font-semibold"
-                  value={brands.find(b => b.id === prodBrandId)?.name || '---'}
-                  disabled
+                <label className="text-xs font-semibold text-text-secondary">Target Brand *</label>
+                <CustomSelect
+                  options={brands.map(b => ({ value: b.id, label: b.name }))}
+                  value={prodBrandId}
+                  onChange={(val) => setProdBrandId(val)}
+                  placeholder="Select Target Brand..."
+                  required
                 />
               </div>
 
@@ -933,7 +952,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                 />
               </div>
 
-              <div className="flex items-center gap-6 mt-4">
+              <div className="flex items-center gap-6 mt-4 flex-wrap sm:col-span-2">
                 <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
                   <input 
                     type="checkbox" 
@@ -942,6 +961,15 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                     onChange={(e) => setProdIsReturnable(e.target.checked)}
                   />
                   <span>Returnable Item</span>
+                </label>
+                <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    className="custom-checkbox"
+                    checked={prodIsDisposable}
+                    onChange={(e) => setProdIsDisposable(e.target.checked)}
+                  />
+                  <span>Disposable / Mark Used</span>
                 </label>
               </div>
 

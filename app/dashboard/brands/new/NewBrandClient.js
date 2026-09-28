@@ -200,7 +200,7 @@ export default function NewBrandClient() {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/brands'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/brands'); router.refresh(); }}
         type="success"
         title={confirmData.title}
         message={confirmData.message}

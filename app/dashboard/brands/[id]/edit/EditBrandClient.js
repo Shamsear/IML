@@ -378,7 +378,7 @@ export default function EditBrandClient({ brand }) {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/brands'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/brands'); router.refresh(); }}
         type="success"
         title="Brand Updated"
         message="Brand details have been saved successfully."

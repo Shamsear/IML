@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ConfirmModal from '@/components/ConfirmModal';
 
 /**
@@ -10,6 +11,7 @@ import ConfirmModal from '@/components/ConfirmModal';
  * Place this once in the root layout or dashboard layout.
  */
 export default function UnsavedChangesGuard() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState(null);
 
@@ -25,7 +27,12 @@ export default function UnsavedChangesGuard() {
 
   const handleConfirm = () => {
     if (pendingHref) {
-      window.location.href = pendingHref;
+      if (typeof window !== 'undefined' && pendingHref.startsWith(window.location.origin)) {
+        const path = pendingHref.slice(window.location.origin.length);
+        router.push(path);
+      } else {
+        window.location.href = pendingHref;
+      }
     }
     setOpen(false);
     setPendingHref(null);

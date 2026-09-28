@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, AlertTriangle, CheckCircle, Clock, ArrowRight, Package } from 'lucide-react';
 import ExportToExcel from '@/components/ExportToExcel';
+import Pagination from '@/components/Pagination';
 
 export default function ExpiryClient({ initialBatches }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'EXPIRED' | 'NEAR_EXPIRY' | 'GOOD'
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const today = useMemo(() => new Date(), []);
 
@@ -71,6 +78,9 @@ export default function ExpiryClient({ initialBatches }) {
       return matchesSearch && matchesStatus;
     });
   }, [batchesWithStatus, searchTerm, statusFilter]);
+
+  const totalPages = Math.ceil(filteredBatches.length / itemsPerPage);
+  const paginatedBatches = filteredBatches.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="flex flex-col gap-6 font-sans relative">
@@ -198,6 +208,20 @@ export default function ExpiryClient({ initialBatches }) {
         </div>
       </div>
 
+      {/* Top Pagination */}
+      {filteredBatches.length > 0 && (
+        <div className="bg-surface border border-border rounded-xl px-4 py-2 shadow-sm">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredBatches.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            itemLabel="batches"
+          />
+        </div>
+      )}
+
       {/* Mobile Card View */}
       {filteredBatches.length === 0 ? (
         <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
@@ -207,7 +231,7 @@ export default function ExpiryClient({ initialBatches }) {
         </div>
       ) : (
         <div className="md:hidden flex flex-col gap-3">
-          {filteredBatches.map((batch) => {
+          {paginatedBatches.map((batch) => {
             const shelfStatus = batch.shelfStatus || 'GOOD';
             return (
               <div key={batch.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
@@ -264,7 +288,7 @@ export default function ExpiryClient({ initialBatches }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-text-primary">
-                {filteredBatches.map(batch => {
+                {paginatedBatches.map(batch => {
                   const rcvDateStr = new Date(batch.receivedDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' });
                   const mfgDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }) : '---';
                   const expDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }) : '---';
@@ -334,6 +358,20 @@ export default function ExpiryClient({ initialBatches }) {
           </div>
         )}
       </div>
+
+      {/* Bottom Pagination */}
+      {filteredBatches.length > 0 && (
+        <div className="bg-surface border border-border rounded-xl px-4 py-2 shadow-sm">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredBatches.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            itemLabel="batches"
+          />
+        </div>
+      )}
     </div>
   );
 }

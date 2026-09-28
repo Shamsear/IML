@@ -103,7 +103,7 @@ export default function NewStoreClient() {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/stores'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/stores'); router.refresh(); }}
         type="success"
         title="Stores Created"
         message={`${items.length} store(s) registered successfully.`}

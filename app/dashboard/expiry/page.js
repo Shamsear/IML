@@ -8,63 +8,54 @@ export const metadata = {
 };
 
 export default async function ExpiryPage() {
-  // Fetch all RECEIVE transactions for products that track expiry
-  const transactions = await prisma.inventoryTransaction.findMany({
-    where: {
-      transactionType: 'RECEIVE',
-      product: {
-        trackExpiry: true,
-      },
-    },
-    include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-          imageUrl: true,
-          category: true,
-          itemCode: true,
-          isSerialized: true,
-          brand: {
-            select: {
-              name: true,
-            },
-          },
-          transactions: {
-            select: {
-              transactionType: true,
-              quantity: true,
-              fromEntityType: true,
-              toEntityType: true,
-            }
-          }
+  // Fetch all RECEIVE transactions for products that track expiry in parallel with stock aggregates
+  const [transactions, stockAggs] = await Promise.all([
+    prisma.inventoryTransaction.findMany({
+      where: {
+        transactionType: 'RECEIVE',
+        product: {
+          trackExpiry: true,
         },
       },
-    },
-    orderBy: {
-      expiryDate: 'asc',
-    },
-  });
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            category: true,
+            itemCode: true,
+            isSerialized: true,
+            brand: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        expiryDate: 'asc',
+      },
+    }),
+    prisma.inventoryTransaction.groupBy({
+      by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
+      _sum: { quantity: true },
+    }),
+  ]);
 
-  // Pre-compute correct warehouse stock per product using the same logic
-  // as computeWarehouseStockMap (handles RECEIVE/RETURN/ISSUE/DAMAGE/LOST/etc.)
+  // Pre-compute warehouse stock per product from aggregates
   const warehouseStockMap = new Map();
-  transactions.forEach((tx) => {
-    const pid = tx.productId;
-    if (!warehouseStockMap.has(pid)) {
-      // Collect all transactions for this product from the nested relation
-      const allTxs = tx.product?.transactions || [];
-      let stock = 0;
-      allTxs.forEach(t => {
-        const qty = t.quantity || 0;
-        if (t.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(t.transactionType)) {
-          stock += qty;
-        } else if (t.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(t.transactionType)) {
-          stock -= qty;
-        }
-      });
-      warehouseStockMap.set(pid, Math.max(0, stock));
+  stockAggs.forEach(agg => {
+    const pid = agg.productId;
+    const qty = agg._sum?.quantity || 0;
+    let current = warehouseStockMap.get(pid) || 0;
+    if (agg.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(agg.transactionType)) {
+      current += qty;
+    } else if (agg.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(agg.transactionType)) {
+      current -= qty;
     }
+    warehouseStockMap.set(pid, Math.max(0, current));
   });
 
   // Map transactions to batch objects — group by product, keep earliest expiry

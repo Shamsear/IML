@@ -21,6 +21,8 @@ export default function ServerPagination({
   baseUrl,
   itemLabel = 'items',
   extraParams = {},
+  position = 'bottom',
+  className = '',
 }) {
   if (totalPages <= 1) return null;
 
@@ -36,8 +38,10 @@ export default function ServerPagination({
     return `${baseUrl}?${params.toString()}`;
   };
 
+  const defaultBorder = position === 'top' ? 'border-b border-border' : 'border-t border-border';
+
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
+    <div className={`flex items-center justify-between px-5 py-3 ${defaultBorder} bg-surface-elevated/20 text-xs print:hidden ${className}`}>
       <span className="text-text-muted">
         Showing <strong className="text-text-primary">{start}</strong> to{' '}
         <strong className="text-text-primary">{end}</strong> of{' '}

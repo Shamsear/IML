@@ -23,6 +23,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@index([username])
+  @@index([role])
+  @@index([isActive])
 }
 
 // ------------------------------------------------------
@@ -43,6 +45,10 @@ model Brand {
 
   products    Product[]
   stores      Store[]
+
+  @@index([name])
+  @@index([isPublic])
+  @@index([createdAt])
 }
 
 model Product {
@@ -71,6 +77,16 @@ model Product {
 
   @@index([name])
   @@index([brandId])
+  @@index([category])
+  @@index([isPublic])
+  @@index([trackExpiry])
+  @@index([isSerialized])
+  @@index([isReturnable])
+  @@index([isDisposable])
+  @@index([createdAt])
+  @@index([brandId, isPublic])
+  @@index([brandId, category])
+  @@index([brandId, createdAt])
 }
 
 // ------------------------------------------------------
@@ -86,6 +102,9 @@ model Supervisor {
   deliveries   InventoryTransaction[]   @relation("DeliverySupervisor")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([name])
+  @@index([createdAt])
 }
 
 model Store {
@@ -102,6 +121,9 @@ model Store {
   allocations StaffUniformAllocation[]
 
   @@index([name])
+  @@index([region])
+  @@index([isPublic])
+  @@index([createdAt])
 }
 
 model Staff {
@@ -118,6 +140,9 @@ model Staff {
   updatedAt    DateTime @updatedAt
 
   @@index([name])
+  @@index([storeId])
+  @@index([phone])
+  @@index([createdAt])
 }
 
 
@@ -157,6 +182,14 @@ model StaffUniformAllocation {
   @@index([staffId])
   @@index([storeId])
   @@index([supervisorId])
+  @@index([ref])
+  @@index([givenDate])
+  @@index([returnDate])
+  @@index([uniformReturned])
+  @@index([capReturned])
+  @@index([createdAt])
+  @@index([staffId, storeId])
+  @@index([storeId, givenDate])
 }
 
 // ------------------------------------------------------
@@ -189,7 +222,13 @@ model ProductSerialNumber {
   @@index([currentLocationType, currentLocationId])
   @@index([productId])
   @@index([barcode])
+  @@index([secondaryBarcode])
   @@index([status])
+  @@index([expiryDate])
+  @@index([manufactureDate])
+  @@index([createdAt])
+  @@index([productId, status])
+  @@index([productId, status, currentLocationType])
 }
 
 // ------------------------------------------------------
@@ -206,7 +245,7 @@ model InventoryTransaction {
   fromEntityId    String?  
   toEntityType    String?  
   toEntityId      String?  
-  quantity        Int
+  quantity        Float
   
   deliveryNote          String?
   deliveryStatus        String?  
@@ -216,7 +255,7 @@ model InventoryTransaction {
   deliverySupervisor    Supervisor? @relation("DeliverySupervisor", fields: [deliverySupervisorId], references: [id], onDelete: SetNull)
   
   returnStatus    String?  // 'RETURNED', 'PARTIAL', 'USED'
-  returnedQty     Int      @default(0)
+  returnedQty     Float    @default(0)
   returnNotes     String?
   
   manufactureDate DateTime?
@@ -231,11 +270,25 @@ model InventoryTransaction {
   @@index([fromEntityType, fromEntityId])
   @@index([toEntityType, toEntityId])
   @@index([productId])
+  @@index([deliverySupervisorId])
+  @@index([deliveryNote])
+  @@index([returnStatus])
+  @@index([expiryDate])
+  @@index([manufactureDate])
   @@index([transactionType, timestamp])
   @@index([transactionType, productId])
-  @@index([deliveryNote])
+  @@index([transactionType, expiryDate])
+  @@index([transactionType, returnStatus])
+  @@index([transactionType, toEntityType, returnStatus])
+  @@index([transactionType, fromEntityType, returnStatus])
   @@index([transactionType, fromEntityType, fromEntityId])
   @@index([transactionType, toEntityType, toEntityId])
+  @@index([productId, transactionType, fromEntityType, toEntityType])
+  @@index([productId, timestamp])
+  @@index([productId, transactionType, timestamp])
+  @@index([deliveryNote, timestamp])
+  @@index([fromEntityType, toEntityType, transactionType])
+  @@index([toEntityType, fromEntityType, transactionType])
 }
 
 model TransactionSerialNumber {
@@ -247,6 +300,7 @@ model TransactionSerialNumber {
 
   @@id([transactionId, serialNumberId])
   @@index([serialNumberId])
+  @@index([transactionId])
 }
 
 model PushSubscription {
@@ -262,6 +316,3 @@ model ScanSession {
   barcodes  String[]
   createdAt DateTime @default(now())
 }
-
-
-

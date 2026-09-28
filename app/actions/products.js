@@ -13,6 +13,21 @@ async function saveFile(file) {
   return uploadToImageKit(file);
 }
 
+function revalidateProductPaths() {
+  revalidatePath('/dashboard/products');
+  revalidatePath('/dashboard/inbound');
+  revalidatePath('/dashboard/outbound');
+  revalidatePath('/dashboard/damage');
+  revalidatePath('/dashboard/loss');
+  revalidatePath('/dashboard/rebrand');
+  revalidatePath('/dashboard/returns');
+  revalidatePath('/dashboard/used');
+  revalidatePath('/dashboard/client-returns');
+  revalidatePath('/dashboard/transactions');
+  revalidatePath('/dashboard');
+  revalidatePath('/');
+}
+
 // ─── Shared warehouse stock calculation ──────────────────────────────────────
 // Extracted to eliminate the ~80-line duplication between getProducts() and getProductsSlim().
 async function computeWarehouseStockMap(products) {
@@ -341,8 +356,7 @@ export async function createProduct(formData) {
     });
   }
 
-  revalidatePath('/dashboard/products');
-  revalidatePath('/');
+  revalidateProductPaths();
   return product;
 }
 
@@ -394,8 +408,7 @@ export async function updateProduct(id, formData) {
     },
   });
 
-  revalidatePath('/dashboard/products');
-  revalidatePath('/');
+  revalidateProductPaths();
 }
 
 export async function deleteProduct(id) {
@@ -405,8 +418,7 @@ export async function deleteProduct(id) {
     where: { id },
   });
 
-  revalidatePath('/dashboard/products');
-  revalidatePath('/');
+  revalidateProductPaths();
 }
 
 // Upload/import barcodes in bulk for a serialized product
@@ -444,7 +456,7 @@ export async function importBarcodes(productId, barcodes = [], secondaryBarcodes
     skipDuplicates: true,
   });
 
-  revalidatePath('/dashboard/products');
+  revalidateProductPaths();
   return result.count; // Return number of successfully imported barcodes
 }
 
@@ -505,6 +517,7 @@ export async function bulkCreateProducts(productsList) {
     itemCode: p.itemCode || null,
     category: p.category || null,
     isReturnable: !!p.isReturnable,
+    isDisposable: !!p.isDisposable,
     isPublic: p.isPublic !== false,
     isSerialized: !!p.isSerialized,
     stockCap: p.stockCap ? parseInt(p.stockCap, 10) : null,
@@ -515,8 +528,7 @@ export async function bulkCreateProducts(productsList) {
     skipDuplicates: true,
   });
 
-  revalidatePath('/dashboard/products');
-  revalidatePath('/');
+  revalidateProductPaths();
   return result.count;
 }
 
@@ -530,6 +542,7 @@ export async function bulkUpdateProducts(ids = [], updateData = {}) {
   if (updateData.brandId !== undefined) data.brandId = updateData.brandId;
   if (updateData.category !== undefined) data.category = updateData.category;
   if (updateData.isReturnable !== undefined) data.isReturnable = !!updateData.isReturnable;
+  if (updateData.isDisposable !== undefined) data.isDisposable = !!updateData.isDisposable;
   if (updateData.isPublic !== undefined) data.isPublic = !!updateData.isPublic;
 
   await prisma.product.updateMany({
@@ -537,8 +550,7 @@ export async function bulkUpdateProducts(ids = [], updateData = {}) {
     data,
   });
 
-  revalidatePath('/dashboard/products');
-  revalidatePath('/');
+  revalidateProductPaths();
 }
 
 // Bulk delete multiple products
@@ -551,8 +563,7 @@ export async function bulkDeleteProducts(ids = []) {
     where: { id: { in: ids } },
   });
 
-  revalidatePath('/dashboard/products');
-  revalidatePath('/');
+  revalidateProductPaths();
 }
 
 // Fetch available barcodes/serials at a specific location
@@ -1047,7 +1058,7 @@ export async function createBulkProducts(formData) {
     timeout: 20000 // 20 seconds timeout limit for large batch transactions
   });
 
-  revalidatePath('/dashboard/products');
+  revalidateProductPaths();
   return results;
 }
 

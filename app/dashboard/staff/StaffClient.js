@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteStaff, returnUniformItem, bulkReturnUniformItems, deleteAllocation } from '@/app/actions/staff';
 import { 
@@ -11,12 +11,17 @@ import EmptyState from '@/components/EmptyState';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import TabNav from '@/components/TabNav';
+import Pagination from '@/components/Pagination';
 
 export default function StaffClient({ initialStaff, stores }) {
   const router = useRouter();
   const toast = useToast();
   const [staffList, setStaffList] = useState(initialStaff);
   const [activeTab, setActiveTab] = useState('ledger'); // 'ledger' or 'promoters'
+
+  useEffect(() => {
+    setStaffList(initialStaff);
+  }, [initialStaff]);
   
   // Loading & search state
   const [loading, setLoading] = useState(false);
@@ -25,6 +30,20 @@ export default function StaffClient({ initialStaff, stores }) {
   const [confirmData, setConfirmData] = useState({ title: '', message: '', danger: false, onConfirm: null });
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [ledgerFilter, setLedgerFilter] = useState('all'); // 'all', 'active', 'returned'
+
+  // Pagination states
+  const [ledgerPage, setLedgerPage] = useState(1);
+  const ledgerItemsPerPage = 25;
+  const [promoterPage, setPromoterPage] = useState(1);
+  const promoterItemsPerPage = 25;
+
+  useEffect(() => {
+    setLedgerPage(1);
+  }, [ledgerSearch, ledgerFilter]);
+
+  useEffect(() => {
+    setPromoterPage(1);
+  }, [searchQuery]);
   
   // Bulk selection state
   const [selectedAllocIds, setSelectedAllocIds] = useState([]);
@@ -147,6 +166,7 @@ export default function StaffClient({ initialStaff, stores }) {
           await deleteStaff(id);
           setStaffList(prev => prev.filter(s => s.id !== id));
           toast.success('Promoter Deleted', 'The promoter profile has been removed.');
+          router.refresh();
         } catch (err) {
           toast.error('Delete Failed', err.message || 'Could not delete promoter.');
         } finally {
@@ -276,6 +296,12 @@ export default function StaffClient({ initialStaff, stores }) {
 
     return matchesSearch && matchesStatus;
   });
+
+  const totalPromoterPages = Math.ceil(filteredPromoters.length / promoterItemsPerPage);
+  const paginatedPromoters = filteredPromoters.slice((promoterPage - 1) * promoterItemsPerPage, promoterPage * promoterItemsPerPage);
+
+  const totalLedgerPages = Math.ceil(filteredAllocations.length / ledgerItemsPerPage);
+  const paginatedAllocations = filteredAllocations.slice((ledgerPage - 1) * ledgerItemsPerPage, ledgerPage * ledgerItemsPerPage);
 
   // Calculate bulk selection helper sets
   const activeFilteredAllocations = filteredAllocations.filter(a => !isAllocationFullyReturned(a));
@@ -427,6 +453,16 @@ export default function StaffClient({ initialStaff, stores }) {
               </div>
             </div>
 
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={ledgerPage}
+              totalPages={totalLedgerPages}
+              totalItems={filteredAllocations.length}
+              itemsPerPage={ledgerItemsPerPage}
+              onPageChange={setLedgerPage}
+              itemLabel="allocations"
+            />
+
             {/* Mobile Card View */}
             {filteredAllocations.length === 0 ? (
               <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
@@ -436,7 +472,7 @@ export default function StaffClient({ initialStaff, stores }) {
               </div>
             ) : (
               <div className="md:hidden flex flex-col gap-3">
-                {filteredAllocations.map((alloc) => {
+                {paginatedAllocations.map((alloc) => {
                   const isFullyReturned = isAllocationFullyReturned(alloc);
                   const items = getAllocatedItems(alloc);
                   return (
@@ -503,7 +539,7 @@ export default function StaffClient({ initialStaff, stores }) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
-                      {filteredAllocations.map((alloc) => {
+                      {paginatedAllocations.map((alloc) => {
                         const isFullyReturned = isAllocationFullyReturned(alloc);
                         const items = getAllocatedItems(alloc);
                         
@@ -646,6 +682,16 @@ export default function StaffClient({ initialStaff, stores }) {
                 </div>
               )}
             </div>
+
+            {/* Bottom Pagination */}
+            <Pagination
+              currentPage={ledgerPage}
+              totalPages={totalLedgerPages}
+              totalItems={filteredAllocations.length}
+              itemsPerPage={ledgerItemsPerPage}
+              onPageChange={setLedgerPage}
+              itemLabel="allocations"
+            />
           </div>
         ) : (
           /* TAB 2: PROMOTERS DIRECTORY */
@@ -665,6 +711,16 @@ export default function StaffClient({ initialStaff, stores }) {
               <span className="text-xs font-semibold text-text-secondary">{filteredPromoters.length} promoters</span>
             </div>
 
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={promoterPage}
+              totalPages={totalPromoterPages}
+              totalItems={filteredPromoters.length}
+              itemsPerPage={promoterItemsPerPage}
+              onPageChange={setPromoterPage}
+              itemLabel="promoters"
+            />
+
             {/* Mobile Card View */}
             {filteredPromoters.length === 0 ? (
               <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm">
@@ -678,7 +734,7 @@ export default function StaffClient({ initialStaff, stores }) {
               </div>
             ) : (
               <div className="md:hidden flex flex-col gap-2.5">
-                {filteredPromoters.map((staff) => (
+                {paginatedPromoters.map((staff) => (
                   <div key={staff.id} onClick={() => setSelectedPromoter(staff)} className="bg-surface border border-border rounded-xl p-3 flex flex-col gap-2 cursor-pointer hover:border-primary/30 transition-all">
                     <div className="flex items-start gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-secondary/15 text-secondary flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5">{staff.name.charAt(0)}</div>
@@ -727,7 +783,7 @@ export default function StaffClient({ initialStaff, stores }) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
-                      {filteredPromoters.map((staff) => (
+                      {paginatedPromoters.map((staff) => (
                         <tr 
                           key={staff.id} 
                           className="hover:bg-surface-elevated/30 transition-all duration-150 cursor-pointer font-medium"
@@ -817,6 +873,16 @@ export default function StaffClient({ initialStaff, stores }) {
                 </div>
               )}
             </div>
+
+            {/* Bottom Pagination */}
+            <Pagination
+              currentPage={promoterPage}
+              totalPages={totalPromoterPages}
+              totalItems={filteredPromoters.length}
+              itemsPerPage={promoterItemsPerPage}
+              onPageChange={setPromoterPage}
+              itemLabel="promoters"
+            />
           </div>
         )}
       </div>

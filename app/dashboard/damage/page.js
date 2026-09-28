@@ -116,6 +116,15 @@ export default async function DamagePage({ searchParams }) {
           </div>
         ) : (
           <>
+            <ServerPagination
+              page={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              pageSize={pageSize}
+              baseUrl="/dashboard/damage"
+              itemLabel="reports"
+              position="top"
+            />
             <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border text-sm">
               <thead>

@@ -110,6 +110,7 @@ export default function EditTransactionClient({ transaction, products, stores })
       else if (transaction.transactionType === 'DAMAGE' || transaction.transactionType === 'LOST') router.push('/dashboard/damage');
       else if (transaction.transactionType.startsWith('REBRAND')) router.push('/dashboard/rebrand');
       else router.push('/dashboard/transactions');
+      router.refresh();
       
     } catch (err) {
       setError(err.message || 'Failed to update transaction');

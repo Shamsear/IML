@@ -28,7 +28,8 @@ export async function GET(request) {
     let docNo = '';
     let dateStr = '';
     let brandName = 'Sadia';
-    let receiverName = session.user.name || 'Warehouse Staff';
+    let supervisorName = '';
+    let receiverName = '';
     let contactDetails = '';
     let notes = '';
 
@@ -37,26 +38,50 @@ export async function GET(request) {
 
     if (dateQuery && brandIdQuery && dnQuery) {
       // Specific date + brand + DN query
-      const dayStart = new Date(`${dateQuery}T00:00:00.000Z`);
-      const dayEnd = new Date(`${dateQuery}T23:59:59.999Z`);
+      const cleanDate = dateQuery.split('T')[0];
+      const dayStart = new Date(`${cleanDate}T00:00:00.000Z`);
+      const dayEnd = new Date(`${cleanDate}T23:59:59.999Z`);
 
-      const txs = await prisma.inventoryTransaction.findMany({
-        where: {
-          transactionType: 'ISSUE',
-          deliveryNote: dnQuery === 'UNASSIGNED' ? null : dnQuery,
-          timestamp: { gte: dayStart, lte: dayEnd },
-          product: { brandId: brandIdQuery },
-          OR: [
-            { toEntityId: id },
-            { fromEntityId: id },
-          ]
-        },
-        select: {
-          id: true, notes: true, quantity: true,
-          product: { select: { id: true, name: true, itemCode: true, category: true, isSerialized: true } },
-          serialNumbers: { select: { serialNumber: { select: { barcode: true } } } }
-        }
-      });
+      const [txs, uniformAllocations] = await Promise.all([
+        prisma.inventoryTransaction.findMany({
+          where: {
+            transactionType: 'ISSUE',
+            deliveryNote: dnQuery === 'UNASSIGNED' ? null : dnQuery,
+            timestamp: { gte: dayStart, lte: dayEnd },
+            product: { brandId: brandIdQuery },
+            OR: [
+              { toEntityId: id },
+              { fromEntityId: id },
+            ]
+          },
+          select: {
+            id: true,
+            notes: true,
+            quantity: true,
+            receivedBy: true,
+            deliverySupervisorId: true,
+            deliverySupervisor: {
+              select: { id: true, name: true, phone: true }
+            },
+            product: { select: { id: true, name: true, itemCode: true, category: true, isSerialized: true } },
+            serialNumbers: { select: { serialNumber: { select: { barcode: true } } } }
+          }
+        }),
+        prisma.staffUniformAllocation.findMany({
+          where: {
+            OR: [
+              { ref: dnQuery },
+              { storeId: id }
+            ]
+          },
+          include: {
+            staff: { select: { id: true, name: true, phone: true } },
+            supervisor: { select: { id: true, name: true, phone: true } }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        })
+      ]);
 
       if (txs.length === 0) {
         return new NextResponse('No matching outbound dispatches found for specified filter.', { status: 404 });
@@ -64,14 +89,55 @@ export async function GET(request) {
 
       notes = txs[0]?.notes?.includes(' | ') ? txs[0].notes.split(' | ')[0] : (txs[0]?.notes || '');
 
+      // Resolve supervisor name
+      const txSupervisor = txs.find(t => t.deliverySupervisor?.name)?.deliverySupervisor;
+      if (txSupervisor) {
+        supervisorName = txSupervisor.name;
+      } else if (uniformAllocations.length > 0 && uniformAllocations[0].supervisor?.name) {
+        supervisorName = uniformAllocations[0].supervisor.name;
+      }
+
+      // Resolve receiver name (e.g. allocated promoter or store staff)
+      const txReceiver = txs.find(t => t.receivedBy)?.receivedBy;
+      if (txReceiver) {
+        receiverName = txReceiver;
+      } else if (uniformAllocations.length > 0 && uniformAllocations[0].staff?.name) {
+        receiverName = uniformAllocations[0].staff.name;
+        contactDetails = uniformAllocations[0].staff.phone || '';
+      } else {
+        const storeStaff = await prisma.staff.findFirst({
+          where: { storeId: id },
+          select: { name: true, phone: true }
+        });
+        if (storeStaff) {
+          receiverName = storeStaff.name;
+          contactDetails = storeStaff.phone || '';
+        } else {
+          receiverName = 'Store In-charge';
+        }
+      }
+
+      // Check if any specific uniform allocation is linked
+      const uniformPersonName = uniformAllocations.length > 0 ? uniformAllocations[0].staff?.name : '';
+
       const productGroups = {};
       for (const tx of txs) {
         const prod = tx.product;
         const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
+        const isUniform = prod.category?.toUpperCase() === 'UNIFORM';
+        
+        let remarks = parsedItemNotes;
+        if (isUniform && uniformPersonName) {
+          remarks = remarks ? `${remarks} (Allocated to: ${uniformPersonName})` : `Allocated to: ${uniformPersonName}`;
+        }
+
         if (!productGroups[prod.id]) {
           productGroups[prod.id] = {
-            name: prod.name, isSerialized: prod.isSerialized,
-            quantity: 0, serials: [], notes: parsedItemNotes
+            name: prod.name,
+            isSerialized: prod.isSerialized,
+            quantity: 0,
+            serials: [],
+            notes: remarks
           };
         }
         productGroups[prod.id].quantity += tx.quantity;
@@ -83,8 +149,8 @@ export async function GET(request) {
       }
 
       inventory = Object.values(productGroups);
-      docNo = dnQuery === 'UNASSIGNED' ? `IML-DISP-${dateQuery.replace(/-/g, '')}` : dnQuery;
-      dateStr = formatDate(dateQuery);
+      docNo = dnQuery === 'UNASSIGNED' ? `IML-DISP-${cleanDate.replace(/-/g, '')}` : dnQuery;
+      dateStr = formatDate(cleanDate);
     } else {
       // Fallback: full placement summary
       inventory = await getStoreInventory(id);
@@ -100,6 +166,8 @@ export async function GET(request) {
       if (staffMember) {
         receiverName = staffMember.name;
         contactDetails = staffMember.phone || '';
+      } else {
+        receiverName = 'Store In-charge';
       }
 
       const dateObj = new Date();
@@ -118,6 +186,7 @@ export async function GET(request) {
         inventory={inventory}
         dateStr={dateStr}
         docNo={docNo}
+        supervisorName={supervisorName}
         receiverName={receiverName}
         contactDetails={contactDetails}
         notes={notes}
@@ -126,13 +195,14 @@ export async function GET(request) {
             { label: 'Warehouse', value: 'IML Warehouse Al qouz' },
             { label: 'Brand', value: brandName },
             { label: 'Store Name', value: store.name },
+            ...(supervisorName ? [{ label: 'Supervisor', value: supervisorName }] : []),
             { label: 'Notes', value: notes },
           ],
           right: [
             { label: 'Date', value: dateStr },
             { label: 'Document No', value: docNo },
             { label: 'Receiver Name', value: receiverName },
-            { label: 'Contact Details', value: contactDetails },
+            ...(contactDetails ? [{ label: 'Contact Details', value: contactDetails }] : []),
           ],
         }}
       />

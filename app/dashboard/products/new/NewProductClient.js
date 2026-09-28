@@ -861,6 +861,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
           setConfirmOpen(false);
           const redirectBrandId = searchParams.get('brandId');
           router.push(redirectBrandId ? `/dashboard/brands/${redirectBrandId}` : '/dashboard/products');
+          router.refresh();
         }}
         type="success"
         title={confirmData.title}
@@ -1233,7 +1234,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                 type="radio" 
                                 name={`status-${idx}`}
                                 className="custom-radio"
-                                checked={item.isReturnable && item.category?.toUpperCase() !== 'UNIFORM'}
+                                checked={item.isReturnable && !item.isDisposable && item.category?.toUpperCase() !== 'UNIFORM'}
                                 onChange={() => {
                                   updateItemField(idx, 'isReturnable', true);
                                   updateItemField(idx, 'isDisposable', false);
@@ -1242,14 +1243,14 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                   }
                                 }}
                               />
-                              <span>Returnable</span>
+                              <span>Returnable Only</span>
                             </label>
                             <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
                               <input 
                                 type="radio" 
                                 name={`status-${idx}`}
                                 className="custom-radio"
-                                checked={item.isDisposable && item.category?.toUpperCase() !== 'UNIFORM'}
+                                checked={!item.isReturnable && item.isDisposable && item.category?.toUpperCase() !== 'UNIFORM'}
                                 onChange={() => {
                                   updateItemField(idx, 'isReturnable', false);
                                   updateItemField(idx, 'isDisposable', true);
@@ -1258,7 +1259,23 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                                   }
                                 }}
                               />
-                              <span>Disposable (Single Use)</span>
+                              <span>Disposable (Mark Used Only)</span>
+                            </label>
+                            <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                              <input 
+                                type="radio" 
+                                name={`status-${idx}`}
+                                className="custom-radio"
+                                checked={item.isReturnable && item.isDisposable && item.category?.toUpperCase() !== 'UNIFORM'}
+                                onChange={() => {
+                                  updateItemField(idx, 'isReturnable', true);
+                                  updateItemField(idx, 'isDisposable', true);
+                                  if (item.category?.toUpperCase() === 'UNIFORM') {
+                                    updateItemField(idx, 'category', 'Stands');
+                                  }
+                                }}
+                              />
+                              <span className="text-primary font-bold">Both (Returnable &amp; Used/Disposable)</span>
                             </label>
                             <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
                               <input 

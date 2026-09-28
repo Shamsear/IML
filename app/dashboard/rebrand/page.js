@@ -106,6 +106,15 @@ export default async function RebrandPage({ searchParams }) {
           </div>
         ) : (
           <>
+            <ServerPagination
+              page={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              pageSize={pageSize}
+              baseUrl="/dashboard/rebrand"
+              itemLabel="rebranding logs"
+              position="top"
+            />
             <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-border text-sm">
               <thead>

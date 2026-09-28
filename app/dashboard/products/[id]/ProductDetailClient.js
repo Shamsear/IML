@@ -15,17 +15,28 @@ import StockBreakdown from '@/components/StockBreakdown';
 import ImageLightbox from '@/components/ImageLightbox';
 import ConfirmModal from '@/components/ConfirmModal';
 import DeleteButton from '@/components/DeleteButton';
+import Pagination from '@/components/Pagination';
 
 export default function ProductDetailClient({ product }) {
   const router = useRouter();
   const [lightboxImage, setLightboxImage] = useState(null);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [serialPage, setSerialPage] = useState(1);
+  const [txPage, setTxPage] = useState(1);
+  const itemsPerPage = 20;
 
-  const { stock, brand, serialNumbers, transactions, _count } = product;
+  const { stock, brand, serialNumbers = [], transactions = [], _count } = product;
+
+  const totalSerialPages = Math.ceil((serialNumbers?.length || 0) / itemsPerPage);
+  const paginatedSerials = (serialNumbers || []).slice((serialPage - 1) * itemsPerPage, serialPage * itemsPerPage);
+
+  const totalTxPages = Math.ceil((transactions?.length || 0) / itemsPerPage);
+  const paginatedTxs = (transactions || []).slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
 
   const handleDelete = async () => {
     await deleteProduct(product.id);
     router.push('/dashboard/products');
+    router.refresh();
   };
 
   // Status badge for serials
@@ -355,8 +366,8 @@ export default function ProductDetailClient({ product }) {
 
       {/* Serial Numbers (if serialized) */}
       {product.isSerialized && serialNumbers.length > 0 && (
-        <div className="bg-surface border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2">
               <QrCode size={16} className="text-primary" />
               Serial Numbers ({serialNumbers.length})
@@ -368,6 +379,17 @@ export default function ProductDetailClient({ product }) {
               Manage Serials →
             </Link>
           </div>
+
+          {/* Top Pagination for Serials */}
+          <Pagination
+            currentPage={serialPage}
+            totalPages={totalSerialPages}
+            totalItems={serialNumbers.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setSerialPage}
+            itemLabel="serial numbers"
+          />
+
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs">
               <thead>
@@ -382,7 +404,7 @@ export default function ProductDetailClient({ product }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {serialNumbers.slice(0, 20).map((s) => (
+                {paginatedSerials.map((s) => (
                   <tr key={s.id} className="hover:bg-surface-elevated/20">
                     <td className="py-2 pr-4 font-mono font-semibold">{s.barcode}</td>
                     {serialNumbers.some(s => s.secondaryBarcode) && (
@@ -403,19 +425,24 @@ export default function ProductDetailClient({ product }) {
                 ))}
               </tbody>
             </table>
-            {serialNumbers.length > 20 && (
-              <p className="text-[10px] text-text-muted mt-2 text-center">
-                Showing 20 of {serialNumbers.length} serial numbers
-              </p>
-            )}
           </div>
+
+          {/* Bottom Pagination for Serials */}
+          <Pagination
+            currentPage={serialPage}
+            totalPages={totalSerialPages}
+            totalItems={serialNumbers.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setSerialPage}
+            itemLabel="serial numbers"
+          />
         </div>
       )}
 
       {/* Transaction History */}
       {transactions.length > 0 && (
-        <div className="bg-surface border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2">
               <Clock size={16} className="text-primary" />
               Transaction History ({transactions.length})
@@ -427,6 +454,17 @@ export default function ProductDetailClient({ product }) {
               View All →
             </Link>
           </div>
+
+          {/* Top Pagination for Transactions */}
+          <Pagination
+            currentPage={txPage}
+            totalPages={totalTxPages}
+            totalItems={transactions.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setTxPage}
+            itemLabel="transactions"
+          />
+
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs">
               <thead>
@@ -443,7 +481,7 @@ export default function ProductDetailClient({ product }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {transactions.slice(0, 20).map((tx) => (
+                {paginatedTxs.map((tx) => (
                   <tr key={tx.id} className="hover:bg-surface-elevated/20">
                     <td className="py-2 pr-4 whitespace-nowrap">
                       {new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -485,12 +523,17 @@ export default function ProductDetailClient({ product }) {
                 ))}
               </tbody>
             </table>
-            {transactions.length > 20 && (
-              <p className="text-[10px] text-text-muted mt-2 text-center">
-                Showing 20 of {transactions.length} transactions
-              </p>
-            )}
           </div>
+
+          {/* Bottom Pagination for Transactions */}
+          <Pagination
+            currentPage={txPage}
+            totalPages={totalTxPages}
+            totalItems={transactions.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setTxPage}
+            itemLabel="transactions"
+          />
         </div>
       )}
 

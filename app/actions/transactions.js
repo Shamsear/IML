@@ -27,6 +27,21 @@ async function checkAuth() {
   await requireAuth();
 }
 
+function revalidateTransactionPaths() {
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/transactions');
+  revalidatePath('/dashboard/products');
+  revalidatePath('/dashboard/inbound');
+  revalidatePath('/dashboard/outbound');
+  revalidatePath('/dashboard/damage');
+  revalidatePath('/dashboard/loss');
+  revalidatePath('/dashboard/rebrand');
+  revalidatePath('/dashboard/returns');
+  revalidatePath('/dashboard/used');
+  revalidatePath('/dashboard/client-returns');
+  revalidatePath('/dashboard/reports');
+}
+
 // 2. Fetch all transactions
 export async function getTransactions(filters = {}) {
   await checkAuth();
@@ -173,9 +188,7 @@ export async function createTransaction(data) {
     return invTx;
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/products');
+  revalidateTransactionPaths();
   return transaction;
 }
 
@@ -272,8 +285,7 @@ export async function processRebrand(data) {
     }
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/transactions');
+  revalidateTransactionPaths();
 }
 
 // 5. Query active stock of a store
@@ -512,6 +524,17 @@ export async function createBulkIssueTransactions(payload) {
           finalToEntityId = promoterAssignment.storeId;
         }
 
+        // Resolve receiver person from promoter assignment if present
+        let receiverPerson = null;
+        if (promoterAssignment) {
+          if (promoterAssignment.isNewPromoter) {
+            receiverPerson = promoterAssignment.promoterName?.trim() || null;
+          } else if (promoterAssignment.existingStaffId) {
+            const st = await tx.staff.findUnique({ where: { id: promoterAssignment.existingStaffId }, select: { name: true } });
+            receiverPerson = st?.name || null;
+          }
+        }
+
         // A. Create core transaction
         const invTx = await tx.inventoryTransaction.create({
           data: {
@@ -523,6 +546,7 @@ export async function createBulkIssueTransactions(payload) {
             toEntityId: finalToEntityId || null,
             quantity,
             deliveryNote,
+            receivedBy: receiverPerson || null,
             notes: (() => {
               const itemNote = notes?.trim() || '';
               const gNotes = (idx === 0 && globalNotes) ? globalNotes.trim() : '';
@@ -632,17 +656,35 @@ export async function createBulkIssueTransactions(payload) {
             const nextAllocNum = maxAllocNum + 1;
             const allocIdVal = `ALOC-${String(nextAllocNum).padStart(5, '0')}`;
 
+            const isCap = (product.name || '').toLowerCase().includes('cap');
+            const uniformCount = isCap ? 0 : quantity;
+            const capCount = isCap ? quantity : 0;
+            const dynamicItems = (allocatedItems && allocatedItems.length > 0)
+              ? allocatedItems
+              : [{
+                  id: `item-${Date.now()}-${idx}`,
+                  type: product.name,
+                  size: product.size || promoterShirtSize || 'Medium',
+                  qty: String(quantity || 1),
+                  productId: product.id,
+                  returned: false,
+                  returnedAt: null
+                }];
+
             await tx.staffUniformAllocation.create({
               data: {
                 id: allocIdVal,
                 staffId: finalStaffId,
                 storeId,
-                uniformQty: 0,
-                capQty: 0,
+                uniformQty: uniformCount,
+                capQty: capCount,
                 uniformReturned: false,
                 capReturned: false,
-                allocatedItems,
+                allocatedItems: dynamicItems,
                 workingPeriod,
+                supervisorId: deliverySupervisorId || null,
+                givenDate: transactionDate ? parseTransactionDate(transactionDate) : new Date(),
+                ref: deliveryNote,
                 notes: promoterNotes || null,
               }
             });
@@ -696,9 +738,7 @@ export async function createBulkIssueTransactions(payload) {
     return createdTxs;
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/products');
+  revalidateTransactionPaths();
   return transactions;
 }
 
@@ -944,9 +984,7 @@ export async function createBulkReceiveTransactions(formData) {
     return createdTxs;
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/products');
+  revalidateTransactionPaths();
   return transactions;
 }
 
@@ -1061,9 +1099,7 @@ export async function createBulkDamageTransactions(payload) {
     return createdTxs;
   });
 
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/products');
+  revalidateTransactionPaths();
   return transactions;
 }
 
@@ -1126,6 +1162,7 @@ export async function createBulkRebrandTransactions(formData) {
     const prodCategory = formData.get('prodCategory') || 'SIM';
     const prodLowStockAlert = formData.get('prodLowStockAlert') || '10';
     const prodIsReturnable = formData.get('prodIsReturnable') === 'true';
+    const prodIsDisposable = formData.get('prodIsDisposable') === 'true';
 
     // Get last product ID dynamically to prevent race conditions
     const lastProduct = await prisma.product.findFirst({
@@ -1152,6 +1189,11 @@ export async function createBulkRebrandTransactions(formData) {
       itemCodeToSave = await generateSkuCode(prisma, bName, prodCategory || 'General');
     }
 
+    const sourceProduct = await prisma.product.findUnique({
+      where: { id: sourceProductId },
+      select: { isSerialized: true },
+    });
+
     const newProduct = await prisma.product.create({
       data: {
         id: newProdId,
@@ -1161,8 +1203,9 @@ export async function createBulkRebrandTransactions(formData) {
         category: prodCategory,
         imageUrl: newImageUrl,
         isReturnable: prodIsReturnable,
+        isDisposable: prodIsDisposable,
         isPublic: true,
-        isSerialized: true,
+        isSerialized: sourceProduct ? sourceProduct.isSerialized : true,
         stockCap: parseInt(prodLowStockAlert, 10) || 10,
       }
     });
@@ -1213,10 +1256,7 @@ export async function updateTransactionNotes(id, { notes, deliveryNote }) {
     },
   });
 
-  revalidatePath('/dashboard/inbound');
-  revalidatePath('/dashboard/outbound');
-  revalidatePath('/dashboard/damage');
-  revalidatePath('/dashboard/rebrand');
+  revalidateTransactionPaths();
 
   return { success: true };
 }
@@ -1262,11 +1302,7 @@ export async function deleteTransaction(id) {
     await tx.inventoryTransaction.delete({ where: { id } });
   });
 
-  revalidatePath('/dashboard/inbound');
-  revalidatePath('/dashboard/outbound');
-  revalidatePath('/dashboard/damage');
-  revalidatePath('/dashboard/rebrand');
-  revalidatePath('/dashboard/loss');
+  revalidateTransactionPaths();
 
   return { success: true };
 }
@@ -1399,11 +1435,7 @@ export async function updateFullTransaction(id, payload) {
     }
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/inbound');
-  revalidatePath('/dashboard/outbound');
-  revalidatePath('/dashboard/damage');
-  revalidatePath('/dashboard/rebrand');
+  revalidateTransactionPaths();
   revalidatePath('/dashboard/brands/[id]');
   revalidatePath('/portal/brand/[secretKey]');
   return { success: true };
@@ -1507,11 +1539,7 @@ export async function createSingleTransaction(payload) {
     }
   });
 
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard/inbound');
-  revalidatePath('/dashboard/outbound');
-  revalidatePath('/dashboard/damage');
-  revalidatePath('/dashboard/rebrand');
+  revalidateTransactionPaths();
   revalidatePath('/dashboard/brands/[id]');
   revalidatePath('/portal/brand/[secretKey]');
   return { success: true };
@@ -1691,15 +1719,21 @@ export async function processOutboundReturns(returnsPayload) {
         const remainingQty = originalTx.quantity - (originalTx.returnedQty || 0);
         if (remainingQty <= 0) throw new Error('No remaining quantity to mark as used');
 
+        const useQty = (qty && parseInt(qty, 10) > 0) ? parseInt(qty, 10) : remainingQty;
+        if (useQty <= 0) throw new Error('Used quantity must be greater than 0');
+        if (useQty > remainingQty) throw new Error(`Cannot mark ${useQty} as used. Only ${remainingQty} items remaining.`);
+
+        const newReturnedQty = (originalTx.returnedQty || 0) + useQty;
+        const newStatus = newReturnedQty >= originalTx.quantity ? 'USED' : 'PARTIAL';
         const newNotes = originalTx.returnNotes ? `${originalTx.returnNotes} | ${notes || 'Marked Used'}` : (notes || 'Marked Used');
 
         // 1. Update original Outbound transaction
         await tx.inventoryTransaction.update({
           where: { id: transactionId },
           data: {
-            returnStatus: 'USED',
+            returnStatus: newStatus,
             returnNotes: newNotes,
-            returnedQty: originalTx.quantity, // Set to max so it's fully processed
+            returnedQty: newReturnedQty,
           }
         });
 
@@ -1719,7 +1753,7 @@ export async function processOutboundReturns(returnsPayload) {
             fromEntityId: originalTx.toEntityId,
             toEntityType: 'STAFF',
             toEntityId: null,
-            quantity: remainingQty,
+            quantity: useQty,
             notes: `Marked as Used from Outbound ${transactionId}. ${notes || ''}`,
             deliveryStatus: 'Delivered',
             deliveryNote,
@@ -1733,11 +1767,7 @@ export async function processOutboundReturns(returnsPayload) {
     }
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard/outbound');
-  revalidatePath('/dashboard/returns');
-  revalidatePath('/dashboard/used');
-  revalidatePath('/dashboard/reports');
-  revalidatePath('/dashboard/products');
+  revalidateTransactionPaths();
   return { success: true };
 }
 
@@ -1885,8 +1915,7 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
     return createdTxs;
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard/outbound');
-  revalidatePath('/dashboard/transactions');
+  revalidateTransactionPaths();
   return transactions;
 }
 
@@ -2036,8 +2065,7 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
     return createdTxs;
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard/inbound');
-  revalidatePath('/dashboard/transactions');
+  revalidateTransactionPaths();
   return transactions;
 }
 
@@ -2204,8 +2232,7 @@ export async function createBulkClientReturnTransactions(payload) {
     return createdTxs;
   }, { timeout: 25000 });
 
-  revalidatePath('/dashboard/client-returns');
-  revalidatePath('/dashboard/transactions');
+  revalidateTransactionPaths();
   return transactions;
 }
 
@@ -2495,13 +2522,17 @@ export async function returnClientItemsToWarehouse(payload) {
         });
       }
 
-      createdTxs.push(invTx);
+      createdTxs.push({
+        id: invTx.id,
+        deliveryNote: invTx.deliveryNote,
+        quantity: invTx.quantity,
+        productId: invTx.productId,
+      });
     }
     return createdTxs;
   }, { timeout: 25000 });
 
-  revalidatePath('/dashboard/client-returns');
-  revalidatePath('/dashboard/transactions');
+  revalidateTransactionPaths();
   return transactions;
 }
 

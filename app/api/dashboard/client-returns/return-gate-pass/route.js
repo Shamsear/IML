@@ -294,8 +294,9 @@ export async function GET(request) {
       brandName = brandObj.name;
     }
 
-    const dayStart = new Date(`${dateQuery}T00:00:00.000Z`);
-    const dayEnd = new Date(`${dateQuery}T23:59:59.999Z`);
+    const cleanDate = dateQuery.split('T')[0];
+    const dayStart = new Date(`${cleanDate}T00:00:00.000Z`);
+    const dayEnd = new Date(`${cleanDate}T23:59:59.999Z`);
 
     // Fetch client-to-warehouse return transactions
     const txs = await prisma.inventoryTransaction.findMany({
@@ -379,7 +380,7 @@ export async function GET(request) {
     }
 
     const inventory = Object.values(productGroups);
-    const parts = dateQuery.split('-');
+    const parts = cleanDate.split('-');
     dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
 
     const pdfStream = await renderToStream(

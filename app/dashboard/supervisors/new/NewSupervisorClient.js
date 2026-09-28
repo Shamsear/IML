@@ -108,7 +108,7 @@ export default function NewSupervisorClient() {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/supervisors'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/supervisors'); router.refresh(); }}
         type="success"
         title="Supervisors Created"
         message={`${items.length} supervisor(s) registered successfully.`}

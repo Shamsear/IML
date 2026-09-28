@@ -879,7 +879,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/inbound'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/inbound'); router.refresh(); }}
         type="success"
         title={confirmData.title}
         message={confirmData.message}
@@ -1576,7 +1576,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                      type="radio" 
                                      name={`prod-status-${idx}`}
                                      className="custom-radio"
-                                     checked={item.prodIsReturnable && item.prodCategory?.toUpperCase() !== 'UNIFORM'}
+                                     checked={item.prodIsReturnable && !item.prodIsDisposable && item.prodCategory?.toUpperCase() !== 'UNIFORM'}
                                      onChange={() => {
                                        updateItemField(idx, 'prodIsReturnable', true);
                                        updateItemField(idx, 'prodIsDisposable', false);
@@ -1585,14 +1585,14 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                        }
                                      }}
                                    />
-                                   <span>Returnable</span>
+                                   <span>Returnable Only</span>
                                  </label>
                                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
                                    <input 
                                      type="radio" 
                                      name={`prod-status-${idx}`}
                                      className="custom-radio"
-                                     checked={item.prodIsDisposable && item.prodCategory?.toUpperCase() !== 'UNIFORM'}
+                                     checked={!item.prodIsReturnable && item.prodIsDisposable && item.prodCategory?.toUpperCase() !== 'UNIFORM'}
                                      onChange={() => {
                                        updateItemField(idx, 'prodIsReturnable', false);
                                        updateItemField(idx, 'prodIsDisposable', true);
@@ -1601,7 +1601,23 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                        }
                                      }}
                                    />
-                                   <span>Disposable (Single Use)</span>
+                                   <span>Disposable (Mark Used Only)</span>
+                                 </label>
+                                 <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
+                                   <input 
+                                     type="radio" 
+                                     name={`prod-status-${idx}`}
+                                     className="custom-radio"
+                                     checked={item.prodIsReturnable && item.prodIsDisposable && item.prodCategory?.toUpperCase() !== 'UNIFORM'}
+                                     onChange={() => {
+                                       updateItemField(idx, 'prodIsReturnable', true);
+                                       updateItemField(idx, 'prodIsDisposable', true);
+                                       if (item.prodCategory?.toUpperCase() === 'UNIFORM') {
+                                         updateItemField(idx, 'prodCategory', 'Stands');
+                                       }
+                                     }}
+                                   />
+                                   <span className="text-primary font-bold">Both (Returnable &amp; Used/Disposable)</span>
                                  </label>
                                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-text-primary cursor-pointer select-none">
                                    <input 

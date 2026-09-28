@@ -642,7 +642,7 @@ export default function ClientReturnsClient({ brands, products }) {
 
       <ConfirmModal
         open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); router.push('/dashboard/client-returns'); }}
+        onClose={() => { setConfirmOpen(false); router.push('/dashboard/client-returns'); router.refresh(); }}
         type="success"
         title={confirmData.title}
         message={confirmData.message}

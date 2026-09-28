@@ -166,6 +166,37 @@ export default async function StoreDetailPage({ params, searchParams }) {
             </div>
           ) : (
             <>
+              {/* Top Inventory Pagination */}
+              {totalInvPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-2.5 border border-border bg-surface-elevated/20 text-xs mb-3 rounded-lg print:hidden">
+                  <span className="text-text-muted">
+                    Showing <strong className="text-text-primary">{(invPage - 1) * pageSize + 1}</strong> to{" "}
+                    <strong className="text-text-primary">
+                      {Math.min(invPage * pageSize, inventory.length)}
+                    </strong> of{" "}
+                    <strong className="text-text-primary">{inventory.length}</strong> items
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Link
+                      href={`/dashboard/stores/${id}?invPage=${Math.max(1, invPage - 1)}&dispPage=${dispPage}`}
+                      className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
+                        invPage === 1 ? 'pointer-events-none opacity-50' : ''
+                      }`}
+                    >
+                      Previous
+                    </Link>
+                    <Link
+                      href={`/dashboard/stores/${id}?invPage=${Math.min(totalInvPages, invPage + 1)}&dispPage=${dispPage}`}
+                      className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
+                        invPage === totalInvPages ? 'pointer-events-none opacity-50' : ''
+                      }`}
+                    >
+                      Next
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto -mx-5">
                 <div className="inline-block min-w-full align-middle px-5">
@@ -310,6 +341,37 @@ export default async function StoreDetailPage({ params, searchParams }) {
               <div className="py-6 text-center text-xs text-text-muted">No dispatches recorded.</div>
             ) : (
               <>
+                {/* Top Dispatches Pagination */}
+                {totalDispPages > 1 && (
+                  <div className="flex items-center justify-between px-3 py-2 border border-border bg-surface-elevated/20 text-[10px] mb-1 rounded-lg print:hidden">
+                    <span className="text-text-muted">
+                      Showing <strong className="text-text-primary">{(dispPage - 1) * pageSize + 1}</strong> to{" "}
+                      <strong className="text-text-primary">
+                        {Math.min(dispPage * pageSize, groupedDispatches.length)}
+                      </strong> of{" "}
+                      <strong className="text-text-primary">{groupedDispatches.length}</strong> notes
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.max(1, dispPage - 1)}`}
+                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-colors duration-150 ${
+                          dispPage === 1 ? 'pointer-events-none opacity-50' : ''
+                        }`}
+                      >
+                        Prev
+                      </Link>
+                      <Link
+                        href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.min(totalDispPages, dispPage + 1)}`}
+                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-colors duration-150 ${
+                          dispPage === totalDispPages ? 'pointer-events-none opacity-50' : ''
+                        }`}
+                      >
+                        Next
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-2.5">
                   {paginatedDispatches.map(disp => (
                     <div key={`${disp.date}_${disp.brandId}_${disp.deliveryNote}`} className="p-3 bg-surface-elevated/40 border border-black/5 rounded-lg flex justify-between items-center text-xs">
