@@ -34,8 +34,8 @@ export default function ProductImage({
 
   if (!src && showPlaceholder) {
     return (
-      <div className={`${sizes[size]} rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 ${onClick ? 'cursor-pointer' : ''} ${className}`}>
-        <Package size={iconSizes[size]} />
+      <div className={`${sizes[size]} rounded-md bg-surface-elevated border border-border/80 text-text-muted flex items-center justify-center flex-shrink-0 ${onClick ? 'cursor-pointer hover:text-text-primary' : ''} ${className}`}>
+        <Package size={iconSizes[size]} className="stroke-[1.75]" />
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function ProductImage({
     <img
       src={getOptimizedImageUrl(src, 80, 80)}
       alt={alt}
-      className={`${sizes[size]} rounded-sm object-cover border border-border flex-shrink-0 ${onClick ? 'cursor-zoom-in hover:brightness-95' : ''} transition-all duration-200 ${className}`}
+      className={`${sizes[size]} rounded-md object-cover ring-1 ring-inset ring-black/10 dark:ring-white/10 border border-border flex-shrink-0 ${onClick ? 'cursor-zoom-in hover:brightness-95' : ''} transition-all duration-150 ${className}`}
       onClick={onClick}
       onError={(e) => {
         if (e.target.src !== src) {

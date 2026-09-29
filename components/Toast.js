@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react';
 import { CheckCircle, AlertCircle, X, Info } from 'lucide-react';
+import { Rise } from 'cube-motion/react';
 
 // ─── Toast Context ───────────────────────────────────────────────────────────
 
@@ -77,38 +78,38 @@ export function useToast() {
 }
 
 // ─── Toast Item Component ────────────────────────────────────────────────────
-
 function ToastItem({ toast, onDismiss }) {
   const { type, title, message } = toast;
 
   const styles = {
     success: {
-      bg: 'bg-success/10 border-success/20',
-      icon: <CheckCircle size={16} className="text-success flex-shrink-0" />,
-      titleColor: 'text-success',
+      bg: 'bg-surface border-success/30 text-success',
+      icon: <CheckCircle size={16} className="text-success flex-shrink-0 stroke-[2]" />,
+      titleColor: 'text-success font-bold',
     },
     error: {
-      bg: 'bg-danger/10 border-danger/20',
-      icon: <AlertCircle size={16} className="text-danger flex-shrink-0" />,
-      titleColor: 'text-danger',
+      bg: 'bg-surface border-danger/30 text-danger',
+      icon: <AlertCircle size={16} className="text-danger flex-shrink-0 stroke-[2]" />,
+      titleColor: 'text-danger font-bold',
     },
     info: {
-      bg: 'bg-primary/10 border-primary/20',
-      icon: <Info size={16} className="text-primary flex-shrink-0" />,
-      titleColor: 'text-primary',
+      bg: 'bg-surface border-primary/30 text-primary',
+      icon: <Info size={16} className="text-primary flex-shrink-0 stroke-[2]" />,
+      titleColor: 'text-primary font-bold',
     },
   };
 
   const s = styles[type] || styles.info;
 
   return (
-    <div
-      className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm animate-slide-down max-w-sm ${s.bg}`}
+    <Rise
+      as="div"
+      className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-md max-w-sm ${s.bg}`}
     >
       {s.icon}
       <div className="flex-1 min-w-0">
         {title && (
-          <p className={`text-xs font-bold ${s.titleColor}`}>{title}</p>
+          <p className={`text-xs ${s.titleColor}`}>{title}</p>
         )}
         {message && (
           <p className="text-xs text-text-secondary mt-0.5 leading-relaxed">{message}</p>
@@ -116,11 +117,11 @@ function ToastItem({ toast, onDismiss }) {
       </div>
       <button
         onClick={onDismiss}
-        className="p-0.5 text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+        className="p-0.5 text-text-muted hover:text-text-primary transition-colors flex-shrink-0 cursor-pointer"
         type="button"
       >
         <X size={12} />
       </button>
-    </div>
+    </Rise>
   );
 }

@@ -748,7 +748,7 @@ export default function ClientReturnsClient({ brands, products }) {
 
                 {/* Expanded Card */}
                 {item.isExpanded && (
-                  <div className="p-5 flex flex-col gap-4 border-l-4 border-primary">
+                  <div className="p-5 flex flex-col gap-4 bg-surface-elevated/20 border-t border-border">
                     <div className="flex items-center justify-between gap-4 pb-2 border-b border-border">
                       <h4 className="font-display font-bold text-sm text-text-primary">
                         Return Line Details

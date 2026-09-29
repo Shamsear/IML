@@ -369,25 +369,25 @@ export default function ScanCompanionClient({ session }) {
                   toast.error('Camera Blocked', 'Access is blocked. Check browser privacy settings manually.');
                 }
               }}
-              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow w-full"
+              className="px-5 py-3 min-h-[44px] bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-lg shadow w-full flex items-center justify-center transition-colors cursor-pointer"
             >
               Grant Camera Permission
             </button>
 
             {/* Manual Fallback Input Form */}
             <form onSubmit={handleManualSubmit} className="w-full flex flex-col gap-2 mt-4 pt-4 border-t border-border">
-              <label className="text-[11px] font-bold text-text-secondary text-left font-sans">Type/Scan Barcode Manually:</label>
+              <label className="text-xs font-bold text-text-secondary text-left font-sans">Type/Scan Barcode Manually:</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="Scan or type barcode here..."
-                  className="flex-1 bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  className="flex-1 min-h-[44px] bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                   value={manualBarcode}
                   onChange={(e) => setManualBarcode(e.target.value)}
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg transition-colors"
+                  className="min-h-[44px] px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-center cursor-pointer"
                 >
                   Send
                 </button>
@@ -405,19 +405,19 @@ export default function ScanCompanionClient({ session }) {
             />
 
             {/* Manual scan form fallback */}
-            <form onSubmit={handleManualSubmit} className="bg-surface border border-border p-3 rounded-lg flex flex-col gap-2 shadow-sm">
-              <label className="text-[11px] font-bold text-text-secondary text-left font-sans">Can't Scan? Type or scan with hardware wedge:</label>
+            <form onSubmit={handleManualSubmit} className="bg-surface border border-border p-3.5 rounded-xl flex flex-col gap-2 shadow-sm">
+              <label className="text-xs font-bold text-text-secondary text-left font-sans">Can't Scan? Type or scan with hardware wedge:</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   placeholder="Type barcode and press Send/Enter..."
-                  className="flex-1 bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-primary"
+                  className="flex-1 min-h-[44px] bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3.5 py-2 text-sm font-mono focus:outline-none focus:border-primary"
                   value={manualBarcode}
                   onChange={(e) => setManualBarcode(e.target.value)}
                 />
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded transition-colors"
+                  className="min-h-[44px] px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-center cursor-pointer"
                 >
                   Send
                 </button>

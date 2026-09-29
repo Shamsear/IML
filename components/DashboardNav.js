@@ -103,11 +103,11 @@ export default function DashboardNav({ collapsed }) {
                 <Link 
                   key={item.href} 
                   href={item.href} 
-                  className={`flex items-center rounded-lg text-sm font-semibold transition-colors duration-200 group relative has-tooltip
-                    ${collapsed ? 'justify-center p-2.5' : 'px-3 py-2.5 gap-3'}
+                  className={`flex items-center rounded-lg text-sm font-semibold transition-all duration-150 group relative has-tooltip
+                    ${collapsed ? 'justify-center p-2.5' : 'px-3 py-2 gap-3'}
                     ${isActive 
-                      ? 'text-primary bg-primary/10 border-l-2 border-primary rounded-l-none' 
-                      : 'text-text-secondary hover:text-text-primary hover:bg-black/5'
+                      ? 'text-primary bg-primary/10 border border-primary/20 shadow-xs' 
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated/80 border border-transparent'
                     }
                   `}
                 >

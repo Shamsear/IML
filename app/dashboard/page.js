@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -75,7 +76,7 @@ export default async function DashboardPage() {
         </div>
         <Link 
           href="/dashboard/reports" 
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-lg text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-elevated hover:border-border-strong transition-all duration-200"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-lg text-sm font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-elevated hover:border-border-strong transition-all duration-150 shadow-xs"
         >
           <TrendingUp size={16} />
           <span>View Reports</span>
@@ -90,14 +91,16 @@ export default async function DashboardPage() {
             <Link 
               href={stat.href} 
               key={stat.name} 
-              className="bg-surface border border-border rounded-xl p-3 sm:p-5 flex items-center justify-between shadow-sm hover:shadow-md hover:border-border-strong transition-all duration-200 group"
+              className="bg-surface border border-border rounded-xl p-3 sm:p-5 flex items-center justify-between shadow-xs hover:shadow-sm hover:border-border-strong transition-all duration-150 group"
             >
               <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0">
-                <span className="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase tracking-wider truncate">{stat.name}</span>
-                <span className="text-lg sm:text-2xl font-display font-bold text-text-primary group-hover:text-primary transition-colors">{stat.count}</span>
+                <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider truncate">{stat.name}</span>
+                <span className="text-xl sm:text-2xl font-display font-bold text-text-primary group-hover:text-primary transition-colors">
+                  <AnimatedCounter value={stat.count} />
+                </span>
               </div>
-              <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center border flex-shrink-0 ${stat.color}`}>
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-lg flex items-center justify-center border flex-shrink-0 ${stat.color}`}>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[1.75]" />
               </div>
             </Link>
           );
@@ -107,10 +110,10 @@ export default async function DashboardPage() {
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* All Brands Grid */}
-        <div className="bg-surface border border-border rounded-xl p-5 lg:col-span-2 flex flex-col gap-4">
+        <div className="bg-surface border border-border rounded-xl p-5 lg:col-span-2 flex flex-col gap-4 shadow-xs">
           <div className="flex items-center justify-between pb-3 border-b border-border">
             <div className="flex items-center gap-2">
-              <Tag size={18} className="text-primary" />
+              <Tag size={18} className="text-primary stroke-[1.75]" />
               <h3 className="font-display font-bold text-base text-text-primary">All Brands</h3>
             </div>
             <Link 
@@ -122,12 +125,12 @@ export default async function DashboardPage() {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {brands.length === 0 ? (
-              <div className="py-12 text-center flex flex-col items-center gap-3 text-text-muted col-span-2 animate-fade-in">
-                <Tag size={36} />
+              <div className="py-12 text-center flex flex-col items-center gap-3 text-text-muted col-span-2">
+                <Tag size={36} className="stroke-[1.5]" />
                 <p className="text-sm">No brands registered yet.</p>
-                <Link href="/dashboard/brands" className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-hover shadow-sm transition-all duration-200">
+                <Link href="/dashboard/brands" className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-hover shadow-xs transition-all duration-150">
                   Register First Brand
                 </Link>
               </div>
@@ -136,27 +139,27 @@ export default async function DashboardPage() {
                 <Link 
                   key={brand.id}
                   href={`/dashboard/brands/${brand.id}`}
-                  className="bg-surface-elevated/40 border border-black/5 hover:border-primary/20 rounded-xl p-4 flex items-center justify-between transition-all duration-200 group animate-fade-in"
+                  className="bg-surface-elevated/40 border border-border/70 hover:border-primary/30 rounded-xl p-3.5 flex items-center justify-between transition-all duration-150 group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {brand.imageUrl ? (
-                      <div className="w-12 h-12 bg-white border border-border rounded-sm overflow-hidden flex items-center justify-center flex-shrink-0">
+                      <div className="w-11 h-11 bg-white border border-border rounded-md ring-1 ring-inset ring-black/5 dark:ring-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
                         <img 
                           src={getOptimizedImageUrl(brand.imageUrl, 80, 80)} 
                           alt={brand.name} 
-                          className="max-h-full max-w-full object-contain filter group-hover:scale-105 transition-transform duration-300"
+                          className="max-h-full max-w-full object-contain filter group-hover:scale-105 transition-transform duration-200"
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 bg-primary/5 border border-primary/10 rounded-lg flex items-center justify-center text-primary flex-shrink-0">
-                        <Tag size={20} />
+                      <div className="w-11 h-11 bg-primary/5 border border-primary/15 rounded-md flex items-center justify-center text-primary flex-shrink-0">
+                        <Tag size={18} className="stroke-[1.75]" />
                       </div>
                     )}
                     <div className="min-w-0">
                       <h4 className="font-bold text-sm text-text-primary group-hover:text-primary transition-colors truncate">
                         {brand.name}
                       </h4>
-                      <span className="text-[11px] text-text-secondary mt-0.5 block truncate max-w-[180px]">
+                      <span className="text-[11px] text-text-secondary mt-0.5 block truncate max-w-[180px] tabular-nums">
                         {brand._count.products} products • {brand._count.stores} outlets
                       </span>
                     </div>

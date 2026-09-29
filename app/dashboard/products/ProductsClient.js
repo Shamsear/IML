@@ -1038,9 +1038,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 actionHref="/dashboard/products/new"
               />
             ) : (
-              <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
                         <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">
@@ -1115,11 +1114,11 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                                   0 / Out of Stock
                                 </span>
                               ) : product.warehouseStock < product.stockCap ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full animate-pulse">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full tabular-nums">
                                   {product.warehouseStock} / Low (Cap: {product.stockCap})
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-success/10 text-success border border-success/20 rounded-full">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-success/10 text-success border border-success/20 rounded-full tabular-nums">
                                   {product.warehouseStock} / Ok
                                 </span>
                               )
@@ -1212,7 +1211,6 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                     </tbody>
                   </table>
                 </div>
-              </div>
             )}
           </div>
 

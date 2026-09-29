@@ -109,6 +109,31 @@ button, a.inline-flex {
   white-space: nowrap;
 }
 
+/* Headings balanced text wrapping (Craft typography) */
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+/* Tabular figures for dynamic values and counters (Craft typography) */
+.tabular-nums, table, [data-number-flow] {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Image outline faint inner frame (Craft color/layout) */
+.img-outline {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.dark .img-outline {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Tactile button press feedback (Craft motion) */
+button:not(:disabled):active,
+.btn:not(:disabled):active,
+a.btn:active {
+  transform: scale(0.97);
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -117,7 +142,7 @@ button, a.inline-flex {
   gap: 0.5rem;
   font-weight: 600;
   border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
   cursor: pointer;
   border: 1px solid transparent;
   outline: none;

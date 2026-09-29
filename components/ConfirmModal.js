@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CheckCircle, AlertCircle, X, Loader2 } from 'lucide-react';
+import { Rise } from 'cube-motion/react';
 
 /**
  * Confirmation / result modal.
@@ -53,11 +54,12 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={onClose}
     >
-      <div
-        className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-slide-down"
+      <Rise
+        as="div"
+        className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -121,7 +123,7 @@ export default function ConfirmModal({
             </span>
           </button>
         </div>
-      </div>
+      </Rise>
     </div>
   );
 }

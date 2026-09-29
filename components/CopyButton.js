@@ -14,6 +14,8 @@ import { Copy, Check } from 'lucide-react';
  * @param {number} [props.resetDelay] - ms before resetting to default label (default: 2000)
  * @param {string} [props.className] - Extra classes
  */
+import { Morph } from 'cube-motion/react';
+
 export default function CopyButton({
   text,
   label = 'Copy',
@@ -23,7 +25,8 @@ export default function CopyButton({
 }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = async (e) => {
+    e?.stopPropagation();
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -39,17 +42,21 @@ export default function CopyButton({
       onClick={handleCopy}
       className={`inline-flex items-center gap-1.5 transition-colors ${className}`}
     >
-      {copied ? (
-        <>
-          <Check size={12} className="text-success" />
-          <span className="text-success text-xs font-semibold">{copiedLabel}</span>
-        </>
-      ) : (
-        <>
-          <Copy size={12} />
-          <span className="text-xs font-semibold">{label}</span>
-        </>
-      )}
+      <Morph
+        active={copied}
+        off={
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary">
+            <Copy size={12} className="stroke-[1.75]" />
+            <span>{label}</span>
+          </span>
+        }
+        on={
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
+            <Check size={12} className="stroke-[2.25]" />
+            <span>{copiedLabel}</span>
+          </span>
+        }
+      />
     </button>
   );
 }

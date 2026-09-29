@@ -11,6 +11,7 @@ import Pagination from '@/components/Pagination';
 import FilterBar from '@/components/FilterBar';
 import StockBreakdown from '@/components/StockBreakdown';
 import ImageLightbox from '@/components/ImageLightbox';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 export default function ReportsClient({ initialProducts, brands }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,10 +72,6 @@ export default function ReportsClient({ initialProducts, brands }) {
 
   return (
     <div className="flex flex-col gap-6 font-sans print:p-0 relative">
-      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden print:hidden">
-        <Package size={250} />
-      </div>
-      
       <PageHeader
         icon={Package}
         title="Global Stock Summary Report"
@@ -83,7 +80,7 @@ export default function ReportsClient({ initialProducts, brands }) {
           <button 
             type="button" 
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold shadow-xs hover:shadow transition-all duration-150 cursor-pointer"
           >
             <Printer size={15} />
             <span>Export PDF</span>
@@ -139,7 +136,7 @@ export default function ReportsClient({ initialProducts, brands }) {
               a.href = url; a.download = `IML-Stock-Report-${new Date().toISOString().split('T')[0]}.csv`;
               a.click(); URL.revokeObjectURL(url);
             }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-bold transition-all duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-150 cursor-pointer shadow-xs"
           >
             <Download size={15} />
             <span>Export CSV</span>
@@ -148,57 +145,57 @@ export default function ReportsClient({ initialProducts, brands }) {
       }
       />
       <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 print:grid-cols-6 print:gap-1.5">
-        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
+        <div className="bg-surface border border-border p-3.5 rounded-xl shadow-xs print:shadow-none print:border-black print:p-3">
+          <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-text-primary"></span> Filtered Items
           </span>
-          <span className="text-xl font-display font-black text-text-primary mt-1.5 block print:text-lg">
-            {filteredProducts.length}
+          <span className="text-xl font-display font-black text-text-primary mt-1 block print:text-lg tabular-nums">
+            <AnimatedCounter value={filteredProducts.length} />
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
+        <div className="bg-surface border border-border p-3.5 rounded-xl shadow-xs print:shadow-none print:border-black print:p-3">
+          <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-success"></span> Warehouse
           </span>
-          <span className="text-xl font-display font-black text-success mt-1.5 block print:text-lg">
-            {aggregateTotals.warehouse}
+          <span className="text-xl font-display font-black text-success mt-1 block print:text-lg tabular-nums">
+            <AnimatedCounter value={aggregateTotals.warehouse} />
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
+        <div className="bg-surface border border-border p-3.5 rounded-xl shadow-xs print:shadow-none print:border-black print:p-3">
+          <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-warning"></span> Store Outlets
           </span>
-          <span className="text-xl font-display font-black text-warning mt-1.5 block print:text-lg">
-            {aggregateTotals.issued}
+          <span className="text-xl font-display font-black text-warning mt-1 block print:text-lg tabular-nums">
+            <AnimatedCounter value={aggregateTotals.issued} />
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
+        <div className="bg-surface border border-border p-3.5 rounded-xl shadow-xs print:shadow-none print:border-black print:p-3">
+          <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> Promoters/Staff
           </span>
-          <span className="text-xl font-display font-black text-primary mt-1.5 block print:text-lg">
-            {aggregateTotals.used}
+          <span className="text-xl font-display font-black text-primary mt-1 block print:text-lg tabular-nums">
+            <AnimatedCounter value={aggregateTotals.used} />
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
+        <div className="bg-surface border border-border p-3.5 rounded-xl shadow-xs print:shadow-none print:border-black print:p-3">
+          <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary/70"></span> With Clients
           </span>
-          <span className="text-xl font-display font-black text-primary/80 mt-1.5 block print:text-lg">
-            {aggregateTotals.withClient}
+          <span className="text-xl font-display font-black text-primary/80 mt-1 block print:text-lg tabular-nums">
+            <AnimatedCounter value={aggregateTotals.withClient} />
           </span>
         </div>
 
-        <div className="bg-surface border border-border p-4 rounded-xl shadow-sm print:shadow-none print:border-black print:p-3">
-          <span className="text-[10px] font-bold text-danger uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse"></span> Damaged / Lost
+        <div className="bg-surface border border-border p-3.5 rounded-xl shadow-xs print:shadow-none print:border-black print:p-3">
+          <span className="text-[11px] font-semibold text-danger uppercase tracking-wider print:text-[8px] flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-danger"></span> Damaged / Lost
           </span>
-          <span className="text-xl font-display font-black text-danger mt-1.5 block print:text-lg">
-            {aggregateTotals.damage + aggregateTotals.lost}
+          <span className="text-xl font-display font-black text-danger mt-1 block print:text-lg tabular-nums">
+            <AnimatedCounter value={aggregateTotals.damage + aggregateTotals.lost} />
           </span>
         </div>
       </section>

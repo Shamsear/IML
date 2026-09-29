@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldAlert, Sparkles, Filter, X } from 'lucide-react';
+import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldAlert, Filter, X } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { getProductStock } from '@/lib/stock';
 import StockBreakdown from '@/components/StockBreakdown';
 import ImageLightbox from '@/components/ImageLightbox';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 export default function BrandPortalClient({ brand }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,17 +131,19 @@ export default function BrandPortalClient({ brand }) {
         <header className="bg-surface border border-border p-6 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 text-center sm:text-left flex-col sm:flex-row">
             {brand.imageUrl ? (
-              <img 
-                src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
-                alt={brand.name} 
-                className="w-16 h-16 rounded-sm object-cover border border-border cursor-pointer hover:border-primary transition-colors"
-                onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
-                onError={(e) => {
-                  if (e.target.src !== brand.imageUrl) {
-                    e.target.src = brand.imageUrl;
-                  }
-                }}
-              />
+              <div className="relative group">
+                <img 
+                  src={getOptimizedImageUrl(brand.imageUrl, 150, 150)} 
+                  alt={brand.name} 
+                  className="w-16 h-16 rounded-lg object-cover border border-border ring-1 ring-inset ring-black/10 dark:ring-white/10 cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => setLightboxImage({ url: brand.imageUrl, name: brand.name })}
+                  onError={(e) => {
+                    if (e.target.src !== brand.imageUrl) {
+                      e.target.src = brand.imageUrl;
+                    }
+                  }}
+                />
+              </div>
             ) : (
               <div className="w-16 h-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-display font-extrabold text-2xl">
                 {brand.name.substring(0, 2).toUpperCase()}
@@ -151,8 +154,8 @@ export default function BrandPortalClient({ brand }) {
                 <h1 className="text-2xl font-display font-extrabold text-text-primary tracking-tight">
                   {brand.name} Partner Portal
                 </h1>
-                <span className="inline-flex items-center gap-1 bg-success/10 text-success text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border border-success/20">
-                  <Sparkles size={10} /> Live Data
+                <span className="inline-flex items-center gap-1.5 bg-success/10 text-success text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border border-success/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success"></span> Live Data
                 </span>
               </div>
               <p className="text-text-secondary text-sm mt-1">
@@ -171,49 +174,49 @@ export default function BrandPortalClient({ brand }) {
         {/* Aggregate Stock Metrics Grid */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
               <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Catalog Items</span>
-              <span className="text-lg sm:text-2xl font-display font-black text-text-primary mt-0.5 sm:mt-1 block">
-                {brand.products.length}
+              <span className="text-lg sm:text-2xl font-display font-black text-text-primary mt-0.5 sm:mt-1 block tabular-nums">
+                <AnimatedCounter value={brand.products.length} />
               </span>
             </div>
           </div>
 
           <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-sm bg-success/10 text-success flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-success/10 text-success flex items-center justify-center flex-shrink-0">
               <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Warehouse</span>
-              <span className="text-lg sm:text-2xl font-display font-black text-success mt-0.5 sm:mt-1 block">
-                {totals.warehouse}
+              <span className="text-lg sm:text-2xl font-display font-black text-success mt-0.5 sm:mt-1 block tabular-nums">
+                <AnimatedCounter value={totals.warehouse} />
               </span>
             </div>
           </div>
 
           <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-sm bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
               <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Dispatches</span>
-              <span className="text-lg sm:text-2xl font-display font-black text-warning mt-0.5 sm:mt-1 block">
-                {totals.dispatched}
+              <span className="text-lg sm:text-2xl font-display font-black text-warning mt-0.5 sm:mt-1 block tabular-nums">
+                <AnimatedCounter value={totals.dispatched} />
               </span>
             </div>
           </div>
 
           <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-sm bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
               <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Damaged / Lost</span>
-              <span className="text-lg sm:text-2xl font-display font-black text-danger mt-0.5 sm:mt-1 block">
-                {totals.damaged}
+              <span className="text-lg sm:text-2xl font-display font-black text-danger mt-0.5 sm:mt-1 block tabular-nums">
+                <AnimatedCounter value={totals.damaged} />
               </span>
             </div>
           </div>

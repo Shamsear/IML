@@ -13,8 +13,8 @@ export default function Error({ error, reset }) {
     <div className="min-h-[85vh] flex flex-col items-center justify-center p-6 text-center">
       <div className="flex flex-col items-center gap-6 max-w-md animate-scale-up">
         {/* Error Icon */}
-        <div className="w-20 h-20 rounded-2xl bg-danger/10 border border-danger/20 flex items-center justify-center text-danger">
-          <AlertTriangle size={40} className="animate-bounce" />
+        <div className="w-16 h-16 rounded-2xl bg-danger/10 border border-danger/20 flex items-center justify-center text-danger shadow-sm transition-transform duration-300">
+          <AlertTriangle size={32} className="stroke-[1.75]" />
         </div>
 
         {/* Text Details */}
