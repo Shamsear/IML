@@ -101,20 +101,15 @@ export default function DashboardNav({ collapsed }) {
                   className={`flex items-center rounded-lg text-sm transition-all duration-150 group relative has-tooltip
                     ${collapsed ? 'justify-center p-2.5' : 'px-3 py-2 gap-3'}
                     ${isActive 
-                      ? 'text-primary font-bold bg-primary/10 border border-primary/20 shadow-xs' 
-                      : 'text-text-secondary font-medium hover:text-text-primary hover:bg-surface-elevated/80 border border-transparent'
+                      ? 'text-primary font-semibold bg-primary/10 border border-primary/20 shadow-xs' 
+                      : 'text-text-secondary font-medium hover:text-text-primary hover:bg-surface-elevated/70 border border-transparent'
                     }
                   `}
                 >
-                  {/* Left Active Accent Pill Bar */}
-                  {isActive && !collapsed && (
-                    <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-primary rounded-r-full" />
-                  )}
-
                   <Icon 
                     size={18} 
                     className={`transition-colors duration-150 flex-shrink-0
-                      ${isActive ? 'text-primary stroke-[2.25]' : 'text-text-secondary group-hover:text-text-primary stroke-[1.75]'}
+                      ${isActive ? 'text-primary stroke-[2]' : 'text-text-secondary group-hover:text-text-primary stroke-[1.75]'}
                     `} 
                   />
                   {/* Label — always rendered, fades */}

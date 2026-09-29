@@ -80,7 +80,7 @@ export default function ReportsClient({ initialProducts, brands }) {
           <button 
             type="button" 
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold shadow-xs hover:shadow transition-all duration-150 cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-primary hover:bg-primary-hover active:scale-[0.98] text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow transition-all duration-150 cursor-pointer"
           >
             <Printer size={15} />
             <span>Export PDF</span>
@@ -120,6 +120,7 @@ export default function ReportsClient({ initialProducts, brands }) {
               { header: 'Total Stock', key: 'Total Stock', width: 12 },
             ]}
             filename="IML-Stock-Report"
+            className="!rounded-xl !px-3.5 !py-2 !text-xs sm:!text-sm !font-semibold !shadow-xs hover:!shadow active:scale-[0.98] !border-border/80"
           />
           <button 
             type="button" 
@@ -136,7 +137,7 @@ export default function ReportsClient({ initialProducts, brands }) {
               a.href = url; a.download = `IML-Stock-Report-${new Date().toISOString().split('T')[0]}.csv`;
               a.click(); URL.revokeObjectURL(url);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-150 cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-surface border border-border/80 hover:bg-surface-elevated active:scale-[0.98] text-text-secondary hover:text-text-primary rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 cursor-pointer shadow-xs hover:shadow"
           >
             <Download size={15} />
             <span>Export CSV</span>
@@ -269,7 +270,7 @@ export default function ReportsClient({ initialProducts, brands }) {
       <FilterBar
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search by name or SKU..."
+        searchPlaceholder="Search by product name or SKU..."
         filters={[
           { label: 'Brand Owner', value: selectedBrand, onChange: setSelectedBrand, options: [{ value: 'ALL', label: 'All Brands' }, ...brands.map(b => ({ value: b.id, label: b.name }))] },
           { label: 'Category', value: selectedCategory, onChange: setSelectedCategory, options: [{ value: 'ALL', label: 'All Categories' }, ...categories.map(cat => ({ value: cat, label: cat }))] },
@@ -288,29 +289,29 @@ export default function ReportsClient({ initialProducts, brands }) {
 
       {/* Mobile Card View */}
       {filteredProducts.length === 0 ? (
-        <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm text-center py-12 text-sm text-text-secondary italic">
+        <div className="md:hidden bg-surface border border-border/80 rounded-2xl shadow-xs text-center py-12 text-sm text-text-secondary italic">
           No products match the selected filters.
         </div>
       ) : (
         <div className="md:hidden flex flex-col gap-3 print:hidden">
           {paginatedProducts.map(p => (
-            <div key={p.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+            <div key={p.id} className="bg-surface border border-border/80 rounded-2xl p-4 flex flex-col gap-3 shadow-xs">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   {p.imageUrl ? (
-                    <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })} />
+                    <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-11 h-11 rounded-xl object-cover border border-border/80 flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })} />
                   ) : (
-                    <div className="w-10 h-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 border border-primary/20"><Package size={18} /></div>
                   )}
                   <div className="min-w-0">
                     <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{p.name}</Link>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] text-text-muted">{p.brand?.name}</span>
                       <span className="badge bg-surface-elevated text-text-secondary border border-border text-[9px]">{p.category || '---'}</span>
                     </div>
                   </div>
                 </div>
-                <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{p.stock.total}</span>
+                <span className="font-mono font-extrabold text-sm px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 flex-shrink-0 tabular-nums shadow-xs">{p.stock.total}</span>
               </div>
               <StockBreakdown stock={p.stock} />
             </div>
@@ -319,41 +320,41 @@ export default function ReportsClient({ initialProducts, brands }) {
       )}
 
       {/* Desktop Table View */}
-      <div className="hidden md:block bg-surface border border-border rounded-xl p-5 shadow-sm print:p-0 print:border-0 print:shadow-none">
+      <div className="hidden md:block bg-surface border border-border/80 rounded-2xl shadow-xs overflow-hidden print:p-0 print:border-0 print:shadow-none">
         {filteredProducts.length === 0 ? (
-          <div className="text-center py-12 text-sm text-text-secondary italic">
+          <div className="text-center py-16 text-sm text-text-secondary italic">
             No products match the selected filters.
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border print:divide-y-2 print:divide-black">
+            <table className="min-w-full divide-y divide-border/80 print:divide-y-2 print:divide-black text-left">
               <thead>
-                <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider print:text-[9px] print:text-black border-b border-border">
-                  <th className="pb-3 pr-4 whitespace-nowrap font-semibold sticky left-0 bg-surface z-10 border-r border-border shadow-sm print:relative print:bg-transparent print:border-r-0 print:shadow-none">Product Details</th>
-                  <th className="pb-3 px-4 whitespace-nowrap font-semibold">Brand</th>
-                  <th className="pb-3 px-4 whitespace-nowrap font-semibold">Category</th>
-                  <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Purchased</th>
-                  <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Warehouse</th>
-                  <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Issued</th>
-                  <th className="pb-3 px-4 text-center whitespace-nowrap font-semibold">Used</th>
-                  <th className="pb-3 px-4 text-center text-danger whitespace-nowrap font-semibold print:text-black">Damage</th>
-                  <th className="pb-3 px-4 text-center text-danger whitespace-nowrap font-semibold print:text-black">Lost</th>
-                  <th className="pb-3 px-4 text-center text-primary whitespace-nowrap font-semibold print:text-black">With Client</th>
-                  <th className="pb-3 px-4 text-center text-secondary whitespace-nowrap font-semibold print:text-black">Rebrand</th>
-                  <th className="pb-3 pl-4 text-center font-bold text-primary whitespace-nowrap print:text-black">Total Stock</th>
+                <tr className="bg-surface-elevated/40 text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[9px] print:text-black">
+                  <th className="py-3.5 pl-5 pr-4 whitespace-nowrap sticky left-0 bg-surface-elevated/80 backdrop-blur-sm z-20 border-r border-border/80 shadow-xs print:relative print:bg-transparent print:border-r-0 print:shadow-none">Product Details</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Brand</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Category</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Purchased</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Warehouse</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Issued</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Used</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Damage</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Lost</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">With Client</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Rebrand</th>
+                  <th className="py-3.5 pl-4 pr-5 text-center font-bold whitespace-nowrap">Total Stock</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border text-xs text-text-primary print:divide-y print:divide-gray-400 print:text-[9px]">
+              <tbody className="divide-y divide-border/70 text-xs text-text-primary print:divide-y print:divide-gray-400 print:text-[9px]">
                 {paginatedProducts.map(p => (
-                  <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors print:hover:bg-transparent">
-                    <td className="py-3.5 pr-4 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm print:relative print:bg-transparent print:border-r-0 print:shadow-none">
+                  <tr key={p.id} className="hover:bg-surface-elevated/30 transition-colors print:hover:bg-transparent">
+                    <td className="py-3 pl-5 pr-4 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border/80 shadow-xs print:relative print:bg-transparent print:border-r-0 print:shadow-none">
                       <div className="flex items-center gap-3">
                         {p.imageUrl ? (
                           <img 
                             src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
                             alt={p.name} 
-                            className="w-8 h-8 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200 print:w-6 print:h-6"
+                            className="w-9 h-9 rounded-lg object-cover border border-border/80 flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200 print:w-6 print:h-6 shadow-xs"
                             onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
                             onError={(e) => {
                               if (e.target.src !== p.imageUrl) {
@@ -362,33 +363,61 @@ export default function ReportsClient({ initialProducts, brands }) {
                             }}
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 print:hidden">
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 border border-primary/20 print:hidden">
                             <Package size={15} />
                           </div>
                         )}
-                        <div className="flex flex-col min-w-0">
-                          <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-text-primary print:font-bold whitespace-nowrap hover:text-primary transition-colors">{p.name}</Link>
-                          <span className="text-[10px] text-text-muted mt-0.5 font-mono print:text-[8px] whitespace-nowrap">
+                        <div className="flex flex-col min-w-0 max-w-[220px]">
+                          <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-text-primary print:font-bold truncate hover:text-primary transition-colors">{p.name}</Link>
+                          <span className="text-[10px] text-text-muted mt-0.5 font-mono print:text-[8px] truncate">
                             SKU: {p.itemCode || '---'}
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">{p.brand?.name}</td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="badge bg-surface-elevated text-text-secondary border border-border print:border-0 print:bg-transparent print:p-0">
+                    <td className="py-3 px-4 whitespace-nowrap font-medium text-text-secondary">{p.brand?.name || '---'}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-elevated/80 border border-border/70 text-text-secondary print:border-0 print:bg-transparent print:p-0">
                         {p.category || '---'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold whitespace-nowrap">{p.stock.purchased}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-bold whitespace-nowrap">{p.stock.warehouse}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-text-secondary whitespace-nowrap">{p.stock.issued}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-text-secondary whitespace-nowrap">{p.stock.used}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-danger/80 print:text-black whitespace-nowrap">{p.stock.damage}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-danger/80 print:text-black whitespace-nowrap">{p.stock.lost}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-primary print:text-black whitespace-nowrap">{p.stock.withClient}</td>
-                    <td className="py-3.5 px-4 text-center font-mono font-semibold text-secondary/80 print:text-black whitespace-nowrap">{p.stock.reBrand}</td>
-                    <td className="py-3.5 pl-4 text-center font-mono font-extrabold text-primary print:text-black whitespace-nowrap">{p.stock.total}</td>
+                    <td className="py-3 px-4 text-center font-mono font-medium text-text-secondary whitespace-nowrap tabular-nums">{p.stock.purchased}</td>
+                    <td className="py-3 px-4 text-center font-mono font-bold text-text-primary whitespace-nowrap tabular-nums">{p.stock.warehouse}</td>
+                    <td className="py-3 px-4 text-center font-mono font-medium text-text-secondary whitespace-nowrap tabular-nums">{p.stock.issued}</td>
+                    <td className="py-3 px-4 text-center font-mono font-medium text-text-secondary whitespace-nowrap tabular-nums">{p.stock.used}</td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap tabular-nums">
+                      {p.stock.damage > 0 ? (
+                        <span className="inline-block font-mono font-bold text-danger bg-danger/10 px-2 py-0.5 rounded-md border border-danger/20">{p.stock.damage}</span>
+                      ) : (
+                        <span className="font-mono text-text-muted/40 font-normal">0</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap tabular-nums">
+                      {p.stock.lost > 0 ? (
+                        <span className="inline-block font-mono font-bold text-danger bg-danger/10 px-2 py-0.5 rounded-md border border-danger/20">{p.stock.lost}</span>
+                      ) : (
+                        <span className="font-mono text-text-muted/40 font-normal">0</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap tabular-nums">
+                      {p.stock.withClient > 0 ? (
+                        <span className="font-mono font-bold text-primary">{p.stock.withClient}</span>
+                      ) : (
+                        <span className="font-mono text-text-muted/40 font-normal">0</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap tabular-nums">
+                      {p.stock.reBrand > 0 ? (
+                        <span className="font-mono font-bold text-secondary">{p.stock.reBrand}</span>
+                      ) : (
+                        <span className="font-mono text-text-muted/40 font-normal">0</span>
+                      )}
+                    </td>
+                    <td className="py-3 pl-4 pr-5 text-center whitespace-nowrap tabular-nums">
+                      <span className="inline-block font-mono font-extrabold text-xs px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 shadow-xs">
+                        {p.stock.total}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
