@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import NumberFlow from '@number-flow/react';
 
 export default function AnimatedCounter({ value, className = '', format }) {
-  const target = Number(value) || 0;
+  const rawNum = typeof value === 'number' ? value : parseFloat(value) || 0;
+  // Clean floating point artifacts (e.g. 0.00000001 or .875)
+  const target = Math.round((rawNum + Number.EPSILON) * 100) / 100;
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
@@ -15,11 +17,16 @@ export default function AnimatedCounter({ value, className = '', format }) {
     return () => clearTimeout(timer);
   }, [target]);
 
+  const defaultFormat = format || {
+    maximumFractionDigits: 2,
+    trailingZeroDisplay: 'stripIfInteger'
+  };
+
   return (
-    <span className={`tabular-nums font-mono inline-block ${className}`}>
+    <span className={`tabular-nums font-mono inline-block max-w-full truncate ${className}`}>
       <NumberFlow
         value={displayValue}
-        format={format}
+        format={defaultFormat}
         animated={true}
         willChange={true}
         transformTiming={{

@@ -145,9 +145,9 @@ export default function ReportsClient({ initialProducts, brands }) {
         </>
       }
       />
-      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 print:grid-cols-6 print:gap-1.5">
+      <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 print:grid-cols-6 print:gap-1.5">
         {/* 1. Filtered Items */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
+        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 overflow-hidden print:p-2 print:border-black print:shadow-none">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-surface-elevated text-text-primary border border-border flex items-center justify-center flex-shrink-0">
               <Package size={14} className="stroke-[2.25]" />
@@ -156,8 +156,8 @@ export default function ReportsClient({ initialProducts, brands }) {
               Items
             </span>
           </div>
-          <div>
-            <span className="text-2xl sm:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="min-w-0 overflow-hidden">
+            <span className="text-xl sm:text-2xl 2xl:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums truncate print:text-lg">
               <AnimatedCounter value={filteredProducts.length} />
             </span>
             <span className="text-[10px] sm:text-[11px] font-medium text-text-muted block mt-0.5 truncate print:hidden">
@@ -167,7 +167,7 @@ export default function ReportsClient({ initialProducts, brands }) {
         </div>
 
         {/* 2. Warehouse Stock */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
+        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 overflow-hidden print:p-2 print:border-black print:shadow-none">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-success/10 text-success border border-success/20 flex items-center justify-center flex-shrink-0">
               <ArrowDownLeft size={14} className="stroke-[2.25]" />
@@ -176,8 +176,8 @@ export default function ReportsClient({ initialProducts, brands }) {
               Warehouse
             </span>
           </div>
-          <div>
-            <span className="text-2xl sm:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="min-w-0 overflow-hidden">
+            <span className="text-xl sm:text-2xl 2xl:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums truncate print:text-lg">
               <AnimatedCounter value={aggregateTotals.warehouse} />
             </span>
             <span className="text-[10px] sm:text-[11px] font-medium text-success block mt-0.5 truncate print:hidden">
@@ -187,7 +187,7 @@ export default function ReportsClient({ initialProducts, brands }) {
         </div>
 
         {/* 3. Store Outlets */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
+        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 overflow-hidden print:p-2 print:border-black print:shadow-none">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-warning/10 text-warning border border-warning/20 flex items-center justify-center flex-shrink-0">
               <Store size={14} className="stroke-[2.25]" />
@@ -196,8 +196,8 @@ export default function ReportsClient({ initialProducts, brands }) {
               Stores
             </span>
           </div>
-          <div>
-            <span className="text-2xl sm:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="min-w-0 overflow-hidden">
+            <span className="text-xl sm:text-2xl 2xl:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums truncate print:text-lg">
               <AnimatedCounter value={aggregateTotals.issued} />
             </span>
             <span className="text-[10px] sm:text-[11px] font-medium text-warning block mt-0.5 truncate print:hidden">
@@ -207,7 +207,7 @@ export default function ReportsClient({ initialProducts, brands }) {
         </div>
 
         {/* 4. Promoters / Staff */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
+        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 overflow-hidden print:p-2 print:border-black print:shadow-none">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center flex-shrink-0">
               <Shirt size={14} className="stroke-[2.25]" />
@@ -216,8 +216,8 @@ export default function ReportsClient({ initialProducts, brands }) {
               Staff
             </span>
           </div>
-          <div>
-            <span className="text-2xl sm:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="min-w-0 overflow-hidden">
+            <span className="text-xl sm:text-2xl 2xl:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums truncate print:text-lg">
               <AnimatedCounter value={aggregateTotals.used} />
             </span>
             <span className="text-[10px] sm:text-[11px] font-medium text-text-muted block mt-0.5 truncate print:hidden">
@@ -227,7 +227,7 @@ export default function ReportsClient({ initialProducts, brands }) {
         </div>
 
         {/* 5. With Clients */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
+        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 overflow-hidden print:p-2 print:border-black print:shadow-none">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-secondary/15 text-secondary border border-secondary/25 flex items-center justify-center flex-shrink-0">
               <Undo2 size={14} className="stroke-[2.25]" />
@@ -236,8 +236,8 @@ export default function ReportsClient({ initialProducts, brands }) {
               Clients
             </span>
           </div>
-          <div>
-            <span className="text-2xl sm:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="min-w-0 overflow-hidden">
+            <span className="text-xl sm:text-2xl 2xl:text-[26px] font-display font-black text-text-primary block tracking-tight tabular-nums truncate print:text-lg">
               <AnimatedCounter value={aggregateTotals.withClient} />
             </span>
             <span className="text-[10px] sm:text-[11px] font-medium text-text-muted block mt-0.5 truncate print:hidden">
@@ -247,17 +247,17 @@ export default function ReportsClient({ initialProducts, brands }) {
         </div>
 
         {/* 6. Damaged / Lost */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
+        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-4.5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 overflow-hidden print:p-2 print:border-black print:shadow-none">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-lg bg-danger/10 text-danger border border-danger/20 flex items-center justify-center flex-shrink-0">
               <ShieldAlert size={14} className="stroke-[2.25]" />
             </div>
             <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider truncate">
-              Damaged / Lost
+              Damage &amp; Loss
             </span>
           </div>
-          <div>
-            <span className="text-2xl sm:text-[26px] font-display font-black text-danger block tracking-tight tabular-nums print:text-lg">
+          <div className="min-w-0 overflow-hidden">
+            <span className="text-xl sm:text-2xl 2xl:text-[26px] font-display font-black text-danger block tracking-tight tabular-nums truncate print:text-lg">
               <AnimatedCounter value={aggregateTotals.damage + aggregateTotals.lost} />
             </span>
             <span className="text-[10px] sm:text-[11px] font-medium text-danger/80 block mt-0.5 truncate print:hidden">
