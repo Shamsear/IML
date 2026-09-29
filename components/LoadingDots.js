@@ -1,13 +1,11 @@
 'use client';
 
-import { Rise } from 'cube-motion/react';
-
 /**
- * Standardized loading state with smooth entrance physics and subtle animation.
+ * Standardized loading state with smooth pulse physics and consistent branding.
  *
  * @param {Object} props
- * @param {string} [props.title] - Loading message headline
- * @param {string} [props.description] - Supporting text below the spinner
+ * @param {string} [props.title] - Optional loading message headline
+ * @param {string} [props.description] - Optional supporting text below the spinner
  * @param {string} [props.color] - Tailwind color class (default: "bg-primary")
  * @param {string} [props.className] - Extra wrapper classes
  */
@@ -18,8 +16,8 @@ export default function LoadingDots({
   className = '',
 }) {
   return (
-    <Rise as="div" className={`w-full min-h-[40vh] flex items-center justify-center p-6 ${className}`}>
-      <div className="flex flex-col items-center gap-5 text-center">
+    <div className={`w-full min-h-[55vh] flex items-center justify-center p-6 ${className}`}>
+      <div className="flex flex-col items-center gap-4 text-center">
         <div className="flex items-center gap-2">
           <span className={`w-2.5 h-2.5 rounded-full ${color} animate-[pulse_1.4s_ease-in-out_infinite]`} />
           <span className={`w-2.5 h-2.5 rounded-full ${color} animate-[pulse_1.4s_ease-in-out_0.2s_infinite]`} />
@@ -40,6 +38,6 @@ export default function LoadingDots({
           </div>
         )}
       </div>
-    </Rise>
+    </div>
   );
 }
