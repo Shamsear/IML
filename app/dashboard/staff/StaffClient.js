@@ -12,6 +12,7 @@ import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import TabNav from '@/components/TabNav';
 import Pagination from '@/components/Pagination';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 export default function StaffClient({ initialStaff, stores }) {
   const router = useRouter();
@@ -326,23 +327,27 @@ export default function StaffClient({ initialStaff, stores }) {
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-surface border border-border p-3 sm:p-4 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
             <Shirt className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-[9px] sm:text-[10px] font-bold text-text-secondary uppercase tracking-wider block truncate">Total Allocated Logs</span>
-            <span className="text-lg sm:text-2xl font-display font-extrabold text-text-primary block">{totalAllocationsCount}</span>
+            <span className="text-lg sm:text-2xl font-display font-extrabold text-text-primary block tabular-nums">
+              <AnimatedCounter value={totalAllocationsCount} />
+            </span>
           </div>
         </div>
 
         <div className="bg-surface border border-border p-3 sm:p-4 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-sm bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
             <Inbox className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-[9px] sm:text-[10px] font-bold text-text-secondary uppercase tracking-wider block truncate">Active Allocations</span>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-lg sm:text-2xl font-display font-extrabold text-warning">{activeAllocationsCount}</span>
+              <span className="text-lg sm:text-2xl font-display font-extrabold text-warning tabular-nums">
+                <AnimatedCounter value={activeAllocationsCount} />
+              </span>
               {overdueAllocationsCount > 0 && (
                 <span className="text-[8px] sm:text-[10px] font-extrabold text-danger bg-danger/10 border border-danger/15 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 has-tooltip cursor-help flex-shrink-0">
                   {overdueAllocationsCount} overdue
@@ -354,22 +359,26 @@ export default function StaffClient({ initialStaff, stores }) {
         </div>
 
         <div className="bg-surface border border-border p-3 sm:p-4 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-sm bg-success/10 text-success flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-success/10 text-success flex items-center justify-center flex-shrink-0">
             <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-[9px] sm:text-[10px] font-bold text-text-secondary uppercase tracking-wider block truncate">Returned &amp; Closed</span>
-            <span className="text-lg sm:text-2xl font-display font-extrabold text-success block">{returnedAllocationsCount}</span>
+            <span className="text-lg sm:text-2xl font-display font-extrabold text-success block tabular-nums">
+              <AnimatedCounter value={returnedAllocationsCount} />
+            </span>
           </div>
         </div>
 
         <div className="bg-surface border border-border p-3 sm:p-4 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-sm bg-secondary/15 text-secondary flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-secondary/15 text-secondary flex items-center justify-center flex-shrink-0">
             <Users className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-[9px] sm:text-[10px] font-bold text-text-secondary uppercase tracking-wider block truncate">Total Items in Field</span>
-            <span className="text-lg sm:text-2xl font-display font-extrabold text-text-primary block">{totalActiveQty}</span>
+            <span className="text-lg sm:text-2xl font-display font-extrabold text-text-primary block tabular-nums">
+              <AnimatedCounter value={totalActiveQty} />
+            </span>
           </div>
         </div>
       </div>

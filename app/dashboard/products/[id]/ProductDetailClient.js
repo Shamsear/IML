@@ -16,6 +16,7 @@ import ImageLightbox from '@/components/ImageLightbox';
 import ConfirmModal from '@/components/ConfirmModal';
 import DeleteButton from '@/components/DeleteButton';
 import Pagination from '@/components/Pagination';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 export default function ProductDetailClient({ product }) {
   const router = useRouter();
@@ -245,19 +246,27 @@ export default function ProductDetailClient({ product }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-success/5 border border-success/20 rounded-xl p-4 text-center">
               <span className="text-[10px] font-bold text-success uppercase tracking-wider block">Warehouse</span>
-              <span className="text-2xl font-display font-black text-success block mt-1">{stock.warehouse}</span>
+              <span className="text-2xl font-display font-black text-success block mt-1 tabular-nums">
+                <AnimatedCounter value={stock.warehouse} />
+              </span>
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
               <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">Issued</span>
-              <span className="text-2xl font-display font-black text-primary block mt-1">{stock.issued}</span>
+              <span className="text-2xl font-display font-black text-primary block mt-1 tabular-nums">
+                <AnimatedCounter value={stock.issued} />
+              </span>
             </div>
             <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-4 text-center">
               <span className="text-[10px] font-bold text-secondary uppercase tracking-wider block">Used</span>
-              <span className="text-2xl font-display font-black text-secondary block mt-1">{stock.used}</span>
+              <span className="text-2xl font-display font-black text-secondary block mt-1 tabular-nums">
+                <AnimatedCounter value={stock.used} />
+              </span>
             </div>
             <div className="bg-warning/5 border border-warning/20 rounded-xl p-4 text-center">
               <span className="text-[10px] font-bold text-warning uppercase tracking-wider block">With Client</span>
-              <span className="text-2xl font-display font-black text-warning block mt-1">{stock.withClient}</span>
+              <span className="text-2xl font-display font-black text-warning block mt-1 tabular-nums">
+                <AnimatedCounter value={stock.withClient} />
+              </span>
             </div>
           </div>
 
