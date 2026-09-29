@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { 
@@ -19,6 +19,8 @@ import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function BrandDetailClient({ brand, allStores, supervisors, staff }) {
   const router = useRouter();
@@ -276,10 +278,40 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     }
   };
 
+  const productCustomGetters = useMemo(() => ({
+    name: (p) => p.name || '',
+    itemCode: (p) => p.itemCode || '',
+    category: (p) => p.category || '',
+    purchased: (p) => getProductStock(p.transactions).purchased ?? 0,
+    warehouse: (p) => getProductStock(p.transactions).warehouseStock ?? 0,
+    issued: (p) => getProductStock(p.transactions).issued ?? 0,
+    used: (p) => getProductStock(p.transactions).used ?? 0,
+    damage: (p) => getProductStock(p.transactions).damage ?? 0,
+    lost: (p) => getProductStock(p.transactions).lost ?? 0,
+    withClient: (p) => getProductStock(p.transactions).withClient ?? 0,
+    rebrand: (p) => getProductStock(p.transactions).rebrand ?? 0,
+    total: (p) => getProductStock(p.transactions).total ?? 0,
+    stockStatus: (p) => getProductStock(p.transactions).warehouseStock ?? 0,
+  }), []);
+
+  const {
+    sortedItems: sortedProducts,
+    sortField: productSortField,
+    sortDirection: productSortDirection,
+    handleSort: handleProductSort,
+  } = useTableSort(brand.products || [], 'name', 'asc', productCustomGetters);
+
   const itemsPerPage = 25;
-  const totalPages = Math.ceil(brand.products.length / itemsPerPage);
-  const paginatedProducts = brand.products.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+  const paginatedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
   const uniqueCategories = Array.from(new Set(brand.products.map(p => p.category).filter(Boolean)));
+
+  const {
+    sortedItems: sortedSerials,
+    sortField: serialSortField,
+    sortDirection: serialSortDirection,
+    handleSort: handleSerialSort,
+  } = useTableSort(serialsList || [], 'barcode', 'asc');
 
   return (
     <div className="flex flex-col gap-6">
@@ -496,19 +528,19 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                         }}
                       />
                     </th>
-                    <th className="py-3 px-5 whitespace-nowrap sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Item Description</th>
-                    <th className="py-3 px-5 whitespace-nowrap">Item Code</th>
-                    <th className="py-3 px-5 whitespace-nowrap">Item category</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap">Purchased / Received</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap">Available In Warehouse</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap">Issued</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap">Used</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap text-danger">Damage</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap text-danger">Lost / Not Found</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap text-primary">With Client</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap text-secondary">Re Brand</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap font-bold">Total</th>
-                    <th className="py-3 px-5 text-center whitespace-nowrap">Stock Status</th>
+                    <SortableHeader field="name" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-3 px-5 whitespace-nowrap sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Item Description</SortableHeader>
+                    <SortableHeader field="itemCode" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-3 px-5 whitespace-nowrap">Item Code</SortableHeader>
+                    <SortableHeader field="category" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-3 px-5 whitespace-nowrap">Item category</SortableHeader>
+                    <SortableHeader field="purchased" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap">Purchased / Received</SortableHeader>
+                    <SortableHeader field="warehouse" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap">Available In Warehouse</SortableHeader>
+                    <SortableHeader field="issued" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap">Issued</SortableHeader>
+                    <SortableHeader field="used" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap">Used</SortableHeader>
+                    <SortableHeader field="damage" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap text-danger">Damage</SortableHeader>
+                    <SortableHeader field="lost" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap text-danger">Lost / Not Found</SortableHeader>
+                    <SortableHeader field="withClient" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap text-primary">With Client</SortableHeader>
+                    <SortableHeader field="rebrand" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap text-secondary">Re Brand</SortableHeader>
+                    <SortableHeader field="total" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap font-bold">Total</SortableHeader>
+                    <SortableHeader field="stockStatus" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap">Stock Status</SortableHeader>
                     <th className="py-3 px-5 text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
@@ -991,13 +1023,13 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                   <table className="min-w-full divide-y divide-border text-xs">
                     <thead>
                       <tr className="text-left font-bold text-text-secondary uppercase bg-surface-elevated">
-                        <th className="p-2.5">Barcode</th>
-                        <th className="p-2.5">Location</th>
-                        <th className="p-2.5 text-center">Status</th>
+                        <SortableHeader field="barcode" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="p-2.5">Barcode</SortableHeader>
+                        <SortableHeader field="currentLocationType" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="p-2.5">Location</SortableHeader>
+                        <SortableHeader field="status" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} align="center" className="p-2.5 text-center">Status</SortableHeader>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border font-mono text-text-primary">
-                      {serialsList.map(s => (
+                      {sortedSerials.map(s => (
                         <tr key={s.id} className="hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/40">
                           <td className="p-2.5"><code>{s.barcode}</code></td>
                           <td className="p-2.5">{s.currentLocationType}</td>

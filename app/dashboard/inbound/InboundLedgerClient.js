@@ -12,6 +12,8 @@ import TabNav from '@/components/TabNav';
 import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import DeliveryNoteGroup from '@/components/DeliveryNoteGroup';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function InboundLedgerClient({ transactions, totalCount, totalPages, page, entityNames }) {
   const router = useRouter();
@@ -91,6 +93,24 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
       return matchProduct && matchBrand;
     });
   }, [transactions, productFilter, brandId]);
+
+  const inboundGetters = useMemo(() => ({
+    product: (tx) => tx.product?.name || '',
+    date: (tx) => tx.timestamp,
+    sku: (tx) => tx.product?.itemCode || '',
+    type: (tx) => tx.transactionType || '',
+    source: (tx) => tx.fromEntityType === 'STORE' ? (entityNames[tx.fromEntityId] || tx.fromEntityId) : (tx.fromEntityId || ''),
+    quantity: (tx) => tx.quantity ?? 0,
+    deliveryNote: (tx) => tx.deliveryNote || '',
+    notes: (tx) => tx.notes || '',
+  }), [entityNames]);
+
+  const {
+    sortedItems: sortedTransactions,
+    sortField: inboundSortField,
+    sortDirection: inboundSortDirection,
+    handleSort: handleInboundSort,
+  } = useTableSort(filteredTransactions, 'date', 'desc', inboundGetters);
 
   const filteredGroups = deliveryNotesGroups.filter(g => 
     g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) || 
@@ -196,14 +216,14 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
           )}
 
           {/* Mobile Card View */}
-          {filteredTransactions.length === 0 ? (
+          {sortedTransactions.length === 0 ? (
             <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
               <ArrowDownLeft size={48} className="text-text-muted" />
               <h3 className="font-display font-bold text-lg text-text-primary">No matching transactions</h3>
             </div>
           ) : (
             <div className="md:hidden flex flex-col gap-3">
-              {filteredTransactions.map((tx) => {
+              {sortedTransactions.map((tx) => {
                 const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const sourceName = tx.fromEntityType === 'STORE' ? `Store: ${entityNames[tx.fromEntityId] || tx.fromEntityId}` : `Supplier: ${tx.fromEntityId || '---'}`;
                 return (
@@ -240,7 +260,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
 
           {/* Desktop Table View */}
           <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
-            {filteredTransactions.length === 0 ? (
+            {sortedTransactions.length === 0 ? (
               <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted bg-surface">
                 <ArrowDownLeft size={48} className="text-text-muted" />
                 <h3 className="font-display font-bold text-lg text-text-primary">No matching transactions</h3>
@@ -251,19 +271,19 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
                   <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">SKU</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Type</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Source / Supplier</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Quantity</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Receive Note</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
+                        <SortableHeader field="product" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                        <SortableHeader field="date" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
+                        <SortableHeader field="sku" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">SKU</SortableHeader>
+                        <SortableHeader field="type" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Type</SortableHeader>
+                        <SortableHeader field="source" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Source / Supplier</SortableHeader>
+                        <SortableHeader field="quantity" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Quantity</SortableHeader>
+                        <SortableHeader field="deliveryNote" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Receive Note</SortableHeader>
+                        <SortableHeader field="notes" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
                         <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
-                      {filteredTransactions.map((tx) => {
+                      {sortedTransactions.map((tx) => {
                         const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai',
                           day: 'numeric', month: 'short', year: 'numeric',
                           hour: '2-digit', minute: '2-digit'

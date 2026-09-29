@@ -9,6 +9,8 @@ import ExportToExcel from '@/components/ExportToExcel';
 import { useToast } from '@/components/Toast';
 import TabNav from '@/components/TabNav';
 import Pagination from '@/components/Pagination';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function ClientReturnsBalancesClient({ balances, recentTransactions = [] }) {
   const toast = useToast();
@@ -107,10 +109,26 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
     });
   }, [recentTransactions, historySearch, historyDirection]);
 
-  const totalHistoryPages = Math.ceil(filteredHistory.length / historyItemsPerPage);
+  const historyCustomGetters = useMemo(() => ({
+    direction: (tx) => (tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE') ? 'From Client' : 'To Client',
+    product: (tx) => tx.product?.name || '',
+    gatePass: (tx) => tx.deliveryNote || '',
+    brand: (tx) => tx.product?.brand?.name || '',
+    quantity: (tx) => tx.quantity ?? 0,
+    date: (tx) => tx.timestamp,
+  }), []);
+
+  const {
+    sortedItems: sortedHistory,
+    sortField: historySortField,
+    sortDirection: historySortDirection,
+    handleSort: handleHistorySort,
+  } = useTableSort(filteredHistory, 'date', 'desc', historyCustomGetters);
+
+  const totalHistoryPages = Math.ceil(sortedHistory.length / historyItemsPerPage);
   const paginatedHistory = useMemo(() => {
-    return filteredHistory.slice((historyPage - 1) * historyItemsPerPage, historyPage * historyItemsPerPage);
-  }, [filteredHistory, historyPage, historyItemsPerPage]);
+    return sortedHistory.slice((historyPage - 1) * historyItemsPerPage, historyPage * historyItemsPerPage);
+  }, [sortedHistory, historyPage, historyItemsPerPage]);
 
   const handleHistoryDownloadPDF = async (tx) => {
     const isFromClient = tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE';
@@ -545,17 +563,17 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                  <th className="py-3 px-4 font-semibold">Direction</th>
-                  <th className="py-3 px-4 font-semibold">Product</th>
-                  <th className="py-3 px-4 font-semibold">Gate Pass</th>
-                  <th className="py-3 px-4 font-semibold">Brand</th>
-                  <th className="py-3 px-4 text-center font-semibold">Qty</th>
-                  <th className="py-3 px-4 font-semibold">Date</th>
+                  <SortableHeader field="direction" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Direction</SortableHeader>
+                  <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Product</SortableHeader>
+                  <SortableHeader field="gatePass" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Gate Pass</SortableHeader>
+                  <SortableHeader field="brand" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Brand</SortableHeader>
+                  <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-3 px-4 text-center font-semibold">Qty</SortableHeader>
+                  <SortableHeader field="date" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Date</SortableHeader>
                   <th className="py-3 px-4 text-right font-semibold">PDF</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {filteredHistory.length === 0 ? (
+                {sortedHistory.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
                       No transactions found.

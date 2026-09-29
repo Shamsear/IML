@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldAlert, Filter, X } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { getProductStock } from '@/lib/stock';
 import StockBreakdown from '@/components/StockBreakdown';
 import ImageLightbox from '@/components/ImageLightbox';
 import AnimatedCounter from '@/components/AnimatedCounter';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function BrandPortalClient({ brand }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,8 +94,38 @@ export default function BrandPortalClient({ brand }) {
     return matchesTab && matchesSearch;
   });
 
-  const totalProductPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(productPage * itemsPerPage, (productPage + 1) * itemsPerPage);
+  const customGetters = useMemo(() => ({
+    name: (p) => p.name || '',
+    itemCode: (p) => p.itemCode || '',
+    category: (p) => p.category || '',
+    purchased: (p) => getProductStock(p.transactions).purchased,
+    warehouse: (p) => getProductStock(p.transactions).warehouse,
+    issued: (p) => getProductStock(p.transactions).issued,
+    used: (p) => getProductStock(p.transactions).used,
+    damage: (p) => getProductStock(p.transactions).damage,
+    lost: (p) => getProductStock(p.transactions).lost,
+    withClient: (p) => getProductStock(p.transactions).withClient,
+    reBrand: (p) => getProductStock(p.transactions).reBrand,
+    total: (p) => getProductStock(p.transactions).total,
+    stockStatus: (p) => {
+      const s = getProductStock(p.transactions);
+      return s.total > 0 ? (s.warehouse > 0 ? 2 : 1) : 0;
+    },
+  }), []);
+
+  const {
+    items: sortedProducts,
+    sortField,
+    sortDirection,
+    handleSort,
+  } = useTableSort(filteredProducts, {
+    defaultSortField: 'name',
+    defaultSortDirection: 'asc',
+    customGetters,
+  });
+
+  const totalProductPages = Math.ceil(sortedProducts.length / itemsPerPage);
+  const paginatedProducts = sortedProducts.slice(productPage * itemsPerPage, (productPage + 1) * itemsPerPage);
 
   const totalLogPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const paginatedTransactions = filteredTransactions.slice(logPage * itemsPerPage, (logPage + 1) * itemsPerPage);
@@ -360,19 +392,19 @@ export default function BrandPortalClient({ brand }) {
                   <table className="min-w-full divide-y divide-border">
                     <thead>
                       <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                        <th className="pb-2.5 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Item Description</th>
-                        <th className="pb-2.5 px-3 whitespace-nowrap">Item Code</th>
-                        <th className="pb-2.5 px-3 whitespace-nowrap">Item category</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Purchased / Received</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Available In Warehouse</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Issued</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Used</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap text-danger">Damage</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap text-danger">Lost / Not Found</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap text-primary">With Client</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap text-secondary">Re Brand</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap font-bold">Total</th>
-                        <th className="pb-2.5 px-3 text-center whitespace-nowrap">Stock Status</th>
+                        <SortableHeader field="name" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Item Description</SortableHeader>
+                        <SortableHeader field="itemCode" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap">Item Code</SortableHeader>
+                        <SortableHeader field="category" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap">Item Category</SortableHeader>
+                        <SortableHeader field="purchased" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Purchased / Received</SortableHeader>
+                        <SortableHeader field="warehouse" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Available In Warehouse</SortableHeader>
+                        <SortableHeader field="issued" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Issued</SortableHeader>
+                        <SortableHeader field="used" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Used</SortableHeader>
+                        <SortableHeader field="damage" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-danger">Damage</SortableHeader>
+                        <SortableHeader field="lost" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-danger">Lost / Not Found</SortableHeader>
+                        <SortableHeader field="withClient" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-primary">With Client</SortableHeader>
+                        <SortableHeader field="reBrand" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-secondary">Re Brand</SortableHeader>
+                        <SortableHeader field="total" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap font-bold">Total</SortableHeader>
+                        <SortableHeader field="stockStatus" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Stock Status</SortableHeader>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-xs text-text-primary">

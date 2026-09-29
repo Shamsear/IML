@@ -12,6 +12,8 @@ import FilterBar from '@/components/FilterBar';
 import StockBreakdown from '@/components/StockBreakdown';
 import ImageLightbox from '@/components/ImageLightbox';
 import AnimatedCounter from '@/components/AnimatedCounter';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function ReportsClient({ initialProducts, brands }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +51,29 @@ export default function ReportsClient({ initialProducts, brands }) {
     return matchesSearch && matchesBrand && matchesCategory;
   });
 
+  // Sorting
+  const customSortGetters = {
+    name: p => p.name,
+    brand: p => p.brand?.name || '',
+    category: p => p.category || '',
+    purchased: p => p.stock.purchased,
+    warehouse: p => p.stock.warehouse,
+    issued: p => p.stock.issued,
+    used: p => p.stock.used,
+    damage: p => p.stock.damage,
+    lost: p => p.stock.lost,
+    withClient: p => p.stock.withClient,
+    reBrand: p => p.stock.reBrand,
+    total: p => p.stock.total,
+  };
+
+  const { sortedItems: sortedProducts, sortField, sortDirection, handleSort } = useTableSort(
+    filteredProducts,
+    'name',
+    'asc',
+    customSortGetters
+  );
+
   // Aggregate global metrics across the filtered list
   const aggregateTotals = filteredProducts.reduce((acc, p) => {
     acc.purchased += p.stock.purchased;
@@ -63,8 +88,8 @@ export default function ReportsClient({ initialProducts, brands }) {
     return acc;
   }, { purchased: 0, warehouse: 0, issued: 0, used: 0, damage: 0, lost: 0, withClient: 0, reBrand: 0, total: 0 });
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+  const paginatedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   const handlePrint = () => {
     window.print();
@@ -331,18 +356,48 @@ export default function ReportsClient({ initialProducts, brands }) {
             <table className="min-w-full divide-y divide-border/80 print:divide-y-2 print:divide-black text-left">
               <thead>
                 <tr className="bg-surface-elevated/40 text-[10px] font-bold text-text-secondary uppercase tracking-wider print:text-[9px] print:text-black">
-                  <th className="py-3.5 pl-5 pr-4 whitespace-nowrap sticky left-0 bg-surface-elevated/80 backdrop-blur-sm z-20 border-r border-border/80 shadow-xs print:relative print:bg-transparent print:border-r-0 print:shadow-none">Product Details</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">Brand</th>
-                  <th className="py-3.5 px-4 whitespace-nowrap">Category</th>
-                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Purchased</th>
-                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Warehouse</th>
-                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Issued</th>
-                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Used</th>
-                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Damage</th>
-                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Lost</th>
-                  <th className="py-3.5 px-4 text-center whitespace-nowrap">With Client</th>
-                  <th className="py-3.5 px-4 text-center whitespace-nowrap">Rebrand</th>
-                  <th className="py-3.5 pl-4 pr-5 text-center font-bold whitespace-nowrap">Total Stock</th>
+                  <SortableHeader 
+                    field="name" 
+                    currentField={sortField} 
+                    direction={sortDirection} 
+                    onSort={handleSort}
+                    className="py-3.5 pl-5 pr-4 whitespace-nowrap sticky left-0 bg-surface-elevated/80 backdrop-blur-sm z-20 border-r border-border/80 shadow-xs print:relative print:bg-transparent print:border-r-0 print:shadow-none"
+                  >
+                    Product Details
+                  </SortableHeader>
+                  <SortableHeader field="brand" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3.5 px-4 whitespace-nowrap">
+                    Brand
+                  </SortableHeader>
+                  <SortableHeader field="category" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3.5 px-4 whitespace-nowrap">
+                    Category
+                  </SortableHeader>
+                  <SortableHeader field="purchased" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 px-4 whitespace-nowrap">
+                    Purchased
+                  </SortableHeader>
+                  <SortableHeader field="warehouse" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 px-4 whitespace-nowrap">
+                    Warehouse
+                  </SortableHeader>
+                  <SortableHeader field="issued" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 px-4 whitespace-nowrap">
+                    Issued
+                  </SortableHeader>
+                  <SortableHeader field="used" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 px-4 whitespace-nowrap">
+                    Used
+                  </SortableHeader>
+                  <SortableHeader field="damage" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 px-4 whitespace-nowrap text-danger">
+                    Damage
+                  </SortableHeader>
+                  <SortableHeader field="lost" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 px-4 whitespace-nowrap text-danger">
+                    Lost
+                  </SortableHeader>
+                  <SortableHeader field="withClient" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 px-4 whitespace-nowrap text-primary">
+                    With Client
+                  </SortableHeader>
+                  <SortableHeader field="reBrand" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 px-4 whitespace-nowrap text-secondary">
+                    Rebrand
+                  </SortableHeader>
+                  <SortableHeader field="total" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3.5 pl-4 pr-5 whitespace-nowrap font-bold text-primary">
+                    Total Stock
+                  </SortableHeader>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/70 text-xs text-text-primary print:divide-y print:divide-gray-400 print:text-[9px]">

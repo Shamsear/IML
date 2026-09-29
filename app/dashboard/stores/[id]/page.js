@@ -2,9 +2,10 @@ import { prisma } from '@/lib/prisma';
 import { getStoreInventory } from '@/app/actions/transactions';
 import { 
   Store, MapPin, Globe, EyeOff, Users, 
-  Package, QrCode, ClipboardCheck, ArrowLeft, Printer, Pencil
+  ClipboardCheck, ArrowLeft, Printer, Pencil
 } from 'lucide-react';
 import Link from 'next/link';
+import StoreInventoryTable from './StoreInventoryTable';
 
 export default async function StoreDetailPage({ params, searchParams }) {
   // Await the params and searchParams objects in Next.js App Router
@@ -149,161 +150,13 @@ export default async function StoreDetailPage({ params, searchParams }) {
       </div>
 
       {/* 1. Stock Placed At Store Panel */}
-      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
-        <div className="flex items-center gap-2 pb-3 border-b border-border">
-          <Package size={18} className="text-primary" />
-          <h3 className="font-display font-bold text-base text-text-primary">Current Stock Placed At Store</h3>
-        </div>
-
-        <div>
-          {inventory.length === 0 ? (
-            <div className="py-12 text-center flex flex-col items-center gap-3 text-text-muted">
-              <ClipboardCheck size={36} />
-              <p className="text-sm">This store currently holds no active inventory.</p>
-              <Link href="/dashboard/outbound" className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-hover shadow-sm transition-colors duration-200">
-                Issue Stock to Outlet
-              </Link>
-            </div>
-          ) : (
-            <>
-              {/* Top Inventory Pagination */}
-              {totalInvPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-2.5 border border-border bg-surface-elevated/20 text-xs mb-3 rounded-lg print:hidden">
-                  <span className="text-text-muted">
-                    Showing <strong className="text-text-primary">{(invPage - 1) * pageSize + 1}</strong> to{" "}
-                    <strong className="text-text-primary">
-                      {Math.min(invPage * pageSize, inventory.length)}
-                    </strong> of{" "}
-                    <strong className="text-text-primary">{inventory.length}</strong> items
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <Link
-                      href={`/dashboard/stores/${id}?invPage=${Math.max(1, invPage - 1)}&dispPage=${dispPage}`}
-                      className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
-                        invPage === 1 ? 'pointer-events-none opacity-50' : ''
-                      }`}
-                    >
-                      Previous
-                    </Link>
-                    <Link
-                      href={`/dashboard/stores/${id}?invPage=${Math.min(totalInvPages, invPage + 1)}&dispPage=${dispPage}`}
-                      className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
-                        invPage === totalInvPages ? 'pointer-events-none opacity-50' : ''
-                      }`}
-                    >
-                      Next
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto -mx-5">
-                <div className="inline-block min-w-full align-middle px-5">
-                  <table className="min-w-full divide-y divide-border text-sm">
-                    <thead>
-                      <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
-                        <th className="pb-3 pr-4">Product Name</th>
-                        <th className="pb-3 px-4">Brand</th>
-                        <th className="pb-3 px-4 text-center">Quantity</th>
-                        <th className="pb-3 pl-4">Barcodes / Serials</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border text-text-primary">
-                      {paginatedInventory.map((item) => (
-                        <tr key={item.productId} className="hover:bg-surface-elevated/20 transition-colors">
-                          <td className="py-3 pr-4 font-semibold">{item.name}</td>
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <span className="badge badge-info">{item.brandName}</span>
-                          </td>
-                          <td className="py-3 px-4 whitespace-nowrap text-center font-mono font-bold text-base">{item.quantity}</td>
-                          <td className="py-3 pl-4 whitespace-nowrap">
-                            {item.isSerialized ? (
-                              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                                <QrCode size={13} className="text-success" />
-                                <span className="max-w-[240px] truncate font-mono bg-surface-elevated px-1.5 py-0.5 rounded text-[10px]" title={item.serials.map(s => s.barcode).join(', ')}>
-                                  {item.serials.map(s => s.barcode).join(', ')}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-text-muted">Bulk Goods</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Mobile Card View */}
-              <div className="md:hidden flex flex-col gap-3">
-                {paginatedInventory.map((item) => (
-                  <div key={item.productId} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <span className="font-bold text-sm text-text-primary block leading-tight">{item.name}</span>
-                        <span className="badge badge-info mt-1.5 text-[9px]">{item.brandName}</span>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="text-[10px] text-text-secondary block font-semibold">Qty</span>
-                        <span className="font-mono font-black text-lg text-text-primary">{item.quantity}</span>
-                      </div>
-                    </div>
-                    {item.isSerialized ? (
-                      <div className="pt-2 border-t border-border/50 flex flex-col gap-1 text-[11px] text-text-secondary">
-                        <span className="font-semibold flex items-center gap-1.5"><QrCode size={12} className="text-success" /> Serials:</span>
-                        <div className="flex flex-wrap gap-1.5 mt-0.5">
-                          {item.serials.map(s => (
-                            <span key={s.barcode} className="font-mono bg-surface-elevated px-1.5 py-0.5 rounded text-[10px] select-all">
-                              {s.barcode}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="pt-2 border-t border-border/50 text-[11px] text-text-muted">
-                        Bulk Goods
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Inventory Pagination Controls */}
-              {totalInvPages > 1 && (
-                <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs mt-2 rounded-lg">
-                  <span className="text-text-muted">
-                    Showing <strong className="text-text-primary">{(invPage - 1) * pageSize + 1}</strong> to{" "}
-                    <strong className="text-text-primary">
-                      {Math.min(invPage * pageSize, inventory.length)}
-                    </strong> of{" "}
-                    <strong className="text-text-primary">{inventory.length}</strong> items
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <Link
-                      href={`/dashboard/stores/${id}?invPage=${Math.max(1, invPage - 1)}&dispPage=${dispPage}`}
-                      className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
-                        invPage === 1 ? 'pointer-events-none opacity-50' : ''
-                      }`}
-                    >
-                      Previous
-                    </Link>
-                    <Link
-                      href={`/dashboard/stores/${id}?invPage=${Math.min(totalInvPages, invPage + 1)}&dispPage=${dispPage}`}
-                      className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
-                        invPage === totalInvPages ? 'pointer-events-none opacity-50' : ''
-                      }`}
-                    >
-                      Next
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <StoreInventoryTable
+        inventory={inventory}
+        storeId={id}
+        invPage={invPage}
+        dispPage={dispPage}
+        pageSize={pageSize}
+      />
 
       {/* 2. Equal 2-Column Bottom Grid for Promoters and Delivery Notes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

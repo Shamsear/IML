@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
@@ -21,6 +21,8 @@ import ImageLightbox from '@/components/ImageLightbox';
 import Pagination from '@/components/Pagination';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 const shirtSizes = ['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'];
 
@@ -483,18 +485,45 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
     return matchesBrand && matchesSearch;
   });
 
+  const productCustomGetters = useMemo(() => ({
+    name: (p) => p.name || '',
+    itemCode: (p) => p.itemCode || '',
+    brand: (p) => p.brand?.name || '',
+    stock: (p) => p.warehouseStock ?? 0,
+    type: (p) => (p.isSerialized ? 'Serialized' : 'Bulk'),
+    category: (p) => p.category || '',
+    isReturnable: (p) => (p.isReturnable ? 1 : 0),
+    isDisposable: (p) => (p.isDisposable ? 1 : 0),
+    trackExpiry: (p) => (p.trackExpiry ? 1 : 0),
+  }), []);
+
+  const {
+    sortedItems: sortedProducts,
+    sortField: productSortField,
+    sortDirection: productSortDirection,
+    handleSort: handleProductSort,
+  } = useTableSort(filteredProducts, 'name', 'asc', productCustomGetters);
+
   // Reset pagination on brand filter or search change
   useEffect(() => {
     setCurrentPage(0);
   }, [brandFilter, searchQuery]);
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+  const paginatedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+
   const filteredSerials = serialsList.filter(s =>
     s.barcode.toLowerCase().includes(serialSearch.toLowerCase()) ||
     (s.secondaryBarcode && s.secondaryBarcode.toLowerCase().includes(serialSearch.toLowerCase())) ||
     (s.status && s.status.toLowerCase().includes(serialSearch.toLowerCase()))
   );
+
+  const {
+    sortedItems: sortedSerials,
+    sortField: serialSortField,
+    sortDirection: serialSortDirection,
+    handleSort: handleSerialSort,
+  } = useTableSort(filteredSerials, 'barcode', 'asc');
 
   return (
     <div className="flex flex-col gap-6">
@@ -746,14 +775,14 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                     <table className="min-w-full divide-y divide-border text-xs">
                       <thead>
                         <tr className="text-left font-bold text-text-secondary uppercase bg-surface-elevated">
-                          <th className="p-2.5">Barcode</th>
-                          <th className="p-2.5">Secondary</th>
-                          <th className="p-2.5">Location</th>
-                          <th className="p-2.5 text-center">Status</th>
+                          <SortableHeader field="barcode" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="p-2.5">Barcode</SortableHeader>
+                          <SortableHeader field="secondaryBarcode" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="p-2.5">Secondary</SortableHeader>
+                          <SortableHeader field="currentLocationType" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="p-2.5">Location</SortableHeader>
+                          <SortableHeader field="status" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} align="center" className="p-2.5">Status</SortableHeader>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border font-mono text-text-primary">
-                        {filteredSerials.map(s => (
+                        {sortedSerials.map(s => (
                           <tr key={s.id} className="hover:bg-surface-elevated/40">
                             <td className="p-2.5"><code>{s.barcode}</code></td>
                             <td className="p-2.5 text-text-muted">{s.secondaryBarcode || '---'}</td>
@@ -1043,15 +1072,15 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                           <input type="checkbox" className="custom-checkbox" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
                             onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
                         </th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Code (SKU)</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Brand</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Stock</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Type</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Category</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Returnable</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Disposable</th>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Track Expiry</th>
+                        <SortableHeader field="name" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                        <SortableHeader field="itemCode" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Code (SKU)</SortableHeader>
+                        <SortableHeader field="brand" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Brand</SortableHeader>
+                        <SortableHeader field="stock" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Stock</SortableHeader>
+                        <SortableHeader field="type" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Type</SortableHeader>
+                        <SortableHeader field="category" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Category</SortableHeader>
+                        <SortableHeader field="isReturnable" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Returnable</SortableHeader>
+                        <SortableHeader field="isDisposable" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Disposable</SortableHeader>
+                        <SortableHeader field="trackExpiry" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Track Expiry</SortableHeader>
                         <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                       </tr>
                     </thead>

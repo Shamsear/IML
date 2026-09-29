@@ -13,6 +13,8 @@ import ConfirmModal from '@/components/ConfirmModal';
 import TabNav from '@/components/TabNav';
 import Pagination from '@/components/Pagination';
 import AnimatedCounter from '@/components/AnimatedCounter';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function StaffClient({ initialStaff, stores }) {
   const router = useRouter();
@@ -298,11 +300,41 @@ export default function StaffClient({ initialStaff, stores }) {
     return matchesSearch && matchesStatus;
   });
 
-  const totalPromoterPages = Math.ceil(filteredPromoters.length / promoterItemsPerPage);
-  const paginatedPromoters = filteredPromoters.slice((promoterPage - 1) * promoterItemsPerPage, promoterPage * promoterItemsPerPage);
+  const promoterCustomGetters = useMemo(() => ({
+    name: (p) => p.name || '',
+    phone: (p) => p.phone || '',
+    shirtSize: (p) => p.shirtSize || '',
+    store: (p) => p.store?.name || '',
+    uniformCount: (p) => p.uniformItems?.length || 0,
+  }), []);
 
-  const totalLedgerPages = Math.ceil(filteredAllocations.length / ledgerItemsPerPage);
-  const paginatedAllocations = filteredAllocations.slice((ledgerPage - 1) * ledgerItemsPerPage, ledgerPage * ledgerItemsPerPage);
+  const {
+    sortedItems: sortedPromoters,
+    sortField: promoterSortField,
+    sortDirection: promoterSortDirection,
+    handleSort: handlePromoterSort,
+  } = useTableSort(filteredPromoters, 'name', 'asc', promoterCustomGetters);
+
+  const totalPromoterPages = Math.ceil(sortedPromoters.length / promoterItemsPerPage);
+  const paginatedPromoters = sortedPromoters.slice((promoterPage - 1) * promoterItemsPerPage, promoterPage * promoterItemsPerPage);
+
+  const allocCustomGetters = useMemo(() => ({
+    promoter: (a) => a.staffName || '',
+    store: (a) => a.store?.name || '',
+    items: (a) => (a.uniformQty || 0) + (a.capQty || 0) + (a.items?.length || 0),
+    period: (a) => a.workingPeriod || '',
+    issuedDate: (a) => a.issueDate || a.createdAt,
+  }), []);
+
+  const {
+    sortedItems: sortedAllocations,
+    sortField: allocSortField,
+    sortDirection: allocSortDirection,
+    handleSort: handleAllocSort,
+  } = useTableSort(filteredAllocations, 'issuedDate', 'desc', allocCustomGetters);
+
+  const totalLedgerPages = Math.ceil(sortedAllocations.length / ledgerItemsPerPage);
+  const paginatedAllocations = sortedAllocations.slice((ledgerPage - 1) * ledgerItemsPerPage, ledgerPage * ledgerItemsPerPage);
 
   // Calculate bulk selection helper sets
   const activeFilteredAllocations = filteredAllocations.filter(a => !isAllocationFullyReturned(a));
@@ -536,11 +568,11 @@ export default function StaffClient({ initialStaff, stores }) {
                             }}
                           />
                         </th>
-                        <th className="py-3 px-5">Promoter</th>
-                        <th className="py-3 px-5">Store Location</th>
-                        <th className="py-3 px-5">Allocated Items</th>
-                        <th className="py-3 px-5">Working Period</th>
-                        <th className="py-3 px-5">Issued Date</th>
+                        <SortableHeader field="promoter" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Promoter</SortableHeader>
+                        <SortableHeader field="store" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Store Location</SortableHeader>
+                        <SortableHeader field="items" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Allocated Items</SortableHeader>
+                        <SortableHeader field="period" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Working Period</SortableHeader>
+                        <SortableHeader field="issuedDate" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Issued Date</SortableHeader>
                         <th className="py-3 px-5 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -780,11 +812,11 @@ export default function StaffClient({ initialStaff, stores }) {
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 px-5">Promoter</th>
-                        <th className="py-3 px-5">Contact</th>
-                        <th className="py-3 px-5">Shirt Size</th>
-                        <th className="py-3 px-5">Current Store Placement</th>
-                        <th className="py-3 px-5">Uniform Inventory</th>
+                        <SortableHeader field="name" currentField={promoterSortField} direction={promoterSortDirection} onSort={handlePromoterSort} className="py-3 px-5">Promoter</SortableHeader>
+                        <SortableHeader field="phone" currentField={promoterSortField} direction={promoterSortDirection} onSort={handlePromoterSort} className="py-3 px-5">Contact</SortableHeader>
+                        <SortableHeader field="shirtSize" currentField={promoterSortField} direction={promoterSortDirection} onSort={handlePromoterSort} className="py-3 px-5">Shirt Size</SortableHeader>
+                        <SortableHeader field="store" currentField={promoterSortField} direction={promoterSortDirection} onSort={handlePromoterSort} className="py-3 px-5">Current Store Placement</SortableHeader>
+                        <SortableHeader field="uniformCount" currentField={promoterSortField} direction={promoterSortDirection} onSort={handlePromoterSort} className="py-3 px-5">Uniform Inventory</SortableHeader>
                         <th className="py-3 px-5 text-right">Actions</th>
                       </tr>
                     </thead>

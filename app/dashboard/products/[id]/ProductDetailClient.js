@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,6 +17,8 @@ import ConfirmModal from '@/components/ConfirmModal';
 import DeleteButton from '@/components/DeleteButton';
 import Pagination from '@/components/Pagination';
 import AnimatedCounter from '@/components/AnimatedCounter';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function ProductDetailClient({ product }) {
   const router = useRouter();
@@ -26,13 +28,47 @@ export default function ProductDetailClient({ product }) {
   const [txPage, setTxPage] = useState(1);
   const itemsPerPage = 20;
 
-  const { stock, brand, serialNumbers = [], transactions = [], _count } = product;
+  const serialCustomGetters = useMemo(() => ({
+    barcode: (s) => s.barcode || '',
+    secondaryBarcode: (s) => s.secondaryBarcode || '',
+    status: (s) => s.status || '',
+    location: (s) => s.currentLocationType || '',
+    manufactureDate: (s) => s.manufactureDate,
+    expiryDate: (s) => s.expiryDate,
+    createdAt: (s) => s.createdAt,
+  }), []);
 
-  const totalSerialPages = Math.ceil((serialNumbers?.length || 0) / itemsPerPage);
-  const paginatedSerials = (serialNumbers || []).slice((serialPage - 1) * itemsPerPage, serialPage * itemsPerPage);
+  const {
+    sortedItems: sortedSerials,
+    sortField: serialSortField,
+    sortDirection: serialSortDirection,
+    handleSort: handleSerialSort,
+  } = useTableSort(serialNumbers || [], 'barcode', 'asc', serialCustomGetters);
 
-  const totalTxPages = Math.ceil((transactions?.length || 0) / itemsPerPage);
-  const paginatedTxs = (transactions || []).slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
+  const totalSerialPages = Math.ceil(sortedSerials.length / itemsPerPage);
+  const paginatedSerials = sortedSerials.slice((serialPage - 1) * itemsPerPage, serialPage * itemsPerPage);
+
+  const txCustomGetters = useMemo(() => ({
+    date: (tx) => tx.timestamp,
+    type: (tx) => tx.transactionType || '',
+    from: (tx) => tx.fromEntityType || '',
+    to: (tx) => tx.toEntityType || '',
+    quantity: (tx) => tx.quantity ?? 0,
+    mfgDate: (tx) => tx.manufactureDate,
+    expDate: (tx) => tx.expiryDate,
+    deliveryNote: (tx) => tx.deliveryNote || '',
+    status: (tx) => tx.transactionType || '',
+  }), []);
+
+  const {
+    sortedItems: sortedTxs,
+    sortField: txSortField,
+    sortDirection: txSortDirection,
+    handleSort: handleTxSort,
+  } = useTableSort(transactions || [], 'date', 'desc', txCustomGetters);
+
+  const totalTxPages = Math.ceil(sortedTxs.length / itemsPerPage);
+  const paginatedTxs = sortedTxs.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
 
   const handleDelete = async () => {
     await deleteProduct(product.id);
@@ -117,6 +153,20 @@ export default function ProductDetailClient({ product }) {
         isExpiringSoon: b.expiryDate && !b.isExpired && new Date(b.expiryDate) < new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
       }));
   })();
+
+  const batchCustomGetters = useMemo(() => ({
+    manufactureDate: (b) => b.manufactureDate,
+    expiryDate: (b) => b.expiryDate,
+    quantity: (b) => b.quantity ?? 0,
+    status: (b) => (b.isExpired ? 0 : b.isExpiringSoon ? 1 : 2),
+  }), []);
+
+  const {
+    sortedItems: sortedExpiryBatches,
+    sortField: batchSortField,
+    sortDirection: batchSortDirection,
+    handleSort: handleBatchSort,
+  } = useTableSort(expiryBatches, 'expiryDate', 'asc', batchCustomGetters);
 
   return (
     <div className="flex flex-col gap-6">
@@ -340,14 +390,14 @@ export default function ProductDetailClient({ product }) {
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
-                  <th className="pb-2 pr-4">Manufacture Date</th>
-                  <th className="pb-2 pr-4">Expiry Date</th>
-                  <th className="pb-2 pr-4">Available Qty</th>
-                  <th className="pb-2">Status</th>
+                  <SortableHeader field="manufactureDate" currentField={batchSortField} direction={batchSortDirection} onSort={handleBatchSort} className="pb-2 pr-4">Manufacture Date</SortableHeader>
+                  <SortableHeader field="expiryDate" currentField={batchSortField} direction={batchSortDirection} onSort={handleBatchSort} className="pb-2 pr-4">Expiry Date</SortableHeader>
+                  <SortableHeader field="quantity" currentField={batchSortField} direction={batchSortDirection} onSort={handleBatchSort} className="pb-2 pr-4">Available Qty</SortableHeader>
+                  <SortableHeader field="status" currentField={batchSortField} direction={batchSortDirection} onSort={handleBatchSort} className="pb-2">Status</SortableHeader>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {expiryBatches.map((b, i) => (
+                {sortedExpiryBatches.map((b, i) => (
                   <tr key={i} className="hover:bg-surface-elevated/20">
                     <td className="py-2 pr-4 text-text-secondary">
                       {b.manufactureDate ? new Date(b.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
@@ -403,13 +453,13 @@ export default function ProductDetailClient({ product }) {
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
-                  <th className="pb-2 pr-4">Barcode</th>
-                  {serialNumbers.some(s => s.secondaryBarcode) && <th className="pb-2 pr-4">Secondary</th>}
-                  <th className="pb-2 pr-4">Status</th>
-                  <th className="pb-2 pr-4">Location</th>
-                  <th className="pb-2 pr-4">Mfg Date</th>
-                  <th className="pb-2 pr-4">Expiry</th>
-                  <th className="pb-2">Created</th>
+                  <SortableHeader field="barcode" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="pb-2 pr-4">Barcode</SortableHeader>
+                  {serialNumbers.some(s => s.secondaryBarcode) && <SortableHeader field="secondaryBarcode" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="pb-2 pr-4">Secondary</SortableHeader>}
+                  <SortableHeader field="status" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="pb-2 pr-4">Status</SortableHeader>
+                  <SortableHeader field="location" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="pb-2 pr-4">Location</SortableHeader>
+                  <SortableHeader field="manufactureDate" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="pb-2 pr-4">Mfg Date</SortableHeader>
+                  <SortableHeader field="expiryDate" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="pb-2 pr-4">Expiry</SortableHeader>
+                  <SortableHeader field="createdAt" currentField={serialSortField} direction={serialSortDirection} onSort={handleSerialSort} className="pb-2">Created</SortableHeader>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -478,15 +528,15 @@ export default function ProductDetailClient({ product }) {
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
-                  <th className="pb-2 pr-4">Date</th>
-                  <th className="pb-2 pr-4">Type</th>
-                  <th className="pb-2 pr-4">From</th>
-                  <th className="pb-2 pr-4">To</th>
-                  <th className="pb-2 pr-4">Qty</th>
-                  {product.trackExpiry && <th className="pb-2 pr-4">Mfg Date</th>}
-                  {product.trackExpiry && <th className="pb-2 pr-4">Exp Date</th>}
-                  <th className="pb-2 pr-4">Note</th>
-                  <th className="pb-2">Status</th>
+                  <SortableHeader field="date" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Date</SortableHeader>
+                  <SortableHeader field="type" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Type</SortableHeader>
+                  <SortableHeader field="from" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">From</SortableHeader>
+                  <SortableHeader field="to" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">To</SortableHeader>
+                  <SortableHeader field="quantity" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Qty</SortableHeader>
+                  {product.trackExpiry && <SortableHeader field="mfgDate" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Mfg Date</SortableHeader>}
+                  {product.trackExpiry && <SortableHeader field="expDate" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Exp Date</SortableHeader>}
+                  <SortableHeader field="deliveryNote" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Note</SortableHeader>
+                  <SortableHeader field="status" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2">Status</SortableHeader>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">

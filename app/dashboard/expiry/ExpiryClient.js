@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Search, AlertTriangle, CheckCircle, Clock, ArrowRight, Package } from 'lucide-react';
 import ExportToExcel from '@/components/ExportToExcel';
 import Pagination from '@/components/Pagination';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function ExpiryClient({ initialBatches }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,8 +81,26 @@ export default function ExpiryClient({ initialBatches }) {
     });
   }, [batchesWithStatus, searchTerm, statusFilter]);
 
-  const totalPages = Math.ceil(filteredBatches.length / itemsPerPage);
-  const paginatedBatches = filteredBatches.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const batchCustomGetters = useMemo(() => ({
+    product: (b) => b.productName || '',
+    deliveryNote: (b) => b.deliveryNote || '',
+    supplier: (b) => b.supplier || '',
+    receivedDate: (b) => b.receivedDate,
+    manufactureDate: (b) => b.manufactureDate,
+    expiryDate: (b) => b.expiryDate,
+    status: (b) => b.daysRemaining ?? 9999,
+    quantity: (b) => b.quantity ?? 0,
+  }), []);
+
+  const {
+    sortedItems: sortedBatches,
+    sortField,
+    sortDirection,
+    handleSort,
+  } = useTableSort(filteredBatches, 'expiryDate', 'asc', batchCustomGetters);
+
+  const totalPages = Math.ceil(sortedBatches.length / itemsPerPage);
+  const paginatedBatches = sortedBatches.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="flex flex-col gap-6 font-sans relative">
@@ -276,14 +296,14 @@ export default function ExpiryClient({ initialBatches }) {
             <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</th>
-                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Batch / DN</th>
-                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supplier / Source</th>
-                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Received Date</th>
-                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Mfg Date</th>
-                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Expiry Date</th>
-                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Shelf Status</th>
-                  <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Batch Stock</th>
+                  <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                  <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Batch / DN</SortableHeader>
+                  <SortableHeader field="supplier" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supplier / Source</SortableHeader>
+                  <SortableHeader field="receivedDate" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Received Date</SortableHeader>
+                  <SortableHeader field="manufactureDate" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Mfg Date</SortableHeader>
+                  <SortableHeader field="expiryDate" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Expiry Date</SortableHeader>
+                  <SortableHeader field="status" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Shelf Status</SortableHeader>
+                  <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Batch Stock</SortableHeader>
                   <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                 </tr>
               </thead>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   History, ArrowDownLeft, ArrowUpRight, ShieldAlert, RefreshCw, 
   ClipboardList, Calendar, FileText, User, Store, UserCheck, Package, Search
@@ -10,6 +10,8 @@ import EmptyState from '@/components/EmptyState';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function TransactionsClient({ 
   initialTransactions, 
@@ -72,8 +74,26 @@ export default function TransactionsClient({
     }, 400);
   };
 
-  // Since we query server-side, paginatedTransactions is just initialTransactions
-  const paginatedTransactions = initialTransactions;
+  const txCustomGetters = useMemo(() => ({
+    product: (tx) => tx.product?.name || '',
+    sku: (tx) => tx.product?.itemCode || '',
+    transactionType: (tx) => tx.transactionType || '',
+    from: (tx) => tx.fromEntityType === 'WAREHOUSE' ? 'Warehouse' : tx.fromEntityType === 'SUPPLIER' ? (tx.fromEntityId || 'Supplier') : (entityNames[tx.fromEntityId] || tx.fromEntityType || ''),
+    to: (tx) => tx.toEntityType === 'WAREHOUSE' ? 'Warehouse' : (entityNames[tx.toEntityId] || tx.toEntityType || ''),
+    quantity: (tx) => tx.quantity ?? 0,
+    deliveryNote: (tx) => tx.deliveryNote || '',
+    timestamp: (tx) => tx.timestamp,
+  }), [entityNames]);
+
+  const {
+    sortedItems: sortedTransactions,
+    sortField,
+    sortDirection,
+    handleSort,
+  } = useTableSort(initialTransactions, 'timestamp', 'desc', txCustomGetters);
+
+  // Since we query server-side, paginatedTransactions is the sorted list of current page transactions
+  const paginatedTransactions = sortedTransactions;
 
   return (
     <div className="flex flex-col gap-6">
@@ -307,14 +327,14 @@ export default function TransactionsClient({
                 <table className="min-w-full divide-y divide-border">
                   <thead>
                     <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
-                      <th className="pb-3 pr-4 sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Product Details</th>
-                      <th className="pb-3 px-4">SKU</th>
-                      <th className="pb-3 px-4">Transaction Type</th>
-                      <th className="pb-3 px-4">Source / From</th>
-                      <th className="pb-3 px-4">Destination / To</th>
-                      <th className="pb-3 px-4 text-center">Quantity</th>
-                      <th className="pb-3 px-4">Delivery Note</th>
-                      <th className="pb-3 pl-4">Date &amp; Time</th>
+                      <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 pr-4 sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Product Details</SortableHeader>
+                      <SortableHeader field="sku" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 px-4">SKU</SortableHeader>
+                      <SortableHeader field="transactionType" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 px-4">Transaction Type</SortableHeader>
+                      <SortableHeader field="from" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 px-4">Source / From</SortableHeader>
+                      <SortableHeader field="to" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 px-4">Destination / To</SortableHeader>
+                      <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="pb-3 px-4">Quantity</SortableHeader>
+                      <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 px-4">Delivery Note</SortableHeader>
+                      <SortableHeader field="timestamp" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 pl-4">Date &amp; Time</SortableHeader>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-sm text-text-primary">

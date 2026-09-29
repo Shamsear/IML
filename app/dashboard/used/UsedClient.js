@@ -10,6 +10,8 @@ import ConfirmModal from '@/components/ConfirmModal';
 import ExportToExcel from '@/components/ExportToExcel';
 import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
+import SortableHeader from '@/components/SortableHeader';
+import { useTableSort } from '@/hooks/useTableSort';
 
 export default function UsedClient({ transactions, stores, pastUsed = [] }) {
   const router = useRouter();
@@ -48,8 +50,23 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
     return matchDN && matchStore;
   }), [transactions, searchDN, searchStore]);
 
-  const totalTxPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-  const paginatedTransactions = filteredTransactions.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
+  const txCustomGetters = useMemo(() => ({
+    product: (tx) => tx.product?.name || '',
+    date: (tx) => tx.timestamp,
+    store: (tx) => stores.find(s => s.id === tx.toEntityId)?.name || '',
+    available: (tx) => tx.quantity - (tx.returnedQty || 0),
+    remarks: (tx) => tx.notes || '',
+  }), [stores]);
+
+  const {
+    sortedItems: sortedTransactions,
+    sortField: txSortField,
+    sortDirection: txSortDirection,
+    handleSort: handleTxSort,
+  } = useTableSort(filteredTransactions, 'date', 'desc', txCustomGetters);
+
+  const totalTxPages = Math.ceil(sortedTransactions.length / itemsPerPage);
+  const paginatedTransactions = sortedTransactions.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
 
   const deliveryNoteGroups = useMemo(() => {
     const groups = {};
@@ -66,8 +83,23 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
   const totalGroupPages = Math.ceil(deliveryNoteGroups.length / itemsPerPage);
   const paginatedGroups = deliveryNoteGroups.slice((groupPage - 1) * itemsPerPage, groupPage * itemsPerPage);
 
-  const totalHistoryPages = Math.ceil(pastUsed.length / itemsPerPage);
-  const paginatedHistory = pastUsed.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage);
+  const historyCustomGetters = useMemo(() => ({
+    date: (tx) => tx.timestamp,
+    product: (tx) => tx.product?.name || '',
+    store: (tx) => stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || '',
+    quantity: (tx) => tx.quantity ?? 0,
+    notes: (tx) => tx.notes || '',
+  }), [stores]);
+
+  const {
+    sortedItems: sortedHistory,
+    sortField: historySortField,
+    sortDirection: historySortDirection,
+    handleSort: handleHistorySort,
+  } = useTableSort(pastUsed, 'date', 'desc', historyCustomGetters);
+
+  const totalHistoryPages = Math.ceil(sortedHistory.length / itemsPerPage);
+  const paginatedHistory = sortedHistory.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage);
 
   const handleSelect = (txId, isSelected) => {
     setSelectedIds(prev => {
@@ -282,15 +314,15 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
                     <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 w-10 sticky left-0 bg-surface-elevated z-20"></th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date &amp; DN</th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Qty to Mark</th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
+                    <SortableHeader field="product" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</SortableHeader>
+                    <SortableHeader field="date" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date &amp; DN</SortableHeader>
+                    <SortableHeader field="store" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</SortableHeader>
+                    <SortableHeader field="available" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} align="right" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Qty to Mark</SortableHeader>
+                    <SortableHeader field="remarks" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {filteredTransactions.length === 0 ? (
+                  {sortedTransactions.length === 0 ? (
                     <tr><td colSpan="6" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No disposable items pending.</span></div>
                     </td></tr>
@@ -488,16 +520,16 @@ export default function UsedClient({ transactions, stores, pastUsed = [] }) {
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Consumed Qty</th>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
+                    <SortableHeader field="date" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
+                    <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</SortableHeader>
+                    <SortableHeader field="store" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</SortableHeader>
+                    <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Consumed Qty</SortableHeader>
+                    <SortableHeader field="notes" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
                     <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions / Undo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {pastUsed.length === 0 ? (
+                  {sortedHistory.length === 0 ? (
                     <tr><td colSpan="6" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No consumed logs found.</span></div>
                     </td></tr>
