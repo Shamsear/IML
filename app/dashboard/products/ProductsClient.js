@@ -187,23 +187,93 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
     setCsvError('');
     if (!text.trim()) { setCsvPreview([]); return; }
     try {
-      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
       if (lines.length < 2) throw new Error('CSV must contain a header row and at least one data row.');
-      const headers = lines[0].split(/[\t,]/).map(h => h.trim().toLowerCase());
-      ['name', 'brandname'].forEach(req => { if (!headers.includes(req)) throw new Error(`Missing column: "${req}"`); });
+      
+      // Parse CSV line respecting quotes
+      const parseRow = (line) => {
+        const result = [];
+        let curr = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if ((char === ',' || char === '\t') && !inQuotes) {
+            result.push(curr.trim().replace(/^"(.*)"$/, '$1').trim());
+            curr = '';
+          } else {
+            curr += char;
+          }
+        }
+        result.push(curr.trim().replace(/^"(.*)"$/, '$1').trim());
+        return result;
+      };
+
+      const rawHeaders = parseRow(lines[0]);
+      const normalizedHeaders = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+      // Find column indices using alias maps
+      const findHeaderIndex = (aliases) => {
+        const cleanAliases = aliases.map(a => a.toLowerCase().replace(/[^a-z0-9]/g, ''));
+        return normalizedHeaders.findIndex(h => cleanAliases.includes(h));
+      };
+
+      const nameIdx = findHeaderIndex(['name', 'productname', 'product', 'itemname', 'item', 'title']);
+      const brandIdx = findHeaderIndex(['brandname', 'brand', 'brandtitle']);
+      const itemCodeIdx = findHeaderIndex(['itemcode', 'code', 'sku', 'skucode', 'partnumber']);
+      const categoryIdx = findHeaderIndex(['category', 'cat', 'type', 'producttype']);
+      const sizeIdx = findHeaderIndex(['size', 'uniformsize', 'shirtsize']);
+      const returnableIdx = findHeaderIndex(['isreturnable', 'returnable', 'canreturn']);
+      const disposableIdx = findHeaderIndex(['isdisposable', 'disposable', 'singleuse']);
+      const serializedIdx = findHeaderIndex(['isserialized', 'serialized', 'hasserial', 'hasserials']);
+      const stockCapIdx = findHeaderIndex(['stockcap', 'cap', 'maxstock', 'limit', 'stocklimit']);
+
+      if (nameIdx === -1) {
+        throw new Error('Missing "Product Name" or "Name" column in CSV header.');
+      }
+      if (brandIdx === -1) {
+        throw new Error('Missing "Brand" or "Brand Name" column in CSV header.');
+      }
+
       const parsed = [];
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(/[\t,]/).map(v => v.trim());
-        const rowObj = {};
-        headers.forEach((header, index) => { rowObj[header] = values[index] || ''; });
-        const matchedBrand = brands.find(b => b.name.toLowerCase() === rowObj['brandname'].toLowerCase());
-        if (!matchedBrand) throw new Error(`Row ${i + 1}: Brand "${rowObj['brandname']}" not found.`);
+        const values = parseRow(lines[i]);
+        if (values.every(v => !v)) continue; // skip empty rows
+
+        const prodName = values[nameIdx] || '';
+        const brandVal = values[brandIdx] || '';
+
+        if (!prodName) throw new Error(`Row ${i + 1}: Product name cannot be empty.`);
+        if (!brandVal) throw new Error(`Row ${i + 1}: Brand name cannot be empty.`);
+
+        const cleanBrandVal = brandVal.toLowerCase().trim();
+        const matchedBrand = brands.find(b => 
+          b.name.toLowerCase().trim() === cleanBrandVal || 
+          b.id.toLowerCase().trim() === cleanBrandVal
+        );
+
+        if (!matchedBrand) {
+          const available = brands.map(b => b.name).slice(0, 5).join(', ');
+          throw new Error(`Row ${i + 1}: Brand "${brandVal}" not found. Available brands include: ${available}...`);
+        }
+
+        const isRet = returnableIdx !== -1 ? (values[returnableIdx]?.toLowerCase() === 'true' || values[returnableIdx] === '1' || values[returnableIdx]?.toLowerCase() === 'yes') : false;
+        const isDisp = disposableIdx !== -1 ? (values[disposableIdx]?.toLowerCase() === 'true' || values[disposableIdx] === '1' || values[disposableIdx]?.toLowerCase() === 'yes') : false;
+        const isSer = serializedIdx !== -1 ? (values[serializedIdx]?.toLowerCase() === 'true' || values[serializedIdx] === '1' || values[serializedIdx]?.toLowerCase() === 'yes') : false;
+        const stockCapVal = stockCapIdx !== -1 && values[stockCapIdx] ? parseInt(values[stockCapIdx], 10) : null;
+
         parsed.push({
-          name: rowObj['name'], brandId: matchedBrand.id, brandName: matchedBrand.name,
-          itemCode: rowObj['itemcode'] || null, category: rowObj['category'] || 'STANDS',
-          isReturnable: rowObj['isreturnable']?.toLowerCase() === 'true' || rowObj['isreturnable'] === '1',
-          isSerialized: rowObj['isserialized']?.toLowerCase() === 'true' || rowObj['isserialized'] === '1',
-          stockCap: rowObj['stockcap'] ? parseInt(rowObj['stockcap'], 10) : null
+          name: prodName,
+          brandId: matchedBrand.id,
+          brandName: matchedBrand.name,
+          itemCode: itemCodeIdx !== -1 ? (values[itemCodeIdx] || null) : null,
+          category: categoryIdx !== -1 ? (values[categoryIdx] || 'STANDS') : 'STANDS',
+          size: sizeIdx !== -1 ? (values[sizeIdx] || null) : null,
+          isReturnable: isRet,
+          isDisposable: isDisp,
+          isSerialized: isSer,
+          stockCap: isNaN(stockCapVal) ? null : stockCapVal,
         });
       }
       setCsvPreview(parsed);

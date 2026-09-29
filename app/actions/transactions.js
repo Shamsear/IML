@@ -887,19 +887,19 @@ export async function createBulkReceiveTransactions(formData) {
             itemCodeToSave = await generateSkuCode(tx, bName, prodCategory || 'General');
           }
 
+          const isSerialized = (prodType === 'SIM' || prodType === 'ROUTER' || item.isSerialized === true);
           product = await tx.product.create({
             data: {
               id: newProductId,
               name: formattedName,
-              isSerialized: prodType === 'SIM' || prodType === 'ROUTER',
-              productType: prodType,
+              isSerialized,
               brandId: prodBrandId,
               category: prodCategory || 'General',
               size: prodSize || null,
               itemCode: itemCodeToSave,
               rack: prodRack || null,
               shelf: prodShelf || null,
-              lowStockAlert: parseInt(prodLowStockAlert, 10) || 10,
+              stockCap: prodLowStockAlert ? parseInt(prodLowStockAlert, 10) : null,
               isReturnable: !!prodIsReturnable,
               isDisposable: !!prodIsDisposable,
               trackExpiry: !!prodTrackExpiry,
@@ -1992,20 +1992,22 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
           itemCodeToSave = await generateSkuCode(tx, bName, prodCategory || 'General');
         }
 
+        const newProdId = await generateTxId(tx, 'product', 'PROD', 3);
+        const isSerialized = (prodType === 'SIM' || prodType === 'ROUTER' || item.isSerialized === true);
         const newProduct = await tx.product.create({
           data: {
+            id: newProdId,
             name: prodName,
-            type: prodType,
             brandId: prodBrandId,
             category: prodCategory || null,
             size: prodSize || null,
             itemCode: itemCodeToSave,
             rack: prodRack || null,
             shelf: prodShelf || null,
-            isSerialized: (prodType === 'SIM' || prodType === 'ROUTER'),
-            isReturnable: prodIsReturnable,
-            isDisposable: prodIsDisposable,
-            lowStockAlert: prodLowStockAlert ? parseInt(prodLowStockAlert, 10) : 0,
+            isSerialized,
+            isReturnable: !!prodIsReturnable,
+            isDisposable: !!prodIsDisposable,
+            stockCap: prodLowStockAlert ? parseInt(prodLowStockAlert, 10) : null,
             imageUrl: imageUrl,
           }
         });
