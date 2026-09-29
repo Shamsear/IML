@@ -145,122 +145,122 @@ export default function ReportsClient({ initialProducts, brands }) {
         </>
       }
       />
-      <section className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-3.5 sm:gap-4 print:grid-cols-6 print:gap-1.5">
+      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 print:grid-cols-6 print:gap-1.5">
         {/* 1. Filtered Items */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">
-              Catalog Items
+        <div className="bg-surface border border-border/80 hover:border-border rounded-xl p-3 sm:p-3.5 shadow-xs hover:shadow-sm transition-all duration-150 flex flex-col justify-between min-w-0 print:p-2 print:border-black print:shadow-none">
+          <div className="flex items-center justify-between gap-1.5 min-w-0">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider truncate">
+              Items
             </span>
-            <div className="w-7 h-7 rounded-lg bg-surface-elevated text-text-primary border border-border flex items-center justify-center flex-shrink-0">
-              <Package size={14} className="stroke-[2.25]" />
+            <div className="w-6 h-6 rounded-md bg-surface-elevated text-text-primary border border-border flex items-center justify-center flex-shrink-0">
+              <Package size={12} className="stroke-[2.25]" />
             </div>
           </div>
-          <div>
-            <span className="text-2xl sm:text-3xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="mt-1">
+            <span className="text-lg sm:text-xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-base">
               <AnimatedCounter value={filteredProducts.length} />
             </span>
-            <span className="text-[11px] font-medium text-text-muted block mt-1 print:hidden">
+            <span className="text-[10px] font-medium text-text-muted block mt-0.5 truncate print:hidden">
               Active in catalog
             </span>
           </div>
         </div>
 
         {/* 2. Warehouse Stock */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">
-              Warehouse Stock
+        <div className="bg-surface border border-border/80 hover:border-border rounded-xl p-3 sm:p-3.5 shadow-xs hover:shadow-sm transition-all duration-150 flex flex-col justify-between min-w-0 print:p-2 print:border-black print:shadow-none">
+          <div className="flex items-center justify-between gap-1.5 min-w-0">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider truncate">
+              Warehouse
             </span>
-            <div className="w-7 h-7 rounded-lg bg-success/10 text-success border border-success/20 flex items-center justify-center flex-shrink-0">
-              <ArrowDownLeft size={14} className="stroke-[2.25]" />
+            <div className="w-6 h-6 rounded-md bg-success/10 text-success border border-success/20 flex items-center justify-center flex-shrink-0">
+              <ArrowDownLeft size={12} className="stroke-[2.25]" />
             </div>
           </div>
-          <div>
-            <span className="text-2xl sm:text-3xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="mt-1">
+            <span className="text-lg sm:text-xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-base">
               <AnimatedCounter value={aggregateTotals.warehouse} />
             </span>
-            <span className="text-[11px] font-medium text-success block mt-1 print:hidden">
+            <span className="text-[10px] font-medium text-success block mt-0.5 truncate print:hidden">
               Available central
             </span>
           </div>
         </div>
 
         {/* 3. Store Outlets */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">
-              Store Outlets
+        <div className="bg-surface border border-border/80 hover:border-border rounded-xl p-3 sm:p-3.5 shadow-xs hover:shadow-sm transition-all duration-150 flex flex-col justify-between min-w-0 print:p-2 print:border-black print:shadow-none">
+          <div className="flex items-center justify-between gap-1.5 min-w-0">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider truncate">
+              Stores
             </span>
-            <div className="w-7 h-7 rounded-lg bg-warning/10 text-warning border border-warning/20 flex items-center justify-center flex-shrink-0">
-              <Store size={14} className="stroke-[2.25]" />
+            <div className="w-6 h-6 rounded-md bg-warning/10 text-warning border border-warning/20 flex items-center justify-center flex-shrink-0">
+              <Store size={12} className="stroke-[2.25]" />
             </div>
           </div>
-          <div>
-            <span className="text-2xl sm:text-3xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="mt-1">
+            <span className="text-lg sm:text-xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-base">
               <AnimatedCounter value={aggregateTotals.issued} />
             </span>
-            <span className="text-[11px] font-medium text-warning block mt-1 print:hidden">
+            <span className="text-[10px] font-medium text-warning block mt-0.5 truncate print:hidden">
               Distributed outlets
             </span>
           </div>
         </div>
 
         {/* 4. Promoters / Staff */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">
-              Staff &amp; Promoters
+        <div className="bg-surface border border-border/80 hover:border-border rounded-xl p-3 sm:p-3.5 shadow-xs hover:shadow-sm transition-all duration-150 flex flex-col justify-between min-w-0 print:p-2 print:border-black print:shadow-none">
+          <div className="flex items-center justify-between gap-1.5 min-w-0">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider truncate">
+              Staff
             </span>
-            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center flex-shrink-0">
-              <Shirt size={14} className="stroke-[2.25]" />
+            <div className="w-6 h-6 rounded-md bg-primary/10 text-primary border border-primary/20 flex items-center justify-center flex-shrink-0">
+              <Shirt size={12} className="stroke-[2.25]" />
             </div>
           </div>
-          <div>
-            <span className="text-2xl sm:text-3xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="mt-1">
+            <span className="text-lg sm:text-xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-base">
               <AnimatedCounter value={aggregateTotals.used} />
             </span>
-            <span className="text-[11px] font-medium text-text-muted block mt-1 print:hidden">
+            <span className="text-[10px] font-medium text-text-muted block mt-0.5 truncate print:hidden">
               Promoters &amp; staff
             </span>
           </div>
         </div>
 
         {/* 5. With Clients */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">
-              Client Custody
+        <div className="bg-surface border border-border/80 hover:border-border rounded-xl p-3 sm:p-3.5 shadow-xs hover:shadow-sm transition-all duration-150 flex flex-col justify-between min-w-0 print:p-2 print:border-black print:shadow-none">
+          <div className="flex items-center justify-between gap-1.5 min-w-0">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider truncate">
+              Clients
             </span>
-            <div className="w-7 h-7 rounded-lg bg-secondary/15 text-secondary border border-secondary/25 flex items-center justify-center flex-shrink-0">
-              <Undo2 size={14} className="stroke-[2.25]" />
+            <div className="w-6 h-6 rounded-md bg-secondary/15 text-secondary border border-secondary/25 flex items-center justify-center flex-shrink-0">
+              <Undo2 size={12} className="stroke-[2.25]" />
             </div>
           </div>
-          <div>
-            <span className="text-2xl sm:text-3xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-lg">
+          <div className="mt-1">
+            <span className="text-lg sm:text-xl font-display font-black text-text-primary block tracking-tight tabular-nums print:text-base">
               <AnimatedCounter value={aggregateTotals.withClient} />
             </span>
-            <span className="text-[11px] font-medium text-text-muted block mt-1 print:hidden">
+            <span className="text-[10px] font-medium text-text-muted block mt-0.5 truncate print:hidden">
               Client custody
             </span>
           </div>
         </div>
 
         {/* 6. Damaged / Lost */}
-        <div className="bg-surface border border-border/80 hover:border-border rounded-2xl p-4 sm:p-5 shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between gap-3 min-w-0 print:p-2 print:border-black print:shadow-none">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">
+        <div className="bg-surface border border-border/80 hover:border-border rounded-xl p-3 sm:p-3.5 shadow-xs hover:shadow-sm transition-all duration-150 flex flex-col justify-between min-w-0 print:p-2 print:border-black print:shadow-none">
+          <div className="flex items-center justify-between gap-1.5 min-w-0">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider truncate">
               Damage &amp; Loss
             </span>
-            <div className="w-7 h-7 rounded-lg bg-danger/10 text-danger border border-danger/20 flex items-center justify-center flex-shrink-0">
-              <ShieldAlert size={14} className="stroke-[2.25]" />
+            <div className="w-6 h-6 rounded-md bg-danger/10 text-danger border border-danger/20 flex items-center justify-center flex-shrink-0">
+              <ShieldAlert size={12} className="stroke-[2.25]" />
             </div>
           </div>
-          <div>
-            <span className="text-2xl sm:text-3xl font-display font-black text-danger block tracking-tight tabular-nums print:text-lg">
+          <div className="mt-1">
+            <span className="text-lg sm:text-xl font-display font-black text-danger block tracking-tight tabular-nums print:text-base">
               <AnimatedCounter value={aggregateTotals.damage + aggregateTotals.lost} />
             </span>
-            <span className="text-[11px] font-medium text-danger/80 block mt-1 print:hidden">
+            <span className="text-[10px] font-medium text-danger/80 block mt-0.5 truncate print:hidden">
               Total write-offs
             </span>
           </div>
