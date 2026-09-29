@@ -6,7 +6,7 @@ import NumberFlow from '@number-flow/react';
 export default function AnimatedCounter({ value, className = '', format }) {
   const rawNum = typeof value === 'number' ? value : parseFloat(value) || 0;
   // Clean floating point artifacts (e.g. 0.00000001 or .875)
-  const target = Math.round((rawNum + Number.EPSILON) * 100) / 100;
+  const target = Number.isInteger(rawNum) ? rawNum : Math.round((rawNum + Number.EPSILON) * 100) / 100;
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function AnimatedCounter({ value, className = '', format }) {
   };
 
   return (
-    <span className={`tabular-nums font-mono inline-block max-w-full truncate ${className}`}>
+    <span className={`tabular-nums font-mono inline-block ${className}`}>
       <NumberFlow
         value={displayValue}
         format={defaultFormat}
