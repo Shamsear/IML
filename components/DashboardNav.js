@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Tag, 
@@ -74,7 +74,7 @@ const navSections = [
 
 export default function DashboardNav({ collapsed }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const currentPath = pathname || '';
 
   return (
     <nav className="flex flex-col gap-6">
@@ -90,31 +90,31 @@ export default function DashboardNav({ collapsed }) {
           <div className="flex flex-col gap-1">
             {section.items.map((item) => {
               const Icon = item.icon;
-              let isActive;
-              if (item.activePath) {
-                isActive = pathname.startsWith(item.activePath) && searchParams.get('type') === item.activeType;
-              } else {
-                isActive = item.href === '/dashboard' 
-                  ? pathname === '/dashboard'
-                  : pathname.startsWith(item.href);
-              }
+              const isActive = item.href === '/dashboard' 
+                ? currentPath === '/dashboard'
+                : (currentPath === item.href || currentPath.startsWith(`${item.href}/`));
               
               return (
                 <Link 
                   key={item.href} 
                   href={item.href} 
-                  className={`flex items-center rounded-lg text-sm font-semibold transition-all duration-150 group relative has-tooltip
+                  className={`flex items-center rounded-lg text-sm transition-all duration-150 group relative has-tooltip
                     ${collapsed ? 'justify-center p-2.5' : 'px-3 py-2 gap-3'}
                     ${isActive 
-                      ? 'text-primary bg-primary/10 border border-primary/20 shadow-xs' 
-                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated/80 border border-transparent'
+                      ? 'text-primary font-bold bg-primary/10 border border-primary/20 shadow-xs' 
+                      : 'text-text-secondary font-medium hover:text-text-primary hover:bg-surface-elevated/80 border border-transparent'
                     }
                   `}
                 >
+                  {/* Left Active Accent Pill Bar */}
+                  {isActive && !collapsed && (
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-primary rounded-r-full" />
+                  )}
+
                   <Icon 
                     size={18} 
-                    className={`transition-colors duration-200 flex-shrink-0
-                      ${isActive ? 'text-primary' : 'text-text-secondary group-hover:text-text-primary'}
+                    className={`transition-colors duration-150 flex-shrink-0
+                      ${isActive ? 'text-primary stroke-[2.25]' : 'text-text-secondary group-hover:text-text-primary stroke-[1.75]'}
                     `} 
                   />
                   {/* Label — always rendered, fades */}
@@ -122,8 +122,10 @@ export default function DashboardNav({ collapsed }) {
                     {item.name}
                   </span>
                   
-                  {/* Subtle hover indicator dot if collapsed */}
-                  <div className={`absolute right-1 w-1.5 h-1.5 rounded-full bg-primary transition-opacity duration-200 ${(!isActive || !collapsed) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} />
+                  {/* Active indicator dot if collapsed */}
+                  {collapsed && isActive && (
+                    <div className="absolute right-1.5 top-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-surface" />
+                  )}
 
                   {/* Tooltip — only rendered in collapsed state */}
                   {collapsed && (
