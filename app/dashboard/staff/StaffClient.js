@@ -310,10 +310,7 @@ export default function StaffClient({ initialStaff, stores }) {
                         activeFilteredAllocations.every(a => selectedAllocIds.includes(a.id));
 
   return (
-    <div className="flex flex-col gap-6 font-sans relative">
-      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
-        <Users size={250} />
-      </div>
+    <div className="flex flex-col gap-6 font-sans">
       {/* Page Header */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
         <div>
