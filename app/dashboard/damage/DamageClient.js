@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone, ShieldAlert, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkDamageTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes, getProductStockAtLocation, getProductBatchesAtLocation, findProductByBarcode } from '@/app/actions/products';

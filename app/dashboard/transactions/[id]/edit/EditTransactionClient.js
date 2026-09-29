@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Save, Loader2, AlertCircle, Plus, Trash2, Smartphone, QrCode } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertCircle, Plus, Trash2, Smartphone, QrCode, X } from 'lucide-react';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 import { updateFullTransaction, createSingleTransaction } from '@/app/actions/transactions';
