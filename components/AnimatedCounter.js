@@ -7,14 +7,10 @@ export default function AnimatedCounter({ value, className = '', format }) {
   const rawNum = typeof value === 'number' ? value : parseFloat(value) || 0;
   // Clean floating point artifacts (e.g. 0.00000001 or .875)
   const target = Number.isInteger(rawNum) ? rawNum : Math.round((rawNum + Number.EPSILON) * 100) / 100;
-  const [displayValue, setDisplayValue] = useState(0);
+  const [displayValue, setDisplayValue] = useState(target);
 
   useEffect(() => {
-    // Start smooth roll-up from 0 on initial page load / mount
-    const timer = setTimeout(() => {
-      setDisplayValue(target);
-    }, 50);
-    return () => clearTimeout(timer);
+    setDisplayValue(target);
   }, [target]);
 
   const defaultFormat = format || {
