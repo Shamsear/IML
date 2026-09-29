@@ -72,9 +72,23 @@ const navSections = [
   },
 ];
 
+import { useRef, useEffect } from 'react';
+
 export default function DashboardNav({ collapsed }) {
   const pathname = usePathname();
   const currentPath = pathname || '';
+  const activeItemRef = useRef(null);
+
+  // Auto-scroll active item into view on reload or route change
+  useEffect(() => {
+    if (activeItemRef.current) {
+      activeItemRef.current.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [currentPath]);
 
   return (
     <nav className="flex flex-col gap-6">
@@ -99,6 +113,7 @@ export default function DashboardNav({ collapsed }) {
                   key={item.href} 
                   href={item.href} 
                   prefetch={true}
+                  ref={isActive ? activeItemRef : null}
                   className={`flex items-center rounded-lg text-sm transition-all duration-150 group relative has-tooltip
                     ${collapsed ? 'justify-center p-2.5' : 'px-3 py-2 gap-3'}
                     ${isActive 

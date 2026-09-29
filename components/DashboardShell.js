@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -15,6 +15,25 @@ export default function DashboardShell({ user, children }) {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const pathname = usePathname();
+  const sidebarNavRef = useRef(null);
+
+  // Restore sidebar scroll position on mount
+  useEffect(() => {
+    const el = sidebarNavRef.current;
+    if (!el) return;
+
+    const saved = sessionStorage.getItem('sidebar_scroll_top');
+    if (saved) {
+      el.scrollTop = parseInt(saved, 10);
+    }
+
+    const onScroll = () => {
+      sessionStorage.setItem('sidebar_scroll_top', el.scrollTop.toString());
+    };
+
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -90,7 +109,7 @@ export default function DashboardShell({ user, children }) {
         </div>
 
         {/* Navigation list */}
-        <div className={`sidebar-nav flex-1 overflow-y-auto py-4 px-3 transition-[padding] duration-[130ms] ease-[cubic-bezier(0.2,0,0,1)] ${collapsed && !mobileOpen ? 'px-2' : 'px-3'}`}>
+        <div ref={sidebarNavRef} className={`sidebar-nav flex-1 overflow-y-auto py-4 px-3 transition-[padding] duration-[130ms] ease-[cubic-bezier(0.2,0,0,1)] ${collapsed && !mobileOpen ? 'px-2' : 'px-3'}`}>
           <DashboardNav collapsed={collapsed && !mobileOpen} />
         </div>
 
