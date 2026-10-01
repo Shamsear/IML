@@ -1,0 +1,208 @@
+{
+  "runId": "run_1790841435052",
+  "timestamp": "2026-10-01T07:57:15.053Z",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "totalSteps": 19,
+    "passed": 9,
+    "failed": 10,
+    "warnings": 0,
+    "consoleErrorsCount": 3,
+    "networkErrorsCount": 0
+  },
+  "steps": [
+    {
+      "stepNumber": 1,
+      "name": "01_Visit_Login_Page",
+      "durationMs": 861,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/00_01_Visit_Login_Page.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 2,
+      "name": "02_Invalid_Login_Validation",
+      "durationMs": 3382,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/01_02_Invalid_Login_Validation.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 3,
+      "name": "03_Valid_Admin_Login",
+      "durationMs": 38824,
+      "status": "FAILED",
+      "error": "Expected /dashboard, got http://localhost:3000/login?callbackUrl=%2Fdashboard",
+      "screenshot": "screenshots/02_03_Valid_Admin_Login.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 4,
+      "name": "04_Dashboard_Overview_Cards",
+      "durationMs": 1958,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/03_04_Dashboard_Overview_Cards.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 5,
+      "name": "05_Navigate_Brands_List",
+      "durationMs": 31016,
+      "status": "FAILED",
+      "error": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[href*=\"/dashboard/brands/new\"], a:has-text(\"Add Brand\")') to be visible\u001b[22m\n",
+      "screenshot": "screenshots/04_05_Navigate_Brands_List.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 6,
+      "name": "06_Create_New_Brand",
+      "durationMs": 30318,
+      "status": "FAILED",
+      "error": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"e.g. Virgin Mobile\"]') to be visible\u001b[22m\n",
+      "screenshot": "screenshots/05_06_Create_New_Brand.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 7,
+      "name": "07_Inspect_Brand_Detail_And_Portal",
+      "durationMs": 1578,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/06_07_Inspect_Brand_Detail_And_Portal.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 8,
+      "name": "08_Navigate_Stores_List",
+      "durationMs": 30698,
+      "status": "FAILED",
+      "error": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[href*=\"/dashboard/stores/new\"], a:has-text(\"Add Store\")') to be visible\u001b[22m\n",
+      "screenshot": "screenshots/07_08_Navigate_Stores_List.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 9,
+      "name": "09_Create_New_Store",
+      "durationMs": 33385,
+      "status": "FAILED",
+      "error": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"e.g. Carrefour Mall of the Emirates\"]') to be visible\u001b[22m\n",
+      "screenshot": "screenshots/08_09_Create_New_Store.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 10,
+      "name": "10_Create_New_Supervisor",
+      "durationMs": 30366,
+      "status": "FAILED",
+      "error": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"e.g. Ahmed Al Maktoum\"]') to be visible\u001b[22m\n",
+      "screenshot": "screenshots/09_10_Create_New_Supervisor.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 11,
+      "name": "11_Create_New_Product",
+      "durationMs": 30344,
+      "status": "FAILED",
+      "error": "page.waitForSelector: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button[aria-haspopup=\"listbox\"]') to be visible\u001b[22m\n",
+      "screenshot": "screenshots/10_11_Create_New_Product.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 12,
+      "name": "12_Staff_Management_And_Assign",
+      "durationMs": 6598,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/11_12_Staff_Management_And_Assign.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 13,
+      "name": "13_Inbound_Deliveries_Ledger_And_New",
+      "durationMs": 4877,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/12_13_Inbound_Deliveries_Ledger_And_New.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 14,
+      "name": "14_Outbound_Deliveries_Ledger_And_New",
+      "durationMs": 2214,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/13_14_Outbound_Deliveries_Ledger_And_New.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 15,
+      "name": "15_Client_Returns_And_Balances",
+      "durationMs": 3809,
+      "status": "FAILED",
+      "error": "Failed to load client returns",
+      "screenshot": "screenshots/14_15_Client_Returns_And_Balances.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 16,
+      "name": "16_Damage_And_Loss_Flow",
+      "durationMs": 6683,
+      "status": "FAILED",
+      "error": "Failed to load loss management",
+      "screenshot": "screenshots/15_16_Damage_And_Loss_Flow.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 17,
+      "name": "17_Rebrand_And_Repurpose_Flow",
+      "durationMs": 2499,
+      "status": "FAILED",
+      "error": "Failed to load rebrand module",
+      "screenshot": "screenshots/16_17_Rebrand_And_Repurpose_Flow.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 18,
+      "name": "18_Ledgers_Transactions_Expiry_Used_Reports_Settings",
+      "durationMs": 8283,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/17_18_Ledgers_Transactions_Expiry_Used_Reports_Settings.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 19,
+      "name": "19_Global_Search_Feature",
+      "durationMs": 1272,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/18_19_Global_Search_Feature.png",
+      "details": {}
+    }
+  ],
+  "consoleErrors": [
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/login?callbackUrl=%2Fdashboard",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <LoadingBoundary name=\"login/\" loading={null}>\n      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>\n        <RedirectBoundary>\n          <RedirectErrorBoundary router={{...}}>\n            <InnerLayoutRouter url=\"/login?cal...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>\n              <SegmentViewNode type=\"page\" pagePath=\"login/page.js\">\n                <SegmentTrieNode>\n                <LoginPage>\n                  <LoginForm>\n                    <div className=\"relative h...\">\n                      <div>\n                      <div className=\"relative w...\">\n                        <div className=\"relative z...\">\n                          <div>\n                          <form onSubmit={function handleSubmit} className=\"flex flex-...\">\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"relative f...\">\n                                <User>\n                                <input\n                                  type=\"text\"\n                                  className=\"w-full bg-surface-elevated text-text-primary placeholder:text-text-muted ...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"Enter your username\"\n                                  required={true}\n                                  disabled={false}\n                                  autoComplete=\"username\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"relative f...\">\n                                <Lock>\n                                <input\n                                  type=\"password\"\n                                  className=\"w-full bg-surface-elevated text-text-primary placeholder:text-text-muted ...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"••••••••\"\n                                  required={true}\n                                  disabled={false}\n                                  autoComplete=\"current-password\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                                ...\n                            ...\n                          ...\n                        ...\n              ...\n            ...\n",
+      "timestamp": "2026-10-01T07:58:01.275Z"
+    },
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/login?callbackUrl=%2Fdashboard%2Fbrands",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <LoadingBoundary name=\"login/\" loading={null}>\n      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>\n        <RedirectBoundary>\n          <RedirectErrorBoundary router={{...}}>\n            <InnerLayoutRouter url=\"/login?cal...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>\n              <SegmentViewNode type=\"page\" pagePath=\"login/page.js\">\n                <SegmentTrieNode>\n                <LoginPage>\n                  <LoginForm>\n                    <div className=\"relative h...\">\n                      <div>\n                      <div className=\"relative w...\">\n                        <div className=\"relative z...\">\n                          <div>\n                          <form onSubmit={function handleSubmit} className=\"flex flex-...\">\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"relative f...\">\n                                <User>\n                                <input\n                                  type=\"text\"\n                                  className=\"w-full bg-surface-elevated text-text-primary placeholder:text-text-muted ...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"Enter your username\"\n                                  required={true}\n                                  disabled={false}\n                                  autoComplete=\"username\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"relative f...\">\n                                <Lock>\n                                <input\n                                  type=\"password\"\n                                  className=\"w-full bg-surface-elevated text-text-primary placeholder:text-text-muted ...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"••••••••\"\n                                  required={true}\n                                  disabled={false}\n                                  autoComplete=\"current-password\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                                ...\n                            ...\n                          ...\n                        ...\n              ...\n            ...\n",
+      "timestamp": "2026-10-01T07:59:04.498Z"
+    },
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/login?callbackUrl=%2Fdashboard%2Finbound%2Fnew",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <LoadingBoundary name=\"login/\" loading={null}>\n      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>\n        <RedirectBoundary>\n          <RedirectErrorBoundary router={{...}}>\n            <InnerLayoutRouter url=\"/login?cal...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>\n              <SegmentViewNode type=\"page\" pagePath=\"login/page.js\">\n                <SegmentTrieNode>\n                <LoginPage>\n                  <LoginForm>\n                    <div className=\"relative h...\">\n                      <div>\n                      <div className=\"relative w...\">\n                        <div className=\"relative z...\">\n                          <div>\n                          <form onSubmit={function handleSubmit} className=\"flex flex-...\">\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"relative f...\">\n                                <User>\n                                <input\n                                  type=\"text\"\n                                  className=\"w-full bg-surface-elevated text-text-primary placeholder:text-text-muted ...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"Enter your username\"\n                                  required={true}\n                                  disabled={false}\n                                  autoComplete=\"username\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"relative f...\">\n                                <Lock>\n                                <input\n                                  type=\"password\"\n                                  className=\"w-full bg-surface-elevated text-text-primary placeholder:text-text-muted ...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"••••••••\"\n                                  required={true}\n                                  disabled={false}\n                                  autoComplete=\"current-password\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                                ...\n                            ...\n                          ...\n                        ...\n              ...\n            ...\n",
+      "timestamp": "2026-10-01T08:01:21.869Z"
+    }
+  ],
+  "networkErrors": [],
+  "pageExceptions": []
+}

@@ -13,7 +13,7 @@ import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
 const createEmptyItem = (index = 0) => ({
-  id: `temp-${Date.now()}-${index}`,
+  id: `item-${index}`,
   name: '',
   region: 'DXB',
   location: '',
@@ -61,6 +61,7 @@ export default function NewStoreClient() {
 
     try {
       const formData = new FormData();
+      formData.append('count', items.length.toString());
       items.forEach((item, idx) => {
         formData.append(`item_${idx}_name`, item.name.trim());
         formData.append(`item_${idx}_region`, item.region);
@@ -187,7 +188,6 @@ export default function NewStoreClient() {
                       value={item.name}
                       onChange={(e) => updateItem(idx, 'name', e.target.value)}
                       placeholder="e.g. Carrefour Mall of the Emirates"
-                      autoFocus
                     />
                   </div>
 

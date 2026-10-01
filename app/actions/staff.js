@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 import { requireAuth } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
-import { generateCustomRef } from '@/lib/ledger';
+import { generateCustomRef, generateTxId } from '@/lib/ledger';
 
 export async function getStaff() {
   await requireAuth();
@@ -452,7 +452,7 @@ export async function saveBulkCombinedAllocations(payload) {
 
       if (isNewPromoter) {
         if (!promoterName) throw new Error('Promoter name is required for registration');
-        const staffIdVal = await generateId('staff', 'STAF', 3);
+        const staffIdVal = await generateTxId(tx, 'staff', 'STAF', 3);
         const newStaff = await tx.staff.create({
           data: {
             id: staffIdVal,
@@ -472,7 +472,7 @@ export async function saveBulkCombinedAllocations(payload) {
         });
       }
 
-      const id = await generateId('staffUniformAllocation', 'ALOC', 5);
+      const id = await generateTxId(tx, 'staffUniformAllocation', 'ALOC', 5);
 
       const allocation = await tx.staffUniformAllocation.create({
         data: {

@@ -34,15 +34,15 @@ export default function AssignClient({ staffList, stores, initialAllocation = nu
   const [notes, setNotes] = useState('');
 
   // Bulk Queue items state (Used for Add Mode)
-  const createEmptyItem = (index) => ({
-    id: `item-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+  const createEmptyItem = (index = 0) => ({
+    id: `staff-item-${index}`,
     isNewPromoter: true,
     promoterName: '',
     promoterPhone: '',
     promoterShirtSize: 'Medium',
     existingStaffId: '',
     storeId: '',
-    allocatedItems: [{ id: `init-${Date.now()}`, type: '', size: 'Medium', qty: '1', returned: false }],
+    allocatedItems: [{ id: `init-alloc-${index}-0`, type: '', size: 'Medium', qty: '1', returned: false }],
     startDate: '',
     endDate: '',
     notes: '',

@@ -15,30 +15,26 @@ async function saveFile(file) {
 
 function revalidateProductPaths() {
   revalidatePath('/dashboard/products');
-  revalidatePath('/dashboard/inbound');
-  revalidatePath('/dashboard/outbound');
-  revalidatePath('/dashboard/damage');
-  revalidatePath('/dashboard/loss');
-  revalidatePath('/dashboard/rebrand');
-  revalidatePath('/dashboard/returns');
-  revalidatePath('/dashboard/used');
-  revalidatePath('/dashboard/client-returns');
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard');
-  revalidatePath('/');
 }
 
 // ─── Shared warehouse stock calculation ──────────────────────────────────────
 // Extracted to eliminate the ~80-line duplication between getProducts() and getProductsSlim().
 async function computeWarehouseStockMap(products) {
+  if (!products || products.length === 0) return new Map();
+  const productIds = products.map(p => p.id);
+
   const [aggregates, serialsCount] = await Promise.all([
     prisma.inventoryTransaction.groupBy({
       by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
+      where: { productId: { in: productIds } },
       _sum: { quantity: true },
     }),
     prisma.productSerialNumber.groupBy({
       by: ['productId'],
       where: {
+        productId: { in: productIds },
         status: 'AVAILABLE',
         OR: [
           { currentLocationType: 'WAREHOUSE' },

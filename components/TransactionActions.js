@@ -100,14 +100,14 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
 
       {deleteOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
           onClick={() => setDeleteOpen(false)}
         >
           <div
-            className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col gap-0 overflow-hidden"
+            className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col gap-0 max-h-[90vh] overflow-hidden my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-5 border-b border-border bg-surface flex items-center justify-between">
+            <div className="px-6 py-5 border-b border-border bg-surface flex items-center justify-between flex-shrink-0">
               <h3 className="font-display font-extrabold text-lg text-text-primary">Undo / Delete Transaction</h3>
               <button
                 onClick={() => setDeleteOpen(false)}
@@ -117,7 +117,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
               </button>
             </div>
 
-            <div className="p-6 bg-surface flex flex-col gap-4">
+            <div className="p-6 bg-surface flex flex-col gap-4 overflow-y-auto flex-1">
               <p className="text-sm text-text-secondary leading-relaxed">
                 Are you sure you want to undo/delete this transaction? This action will permanently remove this record from the ledger and revert any associated stock changes.
               </p>
@@ -129,7 +129,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
               )}
             </div>
 
-            <div className="px-6 py-4 bg-surface-elevated border-t border-border flex items-center justify-end gap-3">
+            <div className="px-6 py-4 bg-surface-elevated border-t border-border flex items-center justify-end gap-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setDeleteOpen(false)}

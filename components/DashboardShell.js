@@ -179,8 +179,8 @@ export default function DashboardShell({ user, children }) {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[380px] shadow-2xl flex flex-col gap-4 animate-slide-down">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[380px] shadow-2xl flex flex-col gap-4 animate-slide-down max-h-[90vh] overflow-y-auto my-auto">
             <div className="flex flex-col gap-1.5 text-center sm:text-left">
               <h3 className="font-display font-extrabold text-base text-text-primary">
                 {isSigningOut ? 'Signing Out...' : 'Confirm Sign Out'}

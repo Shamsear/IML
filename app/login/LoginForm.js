@@ -16,6 +16,7 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('[LoginForm] handleSubmit invoked with:', username, 'pass length:', password?.length);
     setLoading(true);
     setError('');
 
@@ -26,12 +27,14 @@ export default function LoginForm() {
         password,
       });
 
+      console.log('[LoginForm] signIn result:', JSON.stringify(result));
+
       if (result?.error) {
         setError('Access Denied. Invalid credentials.');
         setLoading(false);
       } else if (result?.ok) {
-        await router.push('/dashboard');
-        setLoading(false);
+        console.log('[LoginForm] Redirecting to /dashboard...');
+        window.location.href = '/dashboard';
       } else {
         setError('Login failed. Please try again.');
         setLoading(false);
@@ -138,8 +141,8 @@ export default function LoginForm() {
                   placeholder="Enter your username"
                   required
                   disabled={loading}
-                  autoFocus
                   autoComplete="username"
+                  suppressHydrationWarning
                 />
               </div>
             </div>
@@ -157,6 +160,7 @@ export default function LoginForm() {
                   required
                   disabled={loading}
                   autoComplete="current-password"
+                  suppressHydrationWarning
                 />
                 <button
                   type="button"

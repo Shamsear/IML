@@ -804,16 +804,16 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
             </div>
 
             {isCameraModalOpen && (
-              <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down">
-                  <div className="flex items-center justify-between pb-2 border-b border-border">
+              <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+                <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down max-h-[90vh] overflow-y-auto my-auto">
+                  <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
                     <h3 className="font-display font-bold text-sm text-text-primary">Scan Barcode</h3>
                     <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setIsCameraModalOpen(false)}>
                       <X size={16} />
                     </button>
                   </div>
-                  <div id="camera-reader" className="w-full rounded-lg overflow-hidden border border-border"></div>
-                  <p className="text-[10px] text-text-secondary text-center">Align the barcode inside the camera viewfinder.</p>
+                  <div id="camera-reader" className="w-full rounded-lg overflow-hidden border border-border flex-shrink-0"></div>
+                  <p className="text-[10px] text-text-secondary text-center flex-shrink-0">Align the barcode inside the camera viewfinder.</p>
                 </div>
               </div>
             )}
@@ -1251,9 +1251,9 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
           />
 
         {addQtyProduct && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-            <form onSubmit={handleAddQtySubmit} className="bg-surface border border-border rounded-xl p-6 w-full max-w-[420px] shadow-lg flex flex-col gap-4 animate-slide-down">
-              <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+            <form onSubmit={handleAddQtySubmit} className="bg-surface border border-border rounded-xl p-6 w-full max-w-[420px] shadow-lg flex flex-col gap-4 animate-slide-down max-h-[90vh] overflow-y-auto my-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
                 <h3 className="font-display font-bold text-lg text-text-primary">Add Warehouse Stock</h3>
                 <button type="button" className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setAddQtyProduct(null)}>
                   <X size={18} />
@@ -1316,7 +1316,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 />
               </div>
 
-              <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border">
+              <div className="flex justify-end gap-3 mt-2 pt-4 border-t border-border flex-shrink-0">
                 <button type="button" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-all duration-200" onClick={() => setAddQtyProduct(null)} disabled={loading}>Cancel</button>
                 <button type="submit" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200" disabled={loading}>
                   {loading && <Loader2 size={14} className="animate-spin" />}

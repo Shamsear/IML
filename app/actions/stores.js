@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 import { requireAuth } from '@/lib/auth-guard';
-import { generateId } from '@/lib/idGenerator';
+import { generateId, generateBatchIds } from '@/lib/idGenerator';
 
 export async function getStores() {
   await requireAuth();
@@ -82,22 +82,7 @@ export async function createBulkStores(formData) {
     throw new Error('No stores provided for creation');
   }
 
-  const lastRecord = await prisma.store.findFirst({
-    where: { id: { startsWith: 'STOR' } },
-    orderBy: { id: 'desc' },
-    select: { id: true }
-  });
-
-  let nextNum = 1;
-  if (lastRecord) {
-    const parts = lastRecord.id.split('-');
-    const numPart = parts[parts.length - 1];
-    const parsed = parseInt(numPart, 10);
-    if (!isNaN(parsed)) {
-      nextNum = parsed + 1;
-    }
-  }
-
+  const ids = await generateBatchIds('store', 'STOR', count, 3);
   const storesList = [];
   for (let i = 0; i < count; i++) {
     const name = formData.get(`item_${i}_name`);
@@ -107,10 +92,7 @@ export async function createBulkStores(formData) {
 
     if (!name) throw new Error('Store name is required');
     
-    const padded = String(nextNum).padStart(3, '0');
-    const id = `STOR-${padded}`;
-    nextNum++;
-
+    const id = ids[i];
     storesList.push({ id, name, region, location, isPublic });
   }
 

@@ -31,15 +31,6 @@ function revalidateTransactionPaths() {
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/products');
-  revalidatePath('/dashboard/inbound');
-  revalidatePath('/dashboard/outbound');
-  revalidatePath('/dashboard/damage');
-  revalidatePath('/dashboard/loss');
-  revalidatePath('/dashboard/rebrand');
-  revalidatePath('/dashboard/returns');
-  revalidatePath('/dashboard/used');
-  revalidatePath('/dashboard/client-returns');
-  revalidatePath('/dashboard/reports');
 }
 
 // 2. Fetch all transactions
@@ -600,22 +591,7 @@ export async function createBulkIssueTransactions(payload) {
           if (isNewPromoter) {
             if (!promoterName) throw new Error('Promoter name is required for registration');
             
-            // Generate staff ID inside tx
-            const staffRecords = await tx.staff.findMany({
-              where: { id: { startsWith: 'STAF' } },
-              select: { id: true }
-            });
-            let maxStaffNum = 0;
-            for (const r of staffRecords) {
-              const parts = r.id.split('-');
-              const numPart = parts[parts.length - 1];
-              const parsed = parseInt(numPart, 10);
-              if (!isNaN(parsed) && parsed > maxStaffNum) {
-                maxStaffNum = parsed;
-              }
-            }
-            const nextStaffNum = maxStaffNum + 1;
-            const staffIdVal = `STAF-${String(nextStaffNum).padStart(3, '0')}`;
+            const staffIdVal = await generateTxId(tx, 'staff', 'STAF', 3);
 
             const newStaff = await tx.staff.create({
               data: {
@@ -639,22 +615,7 @@ export async function createBulkIssueTransactions(payload) {
           }
 
           if (storeId) {
-            // Generate allocation ID inside tx
-            const allocRecords = await tx.staffUniformAllocation.findMany({
-              where: { id: { startsWith: 'ALOC' } },
-              select: { id: true }
-            });
-            let maxAllocNum = 0;
-            for (const r of allocRecords) {
-              const parts = r.id.split('-');
-              const numPart = parts[parts.length - 1];
-              const parsed = parseInt(numPart, 10);
-              if (!isNaN(parsed) && parsed > maxAllocNum) {
-                maxAllocNum = parsed;
-              }
-            }
-            const nextAllocNum = maxAllocNum + 1;
-            const allocIdVal = `ALOC-${String(nextAllocNum).padStart(5, '0')}`;
+            const allocIdVal = await generateTxId(tx, 'staffUniformAllocation', 'ALOC', 5);
 
             const isCap = (product.name || '').toLowerCase().includes('cap');
             const uniformCount = isCap ? 0 : quantity;
@@ -777,19 +738,16 @@ export async function createBulkReceiveTransactions(formData) {
   const newProductItems = items.filter(i => i.isNewProduct);
   let nextProductNum = 1;
   if (newProductItems.length > 0) {
-    const existingProducts = await prisma.product.findMany({
-      where: { id: { startsWith: 'PROD' } },
+    const lastProduct = await prisma.product.findFirst({
+      where: { id: { startsWith: 'PROD-' } },
+      orderBy: { id: 'desc' },
       select: { id: true }
     });
-    let maxProdNum = 0;
-    for (const p of existingProducts) {
-      const match = p.id.match(/\d+/);
-      if (match) {
-        const num = parseInt(match[0], 10);
-        if (num > maxProdNum) maxProdNum = num;
-      }
+    if (lastProduct) {
+      const parts = lastProduct.id.split('-');
+      const num = parseInt(parts[parts.length - 1], 10);
+      if (!isNaN(num)) nextProductNum = num + 1;
     }
-    nextProductNum = maxProdNum + 1;
   }
 
   // 3. Pre-validate existing products in one query

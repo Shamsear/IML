@@ -590,7 +590,8 @@ export default function ClientReturnsClient({ brands, products }) {
     ...filteredProducts.map(p => ({
       value: p.id,
       label: `${p.name} (${p.itemCode || 'No SKU'})`,
-      imageUrl: p.imageUrl ? getOptimizedImageUrl(p.imageUrl, 50, 50) : null
+      imageUrl: p.imageUrl ? getOptimizedImageUrl(p.imageUrl, 50, 50) : null,
+      warehouseStock: p.warehouseStock
     }))
   ];
 

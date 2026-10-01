@@ -4,13 +4,27 @@ import { useState, useMemo } from 'react';
 
 /**
  * Universal Hook for table column sorting.
- *
- * @param {Array} items - Array of objects to sort
- * @param {string} [initialField=''] - Initial sort field
- * @param {'asc' | 'desc'} [initialDirection='asc'] - Initial sort direction
- * @param {Object} [customGetters={}] - Custom field value extractors: { [field]: (item) => value }
+ * Supports both:
+ * 1. useTableSort(items, initialField, initialDirection, customGetters)
+ * 2. useTableSort(items, { defaultSortField, defaultSortDirection, customGetters, initialField, initialDirection })
  */
-export function useTableSort(items = [], initialField = '', initialDirection = 'asc', customGetters = {}) {
+export function useTableSort(items = [], arg2 = '', arg3 = 'asc', arg4 = {}) {
+  let initialField = '';
+  let initialDirection = 'asc';
+  let customGetters = {};
+
+  if (arg2 && typeof arg2 === 'object' && !Array.isArray(arg2)) {
+    // Options object format
+    initialField = arg2.defaultSortField || arg2.initialField || '';
+    initialDirection = arg2.defaultSortDirection || arg2.initialDirection || 'asc';
+    customGetters = arg2.customGetters || {};
+  } else {
+    // Positional arguments format
+    initialField = typeof arg2 === 'string' ? arg2 : '';
+    initialDirection = arg3 || 'asc';
+    customGetters = arg4 || {};
+  }
+
   const [sortField, setSortField] = useState(initialField);
   const [sortDirection, setSortDirection] = useState(initialDirection);
 
@@ -24,20 +38,20 @@ export function useTableSort(items = [], initialField = '', initialDirection = '
   };
 
   const sortedItems = useMemo(() => {
-    if (!sortField || !items.length) return items;
+    if (!sortField || typeof sortField !== 'string' || !items || !items.length) return items || [];
 
     return [...items].sort((a, b) => {
       let valA, valB;
 
-      if (customGetters[sortField]) {
+      if (customGetters && customGetters[sortField]) {
         valA = customGetters[sortField](a);
         valB = customGetters[sortField](b);
       } else if (sortField.includes('.')) {
         valA = sortField.split('.').reduce((acc, part) => acc?.[part], a);
         valB = sortField.split('.').reduce((acc, part) => acc?.[part], b);
       } else {
-        valA = a[sortField];
-        valB = b[sortField];
+        valA = a?.[sortField];
+        valB = b?.[sortField];
       }
 
       if (valA == null && valB == null) return 0;
@@ -67,6 +81,7 @@ export function useTableSort(items = [], initialField = '', initialDirection = '
   }, [items, sortField, sortDirection, customGetters]);
 
   return {
+    items: sortedItems,
     sortedItems,
     sortField,
     sortDirection,

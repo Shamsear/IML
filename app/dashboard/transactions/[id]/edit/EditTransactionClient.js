@@ -220,19 +220,18 @@ export default function EditTransactionClient({ transaction, products, stores })
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Product</label>
-              <select
-                name="productId"
+              <CustomSelect
+                options={products.map(p => ({
+                  value: p.id,
+                  label: `${p.name} ${p.itemCode ? `(${p.itemCode})` : ''}`,
+                  warehouseStock: p.warehouseStock,
+                  imageUrl: p.imageUrl
+                }))}
                 value={formData.productId}
-                onChange={handleChange}
+                onChange={(val) => setFormData(prev => ({ ...prev, productId: val }))}
+                placeholder="Select product..."
                 required
-                className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2.5 text-sm font-semibold text-text-primary focus:border-primary outline-none"
-              >
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} {p.itemCode ? `(${p.itemCode})` : ''}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Quantity</label>

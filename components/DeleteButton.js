@@ -45,17 +45,17 @@ export default function DeleteButton({ onDelete, itemName = 'this item', classNa
 
       {confirmOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
           onClick={() => !deleting && setConfirmOpen(false)}
         >
           <div
-            className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden"
+            className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh] overflow-hidden my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-5 border-b border-border">
+            <div className="px-6 py-5 border-b border-border flex-shrink-0">
               <h3 className="font-display font-extrabold text-lg text-text-primary">Delete Item</h3>
             </div>
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto flex-1">
               <p className="text-sm text-text-secondary leading-relaxed">
                 Are you sure you want to delete <strong>{itemName}</strong>? This action cannot be undone.
               </p>
@@ -65,7 +65,7 @@ export default function DeleteButton({ onDelete, itemName = 'this item', classNa
                 </div>
               )}
             </div>
-            <div className="px-6 py-4 border-t border-border flex items-center justify-end gap-3">
+            <div className="px-6 py-4 border-t border-border flex items-center justify-end gap-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setConfirmOpen(false)}

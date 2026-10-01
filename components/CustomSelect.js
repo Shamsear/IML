@@ -213,11 +213,24 @@ export default function CustomSelect({
           )}
           <span>{selectedOption ? selectedOption.label : placeholder}</span>
           {selectedOption && (() => {
-            const optionCount = selectedOption.count !== undefined ? selectedOption.count : (selectedOption.stock !== undefined ? selectedOption.stock : selectedOption.warehouseStock);
-            if (optionCount === undefined) return null;
+            const optionCount = selectedOption.count !== undefined 
+              ? selectedOption.count 
+              : (selectedOption.warehouseStock !== undefined 
+                ? selectedOption.warehouseStock 
+                : (selectedOption.stock !== undefined 
+                  ? selectedOption.stock 
+                  : (selectedOption.quantity !== undefined 
+                    ? selectedOption.quantity 
+                    : (selectedOption.availableStock !== undefined 
+                      ? selectedOption.availableStock 
+                      : (selectedOption.currentStock !== undefined 
+                        ? selectedOption.currentStock 
+                        : selectedOption.qty)))));
+            if (optionCount === undefined || optionCount === null || optionCount === '') return null;
+            const num = Number(optionCount);
             return (
-              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${optionCount > 0 ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
-                {optionCount} qty
+              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${num > 0 ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
+                {num} in stock
               </span>
             );
           })()}
@@ -249,7 +262,7 @@ export default function CustomSelect({
             width: `${coords.width}px`,
             zIndex: 99999,
           }}
-          className="bg-surface border border-border rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-down max-h-[240px]"
+          className="bg-surface border border-border rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-down max-h-[260px]"
         >
           {/* Search bar */}
           <div className="p-2 border-b border-border bg-surface-elevated/20 flex items-center gap-1.5 flex-shrink-0">
@@ -267,7 +280,7 @@ export default function CustomSelect({
           </div>
 
           {/* Options list */}
-          <div ref={listRef} className="flex-1 overflow-y-auto py-1">
+          <div ref={listRef} className="flex-1 overflow-y-auto py-1 max-h-[210px]">
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-4 text-center text-xs text-text-muted italic">
                 No matching results
@@ -308,11 +321,24 @@ export default function CustomSelect({
                     </span>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {(() => {
-                        const optionCount = opt.count !== undefined ? opt.count : (opt.stock !== undefined ? opt.stock : opt.warehouseStock);
-                        if (optionCount === undefined) return null;
+                        const optionCount = opt.count !== undefined 
+                          ? opt.count 
+                          : (opt.warehouseStock !== undefined 
+                            ? opt.warehouseStock 
+                            : (opt.stock !== undefined 
+                              ? opt.stock 
+                              : (opt.quantity !== undefined 
+                                ? opt.quantity 
+                                : (opt.availableStock !== undefined 
+                                  ? opt.availableStock 
+                                  : (opt.currentStock !== undefined 
+                                    ? opt.currentStock 
+                                    : opt.qty)))));
+                        if (optionCount === undefined || optionCount === null || optionCount === '') return null;
+                        const num = Number(optionCount);
                         return (
-                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${optionCount > 0 ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
-                            {optionCount} qty
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${num > 0 ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
+                            {num} in stock
                           </span>
                         );
                       })()}

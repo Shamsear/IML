@@ -1,0 +1,209 @@
+{
+  "runId": "run_1790838628764",
+  "timestamp": "2026-10-01T07:10:28.766Z",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "totalSteps": 19,
+    "passed": 14,
+    "failed": 5,
+    "warnings": 0,
+    "consoleErrorsCount": 2,
+    "networkErrorsCount": 0
+  },
+  "steps": [
+    {
+      "stepNumber": 1,
+      "name": "01_Visit_Login_Page",
+      "durationMs": 1344,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/00_01_Visit_Login_Page.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 2,
+      "name": "02_Invalid_Login_Validation",
+      "durationMs": 1814,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/01_02_Invalid_Login_Validation.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 3,
+      "name": "03_Valid_Admin_Login",
+      "durationMs": 10912,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/02_03_Valid_Admin_Login.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 4,
+      "name": "04_Dashboard_Overview_Cards",
+      "durationMs": 2322,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/03_04_Dashboard_Overview_Cards.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 5,
+      "name": "05_Navigate_Brands_List",
+      "durationMs": 30042,
+      "status": "FAILED",
+      "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/dashboard/brands\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "screenshots/04_05_Navigate_Brands_List.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 6,
+      "name": "06_Create_New_Brand",
+      "durationMs": 30974,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/05_06_Create_New_Brand.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 7,
+      "name": "07_Inspect_Brand_Detail_And_Portal",
+      "durationMs": 2896,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/06_07_Inspect_Brand_Detail_And_Portal.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 8,
+      "name": "08_Navigate_Stores_List",
+      "durationMs": 13912,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/07_08_Navigate_Stores_List.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 9,
+      "name": "09_Create_New_Store",
+      "durationMs": 25118,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/08_09_Create_New_Store.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 10,
+      "name": "10_Create_New_Supervisor",
+      "durationMs": 21889,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/09_10_Create_New_Supervisor.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 11,
+      "name": "11_Create_New_Product",
+      "durationMs": 41799,
+      "status": "FAILED",
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[role=\"option\"], li, div:has-text(\"Brand_629979\")').first()\u001b[22m\n\u001b[2m    - locator resolved to <div class=\"h-[100dvh] overflow-hidden flex bg-background text-text-primary relative\">…</div>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"p-2 border-b border-border bg-surface-elevated/20 flex items-center gap-1.5 flex-shrink-0\">…</div> from <div role=\"listbox\" class=\"bg-surface border border-border rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-down max-h-[240px]\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"p-2 border-b border-border bg-surface-elevated/20 flex items-center gap-1.5 flex-shrink-0\">…</div> from <div role=\"listbox\" class=\"bg-surface border border-border rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-down max-h-[240px]\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    57 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div class=\"p-2 border-b border-border bg-surface-elevated/20 flex items-center gap-1.5 flex-shrink-0\">…</div> from <div role=\"listbox\" class=\"bg-surface border border-border rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-down max-h-[240px]\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
+      "screenshot": "screenshots/10_11_Create_New_Product.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 12,
+      "name": "12_Staff_Management_And_Assign",
+      "durationMs": 27368,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/11_12_Staff_Management_And_Assign.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 13,
+      "name": "13_Inbound_Deliveries_Ledger_And_New",
+      "durationMs": 41843,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/12_13_Inbound_Deliveries_Ledger_And_New.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 14,
+      "name": "14_Outbound_Deliveries_Ledger_And_New",
+      "durationMs": 22271,
+      "status": "FAILED",
+      "error": "Outbound form not loaded",
+      "screenshot": "screenshots/13_14_Outbound_Deliveries_Ledger_And_New.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 15,
+      "name": "15_Client_Returns_And_Balances",
+      "durationMs": 47817,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/14_15_Client_Returns_And_Balances.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 16,
+      "name": "16_Damage_And_Loss_Flow",
+      "durationMs": 71431,
+      "status": "FAILED",
+      "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/dashboard/loss\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "screenshots/15_16_Damage_And_Loss_Flow.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 17,
+      "name": "17_Rebrand_And_Repurpose_Flow",
+      "durationMs": 40562,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/16_17_Rebrand_And_Repurpose_Flow.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 18,
+      "name": "18_Ledgers_Transactions_Expiry_Used_Reports_Settings",
+      "durationMs": 30091,
+      "status": "FAILED",
+      "error": "page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/dashboard/transactions\", waiting until \"domcontentloaded\"\u001b[22m\n",
+      "screenshot": "screenshots/17_18_Ledgers_Transactions_Expiry_Used_Reports_Settings.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 19,
+      "name": "19_Global_Search_Feature",
+      "durationMs": 34168,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/18_19_Global_Search_Feature.png",
+      "details": {}
+    }
+  ],
+  "consoleErrors": [
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/dashboard/supervisors",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <LoadingBoundary name=\"supervisors/\" loading={null}>\n      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>\n        <RedirectBoundary>\n          <RedirectErrorBoundary router={{...}}>\n            <InnerLayoutRouter url=\"/dashboard...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>\n              <SegmentViewNode type=\"page\" pagePath=\"dashboard/...\">\n                <SegmentTrieNode>\n                <SupervisorsPage>\n                  <Suspense fallback={<div>}>\n                    <SupervisorsClient initialSupervisors={[...]}>\n                      <div className=\"flex flex-...\">\n                        <header>\n                        <div className=\"flex flex-...\">\n                          <div className=\"w-full fle...\">\n                            <div className=\"relative\">\n                              <Search>\n                              <input\n                                type=\"text\"\n                                placeholder=\"Search supervisors by name, email or phone...\"\n                                value=\"\"\n                                onChange={function onChange}\n                                className=\"w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr...\"\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                            ...\n                        ...\n              ...\n            ...\n",
+      "timestamp": "2026-10-01T07:12:56.410Z"
+    },
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/dashboard/staff/assign",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <RedirectBoundary>\n      <RedirectErrorBoundary router={{...}}>\n        <InnerLayoutRouter url=\"/dashboard...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>\n          <SegmentViewNode type=\"page\" pagePath=\"dashboard/...\">\n            <SegmentTrieNode>\n            <AssignPage>\n              <AssignClient staffList={[...]} stores={[...]} initialAllocation={null} editStaffObj={null}>\n                <div className=\"flex flex-...\">\n                  <header>\n                  <form onSubmit={function handleBulkSubmit} className=\"flex flex-...\">\n                    <div className=\"flex flex-...\">\n                      <div className={\"bg-surfa...\"}>\n                        <div className=\"p-6 sm:p-8...\">\n                          <div>\n                          <div className=\"flex flex-...\">\n                            <div className=\"flex items...\">\n                              <label className=\"flex items...\">\n                                <input\n                                  type=\"radio\"\n+                                 name=\"promoterType-item-1790838845290-0-xd0qz2qff\"\n-                                 name=\"promoterType-item-1790838844685-0-uft6ft0b0\"\n                                  checked={true}\n                                  onChange={function onChange}\n                                  className=\"accent-primary\"\n                                >\n                                ...\n                              <label className=\"flex items...\">\n                                <input\n                                  type=\"radio\"\n+                                 name=\"promoterType-item-1790838845290-0-xd0qz2qff\"\n-                                 name=\"promoterType-item-1790838844685-0-uft6ft0b0\"\n                                  checked={false}\n                                  onChange={function onChange}\n                                  className=\"accent-primary\"\n                                >\n                                ...\n                            ...\n                          ...\n                    ...\n          ...\n        ...\n",
+      "timestamp": "2026-10-01T07:14:05.341Z"
+    }
+  ],
+  "networkErrors": [],
+  "pageExceptions": [
+    {
+      "url": "http://localhost:3000/login",
+      "message": "React has blocked a javascript: URL as a security precaution.",
+      "stack": "Error: React has blocked a javascript: URL as a security precaution.\n    at <anonymous>:1:7",
+      "timestamp": "2026-10-01T07:10:31.736Z"
+    }
+  ]
+}

@@ -1,0 +1,214 @@
+{
+  "runId": "run_1790840305567",
+  "timestamp": "2026-10-01T07:38:25.569Z",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "totalSteps": 19,
+    "passed": 15,
+    "failed": 4,
+    "warnings": 0,
+    "consoleErrorsCount": 4,
+    "networkErrorsCount": 0
+  },
+  "steps": [
+    {
+      "stepNumber": 1,
+      "name": "01_Visit_Login_Page",
+      "durationMs": 1842,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/00_01_Visit_Login_Page.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 2,
+      "name": "02_Invalid_Login_Validation",
+      "durationMs": 3056,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/01_02_Invalid_Login_Validation.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 3,
+      "name": "03_Valid_Admin_Login",
+      "durationMs": 33497,
+      "status": "FAILED",
+      "error": "page.waitForURL: Timeout 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation to \"**/dashboard**\" until \"load\"\n  navigated to \"http://localhost:3000/login\"\n============================================================",
+      "screenshot": "screenshots/02_03_Valid_Admin_Login.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 4,
+      "name": "04_Dashboard_Overview_Cards",
+      "durationMs": 8819,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/03_04_Dashboard_Overview_Cards.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 5,
+      "name": "05_Navigate_Brands_List",
+      "durationMs": 8327,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/04_05_Navigate_Brands_List.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 6,
+      "name": "06_Create_New_Brand",
+      "durationMs": 42961,
+      "status": "FAILED",
+      "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"OK\")').first() to be visible\u001b[22m\n",
+      "screenshot": "screenshots/05_06_Create_New_Brand.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 7,
+      "name": "07_Inspect_Brand_Detail_And_Portal",
+      "durationMs": 3774,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/06_07_Inspect_Brand_Detail_And_Portal.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 8,
+      "name": "08_Navigate_Stores_List",
+      "durationMs": 11921,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/07_08_Navigate_Stores_List.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 9,
+      "name": "09_Create_New_Store",
+      "durationMs": 36158,
+      "status": "FAILED",
+      "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"OK\")').first() to be visible\u001b[22m\n",
+      "screenshot": "screenshots/08_09_Create_New_Store.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 10,
+      "name": "10_Create_New_Supervisor",
+      "durationMs": 61192,
+      "status": "FAILED",
+      "error": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"OK\")').first() to be visible\u001b[22m\n",
+      "screenshot": "screenshots/09_10_Create_New_Supervisor.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 11,
+      "name": "11_Create_New_Product",
+      "durationMs": 21988,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/10_11_Create_New_Product.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 12,
+      "name": "12_Staff_Management_And_Assign",
+      "durationMs": 24811,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/11_12_Staff_Management_And_Assign.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 13,
+      "name": "13_Inbound_Deliveries_Ledger_And_New",
+      "durationMs": 21774,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/12_13_Inbound_Deliveries_Ledger_And_New.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 14,
+      "name": "14_Outbound_Deliveries_Ledger_And_New",
+      "durationMs": 28122,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/13_14_Outbound_Deliveries_Ledger_And_New.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 15,
+      "name": "15_Client_Returns_And_Balances",
+      "durationMs": 49808,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/14_15_Client_Returns_And_Balances.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 16,
+      "name": "16_Damage_And_Loss_Flow",
+      "durationMs": 64729,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/15_16_Damage_And_Loss_Flow.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 17,
+      "name": "17_Rebrand_And_Repurpose_Flow",
+      "durationMs": 31316,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/16_17_Rebrand_And_Repurpose_Flow.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 18,
+      "name": "18_Ledgers_Transactions_Expiry_Used_Reports_Settings",
+      "durationMs": 108230,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/17_18_Ledgers_Transactions_Expiry_Used_Reports_Settings.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 19,
+      "name": "19_Global_Search_Feature",
+      "durationMs": 58973,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/18_19_Global_Search_Feature.png",
+      "details": {}
+    }
+  ],
+  "consoleErrors": [
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/dashboard/stores",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <LoadingBoundary name=\"stores/\" loading={null}>\n      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>\n        <RedirectBoundary>\n          <RedirectErrorBoundary router={{...}}>\n            <InnerLayoutRouter url=\"/dashboard...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>\n              <SegmentViewNode type=\"page\" pagePath=\"dashboard/...\">\n                <SegmentTrieNode>\n                <StoresPage>\n                  <Suspense fallback={<div>}>\n                    <StoresClient initialStores={[...]}>\n                      <div className=\"flex flex-...\">\n                        <header>\n                        <div className=\"flex flex-...\">\n                          <div className=\"bg-surface...\">\n                            <div className=\"relative f...\">\n                              <Search>\n                              <input\n                                type=\"text\"\n                                className=\"w-full bg-surface text-text-primary placeholder:text-text-muted border bord...\"\n                                placeholder=\"Search stores by name or address...\"\n                                value=\"\"\n                                onChange={function onChange}\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                            ...\n                          ...\n                        ...\n              ...\n            ...\n",
+      "timestamp": "2026-10-01T07:40:21.906Z"
+    },
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/dashboard/products/new",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <RedirectBoundary>\n      <RedirectErrorBoundary router={{...}}>\n        <InnerLayoutRouter url=\"/dashboard...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>\n          <SegmentViewNode type=\"page\" pagePath=\"dashboard/...\">\n            <SegmentTrieNode>\n            <NewProductPage>\n              <NewProductClient brands={[...]} stores={[...]} supervisors={[...]} staff={[...]} recentReceivers={[...]} ...>\n                <div className=\"max-w-4xl ...\">\n                  <header>\n                  <ConfirmModal>\n                  <form onSubmit={function handleBatchSubmit} className=\"flex flex-...\">\n                    <div className=\"flex flex-...\">\n                      <div className={\"bg-surfa...\"}>\n                        <div className=\"p-6 sm:p-8...\">\n                          <div>\n                          <div>\n                          ...\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"flex items...\">\n                                <div>\n                                <div className=\"flex-1 fle...\">\n                                  <span>\n                                  <input\n                                    type=\"file\"\n                                    accept=\"image/*\"\n                                    onChange={function onChange}\n                                    className=\"hidden\"\n+                                   id=\"image-file-temp-1790840531417-0\"\n-                                   id=\"image-file-temp-1790840530375-0\"\n                                  >\n                                  <label\n+                                   htmlFor=\"image-file-temp-1790840531417-0\"\n-                                   htmlFor=\"image-file-temp-1790840530375-0\"\n                                    className=\"px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated...\"\n                                  >\n                          <div className=\"flex flex-...\">\n                            <h4>\n                            <div className=\"flex items...\">\n                              <label className=\"flex items...\">\n                                <input\n                                  type=\"radio\"\n+                                 name=\"includeInbound-temp-1790840531417-0\"\n-                                 name=\"includeInbound-temp-1790840530375-0\"\n                                  checked={true}\n                                  onChange={function onChange}\n                                  className=\"accent-primary\"\n                                >\n                                ...\n                              <label className=\"flex items...\">\n                                <input\n                                  type=\"radio\"\n+                                 name=\"includeInbound-temp-1790840531417-0\"\n-                                 name=\"includeInbound-temp-1790840530375-0\"\n                                  checked={false}\n                                  onChange={function onChange}\n                                  className=\"accent-primary\"\n                                >\n                                ...\n                          ...\n                    ...\n                  ...\n          ...\n        ...\n",
+      "timestamp": "2026-10-01T07:42:11.464Z"
+    },
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/dashboard/staff/assign",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <RedirectBoundary>\n      <RedirectErrorBoundary router={{...}}>\n        <InnerLayoutRouter url=\"/dashboard...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>\n          <SegmentViewNode type=\"page\" pagePath=\"dashboard/...\">\n            <SegmentTrieNode>\n            <AssignPage>\n              <AssignClient staffList={[...]} stores={[...]} initialAllocation={null} editStaffObj={null}>\n                <div className=\"flex flex-...\">\n                  <header>\n                  <form onSubmit={function handleBulkSubmit} className=\"flex flex-...\">\n                    <div className=\"flex flex-...\">\n                      <div className={\"bg-surfa...\"}>\n                        <div className=\"p-6 sm:p-8...\">\n                          <div>\n                          <div className=\"flex flex-...\">\n                            <div className=\"flex items...\">\n                              <label className=\"flex items...\">\n                                <input\n                                  type=\"radio\"\n+                                 name=\"promoterType-item-1790840567818-0-ybaoe86ys\"\n-                                 name=\"promoterType-item-1790840566046-0-hxzyb6uhk\"\n                                  checked={true}\n                                  onChange={function onChange}\n                                  className=\"accent-primary\"\n                                >\n                                ...\n                              <label className=\"flex items...\">\n                                <input\n                                  type=\"radio\"\n+                                 name=\"promoterType-item-1790840567818-0-ybaoe86ys\"\n-                                 name=\"promoterType-item-1790840566046-0-hxzyb6uhk\"\n                                  checked={false}\n                                  onChange={function onChange}\n                                  className=\"accent-primary\"\n                                >\n                                ...\n                            ...\n                          ...\n                    ...\n          ...\n        ...\n",
+      "timestamp": "2026-10-01T07:42:48.215Z"
+    },
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/dashboard/outbound/new",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <LoadingBoundary name=\"new/\" loading={null}>\n      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>\n        <RedirectBoundary>\n          <RedirectErrorBoundary router={{...}}>\n            <InnerLayoutRouter url=\"/dashboard...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>\n              <SegmentViewNode type=\"page\" pagePath=\"dashboard/...\">\n                <SegmentTrieNode>\n                <NewOutboundPage>\n                  <OutboundClient products={[...]} stores={[...]} brands={[...]} directSellers={[...]} ...>\n                    <Suspense fallback={<div>}>\n                      <OutboundFormContent products={[...]} stores={[...]} supervisors={[...]} directSellers={[...]} ...>\n                        <div className=\"max-w-4xl ...\">\n                          <div>\n                          <header>\n                          <ConfirmModal>\n                          <div className=\"bg-surface...\">\n                            <h3>\n                            <div className=\"grid grid-...\">\n                              <div>\n                              <div className=\"flex flex-...\">\n                                <div>\n                                <CustomSelect options={[...]} value=\"\" onChange={function onChange} ...>\n                                  <div className={\"relative...\"}>\n                                    <button>\n                                    <input\n                                      tabIndex={-1}\n                                      required={true}\n                                      value=\"\"\n                                      onChange={function onChange}\n                                      style={{\n+                                       position: \"absolute\"\n-                                       position: \"absolute\"\n+                                       opacity: 0\n-                                       opacity: \"0\"\n+                                       pointerEvents: \"none\"\n+                                       bottom: 0\n-                                       bottom: \"0px\"\n+                                       left: 0\n-                                       left: \"0px\"\n+                                       right: 0\n-                                       right: \"0px\"\n+                                       height: \"1px\"\n-                                       height: \"1px\"\n-                                       pointer-events: \"none\"\n-                                       caret-color: \"transparent\"\n                                      }}\n                                    >\n                              <div className=\"flex flex-...\">\n                                <label>\n                                <input\n                                  type=\"datetime-local\"\n                                  className=\"w-full bg-surface text-text-primary border border-border rounded-lg px-3 ...\"\n                                  value=\"2026-10-01T11:43\"\n                                  onChange={function onChange}\n                                  required={true}\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                              <div className=\"flex flex-...\">\n                                <label>\n                                <input\n                                  type=\"text\"\n                                  className=\"w-full bg-surface text-text-primary placeholder:text-text-muted border bo...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"Global remark visible at the top of the Delivery Note PDF...\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                            ...\n                          <div className=\"bg-surface...\">\n                            <div>\n                            <div className=\"p-5 flex f...\">\n                              <input\n                                type=\"text\"\n                                className=\"w-full bg-surface text-text-primary placeholder:text-text-muted border bord...\"\n                                placeholder=\"Focus here to scan or type a serial number...\"\n                                value=\"\"\n                                onChange={function onChange}\n                                onKeyDown={function handleGlobalScanSubmit}\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                              ...\n                          ...\n              ...\n            ...\n",
+      "timestamp": "2026-10-01T07:43:38.544Z"
+    }
+  ],
+  "networkErrors": [],
+  "pageExceptions": []
+}

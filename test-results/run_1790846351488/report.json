@@ -1,0 +1,183 @@
+{
+  "runId": "run_1790846351488",
+  "timestamp": "2026-10-01T09:19:11.490Z",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "totalSteps": 19,
+    "passed": 19,
+    "failed": 0,
+    "consoleErrorsCount": 1,
+    "networkErrorsCount": 1
+  },
+  "steps": [
+    {
+      "stepNumber": 1,
+      "name": "01_Visit_Login_Page",
+      "status": "PASSED",
+      "durationMs": 1475,
+      "screenshot": "screenshots/00_01_Visit_Login_Page.png",
+      "error": null
+    },
+    {
+      "stepNumber": 2,
+      "name": "02_Admin_Authentication_And_Dashboard_Entry",
+      "status": "PASSED",
+      "durationMs": 8526,
+      "screenshot": "screenshots/01_02_Admin_Authentication_And_Dashboard_Entry.png",
+      "error": null
+    },
+    {
+      "stepNumber": 3,
+      "name": "03_Dashboard_Overview_Cards",
+      "status": "PASSED",
+      "durationMs": 2864,
+      "screenshot": "screenshots/02_03_Dashboard_Overview_Cards.png",
+      "error": null
+    },
+    {
+      "stepNumber": 4,
+      "name": "04_Navigate_Brands_List",
+      "status": "PASSED",
+      "durationMs": 1785,
+      "screenshot": "screenshots/03_04_Navigate_Brands_List.png",
+      "error": null
+    },
+    {
+      "stepNumber": 5,
+      "name": "05_Create_New_Brand",
+      "status": "PASSED",
+      "durationMs": 10068,
+      "screenshot": "screenshots/04_05_Create_New_Brand.png",
+      "error": null
+    },
+    {
+      "stepNumber": 6,
+      "name": "06_Inspect_Brand_Detail_And_Portal",
+      "status": "PASSED",
+      "durationMs": 2719,
+      "screenshot": "screenshots/05_06_Inspect_Brand_Detail_And_Portal.png",
+      "error": null
+    },
+    {
+      "stepNumber": 7,
+      "name": "07_Navigate_Stores_List",
+      "status": "PASSED",
+      "durationMs": 1913,
+      "screenshot": "screenshots/06_07_Navigate_Stores_List.png",
+      "error": null
+    },
+    {
+      "stepNumber": 8,
+      "name": "08_Create_New_Store",
+      "status": "PASSED",
+      "durationMs": 10133,
+      "screenshot": "screenshots/07_08_Create_New_Store.png",
+      "error": null
+    },
+    {
+      "stepNumber": 9,
+      "name": "09_Create_New_Supervisor",
+      "status": "PASSED",
+      "durationMs": 9357,
+      "screenshot": "screenshots/08_09_Create_New_Supervisor.png",
+      "error": null
+    },
+    {
+      "stepNumber": 10,
+      "name": "10_Create_New_Product",
+      "status": "PASSED",
+      "durationMs": 7820,
+      "screenshot": "screenshots/09_10_Create_New_Product.png",
+      "error": null
+    },
+    {
+      "stepNumber": 11,
+      "name": "11_Staff_Management_And_Assign",
+      "status": "PASSED",
+      "durationMs": 5739,
+      "screenshot": "screenshots/10_11_Staff_Management_And_Assign.png",
+      "error": null
+    },
+    {
+      "stepNumber": 12,
+      "name": "12_Inbound_Deliveries_Ledger_And_New",
+      "status": "PASSED",
+      "durationMs": 5790,
+      "screenshot": "screenshots/11_12_Inbound_Deliveries_Ledger_And_New.png",
+      "error": null
+    },
+    {
+      "stepNumber": 13,
+      "name": "13_Outbound_Deliveries_Ledger_And_New",
+      "status": "PASSED",
+      "durationMs": 5484,
+      "screenshot": "screenshots/12_13_Outbound_Deliveries_Ledger_And_New.png",
+      "error": null
+    },
+    {
+      "stepNumber": 14,
+      "name": "14_Client_Returns_And_Balances",
+      "status": "PASSED",
+      "durationMs": 8445,
+      "screenshot": "screenshots/13_14_Client_Returns_And_Balances.png",
+      "error": null
+    },
+    {
+      "stepNumber": 15,
+      "name": "15_Damage_And_Loss_Flow",
+      "status": "PASSED",
+      "durationMs": 11509,
+      "screenshot": "screenshots/14_15_Damage_And_Loss_Flow.png",
+      "error": null
+    },
+    {
+      "stepNumber": 16,
+      "name": "16_Rebrand_And_Repurpose_Flow",
+      "status": "PASSED",
+      "durationMs": 5560,
+      "screenshot": "screenshots/15_16_Rebrand_And_Repurpose_Flow.png",
+      "error": null
+    },
+    {
+      "stepNumber": 17,
+      "name": "17_Ledgers_Transactions_Expiry_Used_Reports_Settings",
+      "status": "PASSED",
+      "durationMs": 16527,
+      "screenshot": "screenshots/16_17_Ledgers_Transactions_Expiry_Used_Reports_Settings.png",
+      "error": null
+    },
+    {
+      "stepNumber": 18,
+      "name": "18_Global_Search_Feature",
+      "status": "PASSED",
+      "durationMs": 3766,
+      "screenshot": "screenshots/17_18_Global_Search_Feature.png",
+      "error": null
+    },
+    {
+      "stepNumber": 19,
+      "name": "19_Security_Invalid_Credentials_Rejection",
+      "status": "PASSED",
+      "durationMs": 3417,
+      "screenshot": "screenshots/18_19_Security_Invalid_Credentials_Rejection.png",
+      "error": null
+    }
+  ],
+  "consoleErrors": [
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/login",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "timestamp": "2026-10-01T09:21:15.316Z"
+    }
+  ],
+  "networkErrors": [
+    {
+      "url": "http://localhost:3000/api/auth/callback/credentials",
+      "status": 401,
+      "statusText": "Unauthorized",
+      "timestamp": "2026-10-01T09:21:15.315Z"
+    }
+  ],
+  "pageExceptions": []
+}

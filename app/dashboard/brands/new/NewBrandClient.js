@@ -19,7 +19,7 @@ export default function NewBrandClient() {
 
   // Queue item creator helper
   const createEmptyBrandItem = (index = 0) => ({
-    id: `temp-${Date.now()}-${index}`,
+    id: `item-${index}`,
     name: '',
     description: '',
     imageUrl: '',
@@ -431,9 +431,9 @@ export default function NewBrandClient() {
 
       {/* Image Cropping Modal */}
       {croppingIdx !== null && (
-        <div className="fixed inset-0 bg-black/85 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 animate-slide-down">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="fixed inset-0 bg-black/85 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl flex flex-col gap-5 animate-slide-down max-h-[90vh] overflow-y-auto my-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
               <h3 className="font-display font-extrabold text-sm text-text-primary uppercase tracking-wider">Crop Brand Logo</h3>
               <button
                 type="button"

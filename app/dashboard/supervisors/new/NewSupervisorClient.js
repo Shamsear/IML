@@ -10,7 +10,7 @@ import FormFooter from '@/components/FormFooter';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 const createEmptyItem = (index = 0) => ({
-  id: `temp-${Date.now()}-${index}`,
+  id: `item-${index}`,
   name: '',
   email: '',
   phone: '',
@@ -192,7 +192,6 @@ export default function NewSupervisorClient() {
                       value={item.name}
                       onChange={(e) => updateItem(idx, 'name', e.target.value)}
                       placeholder="e.g. Ahmed Al Maktoum"
-                      autoFocus
                     />
                   </div>
 

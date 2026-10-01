@@ -654,9 +654,9 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
 
       {/* Serial numbers list overlay modal */}
       {activeSerialList && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[480px] shadow-2xl flex flex-col gap-4 animate-slide-down max-h-[90vh]">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[480px] shadow-2xl flex flex-col gap-4 animate-slide-down max-h-[90vh] my-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
               <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5 min-w-0">
                 <Info size={16} className="text-primary flex-shrink-0" />
                 <span className="truncate">Serials: {activeSerialList.productName}</span>
@@ -688,7 +688,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-border pt-3">
+            <div className="flex justify-end gap-2 border-t border-border pt-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -714,9 +714,9 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
 
       {/* Return to Warehouse Modal */}
       {returnModal && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[700px] shadow-2xl flex flex-col gap-4 animate-slide-down max-h-[90vh]">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[700px] shadow-2xl flex flex-col gap-4 animate-slide-down max-h-[90vh] my-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
               <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5 min-w-0">
                 <RotateCcw size={16} className="text-primary flex-shrink-0" />
                 <span className="truncate">Return to Warehouse — {returnModal.brandName}</span>

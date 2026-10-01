@@ -1,0 +1,202 @@
+{
+  "runId": "run_1790839744606",
+  "timestamp": "2026-10-01T07:29:04.607Z",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "totalSteps": 19,
+    "passed": 16,
+    "failed": 3,
+    "warnings": 0,
+    "consoleErrorsCount": 2,
+    "networkErrorsCount": 0
+  },
+  "steps": [
+    {
+      "stepNumber": 1,
+      "name": "01_Visit_Login_Page",
+      "durationMs": 943,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/00_01_Visit_Login_Page.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 2,
+      "name": "02_Invalid_Login_Validation",
+      "durationMs": 1824,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/01_02_Invalid_Login_Validation.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 3,
+      "name": "03_Valid_Admin_Login",
+      "durationMs": 14363,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/02_03_Valid_Admin_Login.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 4,
+      "name": "04_Dashboard_Overview_Cards",
+      "durationMs": 1929,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/03_04_Dashboard_Overview_Cards.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 5,
+      "name": "05_Navigate_Brands_List",
+      "durationMs": 5772,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/04_05_Navigate_Brands_List.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 6,
+      "name": "06_Create_New_Brand",
+      "durationMs": 27560,
+      "status": "FAILED",
+      "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"OK\")').first() to be visible\u001b[22m\n",
+      "screenshot": "screenshots/05_06_Create_New_Brand.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 7,
+      "name": "07_Inspect_Brand_Detail_And_Portal",
+      "durationMs": 2583,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/06_07_Inspect_Brand_Detail_And_Portal.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 8,
+      "name": "08_Navigate_Stores_List",
+      "durationMs": 5263,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/07_08_Navigate_Stores_List.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 9,
+      "name": "09_Create_New_Store",
+      "durationMs": 22718,
+      "status": "FAILED",
+      "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"OK\")').first() to be visible\u001b[22m\n",
+      "screenshot": "screenshots/08_09_Create_New_Store.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 10,
+      "name": "10_Create_New_Supervisor",
+      "durationMs": 20696,
+      "status": "FAILED",
+      "error": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"OK\")').first() to be visible\u001b[22m\n",
+      "screenshot": "screenshots/09_10_Create_New_Supervisor.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 11,
+      "name": "11_Create_New_Product",
+      "durationMs": 47348,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/10_11_Create_New_Product.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 12,
+      "name": "12_Staff_Management_And_Assign",
+      "durationMs": 25138,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/11_12_Staff_Management_And_Assign.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 13,
+      "name": "13_Inbound_Deliveries_Ledger_And_New",
+      "durationMs": 20945,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/12_13_Inbound_Deliveries_Ledger_And_New.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 14,
+      "name": "14_Outbound_Deliveries_Ledger_And_New",
+      "durationMs": 16551,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/13_14_Outbound_Deliveries_Ledger_And_New.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 15,
+      "name": "15_Client_Returns_And_Balances",
+      "durationMs": 38311,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/14_15_Client_Returns_And_Balances.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 16,
+      "name": "16_Damage_And_Loss_Flow",
+      "durationMs": 44331,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/15_16_Damage_And_Loss_Flow.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 17,
+      "name": "17_Rebrand_And_Repurpose_Flow",
+      "durationMs": 27208,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/16_17_Rebrand_And_Repurpose_Flow.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 18,
+      "name": "18_Ledgers_Transactions_Expiry_Used_Reports_Settings",
+      "durationMs": 123844,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/17_18_Ledgers_Transactions_Expiry_Used_Reports_Settings.png",
+      "details": {}
+    },
+    {
+      "stepNumber": 19,
+      "name": "19_Global_Search_Feature",
+      "durationMs": 40935,
+      "status": "PASSED",
+      "error": null,
+      "screenshot": "screenshots/18_19_Global_Search_Feature.png",
+      "details": {}
+    }
+  ],
+  "consoleErrors": [
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/login?",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <LoadingBoundary name=\"login/\" loading={null}>\n      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>\n        <RedirectBoundary>\n          <RedirectErrorBoundary router={{...}}>\n            <InnerLayoutRouter url=\"/login\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>\n              <SegmentViewNode type=\"page\" pagePath=\"login/page.js\">\n                <SegmentTrieNode>\n                <LoginPage>\n                  <LoginForm>\n                    <div className=\"relative h...\">\n                      <div>\n                      <div className=\"relative w...\">\n                        <div className=\"relative z...\">\n                          <div>\n                          <form onSubmit={function handleSubmit} className=\"flex flex-...\">\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"relative f...\">\n                                <User>\n                                <input\n                                  type=\"text\"\n                                  className=\"w-full bg-surface-elevated text-text-primary placeholder:text-text-muted ...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"Enter your username\"\n                                  required={true}\n                                  disabled={false}\n                                  autoComplete=\"username\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                            <div className=\"flex flex-...\">\n                              <label>\n                              <div className=\"relative f...\">\n                                <Lock>\n                                <input\n                                  type=\"password\"\n                                  className=\"w-full bg-surface-elevated text-text-primary placeholder:text-text-muted ...\"\n                                  value=\"\"\n                                  onChange={function onChange}\n                                  placeholder=\"••••••••\"\n                                  required={true}\n                                  disabled={false}\n                                  autoComplete=\"current-password\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                                ...\n                            ...\n                          ...\n                        ...\n              ...\n            ...\n",
+      "timestamp": "2026-10-01T07:29:08.496Z"
+    },
+    {
+      "type": "console.error",
+      "url": "http://localhost:3000/dashboard/staff/assign",
+      "text": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <RedirectBoundary>\n      <RedirectErrorBoundary router={{...}}>\n        <InnerLayoutRouter url=\"/dashboard...\" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>\n          <SegmentViewNode type=\"page\" pagePath=\"dashboard/...\">\n            <SegmentTrieNode>\n            <AssignPage>\n              <AssignClient staffList={[...]} stores={[...]} initialAllocation={null} editStaffObj={null}>\n                <div className=\"flex flex-...\">\n                  <header>\n                  <form onSubmit={function handleBulkSubmit} className=\"flex flex-...\">\n                    <div className=\"flex flex-...\">\n                      <div className={\"bg-surfa...\"}>\n                        <div className=\"p-6 sm:p-8...\">\n                          <div>\n                          <div className=\"flex flex-...\">\n                            <div className=\"flex items...\">\n                              <label className=\"flex items...\">\n                                <input\n                                  type=\"radio\"\n+                                 name=\"promoterType-item-1790839922738-0-88uj0btyf\"\n-                                 name=\"promoterType-item-1790839921585-0-enn6hqu92\"\n                                  checked={true}\n                                  onChange={function onChange}\n                                  className=\"accent-primary\"\n                                >\n                                ...\n                              <label className=\"flex items...\">\n                                <input\n                                  type=\"radio\"\n+                                 name=\"promoterType-item-1790839922738-0-88uj0btyf\"\n-                                 name=\"promoterType-item-1790839921585-0-enn6hqu92\"\n                                  checked={false}\n                                  onChange={function onChange}\n                                  className=\"accent-primary\"\n                                >\n                                ...\n                            ...\n                          ...\n                    ...\n          ...\n        ...\n",
+      "timestamp": "2026-10-01T07:32:02.828Z"
+    }
+  ],
+  "networkErrors": [],
+  "pageExceptions": []
+}

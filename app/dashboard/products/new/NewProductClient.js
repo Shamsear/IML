@@ -161,7 +161,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
   // Helper to construct empty inbound entry details
   const createEmptyInboundEntry = (index = 0) => ({
-    id: `inb-${Date.now()}-${index}`,
+    id: `inb-entry-${index}`,
     fromId: 'Initial Import',
     receivedBy: '',
     initialQty: '',
@@ -177,7 +177,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
   // Helper to construct a blank product item configuration for bulk creation
   const createEmptyProductItem = (index = 0) => ({
-    id: `temp-${Date.now()}-${index}`,
+    id: `prod-item-${index}`,
     name: '',
     brandId: searchParams.get('brandId') || brands[0]?.id || '',
     itemCode: '',

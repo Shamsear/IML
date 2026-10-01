@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { getProductsSlim } from '@/app/actions/products';
 import ClientReturnsClient from '../ClientReturnsClient';
 
 export const metadata = {
@@ -12,17 +13,7 @@ export default async function NewClientReturnPage() {
       orderBy: { name: 'asc' },
       select: { id: true, name: true }
     }),
-    prisma.product.findMany({
-      include: {
-        brand: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      },
-      orderBy: { name: 'asc' }
-    })
+    getProductsSlim()
   ]);
 
   return (

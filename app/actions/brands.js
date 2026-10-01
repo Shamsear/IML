@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
 import { generateId } from '@/lib/idGenerator';
+import { generateBatchTxIds } from '@/lib/ledger';
 import { generateBrandJWT, verifyBrandJWT } from '@/lib/jwt';
 import crypto from 'crypto';
 
@@ -330,11 +331,11 @@ export async function createBulkBrands(formData) {
 
   // Save all in a transaction
   const results = await prisma.$transaction(async (tx) => {
+    const brandIds = await generateBatchTxIds(tx, 'brand', 'BRND', brandsList.length, 3);
     const createdBrands = [];
     for (let i = 0; i < brandsList.length; i++) {
       const b = brandsList[i];
-      
-      const id = await generateId('brand', 'BRND', 3);
+      const id = brandIds[i];
       const secretKey = generateBrandJWT(id, b.name);
 
       const created = await tx.brand.create({
