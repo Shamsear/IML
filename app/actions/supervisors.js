@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
 import { requireAuth } from '@/lib/auth-guard';
-import { generateId } from '@/lib/idGenerator';
+import { generateId, generateBatchIds } from '@/lib/idGenerator';
 
 export async function getSupervisors() {
   await requireAuth();
@@ -50,20 +50,24 @@ export async function createBulkSupervisors(formData) {
     }
   }
 
-  const created = [];
-  for (const item of items) {
-    if (!item || !item.name?.trim()) continue;
-    const id = await generateId('supervisor', 'SUPR', 3);
-    const supervisor = await prisma.supervisor.create({
-      data: {
-        id,
-        name: item.name.trim(),
-        email: item.email?.trim() || '',
-        phone: item.phone?.trim() || '',
-      },
-    });
-    created.push(supervisor);
+  const validItems = items.filter(item => item && item.name?.trim());
+  if (validItems.length === 0) {
+    return [];
   }
+
+  const ids = await generateBatchIds('supervisor', 'SUPR', validItems.length, 3);
+  const created = await Promise.all(
+    validItems.map((item, idx) =>
+      prisma.supervisor.create({
+        data: {
+          id: ids[idx],
+          name: item.name.trim(),
+          email: item.email?.trim() || '',
+          phone: item.phone?.trim() || '',
+        },
+      })
+    )
+  );
 
   revalidatePath('/dashboard/supervisors');
   return created;

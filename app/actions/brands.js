@@ -221,57 +221,58 @@ export async function getBrandPortalDetails(secretKey) {
     return null;
   }
 
-  // Fetch the brand and all associated product structures & transaction logs
-  const brand = await prisma.brand.findUnique({
-    where: { id: payload.brandId, secretKey },
-    include: {
-      stores: {
-        select: {
-          id: true,
-          name: true
-        }
-      },
-      products: {
-        select: {
-          id: true,
-          name: true,
-          itemCode: true,
-          category: true,
-          imageUrl: true,
-          isSerialized: true,
-          transactions: {
-            select: {
-              id: true,
-              transactionType: true,
-              quantity: true,
-              fromEntityType: true,
-              fromEntityId: true,
-              toEntityType: true,
-              toEntityId: true,
-              timestamp: true,
-              notes: true,
-              returnStatus: true,
-            },
-            orderBy: { timestamp: 'desc' }
+  // Fetch the brand and all staff members concurrently
+  const [brand, staffList] = await Promise.all([
+    prisma.brand.findUnique({
+      where: { id: payload.brandId, secretKey },
+      include: {
+        stores: {
+          select: {
+            id: true,
+            name: true
           }
         },
-        orderBy: { name: 'asc' }
+        products: {
+          select: {
+            id: true,
+            name: true,
+            itemCode: true,
+            category: true,
+            imageUrl: true,
+            isSerialized: true,
+            transactions: {
+              select: {
+                id: true,
+                transactionType: true,
+                quantity: true,
+                fromEntityType: true,
+                fromEntityId: true,
+                toEntityType: true,
+                toEntityId: true,
+                timestamp: true,
+                notes: true,
+                returnStatus: true,
+              },
+              orderBy: { timestamp: 'desc' }
+            }
+          },
+          orderBy: { name: 'asc' }
+        }
       }
-    }
-  });
+    }),
+    prisma.staff.findMany({
+      select: { id: true, name: true }
+    })
+  ]);
 
   if (!brand) return null;
 
-  // Let's resolve store names for transactions so the client has them pre-populated
+  // Resolve store names for transactions so the client has them pre-populated
   const storeMap = {};
   brand.stores.forEach(s => {
     storeMap[s.id] = s.name;
   });
 
-  // Let's fetch all staff members in the system to build a staff map
-  const staffList = await prisma.staff.findMany({
-    select: { id: true, name: true }
-  });
   const staffMap = {};
   staffList.forEach(st => {
     staffMap[st.id] = st.name;
@@ -308,8 +309,8 @@ export async function createBulkBrands(formData) {
     throw new Error('No brands provided for creation');
   }
 
-  // Parse details
-  const brandsList = [];
+  // Parse raw details
+  const rawBrands = [];
   for (let i = 0; i < count; i++) {
     const name = formData.get(`item_${i}_name`);
     const description = formData.get(`item_${i}_description`);
@@ -317,41 +318,51 @@ export async function createBulkBrands(formData) {
     let imageUrl = formData.get(`item_${i}_imageUrl`) || null;
     const rack = formData.get(`item_${i}_rack`) || null;
     const shelf = formData.get(`item_${i}_shelf`) || null;
-
-    if (imageFile && imageFile.size > 0) {
-      const savedPath = await saveFile(imageFile);
-      if (savedPath) imageUrl = savedPath;
-    }
-
     const isPublic = formData.get(`item_${i}_isPublic`) === 'true';
 
     if (!name) throw new Error('Brand name is required');
-    brandsList.push({ name, description, imageUrl, isPublic, rack, shelf });
+    rawBrands.push({ name, description, imageFile, imageUrl, isPublic, rack, shelf });
   }
+
+  // Parallelize image uploads to ImageKit before starting database transaction
+  const uploadedImageUrls = await Promise.all(
+    rawBrands.map(async (b) => {
+      if (b.imageFile && b.imageFile.size > 0) {
+        const savedPath = await saveFile(b.imageFile);
+        return savedPath || b.imageUrl;
+      }
+      return b.imageUrl;
+    })
+  );
+
+  const brandsList = rawBrands.map((b, idx) => ({
+    ...b,
+    imageUrl: uploadedImageUrls[idx],
+  }));
 
   // Save all in a transaction
   const results = await prisma.$transaction(async (tx) => {
     const brandIds = await generateBatchTxIds(tx, 'brand', 'BRND', brandsList.length, 3);
-    const createdBrands = [];
-    for (let i = 0; i < brandsList.length; i++) {
-      const b = brandsList[i];
-      const id = brandIds[i];
-      const secretKey = generateBrandJWT(id, b.name);
+    
+    const createdBrands = await Promise.all(
+      brandsList.map((b, i) => {
+        const id = brandIds[i];
+        const secretKey = generateBrandJWT(id, b.name);
+        return tx.brand.create({
+          data: {
+            id,
+            name: b.name,
+            description: b.description,
+            imageUrl: b.imageUrl,
+            rack: b.rack,
+            shelf: b.shelf,
+            isPublic: b.isPublic,
+            secretKey,
+          }
+        });
+      })
+    );
 
-      const created = await tx.brand.create({
-        data: {
-          id,
-          name: b.name,
-          description: b.description,
-          imageUrl: b.imageUrl,
-          rack: b.rack,
-          shelf: b.shelf,
-          isPublic: b.isPublic,
-          secretKey,
-        }
-      });
-      createdBrands.push(created);
-    }
     return createdBrands;
   }, { timeout: 20000 });
 

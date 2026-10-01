@@ -3,7 +3,12 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { uploadToImageKit } from '@/lib/imagekit';
-import { notifyTransaction } from '@/lib/push';
+
+function safeNotifyTransaction(payload) {
+  import('@/lib/push')
+    .then((m) => m.notifyTransaction(payload))
+    .catch(() => {});
+}
 
 import { requireAuth } from '@/lib/auth-guard';
 import {
@@ -182,7 +187,7 @@ export async function createTransaction(data) {
 
   revalidateTransactionPaths();
 
-  notifyTransaction({
+  safeNotifyTransaction({
     type: transactionType,
     productName: product.name,
     quantity,
@@ -713,7 +718,7 @@ export async function createBulkIssueTransactions(payload) {
   revalidateTransactionPaths();
 
   const totalQty = (items || []).reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
-  notifyTransaction({
+  safeNotifyTransaction({
     type: 'ISSUE',
     productName: `${items?.length || 1} product item${(items?.length || 1) > 1 ? 's' : ''}`,
     quantity: totalQty,
@@ -966,7 +971,7 @@ export async function createBulkReceiveTransactions(formData) {
   revalidateTransactionPaths();
 
   const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
-  notifyTransaction({
+  safeNotifyTransaction({
     type: 'RECEIVE',
     productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
     quantity: totalQty,
@@ -993,33 +998,83 @@ export async function createBulkDamageTransactions(payload) {
 
   if (items.length === 0) throw new Error('At least one product item is required for damage logging');
 
+  // 1. Batch Product Query
+  const productIds = [...new Set(items.map(i => i.productId))];
+  const dbProducts = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: { brand: { select: { name: true } } }
+  });
+  const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
+  // Validate product existences in-memory
+  for (const item of items) {
+    if (!item.productId) throw new Error('Product ID is required for all items');
+    if (!item.quantity || item.quantity <= 0) throw new Error('Quantity must be greater than 0 for all items');
+    const product = productsMap.get(item.productId);
+    if (!product) throw new Error(`Product not found for ID: ${item.productId}`);
+  }
+
+  // 2. Batch Stock checks for bulk (non-serialized) items
+  const bulkProductIds = items
+    .filter(item => {
+      const product = productsMap.get(item.productId);
+      return product && !product.isSerialized;
+    })
+    .map(item => item.productId);
+
+  const stockMap = (bulkProductIds.length > 0 && fromEntityType)
+    ? await batchGetStock(bulkProductIds, fromEntityType, fromEntityId)
+    : new Map();
+
+  // Validate stock levels in-memory
+  for (const item of items) {
+    const product = productsMap.get(item.productId);
+    if (product && !product.isSerialized && fromEntityType) {
+      const currentStock = stockMap.get(item.productId) || 0;
+      if (currentStock < item.quantity) {
+        throw new Error(`Insufficient stock for product "${product.name}". Current stock at ${fromEntityType} is ${currentStock}, requested ${item.quantity}.`);
+      }
+    }
+  }
+
+  // 3. Batch Serial verification
+  const allBarcodes = items.flatMap(item => item.barcodes || []);
+  let serialsMap = new Map();
+  if (allBarcodes.length > 0) {
+    const dbSerials = await prisma.productSerialNumber.findMany({
+      where: { barcode: { in: allBarcodes } },
+      include: { product: { select: { name: true } } }
+    });
+    serialsMap = new Map(dbSerials.map(s => [s.barcode, s]));
+  }
+
+  for (const item of items) {
+    const product = productsMap.get(item.productId);
+    if (product && product.isSerialized && item.barcodes && item.barcodes.length > 0) {
+      const foundSerials = item.barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+      if (foundSerials.length !== item.barcodes.length) {
+        throw new Error(`Some barcodes for product "${product.name}" could not be found in the database.`);
+      }
+      if (fromEntityType) {
+        const invalidSerials = foundSerials.filter(
+          s => s.currentLocationType !== fromEntityType || s.currentLocationId !== (fromEntityId || null)
+        );
+        if (invalidSerials.length > 0) {
+          throw new Error(`Some barcodes for "${product.name}" are not present at the source location (${fromEntityType}).`);
+        }
+      }
+    }
+  }
+
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
 
     for (const item of items) {
       const { productId, quantity, barcodes = [], notes } = item;
-
-      if (!productId) throw new Error('Product ID is required for all items');
-      if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0 for all items');
-
-      const product = await tx.product.findUnique({
-        where: { id: productId },
-        include: { brand: { select: { name: true } } },
-      });
-
-      if (!product) throw new Error(`Product not found for ID: ${productId}`);
-
+      const product = productsMap.get(productId);
       const brandName = product.brand?.name || 'General';
       const typeCode = resolvedType === 'LOST' ? 'LOS' : 'DAM';
       const deliveryNote = await generateCustomRef(tx, typeCode, brandName);
-
-      // Verify stock levels for bulk (non-serialized) products
-      if (!product.isSerialized && fromEntityType) {
-        const currentStock = await getStockAtLocation(productId, fromEntityType, fromEntityId);
-        if (currentStock < quantity) {
-          throw new Error(`Insufficient stock for product "${product.name}". Current stock at ${fromEntityType} is ${currentStock}, requested ${quantity}.`);
-        }
-      }
 
       // A. Create core transaction
       const invTx = await tx.inventoryTransaction.create({
@@ -1041,31 +1096,12 @@ export async function createBulkDamageTransactions(payload) {
 
       // B. Link serialized serials and mark as DAMAGED/LOST
       if (product.isSerialized && barcodes.length > 0) {
-        const dbSerials = await tx.productSerialNumber.findMany({
-          where: {
-            productId,
-            barcode: { in: barcodes },
-          },
-        });
-
-        if (dbSerials.length !== barcodes.length) {
-          throw new Error(`Some barcodes for product "${product.name}" could not be found in the database.`);
-        }
-
-        if (fromEntityType) {
-          const invalidSerials = dbSerials.filter(
-            (s) => s.currentLocationType !== fromEntityType || s.currentLocationId !== fromEntityId
-          );
-          if (invalidSerials.length > 0) {
-            throw new Error(`Some barcodes for "${product.name}" are not present at the source location (${fromEntityType}).`);
-          }
-        }
+        const itemSerials = barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+        const serialIds = itemSerials.map(s => s.id);
 
         // Bulk mark serial records as DAMAGED or LOST
         await tx.productSerialNumber.updateMany({
-          where: {
-            id: { in: dbSerials.map(s => s.id) }
-          },
+          where: { id: { in: serialIds } },
           data: {
             status: serialStatus,
             currentLocationType: null,
@@ -1075,9 +1111,9 @@ export async function createBulkDamageTransactions(payload) {
 
         // Bulk insert the transaction-serial mappings
         await tx.transactionSerialNumber.createMany({
-          data: dbSerials.map(serial => ({
+          data: serialIds.map(serialNumberId => ({
             transactionId: invTx.id,
-            serialNumberId: serial.id,
+            serialNumberId,
           }))
         });
       }
@@ -1086,17 +1122,20 @@ export async function createBulkDamageTransactions(payload) {
     }
 
     return createdTxs;
-  });
+  }, { timeout: 20000 });
 
   revalidateTransactionPaths();
 
   const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
-  notifyTransaction({
+  const firstItemProduct = items[0] ? productsMap.get(items[0].productId) : null;
+  const brandName = firstItemProduct?.brand?.name || 'General';
+
+  safeNotifyTransaction({
     type: resolvedType,
     productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
     quantity: totalQty,
-    deliveryNote: resolvedDamageNote,
     destinationOrSource: fromEntityType === 'WAREHOUSE' ? 'Warehouse' : fromEntityId || fromEntityType,
+    brandName,
   }).catch(() => {});
 
   return transactions;
@@ -1655,26 +1694,56 @@ export async function processOutboundReturns(returnsPayload) {
     throw new Error('No items provided for processing');
   }
 
+  // 1. Batch Fetch original transactions and products
+  const txIds = returnsPayload.map(i => i.transactionId).filter(Boolean);
+  const originalTxs = await prisma.inventoryTransaction.findMany({
+    where: { id: { in: txIds } },
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          brand: { select: { name: true } }
+        }
+      }
+    }
+  });
+  const origTxMap = new Map(originalTxs.map(t => [t.id, t]));
+
+  // 2. Validate all payload items in memory
+  for (const item of returnsPayload) {
+    const { transactionId, actionType, qty } = item;
+    if (!transactionId || !actionType) throw new Error('Missing required fields');
+
+    const originalTx = origTxMap.get(transactionId);
+    if (!originalTx) throw new Error(`Transaction not found: ${transactionId}`);
+    if (originalTx.transactionType !== 'ISSUE') throw new Error(`Cannot process return for non-outbound transaction: ${transactionId}`);
+
+    const processQty = parseInt(qty || '0', 10);
+    const remainingQty = originalTx.quantity - (originalTx.returnedQty || 0);
+
+    if (actionType === 'RETURN') {
+      if (processQty <= 0) throw new Error('Return quantity must be greater than 0');
+      if (processQty > remainingQty) throw new Error(`Cannot return ${processQty}. Only ${remainingQty} unreturned items remaining.`);
+    } else if (actionType === 'USED') {
+      if (remainingQty <= 0) throw new Error('No remaining quantity to mark as used');
+      const useQty = (qty && parseInt(qty, 10) > 0) ? parseInt(qty, 10) : remainingQty;
+      if (useQty <= 0) throw new Error('Used quantity must be greater than 0');
+      if (useQty > remainingQty) throw new Error(`Cannot mark ${useQty} as used. Only ${remainingQty} items remaining.`);
+    } else {
+      throw new Error(`Unknown action type: ${actionType}`);
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     for (const item of returnsPayload) {
       const { transactionId, actionType, qty, notes } = item;
-
-      if (!transactionId || !actionType) throw new Error('Missing required fields');
-
-      const originalTx = await tx.inventoryTransaction.findUnique({
-        where: { id: transactionId },
-      });
-
-      if (!originalTx) throw new Error(`Transaction not found: ${transactionId}`);
-      if (originalTx.transactionType !== 'ISSUE') throw new Error(`Cannot process return for non-outbound transaction: ${transactionId}`);
-
-      const processQty = parseInt(qty || '0', 10);
+      const originalTx = origTxMap.get(transactionId);
       const remainingQty = originalTx.quantity - (originalTx.returnedQty || 0);
+      const brandName = originalTx.product?.brand?.name || 'General';
 
       if (actionType === 'RETURN') {
-        if (processQty <= 0) throw new Error('Return quantity must be greater than 0');
-        if (processQty > remainingQty) throw new Error(`Cannot return ${processQty}. Only ${remainingQty} unreturned items remaining.`);
-
+        const processQty = parseInt(qty || '0', 10);
         const newReturnedQty = (originalTx.returnedQty || 0) + processQty;
         const newStatus = newReturnedQty >= originalTx.quantity ? 'RETURNED' : 'PARTIAL';
         const newNotes = originalTx.returnNotes ? `${originalTx.returnNotes} | ${notes || 'Returned'}` : (notes || 'Returned');
@@ -1689,11 +1758,6 @@ export async function processOutboundReturns(returnsPayload) {
           }
         });
 
-        const product = await tx.product.findUnique({
-          where: { id: originalTx.productId },
-          include: { brand: { select: { name: true } } }
-        });
-        const brandName = product?.brand?.name || 'General';
         const deliveryNote = await generateCustomRef(tx, 'RET', brandName);
 
         // 2. Create RETURN transaction to return stock to Warehouse
@@ -1715,13 +1779,7 @@ export async function processOutboundReturns(returnsPayload) {
         });
 
       } else if (actionType === 'USED') {
-        const remainingQty = originalTx.quantity - (originalTx.returnedQty || 0);
-        if (remainingQty <= 0) throw new Error('No remaining quantity to mark as used');
-
         const useQty = (qty && parseInt(qty, 10) > 0) ? parseInt(qty, 10) : remainingQty;
-        if (useQty <= 0) throw new Error('Used quantity must be greater than 0');
-        if (useQty > remainingQty) throw new Error(`Cannot mark ${useQty} as used. Only ${remainingQty} items remaining.`);
-
         const newReturnedQty = (originalTx.returnedQty || 0) + useQty;
         const newStatus = newReturnedQty >= originalTx.quantity ? 'USED' : 'PARTIAL';
         const newNotes = originalTx.returnNotes ? `${originalTx.returnNotes} | ${notes || 'Marked Used'}` : (notes || 'Marked Used');
@@ -1736,14 +1794,9 @@ export async function processOutboundReturns(returnsPayload) {
           }
         });
 
-        // 2. Create USED transaction to move stock from Store to Staff (Used)
-        const product = await tx.product.findUnique({
-          where: { id: originalTx.productId },
-          include: { brand: { select: { name: true } } }
-        });
-        const brandName = product?.brand?.name || 'General';
         const deliveryNote = await generateCustomRef(tx, 'USD', brandName);
 
+        // 2. Create USED transaction to move stock from Store to Staff (Used)
         await tx.inventoryTransaction.create({
           data: {
             productId: originalTx.productId,
@@ -1760,15 +1813,13 @@ export async function processOutboundReturns(returnsPayload) {
             expiryDate: originalTx.expiryDate,
           }
         });
-      } else {
-        throw new Error(`Unknown action type: ${actionType}`);
       }
     }
   }, { timeout: 20000 });
 
   revalidateTransactionPaths();
 
-  notifyTransaction({
+  safeNotifyTransaction({
     type: 'RETURN',
     productName: `${returnsPayload.length} product item${returnsPayload.length > 1 ? 's' : ''}`,
     quantity: returnsPayload.reduce((acc, curr) => acc + parseInt(curr.qty || 0, 10), 0),
@@ -1822,7 +1873,8 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
     .map(item => item.productId);
 
   const transactions = await prisma.$transaction(async (tx) => {
-    // 1. REVERT OLD TRANSACTIONS
+    // 1. REVERT OLD TRANSACTIONS IN BATCH
+    const oldTxIds = oldTxs.map(t => t.id);
     for (const oldTx of oldTxs) {
       if (oldTx.product.isSerialized && oldTx.serialNumbers.length > 0) {
         const oldSerials = oldTx.serialNumbers.map(s => s.serialNumber);
@@ -1835,8 +1887,8 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
           }
         });
       }
-      await tx.inventoryTransaction.delete({ where: { id: oldTx.id } });
     }
+    await tx.inventoryTransaction.deleteMany({ where: { id: { in: oldTxIds } } });
 
     // 2. CHECK STOCK & CREATE NEW TRANSACTIONS
     const stockMap = (bulkProductIds.length > 0 && fromEntityType && fromEntityType !== 'SUPPLIER')
@@ -2121,26 +2173,60 @@ export async function createBulkClientReturnTransactions(payload) {
     }
   }
 
-  const brand = await prisma.brand.findUnique({
-    where: { id: brandId }
-  });
+  // 1. Batch Product and Brand Query
+  const productIds = [...new Set(items.map(i => i.productId))];
+  const [brand, dbProducts] = await Promise.all([
+    prisma.brand.findUnique({ where: { id: brandId } }),
+    prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: { brand: { select: { name: true } } }
+    })
+  ]);
+
   if (!brand) throw new Error('Brand not found');
+  const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
+  // Validate all items in memory
+  for (const item of items) {
+    if (!item.productId) throw new Error('Product ID is required for all items');
+    if (!item.quantity || item.quantity <= 0) throw new Error('Quantity must be greater than 0');
+    const product = productsMap.get(item.productId);
+    if (!product) throw new Error(`Product not found for ID: ${item.productId}`);
+  }
+
+  // 2. Batch Serial query if serialized items exist
+  const allBarcodes = items.flatMap(i => i.barcodes || []);
+  let serialsMap = new Map();
+  if (allBarcodes.length > 0) {
+    const dbSerials = await prisma.productSerialNumber.findMany({
+      where: { barcode: { in: allBarcodes } }
+    });
+    serialsMap = new Map(dbSerials.map(s => [s.barcode, s]));
+  }
+
+  for (const item of items) {
+    const product = productsMap.get(item.productId);
+    if (product && product.isSerialized && item.barcodes && item.barcodes.length > 0) {
+      const foundSerials = item.barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+      if (foundSerials.length !== item.barcodes.length) {
+        throw new Error(`Some barcodes for product "${product.name}" could not be found.`);
+      }
+      const invalidSerials = foundSerials.filter(
+        s => s.currentLocationType !== 'WAREHOUSE' || s.currentLocationId !== 'MAIN'
+      );
+      if (invalidSerials.length > 0) {
+        throw new Error(`Some barcodes for product "${product.name}" are not present in the Central Warehouse.`);
+      }
+    }
+  }
 
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
-    // Generate a single custom reference code (Gate Pass) for all items in this return batch
     const deliveryNote = await generateCustomRef(tx, 'CRN', brand.name, transactionDate);
 
     for (const item of items) {
       const { productId, quantity, barcodes = [], notes, selectedBatches = [] } = item;
-
-      if (!productId) throw new Error('Product ID is required for all items');
-      if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0');
-
-      const product = await tx.product.findUnique({
-        where: { id: productId }
-      });
-      if (!product) throw new Error(`Product not found for ID: ${productId}`);
+      const product = productsMap.get(productId);
 
       const baseNote = (() => {
         const itemNote = notes?.trim() || '';
@@ -2197,29 +2283,12 @@ export async function createBulkClientReturnTransactions(payload) {
 
       // Update serials and create mapping records
       if (product.isSerialized && barcodes.length > 0) {
-        const dbSerials = await tx.productSerialNumber.findMany({
-          where: {
-            productId,
-            barcode: { in: barcodes }
-          }
-        });
-
-        if (dbSerials.length !== barcodes.length) {
-          throw new Error(`Some barcodes for product "${product.name}" could not be found.`);
-        }
-
-        const invalidSerials = dbSerials.filter(
-          s => s.currentLocationType !== 'WAREHOUSE' || s.currentLocationId !== 'MAIN'
-        );
-        if (invalidSerials.length > 0) {
-          throw new Error(`Some barcodes for product "${product.name}" are not present in the Central Warehouse.`);
-        }
+        const itemSerials = barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+        const serialIds = itemSerials.map(s => s.id);
 
         // Bulk update status to WITH_CLIENT
         await tx.productSerialNumber.updateMany({
-          where: {
-            id: { in: dbSerials.map(s => s.id) }
-          },
+          where: { id: { in: serialIds } },
           data: {
             status: 'WITH_CLIENT',
             currentLocationType: 'BRAND',
@@ -2229,9 +2298,9 @@ export async function createBulkClientReturnTransactions(payload) {
 
         // Link to transaction
         await tx.transactionSerialNumber.createMany({
-          data: dbSerials.map(serial => ({
+          data: serialIds.map(serialNumberId => ({
             transactionId: invTx.id,
-            serialNumberId: serial.id
+            serialNumberId,
           }))
         });
       }
@@ -2239,7 +2308,7 @@ export async function createBulkClientReturnTransactions(payload) {
       createdTxs.push(invTx);
     }
     return createdTxs;
-  }, { timeout: 25000 });
+  }, { timeout: 20000 });
 
   revalidateTransactionPaths();
   return transactions;
@@ -2318,7 +2387,6 @@ export async function getClientReturnsBalances() {
     if (balances[key].trackExpiry && !balances[key].isSerialized) {
       const mDateStr = tx.manufactureDate ? new Date(tx.manufactureDate).toISOString().split('T')[0] : '';
       const eDateStr = tx.expiryDate ? new Date(tx.expiryDate).toISOString().split('T')[0] : '';
-      const batchKey = `${mDateStr}|${eDateStr}`;
 
       let batch = balances[key].expiryBatches.find(b => {
         const bM = b.manufactureDate ? new Date(b.manufactureDate).toISOString().split('T')[0] : '';
@@ -2335,25 +2403,47 @@ export async function getClientReturnsBalances() {
     }
   }
 
+  // Pre-fetch all serials in ONE single batch query (eliminates N+1 loop)
+  const activeSerializedBalances = Object.values(balances).filter(b => b.quantity > 0 && b.isSerialized);
+  let serialsByBrandAndProduct = new Map();
+
+  if (activeSerializedBalances.length > 0) {
+    const prodIds = [...new Set(activeSerializedBalances.map(b => b.productId))];
+    const brandIds = [...new Set(activeSerializedBalances.map(b => b.brandId))];
+
+    const allSerials = await prisma.productSerialNumber.findMany({
+      where: {
+        productId: { in: prodIds },
+        status: 'WITH_CLIENT',
+        currentLocationType: 'BRAND',
+        currentLocationId: { in: brandIds }
+      },
+      select: {
+        id: true,
+        productId: true,
+        currentLocationId: true,
+        barcode: true,
+        manufactureDate: true,
+        expiryDate: true
+      }
+    });
+
+    allSerials.forEach(s => {
+      const mapKey = `${s.currentLocationId}_${s.productId}`;
+      if (!serialsByBrandAndProduct.has(mapKey)) {
+        serialsByBrandAndProduct.set(mapKey, []);
+      }
+      serialsByBrandAndProduct.get(mapKey).push(s);
+    });
+  }
+
   const finalBalances = [];
   for (const key in balances) {
     const bal = balances[key];
     if (bal.quantity > 0) {
       if (bal.isSerialized) {
-        const serials = await prisma.productSerialNumber.findMany({
-          where: {
-            productId: bal.productId,
-            status: 'WITH_CLIENT',
-            currentLocationType: 'BRAND',
-            currentLocationId: bal.brandId
-          },
-          select: {
-            id: true,
-            barcode: true,
-            manufactureDate: true,
-            expiryDate: true
-          }
-        });
+        const mapKey = `${bal.brandId}_${bal.productId}`;
+        const serials = serialsByBrandAndProduct.get(mapKey) || [];
         bal.serialNumbers = serials;
         bal.quantity = serials.length;
       }
@@ -2362,7 +2452,6 @@ export async function getClientReturnsBalances() {
       if (bal.trackExpiry && !bal.isSerialized) {
         const now = new Date();
         bal.expiryBatches = bal.expiryBatches.filter(b => b.quantity > 0);
-        // Recompute total from valid batches
         bal.quantity = bal.expiryBatches.reduce((sum, b) => sum + b.quantity, 0);
       }
       
@@ -2410,8 +2499,74 @@ export async function returnClientItemsToWarehouse(payload) {
     }
   }
 
-  const brand = await prisma.brand.findUnique({ where: { id: brandId } });
+  // 1. Batch Product and Brand Query
+  const productIds = [...new Set(items.map(i => i.productId))];
+  const [brand, dbProducts] = await Promise.all([
+    prisma.brand.findUnique({ where: { id: brandId } }),
+    prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: { brand: { select: { name: true } } }
+    })
+  ]);
+
   if (!brand) throw new Error('Brand not found');
+  const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
+  // Validate all items in memory
+  for (const item of items) {
+    if (!item.productId) throw new Error('Product ID is required for all items');
+    if (!item.quantity || item.quantity <= 0) throw new Error('Quantity must be greater than 0');
+    const product = productsMap.get(item.productId);
+    if (!product) throw new Error(`Product not found for ID: ${item.productId}`);
+  }
+
+  // 2. Batch Stock checks for bulk items at client
+  const bulkProductIds = items
+    .filter(item => {
+      const product = productsMap.get(item.productId);
+      return product && !product.isSerialized;
+    })
+    .map(item => item.productId);
+
+  const stockMap = bulkProductIds.length > 0
+    ? await batchGetStock(bulkProductIds, 'BRAND', brandId)
+    : new Map();
+
+  for (const item of items) {
+    const product = productsMap.get(item.productId);
+    if (product && !product.isSerialized) {
+      const currentStock = stockMap.get(item.productId) || 0;
+      if (currentStock < item.quantity) {
+        throw new Error(`Insufficient stock with client for "${product.name}". Available: ${currentStock}, requested: ${item.quantity}.`);
+      }
+    }
+  }
+
+  // 3. Batch Serial verification
+  const allBarcodes = items.flatMap(i => i.barcodes || []);
+  let serialsMap = new Map();
+  if (allBarcodes.length > 0) {
+    const dbSerials = await prisma.productSerialNumber.findMany({
+      where: { barcode: { in: allBarcodes } }
+    });
+    serialsMap = new Map(dbSerials.map(s => [s.barcode, s]));
+  }
+
+  for (const item of items) {
+    const product = productsMap.get(item.productId);
+    if (product && product.isSerialized && item.barcodes && item.barcodes.length > 0) {
+      const foundSerials = item.barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+      if (foundSerials.length !== item.barcodes.length) {
+        throw new Error(`Some barcodes for "${product.name}" could not be found.`);
+      }
+      const invalidSerials = foundSerials.filter(
+        s => !(s.status === 'WITH_CLIENT' && s.currentLocationType === 'BRAND' && s.currentLocationId === brandId)
+      );
+      if (invalidSerials.length > 0) {
+        throw new Error(`Some barcodes for "${product.name}" are not currently with this client.`);
+      }
+    }
+  }
 
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
@@ -2419,23 +2574,7 @@ export async function returnClientItemsToWarehouse(payload) {
 
     for (const item of items) {
       const { productId, quantity, barcodes = [], notes, selectedBatches = [] } = item;
-
-      if (!productId) throw new Error('Product ID is required for all items');
-      if (!quantity || quantity <= 0) throw new Error('Quantity must be greater than 0');
-
-      const product = await tx.product.findUnique({
-        where: { id: productId },
-        include: { brand: { select: { name: true } } }
-      });
-      if (!product) throw new Error(`Product not found for ID: ${productId}`);
-
-      // For bulk products, verify stock with client
-      if (!product.isSerialized) {
-        const currentStock = await getStockAtLocation(productId, 'BRAND', brandId);
-        if (currentStock < quantity) {
-          throw new Error(`Insufficient stock with client for "${product.name}". Available: ${currentStock}, requested: ${quantity}.`);
-        }
-      }
+      const product = productsMap.get(productId);
 
       const baseNote = (() => {
         const itemNote = notes?.trim() || '';
@@ -2470,7 +2609,7 @@ export async function returnClientItemsToWarehouse(payload) {
             }
           });
         }
-        continue; // Skip the single-transaction creation below
+        continue;
       }
 
       // Create CLIENT_RETURN transaction (from BRAND → to WAREHOUSE)
@@ -2494,27 +2633,12 @@ export async function returnClientItemsToWarehouse(payload) {
 
       // Handle serialized products
       if (product.isSerialized && barcodes.length > 0) {
-        const dbSerials = await tx.productSerialNumber.findMany({
-          where: {
-            productId,
-            barcode: { in: barcodes },
-          }
-        });
-
-        if (dbSerials.length !== barcodes.length) {
-          throw new Error(`Some barcodes for "${product.name}" could not be found.`);
-        }
-
-        const invalidSerials = dbSerials.filter(
-          s => !(s.status === 'WITH_CLIENT' && s.currentLocationType === 'BRAND' && s.currentLocationId === brandId)
-        );
-        if (invalidSerials.length > 0) {
-          throw new Error(`Some barcodes for "${product.name}" are not currently with this client.`);
-        }
+        const itemSerials = barcodes.map(b => serialsMap.get(b)).filter(Boolean);
+        const serialIds = itemSerials.map(s => s.id);
 
         // Update serial status back to AVAILABLE at warehouse
         await tx.productSerialNumber.updateMany({
-          where: { id: { in: dbSerials.map(s => s.id) } },
+          where: { id: { in: serialIds } },
           data: {
             status: 'AVAILABLE',
             currentLocationType: 'WAREHOUSE',
@@ -2524,9 +2648,9 @@ export async function returnClientItemsToWarehouse(payload) {
 
         // Link serials to transaction
         await tx.transactionSerialNumber.createMany({
-          data: dbSerials.map(serial => ({
+          data: serialIds.map(serialNumberId => ({
             transactionId: invTx.id,
-            serialNumberId: serial.id,
+            serialNumberId,
           }))
         });
       }
@@ -2539,12 +2663,12 @@ export async function returnClientItemsToWarehouse(payload) {
       });
     }
     return createdTxs;
-  }, { timeout: 25000 });
+  }, { timeout: 20000 });
 
   revalidateTransactionPaths();
 
   const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
-  notifyTransaction({
+  safeNotifyTransaction({
     type: 'CLIENT_RETURN',
     productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
     quantity: totalQty,

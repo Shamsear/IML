@@ -6,7 +6,12 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
 import { generateCustomRef, generateTxId } from '@/lib/ledger';
-import { sendPushBroadcast } from '@/lib/push';
+
+function safeSendPushBroadcast(payload) {
+  import('@/lib/push')
+    .then((m) => m.sendPushBroadcast(payload))
+    .catch(() => {});
+}
 
 export async function getStaff() {
   await requireAuth();
@@ -236,12 +241,12 @@ export async function returnUniformItem(allocationId, payload, notes = '') {
 
   revalidatePath('/dashboard/staff');
 
-  sendPushBroadcast({
+  safeSendPushBroadcast({
     title: '✅ Uniform Returned',
     message: `Promoter uniform / gear items returned to warehouse inventory.`,
     url: '/dashboard/staff',
     tag: 'uniform-return',
-  }).catch(() => {});
+  });
 }
 
 export async function getAllocationDetails(allocationId) {
@@ -361,12 +366,12 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
 
   revalidatePath('/dashboard/staff');
 
-  sendPushBroadcast({
+  safeSendPushBroadcast({
     title: '👔 Uniform Allocated',
     message: `Uniform & promoter items allocated${workingPeriod ? ` (Period: ${workingPeriod})` : ''}.`,
     url: '/dashboard/staff',
     tag: 'uniform-allocation',
-  }).catch(() => {});
+  });
 }
 
 export async function bulkReturnUniformItems(allocationIds, notes = '') {
@@ -381,6 +386,29 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
     where: { id: { in: allocationIds } }
   });
 
+  // Pre-fetch all relevant products in a single batch query
+  const productIds = [];
+  allocations.forEach(alloc => {
+    let currentItems = [];
+    if (alloc.allocatedItems) {
+      currentItems = typeof alloc.allocatedItems === 'string' ? JSON.parse(alloc.allocatedItems) : alloc.allocatedItems;
+    }
+    if (Array.isArray(currentItems)) {
+      currentItems.forEach(item => {
+        if (item.productId && !item.returned) productIds.push(item.productId);
+      });
+    }
+  });
+
+  const uniqueProductIds = [...new Set(productIds)];
+  const dbProducts = uniqueProductIds.length > 0
+    ? await prisma.product.findMany({
+        where: { id: { in: uniqueProductIds } },
+        include: { brand: { select: { name: true } } }
+      })
+    : [];
+  const productsMap = new Map(dbProducts.map(p => [p.id, p]));
+
   await prisma.$transaction(async (tx) => {
     for (const alloc of allocations) {
       let currentItems = [];
@@ -392,10 +420,7 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
         const unreturned = currentItems.filter(item => !item.returned);
         for (const retItem of unreturned) {
           if (retItem.productId) {
-            const prod = await tx.product.findUnique({
-              where: { id: retItem.productId },
-              include: { brand: { select: { name: true } } }
-            });
+            const prod = productsMap.get(retItem.productId);
             if (prod) {
               const brandName = prod.brand?.name || 'General';
               const ref = await generateCustomRef(tx, 'RET', brandName);
@@ -434,12 +459,12 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
 
   revalidatePath('/dashboard/staff');
 
-  sendPushBroadcast({
+  safeSendPushBroadcast({
     title: '✅ Uniforms Returned',
     message: `${allocationIds.length} uniform allocation${allocationIds.length > 1 ? 's' : ''} marked as returned.`,
     url: '/dashboard/staff',
     tag: 'uniform-return',
-  }).catch(() => {});
+  });
 }
 
 export async function saveBulkCombinedAllocations(payload) {
@@ -519,12 +544,12 @@ export async function saveBulkCombinedAllocations(payload) {
 
   revalidatePath('/dashboard/staff');
 
-  sendPushBroadcast({
+  safeSendPushBroadcast({
     title: '👔 Bulk Uniforms Allocated',
     message: `${items.length} promoter assignment${items.length > 1 ? 's' : ''} recorded.`,
     url: '/dashboard/staff',
     tag: 'uniform-allocation',
-  }).catch(() => {});
+  });
 
   return allocations;
 }

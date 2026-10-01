@@ -841,7 +841,7 @@ export async function createBulkProducts(formData) {
   }
 
   // Parse list structures and handle files
-  const productsList = [];
+  const rawProducts = [];
   for (let i = 0; i < count; i++) {
     const name = formData.get(`item_${i}_name`);
     const brandId = formData.get(`item_${i}_brandId`);
@@ -879,12 +879,7 @@ export async function createBulkProducts(formData) {
     const imageFile = formData.get(`item_${i}_imageFile`);
     let imageUrl = formData.get(`item_${i}_imageUrl`) || null;
 
-    if (imageFile && imageFile.size > 0) {
-      const savedPath = await saveFile(imageFile);
-      if (savedPath) imageUrl = savedPath;
-    }
-
-    productsList.push({
+    rawProducts.push({
       name,
       brandId,
       itemCode,
@@ -898,11 +893,36 @@ export async function createBulkProducts(formData) {
       rack,
       shelf,
       inbounds,
+      imageFile,
       imageUrl
     });
   }
 
-  // Use a transaction to register all products and transactions sequentially
+  // 1. Parallelize image uploads to ImageKit outside the database transaction lock
+  const uploadedUrls = await Promise.all(
+    rawProducts.map(async (p) => {
+      if (p.imageFile && p.imageFile.size > 0) {
+        const savedPath = await saveFile(p.imageFile);
+        return savedPath || p.imageUrl;
+      }
+      return p.imageUrl;
+    })
+  );
+
+  const productsList = rawProducts.map((p, idx) => ({
+    ...p,
+    imageUrl: uploadedUrls[idx],
+  }));
+
+  // 2. Pre-fetch all associated brands in a single batch query
+  const brandIds = [...new Set(productsList.map(p => p.brandId).filter(Boolean))];
+  const dbBrands = await prisma.brand.findMany({
+    where: { id: { in: brandIds } },
+    select: { id: true, name: true }
+  });
+  const brandsMap = new Map(dbBrands.map(b => [b.id, b.name]));
+
+  // Use a transaction to register all products and transactions
   const results = await prisma.$transaction(async (tx) => {
     const createdProducts = [];
     let serialOffset = 0;
@@ -921,18 +941,28 @@ export async function createBulkProducts(formData) {
       if (!isNaN(parsed)) nextSerNum = parsed + 1;
     }
 
-    // Get all product IDs dynamically to prevent race conditions and find mathematical maximum
-    const existingProducts = await tx.product.findMany({
+    // Get last product ID dynamically to prevent race conditions
+    const lastRecord = await tx.product.findFirst({
       where: { id: { startsWith: 'PROD' } },
+      orderBy: { id: 'desc' },
       select: { id: true }
     });
     let maxProdNum = 0;
-    for (const p of existingProducts) {
-      const match = p.id.match(/\d+/);
-      if (match) {
-        const num = parseInt(match[0], 10);
-        if (num > maxProdNum) maxProdNum = num;
-      }
+    if (lastRecord) {
+      const match = lastRecord.id.match(/\d+/);
+      if (match) maxProdNum = parseInt(match[0], 10);
+    }
+
+    // Get last transaction ID once before the loop
+    const lastTx = await tx.inventoryTransaction.findFirst({
+      where: { id: { startsWith: 'TX' } },
+      orderBy: { id: 'desc' },
+      select: { id: true },
+    });
+    let lastTxNum = 0;
+    if (lastTx) {
+      const match = lastTx.id.match(/\d+/);
+      if (match) lastTxNum = parseInt(match[0], 10);
     }
 
     for (let i = 0; i < productsList.length; i++) {
@@ -940,11 +970,7 @@ export async function createBulkProducts(formData) {
       maxProdNum++;
       const prodId = `PROD-${String(maxProdNum).padStart(3, '0')}`;
 
-      const brand = await tx.brand.findUnique({
-        where: { id: item.brandId },
-        select: { name: true }
-      });
-      const bName = brand?.name || '';
+      const bName = brandsMap.get(item.brandId) || '';
       let formattedName = item.name.trim();
       if (bName) {
         const lowerName = formattedName.toLowerCase();
@@ -986,18 +1012,8 @@ export async function createBulkProducts(formData) {
         for (let j = 0; j < item.inbounds.length; j++) {
           const entry = item.inbounds[j];
           if (entry.qty > 0) {
-            // Get last transaction ID dynamically
-            const lastTx = await tx.inventoryTransaction.findFirst({
-              where: { id: { startsWith: 'TX' } },
-              orderBy: { id: 'desc' },
-              select: { id: true },
-            });
-            let lastTxNum = 0;
-            if (lastTx) {
-              const match = lastTx.id.match(/\d+/);
-              if (match) lastTxNum = parseInt(match[0], 10);
-            }
-            const txId = `TX-${String(lastTxNum + 1).padStart(5, '0')}`;
+            lastTxNum++;
+            const txId = `TX-${String(lastTxNum).padStart(5, '0')}`;
             
             // Generate delivery note using proper format if not provided
             const finalDeliveryNote = (entry.deliveryNote && entry.deliveryNote.trim() && entry.deliveryNote !== 'INITIAL_STOCK')
@@ -1027,7 +1043,7 @@ export async function createBulkProducts(formData) {
             if (isSerialized && entry.barcodes) {
               const barcodes = entry.barcodes.split(/[\n,]+/).map(b => b.trim()).filter(Boolean);
               if (barcodes.length > 0) {
-                const serialData = barcodes.map((barcode, idx) => {
+                const serialData = barcodes.map((barcode) => {
                   const serialId = `SERL-${String(nextSerNum + serialOffset).padStart(5, '0')}`;
                   serialOffset++;
                   return {
@@ -1051,7 +1067,7 @@ export async function createBulkProducts(formData) {
     }
     return createdProducts;
   }, {
-    timeout: 20000 // 20 seconds timeout limit for large batch transactions
+    timeout: 20000
   });
 
   revalidateProductPaths();
