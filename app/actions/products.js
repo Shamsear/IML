@@ -776,48 +776,60 @@ export async function getProductDetail(id) {
   await requireAuth();
   if (!id) return null;
 
-  const product = await prisma.product.findUnique({
-    where: { id },
-    include: {
-      brand: { select: { id: true, name: true, imageUrl: true } },
-      _count: { select: { serialNumbers: true, transactions: true } },
-      transactions: {
-        orderBy: { timestamp: 'desc' },
-        take: 100,
-        select: {
-          id: true,
-          transactionType: true,
-          quantity: true,
-          fromEntityType: true,
-          fromEntityId: true,
-          toEntityType: true,
-          toEntityId: true,
-          deliveryNote: true,
-          notes: true,
-          timestamp: true,
-          returnStatus: true,
-          returnedQty: true,
-          manufactureDate: true,
-          expiryDate: true,
+  const [product, allStockTxs] = await Promise.all([
+    prisma.product.findUnique({
+      where: { id },
+      include: {
+        brand: { select: { id: true, name: true, imageUrl: true } },
+        _count: { select: { serialNumbers: true, transactions: true } },
+        transactions: {
+          orderBy: { timestamp: 'desc' },
+          take: 100,
+          select: {
+            id: true,
+            transactionType: true,
+            quantity: true,
+            fromEntityType: true,
+            fromEntityId: true,
+            toEntityType: true,
+            toEntityId: true,
+            deliveryNote: true,
+            notes: true,
+            timestamp: true,
+            returnStatus: true,
+            returnedQty: true,
+            manufactureDate: true,
+            expiryDate: true,
+          },
+        },
+        serialNumbers: {
+          orderBy: { createdAt: 'desc' },
+          take: 200,
+          select: {
+            id: true,
+            barcode: true,
+            secondaryBarcode: true,
+            status: true,
+            currentLocationType: true,
+            currentLocationId: true,
+            manufactureDate: true,
+            expiryDate: true,
+            createdAt: true,
+          },
         },
       },
-      serialNumbers: {
-        orderBy: { createdAt: 'desc' },
-        take: 200,
-        select: {
-          id: true,
-          barcode: true,
-          secondaryBarcode: true,
-          status: true,
-          currentLocationType: true,
-          currentLocationId: true,
-          manufactureDate: true,
-          expiryDate: true,
-          createdAt: true,
-        },
-      },
-    },
-  });
+    }),
+    prisma.inventoryTransaction.findMany({
+      where: { productId: id },
+      select: {
+        transactionType: true,
+        quantity: true,
+        fromEntityType: true,
+        toEntityType: true,
+        returnStatus: true,
+      }
+    })
+  ]);
 
   if (!product) return null;
 
@@ -825,8 +837,8 @@ export async function getProductDetail(id) {
   const stockMap = await computeWarehouseStockMap([product]);
   const warehouseStock = stockMap.get(product.id) || 0;
 
-  // Compute full stock breakdown from transactions
-  const stock = getProductStock(product.transactions);
+  // Compute full stock breakdown from ALL transactions
+  const stock = getProductStock(allStockTxs);
 
   return {
     ...product,
