@@ -219,8 +219,16 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="text-left sm:text-right text-[10px] text-text-secondary font-semibold">
-                      <div>Receiver: <strong className="text-text-primary">{group.receivedBy || 'N/A'}</strong></div>
-                      <div>Approver: <strong className="text-text-primary">{group.supervisorName || 'N/A'}</strong></div>
+                      {(() => {
+                        const rx = group.receivedBy;
+                        const isPlaceholder = !rx || rx.toLowerCase().includes('delivered to client') || rx.toLowerCase() === 'n/a';
+                        return <div>Receiver: <strong className="text-text-primary">{isPlaceholder ? '—' : rx}</strong></div>;
+                      })()}
+                      {(() => {
+                        const ap = group.supervisorName;
+                        const isPlaceholder = !ap || ap.toLowerCase().includes('delivered to client') || ap.toLowerCase() === 'n/a';
+                        return <div>Approver: <strong className="text-text-primary">{isPlaceholder ? '—' : ap}</strong></div>;
+                      })()}
                     </div>
                     <button
                       type="button"
