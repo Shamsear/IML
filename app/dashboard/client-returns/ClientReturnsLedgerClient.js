@@ -463,57 +463,63 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
         </div>
       </header>
 
-      {/* Top-level tabs: Dispatched vs Returned */}
-      <div className="flex items-center gap-2 border-b border-border">
-        <button
-          onClick={() => changeTab('dispatched')}
-          className={`px-4 py-2 border-b-2 text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 ${
-            isDispatched
-              ? 'border-primary text-primary font-bold'
-              : 'border-transparent text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <ArrowUpRight size={15} />
-          Dispatched to Client
-          <span className="text-[10px] font-mono text-text-muted">({dispatchedTxs.length})</span>
-        </button>
-        <button
-          onClick={() => changeTab('returned')}
-          className={`px-4 py-2 border-b-2 text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-2 ${
-            isReturned
-              ? 'border-success text-success font-bold'
-              : 'border-transparent text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <ArrowDownLeft size={15} />
-          Returned from Client
-          <span className="text-[10px] font-mono text-text-muted">({returnedTxs.length})</span>
-        </button>
+      {/* Top-level tabs: Dispatched vs Returned — scrollable on mobile */}
+      <div className="w-full overflow-x-auto">
+        <div className="flex items-center gap-0 border-b border-border w-max min-w-full">
+          <button
+            onClick={() => changeTab('dispatched')}
+            className={`px-3 sm:px-4 py-2.5 border-b-2 text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              isDispatched
+                ? 'border-primary text-primary font-bold'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <ArrowUpRight size={14} />
+            <span className="sm:hidden">Dispatched</span>
+            <span className="hidden sm:inline">Dispatched to Client</span>
+            <span className="text-[10px] font-mono text-text-muted">({dispatchedTxs.length})</span>
+          </button>
+          <button
+            onClick={() => changeTab('returned')}
+            className={`px-3 sm:px-4 py-2.5 border-b-2 text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              isReturned
+                ? 'border-success text-success font-bold'
+                : 'border-transparent text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <ArrowDownLeft size={14} />
+            <span className="sm:hidden">Returned</span>
+            <span className="hidden sm:inline">Returned from Client</span>
+            <span className="text-[10px] font-mono text-text-muted">({returnedTxs.length})</span>
+          </button>
+        </div>
       </div>
 
-      {/* Sub-tabs: Grouped vs Flat — inside the active top tab */}
-      <div className="flex items-center gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-fit">
-        <button
-          onClick={() => changeTab(isReturned ? 'returned' : 'dispatched')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
-            !activeTab.includes('-flat')
-              ? 'bg-surface text-text-primary shadow-sm'
-              : 'text-text-muted hover:text-text-secondary'
-          }`}
-        >
-          <ChevronDown size={15} />
-          By Gate Pass
-        </button>
-        <button
-          onClick={() => changeTab(isReturned ? 'returned-flat' : 'dispatched-flat')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab.includes('-flat')
-              ? 'bg-surface text-text-primary shadow-sm'
-              : 'text-text-muted hover:text-text-secondary'
-          }`}
-        >
-          All Transactions
-        </button>
+      {/* Sub-tabs: Grouped vs Flat — scrollable on mobile */}
+      <div className="w-full overflow-x-auto">
+        <div className="flex items-center gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-max min-w-full sm:w-fit">
+          <button
+            onClick={() => changeTab(isReturned ? 'returned' : 'dispatched')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              !activeTab.includes('-flat')
+                ? 'bg-surface text-text-primary shadow-sm'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            <ChevronDown size={14} />
+            By Gate Pass
+          </button>
+          <button
+            onClick={() => changeTab(isReturned ? 'returned-flat' : 'dispatched-flat')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab.includes('-flat')
+                ? 'bg-surface text-text-primary shadow-sm'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            All Transactions
+          </button>
+        </div>
       </div>
 
       {/* Top Pagination */}

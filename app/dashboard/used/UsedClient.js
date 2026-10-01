@@ -206,20 +206,24 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
       }
       />
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-fit">
-        <button onClick={() => changeTab('transactions')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'transactions' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
-          <List size={15} /> All Items
-        </button>
-        <button onClick={() => changeTab('grouped')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'grouped' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
-          <ChevronDown size={15} /> By Delivery Note
-        </button>
-        <button onClick={() => changeTab('history')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'history' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
-          <History size={15} /> Consumed History (Undo)
-        </button>
+      {/* Tabs — horizontally scrollable on mobile */}
+      <div className="w-full overflow-x-auto">
+        <div className="flex gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-max min-w-full sm:w-fit">
+          <button onClick={() => changeTab('transactions')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'transactions' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
+            <List size={14} /> All Items
+          </button>
+          <button onClick={() => changeTab('grouped')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'grouped' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
+            <ChevronDown size={14} /> By Delivery Note
+          </button>
+          <button onClick={() => changeTab('history')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'history' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
+            <History size={14} />
+            <span className="sm:hidden">History</span>
+            <span className="hidden sm:inline">Consumed History (Undo)</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
