@@ -2320,12 +2320,14 @@ export async function getClientReturnsBalances() {
   const txs = await prisma.inventoryTransaction.findMany({
     where: {
       OR: [
-        { toEntityType: 'BRAND' },
-        { fromEntityType: 'BRAND' }
+        { toEntityType: { in: ['BRAND', 'CLIENT'] } },
+        { fromEntityType: { in: ['BRAND', 'CLIENT'] } },
+        { transactionType: { in: ['CLIENT_STOCK', 'CLIENT_RETURN'] } }
       ]
     },
     select: {
       productId: true,
+      transactionType: true,
       toEntityType: true,
       toEntityId: true,
       fromEntityType: true,
@@ -2341,6 +2343,7 @@ export async function getClientReturnsBalances() {
           category: true,
           isSerialized: true,
           trackExpiry: true,
+          brandId: true,
           brand: {
             select: {
               id: true,
@@ -2355,12 +2358,16 @@ export async function getClientReturnsBalances() {
   const balances = {};
 
   for (const tx of txs) {
-    const isToBrand = tx.toEntityType === 'BRAND';
-    const brandId = isToBrand ? tx.toEntityId : tx.fromEntityId;
+    const isToClient = tx.transactionType === 'CLIENT_STOCK' || 
+                       tx.toEntityType === 'BRAND' || 
+                       tx.toEntityType === 'CLIENT' || 
+                       (tx.transactionType === 'CLIENT_RETURN' && tx.toEntityType !== 'WAREHOUSE');
     
-    if (!brandId) continue;
+    const isReturnFromClient = (tx.transactionType === 'RETURN' && (tx.fromEntityType === 'CLIENT' || tx.fromEntityType === 'BRAND')) ||
+                               (tx.transactionType === 'CLIENT_RETURN' && tx.toEntityType === 'WAREHOUSE');
 
-    const brandName = tx.product.brand?.name || 'General';
+    const brandId = (tx.toEntityType === 'BRAND' ? tx.toEntityId : (tx.fromEntityType === 'BRAND' ? tx.fromEntityId : tx.product.brandId)) || tx.product.brandId || 'BRND-SADIA';
+    const brandName = tx.product.brand?.name || 'Sadia';
     const prodId = tx.productId;
     const key = `${brandId}_${prodId}`;
 
@@ -2380,7 +2387,7 @@ export async function getClientReturnsBalances() {
       };
     }
 
-    const qtyChange = isToBrand ? tx.quantity : -tx.quantity;
+    const qtyChange = isToClient ? tx.quantity : (isReturnFromClient ? -tx.quantity : 0);
     balances[key].quantity += qtyChange;
 
     // Track expiry batches for non-serialized expiry products

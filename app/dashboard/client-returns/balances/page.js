@@ -10,10 +10,14 @@ export const metadata = {
 export default async function ClientReturnsBalancesPage() {
   const [balances, recentTransactions] = await Promise.all([
     getClientReturnsBalances(),
-    // Fetch last 100 CLIENT_RETURN transactions (both directions)
+    // Fetch last 100 client transactions (both directions)
     prisma.inventoryTransaction.findMany({
       where: {
-        transactionType: 'CLIENT_RETURN',
+        OR: [
+          { transactionType: { in: ['CLIENT_STOCK', 'CLIENT_RETURN'] } },
+          { toEntityType: { in: ['CLIENT', 'BRAND'] } },
+          { fromEntityType: { in: ['CLIENT', 'BRAND'] } }
+        ]
       },
       orderBy: { timestamp: 'desc' },
       take: 100,

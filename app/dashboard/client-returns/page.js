@@ -11,12 +11,18 @@ export default async function ClientReturnsPage({ searchParams }) {
   const page = parseInt(params?.page || '1', 10);
   const pageSize = 25;
 
-  // Query all CLIENT_RETURN transactions with skip and take
+  const whereClause = {
+    OR: [
+      { transactionType: { in: ['CLIENT_STOCK', 'CLIENT_RETURN'] } },
+      { toEntityType: { in: ['CLIENT', 'BRAND'] } },
+      { fromEntityType: { in: ['CLIENT', 'BRAND'] } }
+    ]
+  };
+
+  // Query all client transactions with skip and take
   const [transactions, totalCount] = await Promise.all([
     prisma.inventoryTransaction.findMany({
-      where: {
-        transactionType: 'CLIENT_RETURN',
-      },
+      where: whereClause,
       select: {
         id: true,
         transactionType: true,
@@ -56,9 +62,7 @@ export default async function ClientReturnsPage({ searchParams }) {
       take: pageSize,
     }),
     prisma.inventoryTransaction.count({
-      where: {
-        transactionType: 'CLIENT_RETURN',
-      }
+      where: whereClause
     })
   ]);
 
