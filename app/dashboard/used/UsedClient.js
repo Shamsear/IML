@@ -412,39 +412,51 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                 const someSelected = group.items.some(tx => !!selectedIds[tx.id]);
                 return (
                   <div key={group.dn} className="bg-surface">
-                    <div onClick={() => toggleGroup(group.dn)}
-                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-elevated/30 transition-colors gap-4">
+                    {/* Group Header — stacks on mobile, row on sm+ */}
+                    <div
+                      onClick={() => toggleGroup(group.dn)}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 cursor-pointer hover:bg-surface-elevated/30 transition-colors gap-3"
+                    >
+                      {/* Left: checkbox + chevron + info */}
                       <div className="flex items-center gap-3 min-w-0">
-                        <div onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
-                          className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-colors ${allSelected ? 'bg-warning border-warning' : someSelected ? 'bg-warning/30 border-warning' : 'border-border bg-surface'}`}>
+                        <div
+                          onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
+                          className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-colors ${allSelected ? 'bg-warning border-warning' : someSelected ? 'bg-warning/30 border-warning' : 'border-border bg-surface'}`}
+                        >
                           {(allSelected || someSelected) && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
                         </div>
-                        {isExpanded ? <ChevronDown size={18} className="text-text-muted flex-shrink-0" /> : <ChevronRight size={18} className="text-text-muted flex-shrink-0" />}
+                        {isExpanded ? <ChevronDown size={17} className="text-text-muted flex-shrink-0" /> : <ChevronRight size={17} className="text-text-muted flex-shrink-0" />}
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-text-primary font-mono">{group.dn}</h3>
-                            <span className="text-[10px] bg-secondary/15 text-secondary border border-secondary/10 px-2 py-0.5 rounded uppercase tracking-wider font-bold">{group.storeName}</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-bold text-text-primary font-mono text-sm truncate">{group.dn}</h3>
+                            <span className="text-[10px] bg-secondary/15 text-secondary border border-secondary/10 px-2 py-0.5 rounded uppercase tracking-wider font-bold whitespace-nowrap flex-shrink-0">{group.storeName}</span>
                           </div>
                           <p className="text-xs text-text-secondary mt-0.5">
-                            {new Date(group.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' })} • {group.items.length} product(s)
+                            {new Date(group.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' })} · {group.items.length} product(s)
                           </p>
                         </div>
                       </div>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
-                        className={`flex-shrink-0 px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors ${allSelected ? 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20' : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated/60'}`}>
-                        {allSelected ? 'Deselect All' : 'Select All'}
-                      </button>
+                      {/* Right: action button */}
+                      <div className="flex flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectGroup(group)}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors whitespace-nowrap ${allSelected ? 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20' : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated/60'}`}
+                        >
+                          {allSelected ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </div>
                     </div>
 
                     {isExpanded && (
-                      <div className="border-t border-border bg-surface/50">
-                        <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
+                      <div className="border-t border-border bg-surface/50 overflow-x-auto">
+                        <table className="min-w-full divide-y divide-border text-xs">
                           <thead>
-                            <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
-                              <th className="py-2.5 px-5 pl-16 w-10"></th>
-                              <th className="py-2.5 px-5">Product</th>
-                              <th className="py-2.5 px-5 text-right">Qty to Mark</th>
-                              <th className="py-2.5 px-5">Remarks</th>
+                            <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
+                              <th className="py-2.5 pl-5 pr-3 w-10"></th>
+                              <th className="py-2.5 px-3">Product</th>
+                              <th className="py-2.5 px-3 text-right whitespace-nowrap">Qty to Mark</th>
+                              <th className="py-2.5 px-3">Remarks</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border text-text-primary">
@@ -453,10 +465,10 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                               const remainingQty = tx.quantity - (tx.returnedQty || 0);
                               return (
                                 <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/40'}`}>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-16">
+                                  <td className="py-2.5 pl-5 pr-3">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
                                   </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-warning">
+                                  <td className="py-2.5 px-3 font-medium text-xs text-warning">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <span>{tx.product?.name}</span>
                                       {tx.product?.isReturnable && tx.product?.isDisposable && (
@@ -464,7 +476,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                       )}
                                     </div>
                                   </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">
+                                  <td className="py-2.5 px-3 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">
                                     {isSelected ? (
                                       <input
                                         type="number"
@@ -478,10 +490,10 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                       <span>{remainingQty}</span>
                                     )}
                                   </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
-                                    <input type="text" placeholder="Optional notes..." disabled={!isSelected}
+                                  <td className="py-2.5 px-3">
+                                    <input type="text" placeholder="Notes..." disabled={!isSelected}
                                       value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
-                                      className="w-full min-w-[140px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
+                                      className="w-full min-w-[120px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
                                   </td>
                                 </tr>
                               );
