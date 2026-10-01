@@ -1,8 +1,5 @@
-'use client';
-
-import LoadingDots from '@/components/LoadingDots';
+import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton';
 
 export default function DashboardLoading() {
-  return <LoadingDots />;
+  return <DashboardSkeleton />;
 }
-

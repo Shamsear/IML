@@ -242,6 +242,33 @@ a.btn:active {
 }
 
 /* Animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface-elevated) 0%,
+    rgba(255, 255, 255, 0.7) 50%,
+    var(--bg-surface-elevated) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite ease-in-out;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
