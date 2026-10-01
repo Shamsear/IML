@@ -10,12 +10,12 @@ import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
 export default function LossLedgerClient({
-  transactions,
-  totalCount,
-  totalPages,
-  page,
-  pageSize,
-  entityNames,
+  transactions = [],
+  totalCount = 0,
+  totalPages = 1,
+  page = 1,
+  pageSize = 25,
+  entityNames = {},
 }) {
   const customGetters = useMemo(() => ({
     date: (tx) => (tx.timestamp ? new Date(tx.timestamp).getTime() : 0),
@@ -24,7 +24,7 @@ export default function LossLedgerClient({
     sku: (tx) => tx.product?.itemCode || '',
     source: (tx) => {
       if (tx.fromEntityType === 'WAREHOUSE') return 'Warehouse';
-      return entityNames[tx.fromEntityId] || tx.fromEntityType || '';
+      return entityNames?.[tx.fromEntityId] || tx.fromEntityType || '';
     },
     quantity: (tx) => tx.quantity || 0,
     deliveryNote: (tx) => tx.deliveryNote || '',
@@ -68,7 +68,7 @@ export default function LossLedgerClient({
               'Lost From':
                 tx.fromEntityType === 'WAREHOUSE'
                   ? 'Warehouse'
-                  : entityNames[tx.fromEntityId] || tx.fromEntityType || '',
+                  : entityNames?.[tx.fromEntityId] || tx.fromEntityType || '',
               Quantity: tx.quantity,
               Notes: tx.notes || '',
             }))}

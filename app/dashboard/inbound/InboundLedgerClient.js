@@ -15,7 +15,7 @@ import DeliveryNoteGroup from '@/components/DeliveryNoteGroup';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
-export default function InboundLedgerClient({ transactions, totalCount, totalPages, page, entityNames }) {
+export default function InboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {} }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -65,7 +65,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
     (transactions || []).forEach(tx => {
       if (tx.deliveryNote) {
         const sourceName = tx.fromEntityType === 'STORE' 
-          ? (entityNames[tx.fromEntityId] || tx.fromEntityId || 'Store')
+          ? (entityNames?.[tx.fromEntityId] || tx.fromEntityId || 'Store')
           : (tx.fromEntityId || 'Supplier');
           
         const key = `${tx.deliveryNote}_${tx.fromEntityId || 'unknown'}`;
@@ -99,7 +99,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
     date: (tx) => tx.timestamp,
     sku: (tx) => tx.product?.itemCode || '',
     type: (tx) => tx.transactionType || '',
-    source: (tx) => tx.fromEntityType === 'STORE' ? (entityNames[tx.fromEntityId] || tx.fromEntityId) : (tx.fromEntityId || ''),
+    source: (tx) => tx.fromEntityType === 'STORE' ? (entityNames?.[tx.fromEntityId] || tx.fromEntityId) : (tx.fromEntityId || ''),
     quantity: (tx) => tx.quantity ?? 0,
     deliveryNote: (tx) => tx.deliveryNote || '',
     notes: (tx) => tx.notes || '',
@@ -133,7 +133,7 @@ export default function InboundLedgerClient({ transactions, totalCount, totalPag
               Brand: tx.product?.brand?.name || '',
               Category: tx.product?.category || '',
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-              Supplier: tx.fromEntityType === 'STORE' ? (entityNames[tx.fromEntityId] || tx.fromEntityId) : (tx.fromEntityId || 'Supplier'),
+              Supplier: tx.fromEntityType === 'STORE' ? (entityNames?.[tx.fromEntityId] || tx.fromEntityId) : (tx.fromEntityId || 'Supplier'),
               'Received By': tx.receivedBy || '',
               Quantity: tx.quantity,
               'Receive Note': tx.deliveryNote || '',

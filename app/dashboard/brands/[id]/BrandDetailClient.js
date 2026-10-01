@@ -249,12 +249,12 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     sortField: productSortField,
     sortDirection: productSortDirection,
     handleSort: handleProductSort,
-  } = useTableSort(brand.products || [], 'name', 'asc', productCustomGetters);
+  } = useTableSort(brand?.products || [], 'name', 'asc', productCustomGetters);
 
   const itemsPerPage = 25;
   const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
   const paginatedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
-  const uniqueCategories = Array.from(new Set(brand.products.map(p => p.category).filter(Boolean)));
+  const uniqueCategories = Array.from(new Set((brand?.products || []).map(p => p.category).filter(Boolean)));
 
   const {
     sortedItems: sortedSerials,

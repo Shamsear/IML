@@ -8,7 +8,7 @@ import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
-export default function ExpiryClient({ initialBatches }) {
+export default function ExpiryClient({ initialBatches = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'EXPIRED' | 'NEAR_EXPIRY' | 'GOOD'
   const [currentPage, setCurrentPage] = useState(1);

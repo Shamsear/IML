@@ -15,7 +15,7 @@ import AnimatedCounter from '@/components/AnimatedCounter';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
-export default function ReportsClient({ initialProducts, brands }) {
+export default function ReportsClient({ initialProducts = [], brands = [] }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -31,7 +31,7 @@ export default function ReportsClient({ initialProducts, brands }) {
   }, [searchQuery, selectedBrand, selectedCategory]);
 
   // Compile products list with computed metrics
-  const productsWithStock = initialProducts.map(p => {
+  const productsWithStock = (initialProducts || []).map(p => {
     const stock = getProductStock(p.transactions);
     return {
       ...p,
@@ -40,7 +40,7 @@ export default function ReportsClient({ initialProducts, brands }) {
   });
 
   // Extract list of distinct categories for filtering
-  const categories = Array.from(new Set(initialProducts.map(p => p.category).filter(Boolean))).sort();
+  const categories = Array.from(new Set((initialProducts || []).map(p => p.category).filter(Boolean))).sort();
 
   // Filter products by search and selection inputs
   const filteredProducts = productsWithStock.filter(p => {

@@ -43,7 +43,7 @@ export default function BrandPortalClient({ brand }) {
     let dispatched = 0;
     let damaged = 0;
 
-    brand.products.forEach(p => {
+    (brand?.products || []).forEach(p => {
       const metrics = getProductStock(p.transactions);
       warehouse += metrics.warehouse;
       dispatched += metrics.issued + metrics.used + metrics.withClient;
@@ -56,7 +56,7 @@ export default function BrandPortalClient({ brand }) {
   const totals = getAggregatedTotals();
 
   // Filter products by search query and type filter
-  const filteredProducts = brand.products.filter(p => {
+  const filteredProducts = (brand?.products || []).filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.itemCode && p.itemCode.toLowerCase().includes(searchQuery.toLowerCase()));
     
@@ -68,8 +68,8 @@ export default function BrandPortalClient({ brand }) {
   });
 
   // Collate all transactions across all products for the log list
-  const allTransactions = brand.products.flatMap(p => 
-    p.transactions.map(t => ({
+  const allTransactions = (brand?.products || []).flatMap(p => 
+    (p.transactions || []).map(t => ({
       ...t,
       productName: p.name,
       itemCode: p.itemCode

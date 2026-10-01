@@ -13,7 +13,7 @@ import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
-export default function ReturnsClient({ transactions, stores, pastReturns = [] }) {
+export default function ReturnsClient({ transactions = [], stores = [], pastReturns = [] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -50,7 +50,7 @@ export default function ReturnsClient({ transactions, stores, pastReturns = [] }
   }, [searchDN, searchStore]);
 
   // --- Filtering ---
-  const filteredTransactions = useMemo(() => transactions.filter(tx => {
+  const filteredTransactions = useMemo(() => (transactions || []).filter(tx => {
     const matchDN = !searchDN || tx.deliveryNote?.toLowerCase().includes(searchDN.toLowerCase());
     const matchStore = !searchStore || tx.toEntityId === searchStore;
     return matchDN && matchStore;

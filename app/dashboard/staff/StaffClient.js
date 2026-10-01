@@ -16,14 +16,14 @@ import AnimatedCounter from '@/components/AnimatedCounter';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
-export default function StaffClient({ initialStaff, stores }) {
+export default function StaffClient({ initialStaff = [], stores = [] }) {
   const router = useRouter();
   const toast = useToast();
-  const [staffList, setStaffList] = useState(initialStaff);
+  const [staffList, setStaffList] = useState(initialStaff || []);
   const [activeTab, setActiveTab] = useState('ledger'); // 'ledger' or 'promoters'
 
   useEffect(() => {
-    setStaffList(initialStaff);
+    setStaffList(initialStaff || []);
   }, [initialStaff]);
   
   // Loading & search state

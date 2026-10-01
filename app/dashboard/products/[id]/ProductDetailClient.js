@@ -28,6 +28,12 @@ export default function ProductDetailClient({ product }) {
   const [txPage, setTxPage] = useState(1);
   const itemsPerPage = 20;
 
+  const serialNumbers = product?.serialNumbers || [];
+  const transactions = product?.transactions || [];
+  const brand = product?.brand;
+  const stock = product?.stock || {};
+  const _count = product?._count || {};
+
   const serialCustomGetters = useMemo(() => ({
     barcode: (s) => s.barcode || '',
     secondaryBarcode: (s) => s.secondaryBarcode || '',
@@ -43,7 +49,7 @@ export default function ProductDetailClient({ product }) {
     sortField: serialSortField,
     sortDirection: serialSortDirection,
     handleSort: handleSerialSort,
-  } = useTableSort(serialNumbers || [], 'barcode', 'asc', serialCustomGetters);
+  } = useTableSort(serialNumbers, 'barcode', 'asc', serialCustomGetters);
 
   const totalSerialPages = Math.ceil(sortedSerials.length / itemsPerPage);
   const paginatedSerials = sortedSerials.slice((serialPage - 1) * itemsPerPage, serialPage * itemsPerPage);
@@ -65,7 +71,7 @@ export default function ProductDetailClient({ product }) {
     sortField: txSortField,
     sortDirection: txSortDirection,
     handleSort: handleTxSort,
-  } = useTableSort(transactions || [], 'date', 'desc', txCustomGetters);
+  } = useTableSort(transactions, 'date', 'desc', txCustomGetters);
 
   const totalTxPages = Math.ceil(sortedTxs.length / itemsPerPage);
   const paginatedTxs = sortedTxs.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
