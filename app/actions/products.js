@@ -110,10 +110,13 @@ async function computeWarehouseStockMap(products) {
       const productAggs = aggsMap.get(product.id) || [];
       for (const t of productAggs) {
         const qty = t._sum.quantity || 0;
-        if (t.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(t.transactionType)) {
-          warehouseStock += qty;
-        }
-        if (t.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(t.transactionType)) {
+        if (['RECEIVE', 'INITIAL', 'RETURN', 'REBRAND_IN'].includes(t.transactionType)) {
+          if (t.transactionType === 'RETURN' && t.toEntityType === 'VENDOR') {
+            warehouseStock -= qty;
+          } else {
+            warehouseStock += qty;
+          }
+        } else if (['ISSUE', 'USED', 'DAMAGE', 'LOST', 'REBRAND', 'REBRAND_OUT', 'CLIENT_STOCK'].includes(t.transactionType)) {
           warehouseStock -= qty;
         }
       }
