@@ -397,89 +397,86 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
 
                 return (
                   <div key={groupKey} className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
-                    <div 
-                      className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-elevated/20 transition-colors"
+                    {/* Group header — stacks on mobile, row on sm+ */}
+                    <div
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 cursor-pointer hover:bg-surface-elevated/20 transition-colors"
                       onClick={() => toggleDnExpand(groupKey)}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-lg ${isExpanded ? 'bg-primary text-white' : 'bg-surface-elevated text-text-secondary'}`}>
-                          {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                      {/* Left: icon + note info */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${isExpanded ? 'bg-primary text-white' : 'bg-surface-elevated text-text-secondary'}`}>
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-bold text-text-primary">{group.deliveryNote}</h3>
-                            <span className="badge text-[10px] bg-secondary/15 text-secondary border border-secondary/10 px-2 py-0.5 rounded uppercase tracking-wider">{group.sourceName}</span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-bold text-text-primary text-sm truncate">{group.deliveryNote}</h3>
+                            <span className="badge text-[10px] bg-secondary/15 text-secondary border border-secondary/10 px-2 py-0.5 rounded uppercase tracking-wider whitespace-nowrap flex-shrink-0">{group.sourceName}</span>
                           </div>
-                          <p className="text-xs text-text-secondary mt-1">
-                            {new Date(group.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} • {group.items.length} product(s)
+                          <p className="text-xs text-text-secondary mt-0.5">
+                            {new Date(group.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · {group.items.length} product(s)
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      {/* Right: action buttons */}
+                      <div
+                        className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0"
+                        onClick={e => e.stopPropagation()}
+                      >
                         {!isGroupReturn && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/dashboard/inbound/${encodeURIComponent(group.deliveryNote)}/edit`);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors"
+                            onClick={() => router.push(`/dashboard/inbound/${encodeURIComponent(group.deliveryNote)}/edit`)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
                             title="Edit Inbound"
                           >
-                            <Edit2 size={14} />
+                            <Edit2 size={13} />
                             <span className="hidden sm:inline">Edit</span>
                           </button>
                         )}
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/dashboard/inbound/new?copyDn=${group.deliveryNote}`);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors"
-                          title="Duplicate Inbound"
+                          onClick={() => router.push(`/dashboard/inbound/new?copyDn=${group.deliveryNote}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                          title="Duplicate"
                         >
-                          <CopyPlus size={14} />
+                          <CopyPlus size={13} />
                           <span className="hidden sm:inline">Duplicate</span>
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={() => {
                             setPdfLoadingKey(groupKey);
                             const pdfApiUrl = `/api/dashboard/inbound/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId}&dn=${group.deliveryNote}`;
                             router.push(`/pdf-preview?url=${encodeURIComponent(pdfApiUrl)}&title=${encodeURIComponent(group.deliveryNote)}`);
                           }}
                           disabled={pdfLoadingKey === groupKey}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-lg transition-colors border border-primary/20 disabled:opacity-60 disabled:cursor-wait"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-lg transition-colors border border-primary/20 disabled:opacity-60 disabled:cursor-wait whitespace-nowrap"
                           title="View PDF"
                         >
-                          {pdfLoadingKey === groupKey ? (
-                            <><Loader2 size={13} className="animate-spin" /><span className="hidden sm:inline">Loading…</span></>
-                          ) : (
-                            <><FileText size={14} /><span className="hidden sm:inline">View PDF</span></>
-                          )}
+                          {pdfLoadingKey === groupKey
+                            ? <><Loader2 size={13} className="animate-spin" /><span className="hidden sm:inline">Loading…</span></>
+                            : <><FileText size={13} /><span className="hidden sm:inline">View PDF</span></>}
                         </button>
                       </div>
                     </div>
 
                     {isExpanded && (
-                      <div className="border-t border-border bg-surface/50">
-                        <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
+                      <div className="border-t border-border bg-surface/50 overflow-x-auto">
+                        <table className="min-w-full divide-y divide-border text-xs">
                           <thead>
-                            <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
-                              <th className="py-2.5 px-5 pl-14">Product Name</th>
-                              <th className="py-2.5 px-5">SKU</th>
-                              <th className="py-2.5 px-5">Brand</th>
-                              <th className="py-2.5 px-5 text-center">Quantity</th>
-                              <th className="py-2.5 px-5 text-right">Actions</th>
+                            <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
+                              <th className="py-2.5 pl-5 pr-4">Product Name</th>
+                              <th className="py-2.5 px-4">SKU</th>
+                              <th className="py-2.5 px-4">Brand</th>
+                              <th className="py-2.5 px-4 text-center">Qty</th>
+                              <th className="py-2.5 px-4 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border text-text-primary">
                             {group.items.map(tx => (
                               <tr key={tx.id} className="hover:bg-surface-elevated/40 transition-colors">
-                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-14 font-medium text-xs">{tx.product.name}</td>
-                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs font-mono text-text-secondary">{tx.product.itemCode || '---'}</td>
-                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary">{tx.product.brand.name}</td>
-                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono text-xs font-bold text-success">+{tx.quantity}</td>
-                                <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
+                                <td className="py-2.5 pl-5 pr-4 font-medium text-xs">{tx.product.name}</td>
+                                <td className="py-2.5 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">{tx.product.itemCode || '---'}</td>
+                                <td className="py-2.5 px-4 text-xs text-text-secondary whitespace-nowrap">{tx.product.brand.name}</td>
+                                <td className="py-2.5 px-4 text-center font-mono text-xs font-bold text-success whitespace-nowrap">+{tx.quantity}</td>
+                                <td className="py-2.5 px-4 text-right">
                                   <TransactionActions
                                     txId={tx.id}
                                     notes={tx.notes || ''}
