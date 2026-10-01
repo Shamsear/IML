@@ -3,14 +3,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
-import { 
-  connectStoreToBrand, 
-  disconnectStoreFromBrand 
-} from '@/app/actions/brands';
 import { createProduct, importBarcodes, getProductSerials } from '@/app/actions/products';
 import { 
   ArrowLeft, Store, Plus, Package, Edit2, Trash2, QrCode, 
-  Loader2, X, Link as LinkIcon, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight, Share2
+  Loader2, X, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight, Share2
 } from 'lucide-react';
 import { getProductStock } from '@/lib/stock';
 import StockBreakdown from '@/components/StockBreakdown';
@@ -54,9 +50,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Connect Store Form
-  const [storeToConnect, setStoreToConnect] = useState('');
-
   // Create Product Form
   const [productName, setProductName] = useState('');
   const [productType, setProductType] = useState('NORMAL'); // 'NORMAL', 'SIM', 'ROUTER'
@@ -71,7 +64,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   const [productShelf, setProductShelf] = useState('');
   
   // Auto-naming SIM states
-  const [simStoreId, setSimStoreId] = useState(brand.stores[0]?.id || '');
+  const [simStoreId, setSimStoreId] = useState(allStores?.[0]?.id || brand.stores?.[0]?.id || '');
   const [simStoreCode, setSimStoreCode] = useState('');
   const [autoGenName, setAutoGenName] = useState(true);
 
@@ -89,11 +82,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   // Camera scanning states
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const [cameraTargetField, setCameraTargetField] = useState('');
-
-  // Filter stores that are NOT already connected
-  const unconnectedStores = allStores.filter(
-    s => !brand.stores.some(connected => connected.id === s.id)
-  );
 
   // Sync category with product type
   useEffect(() => {
@@ -115,53 +103,15 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   // Sync SIM auto-name preview
   useEffect(() => {
     if (productType === 'SIM' && autoGenName) {
-      const sObj = brand.stores.find(s => s.id === simStoreId);
+      const storesList = allStores && allStores.length > 0 ? allStores : (brand.stores || []);
+      const sObj = storesList.find(s => s.id === simStoreId);
       if (sObj && simStoreCode) {
         setProductName(`${brand.name} ${simStoreCode.trim()} ${sObj.name}`);
       } else {
         setProductName('');
       }
     }
-  }, [productType, simStoreId, simStoreCode, autoGenName, brand.name, brand.stores]);
-
-  const handleConnectStore = async (e) => {
-    e.preventDefault();
-    if (!storeToConnect) return;
-    setLoading(true);
-    setError('');
-    try {
-      await connectStoreToBrand(brand.id, storeToConnect);
-      toast.success('Outlet Connected', 'The store has been linked to this brand.');
-      setActiveModal(null);
-      setStoreToConnect('');
-      router.refresh();
-    } catch (err) {
-      setError(err.message || 'Failed to connect store');
-      setLoading(false);
-    }
-  };
-
-  const handleDisconnectStore = (storeId) => {
-    setConfirmData({
-      title: 'Disconnect Store Outlet?',
-      message: 'Are you sure you want to disconnect this store outlet from this brand?',
-      danger: true,
-      confirmLabel: 'Disconnect',
-      onConfirm: async () => {
-        setLoading(true);
-        setError('');
-        try {
-          await disconnectStoreFromBrand(brand.id, storeId);
-          toast.success('Outlet Disconnected', 'The store has been unlinked from this brand.');
-          router.refresh();
-        } catch (err) {
-          setError(err.message || 'Failed to disconnect store');
-          setLoading(false);
-        }
-      },
-    });
-    setConfirmOpen(true);
-  };
+  }, [productType, simStoreId, simStoreCode, autoGenName, brand.name, allStores, brand.stores]);
 
   const handleCreateProduct = async (e) => {
     e.preventDefault();
@@ -354,11 +304,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         </div>
         
         <div className="flex flex-wrap lg:justify-end items-start gap-1.5 sm:gap-2">
-          <button className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200" onClick={() => { setStoreToConnect(''); setError(''); setActiveModal('connectStore'); }}>
-            <LinkIcon size={12} />
-            <span className="hidden xs:inline">Link Outlet</span>
-            <span className="xs:hidden">Link</span>
-          </button>
           <button 
             type="button" 
             className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 border rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${
@@ -706,69 +651,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         )}
       </div>
 
-      {/* 1. Connected Outlets Section (moved to bottom) */}
-      <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
-        <h3 className="font-display font-bold text-lg text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-          <Store size={18} className="text-secondary" />
-          <span>Connected Outlets ({brand.stores.length})</span>
-        </h3>
-        {brand.stores.length === 0 ? (
-          <div className="py-8 text-center text-sm text-text-muted">
-            No store outlets linked. Click &quot;Link Outlet&quot; above to assign stores.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {brand.stores.map(store => (
-              <div key={store.id} className="p-4 bg-surface-elevated/40 border border-black/5 rounded-xl flex justify-between items-center hover:border-border transition-all duration-200">
-                <div className="min-w-0">
-                  <span className="font-semibold text-sm text-text-primary truncate block">{store.name}</span>
-                  <span className="text-xs text-text-secondary mt-1 block">
-                    {store.region || 'DXB'} — {store.location || 'No physical address'}
-                  </span>
-                </div>
-                <button 
-                  className="px-2.5 py-1.5 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 rounded-md text-xs font-semibold transition-all duration-200 ml-4 flex-shrink-0" 
-                  onClick={() => handleDisconnectStore(store.id)}
-                >
-                  Disconnect
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* MODALS */}
-      {/* 1. Connect Store Modal */}
-      {activeModal === 'connectStore' && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[400px] shadow-lg flex flex-col gap-4 animate-slide-down">
-            <div className="flex items-center justify-between pb-2 border-b border-border">
-              <h3 className="font-display font-bold text-lg text-text-primary">Connect Store</h3>
-              <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors" onClick={() => setActiveModal(null)}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleConnectStore} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-text-secondary">Select Store</label>
-                <CustomSelect
-                  options={unconnectedStores.map(s => ({ value: s.id, label: `${s.name} (${s.region})` }))}
-                  value={storeToConnect}
-                  onChange={(val) => setStoreToConnect(val)}
-                  placeholder="Choose store..."
-                  required
-                />
-              </div>
-              <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg transition-colors" disabled={loading || unconnectedStores.length === 0}>
-                {loading && <Loader2 size={14} className="animate-spin" />}
-                <span>Link Store</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Create Product Modal */}
       {activeModal === 'createProduct' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
@@ -813,7 +696,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-bold text-text-secondary uppercase">Select Store</label>
                         <CustomSelect
-                          options={brand.stores.map(s => ({ value: s.id, label: s.name }))}
+                          options={(allStores && allStores.length > 0 ? allStores : (brand.stores || [])).map(s => ({ value: s.id, label: s.name }))}
                           value={simStoreId}
                           onChange={(val) => setSimStoreId(val)}
                           size="sm"
