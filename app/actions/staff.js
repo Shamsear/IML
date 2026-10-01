@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
 import { generateCustomRef, generateTxId } from '@/lib/ledger';
+import { sendPushBroadcast } from '@/lib/push';
 
 export async function getStaff() {
   await requireAuth();
@@ -234,6 +235,13 @@ export async function returnUniformItem(allocationId, payload, notes = '') {
   }, { timeout: 20000 });
 
   revalidatePath('/dashboard/staff');
+
+  sendPushBroadcast({
+    title: '✅ Uniform Returned',
+    message: `Promoter uniform / gear items returned to warehouse inventory.`,
+    url: '/dashboard/staff',
+    tag: 'uniform-return',
+  }).catch(() => {});
 }
 
 export async function getAllocationDetails(allocationId) {
@@ -352,6 +360,13 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
   }
 
   revalidatePath('/dashboard/staff');
+
+  sendPushBroadcast({
+    title: '👔 Uniform Allocated',
+    message: `Uniform & promoter items allocated${workingPeriod ? ` (Period: ${workingPeriod})` : ''}.`,
+    url: '/dashboard/staff',
+    tag: 'uniform-allocation',
+  }).catch(() => {});
 }
 
 export async function bulkReturnUniformItems(allocationIds, notes = '') {
@@ -418,6 +433,13 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
   }, { timeout: 30000 });
 
   revalidatePath('/dashboard/staff');
+
+  sendPushBroadcast({
+    title: '✅ Uniforms Returned',
+    message: `${allocationIds.length} uniform allocation${allocationIds.length > 1 ? 's' : ''} marked as returned.`,
+    url: '/dashboard/staff',
+    tag: 'uniform-return',
+  }).catch(() => {});
 }
 
 export async function saveBulkCombinedAllocations(payload) {
@@ -496,6 +518,14 @@ export async function saveBulkCombinedAllocations(payload) {
   }, { timeout: 20000 });
 
   revalidatePath('/dashboard/staff');
+
+  sendPushBroadcast({
+    title: '👔 Bulk Uniforms Allocated',
+    message: `${items.length} promoter assignment${items.length > 1 ? 's' : ''} recorded.`,
+    url: '/dashboard/staff',
+    tag: 'uniform-allocation',
+  }).catch(() => {});
+
   return allocations;
 }
 

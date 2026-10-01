@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { uploadToImageKit } from '@/lib/imagekit';
+import { notifyTransaction } from '@/lib/push';
 
 import { requireAuth } from '@/lib/auth-guard';
 import {
@@ -180,6 +181,16 @@ export async function createTransaction(data) {
   }, { timeout: 20000 });
 
   revalidateTransactionPaths();
+
+  notifyTransaction({
+    type: transactionType,
+    productName: product.name,
+    quantity,
+    deliveryNote: transaction.deliveryNote,
+    destinationOrSource: toEntityId || fromEntityId,
+    brandName: product.brand?.name,
+  }).catch(() => {});
+
   return transaction;
 }
 
@@ -700,6 +711,16 @@ export async function createBulkIssueTransactions(payload) {
   }, { timeout: 20000 });
 
   revalidateTransactionPaths();
+
+  const totalQty = (items || []).reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
+  notifyTransaction({
+    type: 'ISSUE',
+    productName: `${items?.length || 1} product item${(items?.length || 1) > 1 ? 's' : ''}`,
+    quantity: totalQty,
+    deliveryNote: deliveryNote,
+    destinationOrSource: toEntityType === 'STORE' ? 'Store Location' : toEntityType || 'Client',
+  }).catch(() => {});
+
   return transactions;
 }
 
@@ -943,6 +964,16 @@ export async function createBulkReceiveTransactions(formData) {
   }, { timeout: 20000 });
 
   revalidateTransactionPaths();
+
+  const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
+  notifyTransaction({
+    type: 'RECEIVE',
+    productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
+    quantity: totalQty,
+    deliveryNote: finalDeliveryNote,
+    destinationOrSource: fromEntityType === 'STORE' ? 'Store Return' : fromEntityId || 'Supplier',
+  }).catch(() => {});
+
   return transactions;
 }
 
@@ -1058,6 +1089,16 @@ export async function createBulkDamageTransactions(payload) {
   });
 
   revalidateTransactionPaths();
+
+  const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
+  notifyTransaction({
+    type: resolvedType,
+    productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
+    quantity: totalQty,
+    deliveryNote: resolvedDamageNote,
+    destinationOrSource: fromEntityType === 'WAREHOUSE' ? 'Warehouse' : fromEntityId || fromEntityType,
+  }).catch(() => {});
+
   return transactions;
 }
 
@@ -1726,6 +1767,14 @@ export async function processOutboundReturns(returnsPayload) {
   }, { timeout: 20000 });
 
   revalidateTransactionPaths();
+
+  notifyTransaction({
+    type: 'RETURN',
+    productName: `${returnsPayload.length} product item${returnsPayload.length > 1 ? 's' : ''}`,
+    quantity: returnsPayload.reduce((acc, curr) => acc + parseInt(curr.qty || 0, 10), 0),
+    destinationOrSource: 'Store Location',
+  }).catch(() => {});
+
   return { success: true };
 }
 
@@ -2493,6 +2542,15 @@ export async function returnClientItemsToWarehouse(payload) {
   }, { timeout: 25000 });
 
   revalidateTransactionPaths();
+
+  const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
+  notifyTransaction({
+    type: 'CLIENT_RETURN',
+    productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
+    quantity: totalQty,
+    brandName: brand?.name,
+  }).catch(() => {});
+
   return transactions;
 }
 
