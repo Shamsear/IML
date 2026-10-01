@@ -201,20 +201,27 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
       }
       />
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-fit">
-        <button onClick={() => changeTab('transactions')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'transactions' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
-          <List size={15} /> All Items
-        </button>
-        <button onClick={() => changeTab('grouped')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'grouped' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
-          <ChevronDown size={15} /> By Delivery Notes
-        </button>
-        <button onClick={() => changeTab('history')}
-          className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'history' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
-          <History size={15} /> Returns History (Undo)
-        </button>
+      {/* Tabs — horizontally scrollable on mobile */}
+      <div className="w-full overflow-x-auto">
+        <div className="flex gap-1 bg-surface-elevated/30 border border-border rounded-xl p-1 w-max min-w-full sm:w-fit">
+          <button onClick={() => changeTab('transactions')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'transactions' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
+            <List size={14} />
+            <span>All Items</span>
+          </button>
+          <button onClick={() => changeTab('grouped')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'grouped' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
+            <ChevronDown size={14} />
+            <span className="sm:hidden">By DN</span>
+            <span className="hidden sm:inline">By Delivery Notes</span>
+          </button>
+          <button onClick={() => changeTab('history')}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'history' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}>
+            <History size={14} />
+            <span className="sm:hidden">History</span>
+            <span className="hidden sm:inline">Returns History (Undo)</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
@@ -442,15 +449,15 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
 
                     {/* Expanded Items */}
                     {isExpanded && (
-                      <div className="border-t border-border bg-surface/50">
-                        <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
+                      <div className="border-t border-border bg-surface/50 overflow-x-auto">
+                        <table className="min-w-full divide-y divide-border text-xs">
                           <thead>
-                            <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
-                              <th className="py-2.5 px-5 pl-16 w-10"></th>
-                              <th className="py-2.5 px-5">Product</th>
-                              <th className="py-2.5 px-5 text-right">Available</th>
-                              <th className="py-2.5 px-5 w-32">Return Qty</th>
-                              <th className="py-2.5 px-5">Remarks</th>
+                            <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
+                              <th className="py-2.5 pl-5 pr-3 w-10"></th>
+                              <th className="py-2.5 px-3">Product</th>
+                              <th className="py-2.5 px-3 text-right whitespace-nowrap">Available</th>
+                              <th className="py-2.5 px-3 w-28 whitespace-nowrap">Return Qty</th>
+                              <th className="py-2.5 px-3">Remarks</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border text-text-primary">
@@ -460,10 +467,10 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                               const itemState = processingItems[tx.id];
                               return (
                                 <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/40'}`}>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 pl-16">
+                                  <td className="py-2.5 pl-5 pr-3">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
                                   </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-primary">
+                                  <td className="py-2.5 px-3 font-medium text-xs text-primary">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <span>{tx.product?.name}</span>
                                       {tx.product?.isReturnable && tx.product?.isDisposable && (
@@ -471,16 +478,16 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                                       )}
                                     </div>
                                   </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs">{remainingQty}</td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
+                                  <td className="py-2.5 px-3 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">{remainingQty}</td>
+                                  <td className="py-2.5 px-3">
                                     <input type="number" min="1" max={remainingQty} disabled={!isSelected}
                                       value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
                                       className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
                                   </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
-                                    <input type="text" placeholder="Optional notes..." disabled={!isSelected}
+                                  <td className="py-2.5 px-3">
+                                    <input type="text" placeholder="Notes..." disabled={!isSelected}
                                       value={itemState?.notes || ''} onChange={(e) => handleChange(tx.id, 'notes', e.target.value)}
-                                      className="w-full min-w-[140px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
+                                      className="w-full min-w-[120px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
                                   </td>
                                 </tr>
                               );
