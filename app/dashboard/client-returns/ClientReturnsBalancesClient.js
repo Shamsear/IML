@@ -414,7 +414,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                          <th className="py-2 pr-4 font-semibold">SKU / Item Code</th>
+                          <th className="py-2 pl-4 pr-4 font-semibold">SKU / Item Code</th>
                           <th className="py-2 pr-4 font-semibold">Product Description</th>
                           <th className="py-2 pr-4 font-semibold">Category</th>
                           <th className="py-2 pr-4 text-center font-semibold">Stock Qty</th>
@@ -424,7 +424,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                       <tbody className="divide-y divide-border/40">
                         {brandGroup.items.map((bal, idx) => (
                           <tr key={idx} className="text-xs hover:bg-surface-elevated/20 transition-colors">
-                            <td className="py-3 pr-4 font-mono font-bold text-[11px] text-primary">{bal.itemCode || '—'}</td>
+                            <td className="py-3 pl-4 pr-4 font-mono font-bold text-[11px] text-primary">{bal.itemCode || '—'}</td>
                             <td className="py-3 pr-4 font-bold text-text-primary">{bal.productName}</td>
                             <td className="py-3 pr-4 text-text-secondary font-semibold">{bal.category || 'General'}</td>
                             <td className="py-3 pr-4 text-center font-extrabold">{bal.quantity}</td>
@@ -563,7 +563,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                  <SortableHeader field="direction" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Direction</SortableHeader>
+                  <SortableHeader field="direction" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 pl-5 pr-4 font-semibold">Direction</SortableHeader>
                   <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Product</SortableHeader>
                   <SortableHeader field="gatePass" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Gate Pass</SortableHeader>
                   <SortableHeader field="brand" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Brand</SortableHeader>
@@ -589,7 +589,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
 
                     return (
                       <tr key={tx.id} className="text-xs hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3 px-4">
+                        <td className="py-3 pl-5 pr-4">
                           {isFromClient ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-success/10 text-success border border-success/20 rounded-full text-[10px] font-bold">
                               <ArrowDownLeft size={10} />

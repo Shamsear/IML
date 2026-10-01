@@ -6,14 +6,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import StoreInventoryTable from './StoreInventoryTable';
+import StoreDispatchesList from './StoreDispatchesList';
 
-export default async function StoreDetailPage({ params, searchParams }) {
-  // Await the params and searchParams objects in Next.js App Router
+export default async function StoreDetailPage({ params }) {
   const { id } = await params;
-  const sParams = await searchParams;
-
-  const invPage = parseInt(sParams?.invPage || '1', 10);
-  const dispPage = parseInt(sParams?.dispPage || '1', 10);
   const pageSize = 15;
 
   // Fetch Store info, staff, and dispatches
@@ -153,8 +149,6 @@ export default async function StoreDetailPage({ params, searchParams }) {
       <StoreInventoryTable
         inventory={inventory}
         storeId={id}
-        invPage={invPage}
-        dispPage={dispPage}
         pageSize={pageSize}
       />
 
@@ -189,97 +183,11 @@ export default async function StoreDetailPage({ params, searchParams }) {
             <Printer size={18} className="text-success" />
             <h3 className="font-display font-bold text-sm text-text-primary">Delivery Notes (Dispatches)</h3>
           </div>
-          <div className="flex flex-col gap-2.5">
-            {groupedDispatches.length === 0 ? (
-              <div className="py-6 text-center text-xs text-text-muted">No dispatches recorded.</div>
-            ) : (
-              <>
-                {/* Top Dispatches Pagination */}
-                {totalDispPages > 1 && (
-                  <div className="flex items-center justify-between px-3 py-2 border border-border bg-surface-elevated/20 text-[10px] mb-1 rounded-lg print:hidden">
-                    <span className="text-text-muted">
-                      Showing <strong className="text-text-primary">{(dispPage - 1) * pageSize + 1}</strong> to{" "}
-                      <strong className="text-text-primary">
-                        {Math.min(dispPage * pageSize, groupedDispatches.length)}
-                      </strong> of{" "}
-                      <strong className="text-text-primary">{groupedDispatches.length}</strong> notes
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <Link
-                        href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.max(1, dispPage - 1)}`}
-                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-colors duration-150 ${
-                          dispPage === 1 ? 'pointer-events-none opacity-50' : ''
-                        }`}
-                      >
-                        Prev
-                      </Link>
-                      <Link
-                        href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.min(totalDispPages, dispPage + 1)}`}
-                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-colors duration-150 ${
-                          dispPage === totalDispPages ? 'pointer-events-none opacity-50' : ''
-                        }`}
-                      >
-                        Next
-                      </Link>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-2.5">
-                  {paginatedDispatches.map(disp => (
-                    <div key={`${disp.date}_${disp.brandId}_${disp.deliveryNote}`} className="p-3 bg-surface-elevated/40 border border-black/5 rounded-lg flex justify-between items-center text-xs">
-                      <div className="min-w-0 flex-1 pr-2">
-                        <strong className="text-text-primary block truncate font-mono">{disp.deliveryNote}</strong>
-                        <span className="text-text-secondary block mt-0.5 text-[10px]">
-                          {disp.date} — {disp.brandName}
-                        </span>
-                      </div>
-                      <a
-                        href={`/api/dashboard/stores/${id}/delivery-note?date=${disp.date}&brandId=${disp.brandId}&dn=${disp.deliveryNote}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 hover:bg-success/10 text-success rounded-md transition-colors flex-shrink-0"
-                        title="Print Delivery Note"
-                      >
-                        <Printer size={13} />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Dispatches Pagination Controls */}
-                {totalDispPages > 1 && (
-                  <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-surface-elevated/20 text-[10px] mt-2 rounded-lg">
-                    <span className="text-text-muted">
-                      Showing <strong className="text-text-primary">{(dispPage - 1) * pageSize + 1}</strong> to{" "}
-                      <strong className="text-text-primary">
-                        {Math.min(dispPage * pageSize, groupedDispatches.length)}
-                      </strong> of{" "}
-                      <strong className="text-text-primary">{groupedDispatches.length}</strong> notes
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <Link
-                        href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.max(1, dispPage - 1)}`}
-                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-colors duration-150 ${
-                          dispPage === 1 ? 'pointer-events-none opacity-50' : ''
-                        }`}
-                      >
-                        Prev
-                      </Link>
-                      <Link
-                        href={`/dashboard/stores/${id}?invPage=${invPage}&dispPage=${Math.min(totalDispPages, dispPage + 1)}`}
-                        className={`px-2 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-md font-semibold transition-colors duration-150 ${
-                          dispPage === totalDispPages ? 'pointer-events-none opacity-50' : ''
-                        }`}
-                      >
-                        Next
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          <StoreDispatchesList
+            storeId={id}
+            groupedDispatches={groupedDispatches}
+            pageSize={pageSize}
+          />
         </div>
       </div>
     </div>

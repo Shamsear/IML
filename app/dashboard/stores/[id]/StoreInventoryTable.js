@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Package, QrCode } from 'lucide-react';
 import SortableHeader from '@/components/SortableHeader';
@@ -9,10 +9,10 @@ import { useTableSort } from '@/hooks/useTableSort';
 export default function StoreInventoryTable({
   inventory,
   storeId,
-  invPage,
-  dispPage,
   pageSize = 15,
 }) {
+  const [page, setPage] = useState(1);
+
   const customGetters = useMemo(() => ({
     name: (item) => item.name || '',
     brand: (item) => item.brandName || '',
@@ -32,7 +32,7 @@ export default function StoreInventoryTable({
   });
 
   const totalInvPages = Math.ceil(sortedInventory.length / pageSize);
-  const paginatedInventory = sortedInventory.slice((invPage - 1) * pageSize, invPage * pageSize);
+  const paginatedInventory = sortedInventory.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
@@ -55,29 +55,29 @@ export default function StoreInventoryTable({
             {totalInvPages > 1 && (
               <div className="flex items-center justify-between px-4 py-2.5 border border-border bg-surface-elevated/20 text-xs mb-3 rounded-lg print:hidden">
                 <span className="text-text-muted">
-                  Showing <strong className="text-text-primary">{(invPage - 1) * pageSize + 1}</strong> to{' '}
+                  Showing <strong className="text-text-primary">{(page - 1) * pageSize + 1}</strong> to{' '}
                   <strong className="text-text-primary">
-                    {Math.min(invPage * pageSize, sortedInventory.length)}
+                    {Math.min(page * pageSize, sortedInventory.length)}
                   </strong>{' '}
                   of <strong className="text-text-primary">{sortedInventory.length}</strong> items
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <Link
-                    href={`/dashboard/stores/${storeId}?invPage=${Math.max(1, invPage - 1)}&dispPage=${dispPage}`}
-                    className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
-                      invPage === 1 ? 'pointer-events-none opacity-50' : ''
-                    }`}
+                  <button
+                    type="button"
+                    disabled={page === 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary rounded-lg font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                   >
                     Previous
-                  </Link>
-                  <Link
-                    href={`/dashboard/stores/${storeId}?invPage=${Math.min(totalInvPages, invPage + 1)}&dispPage=${dispPage}`}
-                    className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
-                      invPage === totalInvPages ? 'pointer-events-none opacity-50' : ''
-                    }`}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={page === totalInvPages}
+                    onClick={() => setPage(p => Math.min(totalInvPages, p + 1))}
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary rounded-lg font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                   >
                     Next
-                  </Link>
+                  </button>
                 </div>
               </div>
             )}
@@ -88,7 +88,7 @@ export default function StoreInventoryTable({
                 <table className="min-w-full divide-y divide-border text-sm">
                   <thead>
                     <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
-                      <SortableHeader field="name" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-3 pr-4">Product Name</SortableHeader>
+                      <SortableHeader field="name" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-3 pl-5 pr-4">Product Name</SortableHeader>
                       <SortableHeader field="brand" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-3 px-4">Brand</SortableHeader>
                       <SortableHeader field="quantity" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-3 px-4">Quantity</SortableHeader>
                       <SortableHeader field="serials" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-3 pl-4">Barcodes / Serials</SortableHeader>
@@ -97,7 +97,7 @@ export default function StoreInventoryTable({
                   <tbody className="divide-y divide-border text-text-primary">
                     {paginatedInventory.map((item) => (
                       <tr key={item.productId} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3 pr-4 font-semibold">{item.name}</td>
+                        <td className="py-3 pl-5 pr-4 font-semibold">{item.name}</td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           <span className="badge badge-info">{item.brandName}</span>
                         </td>
@@ -176,29 +176,29 @@ export default function StoreInventoryTable({
             {totalInvPages > 1 && (
               <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs mt-2 rounded-lg">
                 <span className="text-text-muted">
-                  Showing <strong className="text-text-primary">{(invPage - 1) * pageSize + 1}</strong> to{' '}
+                  Showing <strong className="text-text-primary">{(page - 1) * pageSize + 1}</strong> to{' '}
                   <strong className="text-text-primary">
-                    {Math.min(invPage * pageSize, sortedInventory.length)}
+                    {Math.min(page * pageSize, sortedInventory.length)}
                   </strong>{' '}
                   of <strong className="text-text-primary">{sortedInventory.length}</strong> items
                 </span>
                 <div className="flex items-center gap-1.5">
-                  <Link
-                    href={`/dashboard/stores/${storeId}?invPage=${Math.max(1, invPage - 1)}&dispPage=${dispPage}`}
-                    className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
-                      invPage === 1 ? 'pointer-events-none opacity-50' : ''
-                    }`}
+                  <button
+                    type="button"
+                    disabled={page === 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary rounded-lg font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                   >
                     Previous
-                  </Link>
-                  <Link
-                    href={`/dashboard/stores/${storeId}?invPage=${Math.min(totalInvPages, invPage + 1)}&dispPage=${dispPage}`}
-                    className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${
-                      invPage === totalInvPages ? 'pointer-events-none opacity-50' : ''
-                    }`}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={page === totalInvPages}
+                    onClick={() => setPage(p => Math.min(totalInvPages, p + 1))}
+                    className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary rounded-lg font-semibold transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                   >
                     Next
-                  </Link>
+                  </button>
                 </div>
               </div>
             )}

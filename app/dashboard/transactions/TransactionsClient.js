@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useTransition } from 'react';
 import { 
   History, ArrowDownLeft, ArrowUpRight, ShieldAlert, RefreshCw, 
-  ClipboardList, Calendar, FileText, User, Store, UserCheck, Package, Search
+  ClipboardList, Calendar, FileText, User, Store, UserCheck, Package, Search, Loader2
 } from 'lucide-react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import EmptyState from '@/components/EmptyState';
@@ -27,6 +27,7 @@ export default function TransactionsClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const [filterType, setFilterType] = useState(initialType);
   const [filterProduct, setFilterProduct] = useState(initialProductId);
@@ -62,7 +63,9 @@ export default function TransactionsClient({
       if (newFilters.productId && newFilters.productId !== 'ALL') params.set('productId', newFilters.productId);
       else params.delete('productId');
     }
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
   };
 
   // Debounced search query update
@@ -322,12 +325,12 @@ export default function TransactionsClient({
             />
           ) : (
             <>
-              <div className="overflow-x-auto -mx-5">
+              <div className={`overflow-x-auto -mx-5 transition-opacity duration-150 ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
               <div className="inline-block min-w-full align-middle px-5">
                 <table className="min-w-full divide-y divide-border">
                   <thead>
                     <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider">
-                      <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 pr-4 sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Product Details</SortableHeader>
+                      <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 pl-5 pr-4 sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Product Details</SortableHeader>
                       <SortableHeader field="sku" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 px-4">SKU</SortableHeader>
                       <SortableHeader field="transactionType" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 px-4">Transaction Type</SortableHeader>
                       <SortableHeader field="from" currentField={sortField} direction={sortDirection} onSort={handleSort} className="pb-3 px-4">Source / From</SortableHeader>
@@ -340,7 +343,7 @@ export default function TransactionsClient({
                   <tbody className="divide-y divide-border text-sm text-text-primary">
                     {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                        <td className="py-3.5 pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                        <td className="py-3.5 pl-5 pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex flex-col">
                             <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors">{tx.product.name}</Link>
 

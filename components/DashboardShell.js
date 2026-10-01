@@ -65,7 +65,11 @@ export default function DashboardShell({ user, children }) {
       >
         {/* Logo area */}
         <div className="flex items-center justify-between px-4 h-14 sm:h-16 border-b border-border flex-shrink-0">
-          <div className="flex items-center w-full min-w-0">
+          <Link 
+            href="/dashboard" 
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center w-full min-w-0 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
+          >
             {/* Full logo — fades */}
             <div className={`flex items-center gap-2 transition-opacity duration-150 ${(!collapsed || mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} style={{ position: (!collapsed || mobileOpen) ? 'relative' : 'absolute' }}>
               <img 
@@ -81,7 +85,7 @@ export default function DashboardShell({ user, children }) {
               alt="IML Group Emblem" 
               className={`w-9 h-9 object-contain block transition-opacity duration-150 ${(!collapsed || mobileOpen) ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 mx-auto'}`}
             />
-          </div>
+          </Link>
           
           {/* Collapse sidebar trigger */}
           <div className="hidden lg:flex flex-shrink-0">

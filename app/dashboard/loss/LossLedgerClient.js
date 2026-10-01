@@ -120,14 +120,14 @@ export default function LossLedgerClient({
               <table className="min-w-full divide-y divide-border text-sm">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                    <SortableHeader field="date" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-3 sm:px-5">Date</SortableHeader>
-                    <SortableHeader field="product" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-3 sm:px-5">Product Details</SortableHeader>
-                    <SortableHeader field="sku" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-3 sm:px-5">SKU</SortableHeader>
-                    <SortableHeader field="source" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-3 sm:px-5">Lost From</SortableHeader>
-                    <SortableHeader field="quantity" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="py-3 px-3 sm:px-5">Quantity</SortableHeader>
-                    <SortableHeader field="deliveryNote" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-3 sm:px-5">Loss Note</SortableHeader>
-                    <SortableHeader field="notes" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-3 sm:px-5">Remarks</SortableHeader>
-                    <th className="py-3 px-3 sm:px-5 text-right">Actions</th>
+                    <SortableHeader field="date" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Date</SortableHeader>
+                    <SortableHeader field="product" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Product Details</SortableHeader>
+                    <SortableHeader field="sku" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">SKU</SortableHeader>
+                    <SortableHeader field="source" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Lost From</SortableHeader>
+                    <SortableHeader field="quantity" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="py-3 px-5">Quantity</SortableHeader>
+                    <SortableHeader field="deliveryNote" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Loss Note</SortableHeader>
+                    <SortableHeader field="notes" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Remarks</SortableHeader>
+                    <th className="py-3 px-5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-text-primary">
@@ -147,10 +147,10 @@ export default function LossLedgerClient({
                     }
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
+                        <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
                           {dateStr}
                         </td>
-                        <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap">
+                        <td className="py-3.5 px-5 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="font-semibold">{tx.product?.name}</span>
                             <span className="text-[11px] text-text-muted mt-0.5">
@@ -158,10 +158,10 @@ export default function LossLedgerClient({
                             </span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-3 sm:px-5 whitespace-nowrap font-mono text-xs text-text-secondary">
+                        <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">
                           {tx.product?.itemCode || '---'}
                         </td>
-                        <td className="py-3.5 px-3 sm:px-5 font-semibold text-xs text-text-secondary">
+                        <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary">
                           {sourceName}
                         </td>
                         <td className="py-3.5 px-3 sm:px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-warning">

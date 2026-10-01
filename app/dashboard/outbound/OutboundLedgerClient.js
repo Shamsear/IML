@@ -261,7 +261,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                   <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <SortableHeader field="product" currentField={outboundSortField} direction={outboundSortDirection} onSort={handleOutboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                        <SortableHeader field="product" currentField={outboundSortField} direction={outboundSortDirection} onSort={handleOutboundSort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
                         <SortableHeader field="date" currentField={outboundSortField} direction={outboundSortDirection} onSort={handleOutboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
                         <SortableHeader field="sku" currentField={outboundSortField} direction={outboundSortDirection} onSort={handleOutboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">SKU</SortableHeader>
                         <SortableHeader field="destinationType" currentField={outboundSortField} direction={outboundSortDirection} onSort={handleOutboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Destination Type</SortableHeader>
@@ -286,7 +286,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
 
                         return (
                           <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                            <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                               <div className="flex flex-col">
                                 <span className="font-semibold">{tx.product.name}</span>
                                 <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>

@@ -1,6 +1,4 @@
-import { Suspense } from 'react';
 import { getTransactions } from '@/app/actions/transactions';
-import { getProductsSlim } from '@/app/actions/products';
 import { prisma } from '@/lib/prisma';
 import TransactionsClient from './TransactionsClient';
 
@@ -19,7 +17,10 @@ export default async function TransactionsPage({ searchParams }) {
     staff
   ] = await Promise.all([
     getTransactions({ search, type, productId, page }),
-    getProductsSlim(),
+    prisma.product.findMany({
+      select: { id: true, name: true, imageUrl: true },
+      orderBy: { name: 'asc' }
+    }),
     prisma.store.findMany({ select: { id: true, name: true } }),
     prisma.supervisor.findMany({ select: { id: true, name: true } }),
     prisma.staff.findMany({ select: { id: true, name: true } }),

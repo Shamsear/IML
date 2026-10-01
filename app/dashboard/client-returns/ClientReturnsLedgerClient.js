@@ -242,7 +242,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                          <th className="py-2 pr-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</th>
+                          <th className="py-2 pl-4 pr-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</th>
                           <th className="py-2 pr-4 font-semibold">SKU / Item Code</th>
                           <th className="py-2 pr-4 text-center font-semibold">Qty</th>
                           <th className="py-2 font-semibold">Notes / Serials</th>
@@ -251,7 +251,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                       <tbody className="divide-y divide-border/60">
                         {group.items.map((tx, idx) => (
                           <tr key={idx} className="text-xs text-text-primary group/subrow">
-                            <td className="py-2.5 pr-4 font-semibold sticky left-0 bg-surface group-hover/subrow:bg-surface-elevated z-10 border-r border-border shadow-sm">{tx.product?.name}</td>
+                            <td className="py-2.5 pl-4 pr-4 font-semibold sticky left-0 bg-surface group-hover/subrow:bg-surface-elevated z-10 border-r border-border shadow-sm">{tx.product?.name}</td>
                             <td className="py-2.5 pr-4 font-mono font-bold text-[11px] text-primary">{tx.product?.itemCode || '—'}</td>
                             <td className="py-2.5 pr-4 text-center font-bold">{tx.quantity}</td>
                             <td className="py-2.5 text-text-secondary font-medium leading-relaxed">
@@ -350,7 +350,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</SortableHeader>
+                <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 pl-5 pr-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</SortableHeader>
                 <SortableHeader field="date" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Date</SortableHeader>
                 <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Gate Pass No</SortableHeader>
                 <SortableHeader field="brand" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Client Brand</SortableHeader>
@@ -373,7 +373,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
 
                   return (
                     <tr key={tx.id} className="text-xs hover:bg-surface-elevated/20 transition-colors group/row">
-                      <td className="py-3 px-4 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                      <td className="py-3 pl-5 pr-4 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                         <span className="font-semibold block">{tx.product?.name}</span>
                         <span className="text-[10px] font-mono text-text-muted block mt-0.5">{tx.product?.itemCode || 'No SKU'}</span>
                       </td>

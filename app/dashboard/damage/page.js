@@ -44,10 +44,23 @@ export default async function DamagePage({ searchParams }) {
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  const uniqueStoreIds = new Set();
+  const uniqueSupervisorIds = new Set();
+  const uniqueStaffIds = new Set();
+
+  transactions.forEach(t => {
+    if (t.fromEntityType === 'STORE' && t.fromEntityId) uniqueStoreIds.add(t.fromEntityId);
+    if (t.toEntityType === 'STORE' && t.toEntityId) uniqueStoreIds.add(t.toEntityId);
+    if (t.fromEntityType === 'SUPERVISOR' && t.fromEntityId) uniqueSupervisorIds.add(t.fromEntityId);
+    if (t.toEntityType === 'SUPERVISOR' && t.toEntityId) uniqueSupervisorIds.add(t.toEntityId);
+    if (t.fromEntityType === 'STAFF' && t.fromEntityId) uniqueStaffIds.add(t.fromEntityId);
+    if (t.toEntityType === 'STAFF' && t.toEntityId) uniqueStaffIds.add(t.toEntityId);
+  });
+
   const [stores, supervisors, staffList] = await Promise.all([
-    prisma.store.findMany({ select: { id: true, name: true } }),
-    prisma.supervisor.findMany({ select: { id: true, name: true } }),
-    prisma.staff.findMany({ select: { id: true, name: true } }),
+    uniqueStoreIds.size > 0 ? prisma.store.findMany({ where: { id: { in: Array.from(uniqueStoreIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
+    uniqueSupervisorIds.size > 0 ? prisma.supervisor.findMany({ where: { id: { in: Array.from(uniqueSupervisorIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
+    uniqueStaffIds.size > 0 ? prisma.staff.findMany({ where: { id: { in: Array.from(uniqueStaffIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
   ]);
 
   const entityNames = {};

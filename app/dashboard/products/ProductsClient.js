@@ -1072,7 +1072,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                           <input type="checkbox" className="custom-checkbox" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
                             onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
                         </th>
-                        <SortableHeader field="name" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                        <SortableHeader field="name" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
                         <SortableHeader field="itemCode" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Code (SKU)</SortableHeader>
                         <SortableHeader field="brand" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Brand</SortableHeader>
                         <SortableHeader field="stock" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Stock</SortableHeader>
@@ -1095,7 +1095,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                             <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
                               onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
                           </td>
-                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                             <div className="flex items-center gap-2.5">
                               {product.imageUrl ? (
                                 <img 

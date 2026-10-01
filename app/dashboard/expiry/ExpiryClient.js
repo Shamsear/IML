@@ -296,7 +296,7 @@ export default function ExpiryClient({ initialBatches = [] }) {
             <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                  <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                  <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
                   <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Batch / DN</SortableHeader>
                   <SortableHeader field="supplier" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supplier / Source</SortableHeader>
                   <SortableHeader field="receivedDate" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Received Date</SortableHeader>
@@ -335,7 +335,7 @@ export default function ExpiryClient({ initialBatches = [] }) {
 
                   return (
                     <tr key={batch.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                      <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                         <div className="flex items-center gap-3">
                           {batch.productImage ? (
                             <img src={batch.productImage} alt={batch.productName} className="w-10 h-10 object-cover rounded-sm border border-border cursor-zoom-in hover:brightness-95 transition-all duration-200" />
