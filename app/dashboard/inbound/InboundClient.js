@@ -643,44 +643,74 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
     setItems(prev => prev.map(item => ({ ...item, isExpanded: false })).concat(createEmptyInboundItem(prev.length)));
   };
 
-  const handleFinishItem = (idx) => {
+  const validateItem = (idx) => {
     const item = items[idx];
     if (item.isNewProduct) {
       if (!item.prodName.trim()) {
         updateItemField(idx, 'error', 'Product name is required for new product registration');
-        return;
+        return false;
       }
       if (!item.prodBrandId) {
         updateItemField(idx, 'error', 'Brand is required for new product registration');
-        return;
+        return false;
       }
       const isSerialized = item.prodType === 'SIM' || item.prodType === 'ROUTER';
       if (!isSerialized && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
         updateItemField(idx, 'error', 'Quantity must be greater than 0');
-        return;
+        return false;
       }
       if (isSerialized && item.quantity === 0) {
         updateItemField(idx, 'error', 'Please scan or enter at least one serial barcode');
-        return;
+        return false;
       }
     } else {
       if (!item.productId) {
         updateItemField(idx, 'error', 'Product selection is required');
-        return;
+        return false;
       }
       const prod = products.find(p => p.id === item.productId);
       if (!prod?.isSerialized && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
         updateItemField(idx, 'error', 'Quantity must be greater than 0');
-        return;
+        return false;
       }
       if (prod?.isSerialized && item.quantity === 0) {
         updateItemField(idx, 'error', 'Please scan or enter at least one serial barcode');
-        return;
+        return false;
       }
     }
+    return true;
+  };
 
+  const handleFinishItem = (idx) => {
+    if (!validateItem(idx)) return;
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, isExpanded: false, error: '' } : it));
   };
+
+  const handleFinishAndAddNext = (idx) => {
+    if (!validateItem(idx)) return;
+    setItems(prev => {
+      const updated = prev.map((it, i) => i === idx ? { ...it, isExpanded: false, error: '' } : { ...it, isExpanded: false });
+      return [...updated, createEmptyInboundItem(updated.length)];
+    });
+  };
+
+  // Keyboard shortcut: Ctrl+Enter / Cmd+Enter saves current item and adds next
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const activeIdx = items.findIndex(it => it.isExpanded);
+        if (activeIdx !== -1) {
+          e.preventDefault();
+          handleFinishAndAddNext(activeIdx);
+        } else {
+          e.preventDefault();
+          handleAddNewItem();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [items, products]);
 
   const handleRemoveItem = (idx) => {
     setItems(prev => {
@@ -2026,14 +2056,27 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                       />
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-3 border-t border-border">
-                      <button
-                        type="button"
-                        onClick={() => handleFinishItem(idx)}
-                        className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow cursor-pointer"
-                      >
-                        Finish &amp; Collapse Card
-                      </button>
+                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-border flex-wrap">
+                      <span className="text-[11px] text-text-muted hidden sm:inline">
+                        Tip: Press <kbd className="px-1.5 py-0.5 bg-surface-elevated border border-border rounded text-[10px] font-mono text-text-secondary font-semibold">Ctrl+Enter</kbd> to add next
+                      </span>
+                      <div className="flex items-center gap-2 ml-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleFinishItem(idx)}
+                          className="px-3.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                        >
+                          Done (Collapse)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleFinishAndAddNext(idx)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow cursor-pointer transition-all"
+                        >
+                          <Plus size={14} />
+                          <span>Finish &amp; Add Next</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -57,31 +57,72 @@ export default function RebrandLedgerClient({
     }
   };
 
-  const getFromName = (tx) => {
-    if (tx.fromEntityType === 'WAREHOUSE' || tx.fromEntityId === 'WH-MAIN') return 'Main Warehouse';
-    if (entityNames[tx.fromEntityId]) return entityNames[tx.fromEntityId];
-    if (tx.fromEntityId) return tx.fromEntityId;
-    if (tx.fromEntityType) return tx.fromEntityType;
-    if (tx.notes && tx.notes.includes('Rebrand input <-')) {
-      const match = tx.notes.match(/Rebrand input <-\s*([^.]+)/);
-      if (match) return match[1].trim();
+  // Precompute map of deliveryNote -> { fromProduct, toProduct } to link paired REBRAND_OUT / REBRAND_IN entries
+  const rebrandPairMap = useMemo(() => {
+    const map = {};
+    (transactions || []).forEach(t => {
+      if (!t.deliveryNote) return;
+      if (!map[t.deliveryNote]) map[t.deliveryNote] = {};
+      if (t.transactionType === 'REBRAND_OUT') {
+        map[t.deliveryNote].fromProduct = t.product?.name;
+      } else if (t.transactionType === 'REBRAND_IN') {
+        map[t.deliveryNote].toProduct = t.product?.name;
+      }
+    });
+    return map;
+  }, [transactions]);
+
+  // Extract source (from) product name
+  const getFromProductName = (tx) => {
+    // 1. If this is an outbound conversion or legacy rebrand record, tx.product IS the source product
+    if (tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND') {
+      return tx.product?.name || '—';
     }
+
+    // 2. If this is a REBRAND_IN gain, look for the paired REBRAND_OUT product via deliveryNote
+    if (tx.deliveryNote && rebrandPairMap[tx.deliveryNote]?.fromProduct) {
+      return rebrandPairMap[tx.deliveryNote].fromProduct;
+    }
+
+    // 3. Fallback: Parse notes for 'Rebrand input <- [Source Product]'
+    if (tx.notes) {
+      const match = tx.notes.match(/Rebrand input <-\s*([^.]+)/i);
+      if (match) return match[1].trim();
+      const matchLegacy = tx.notes.match(/rebranded from\s+([^.]+)/i);
+      if (matchLegacy) return matchLegacy[1].trim();
+    }
+
+    return tx.product?.name || '—';
+  };
+
+  // Extract target (to) product name
+  const getToProductName = (tx) => {
+    // 1. If this is a REBRAND_IN gain, tx.product IS the target product
+    if (tx.transactionType === 'REBRAND_IN') {
+      return tx.product?.name || '—';
+    }
+
+    // 2. If this is a REBRAND_OUT loss, look for the paired REBRAND_IN product via deliveryNote
+    if (tx.deliveryNote && rebrandPairMap[tx.deliveryNote]?.toProduct) {
+      return rebrandPairMap[tx.deliveryNote].toProduct;
+    }
+
+    // 3. Parse notes for 'Rebrand output -> [Target Product]'
+    if (tx.notes) {
+      const match = tx.notes.match(/Rebrand output ->\s*([^.]+)/i);
+      if (match) return match[1].trim();
+      const matchLegacy = tx.notes.match(/rebrand(?:ed|ing)?\s+on\s*\(([^)]+)\)/i);
+      if (matchLegacy) return matchLegacy[1].trim();
+      const matchFor = tx.notes.match(/for rebranding on\s+([^(]+)\(/i);
+      if (matchFor) return matchFor[1].trim();
+    }
+
     return '—';
   };
 
-  const getToName = (tx) => {
-    if (tx.toEntityType === 'WAREHOUSE' || tx.toEntityId === 'WH-MAIN') return 'Main Warehouse';
-    if (entityNames[tx.toEntityId]) return entityNames[tx.toEntityId];
-    if (tx.toEntityId) return tx.toEntityId;
-    if (tx.toEntityType) return tx.toEntityType;
-    if (tx.notes && tx.notes.includes('Rebrand output ->')) {
-      const match = tx.notes.match(/Rebrand output ->\s*([^.]+)/);
-      if (match) return match[1].trim();
-    }
-    return '—';
-  };
-
-  const getDestinationName = (tx) => getToName(tx);
+  const getFromName = (tx) => getFromProductName(tx);
+  const getToName = (tx) => getToProductName(tx);
+  const getDestinationName = (tx) => getToProductName(tx);
 
   const getTypeName = (tx) => {
     if (tx.transactionType === 'REBRAND_IN') return 'REBRAND IN (Gain)';
@@ -460,16 +501,15 @@ export default function RebrandLedgerClient({
                       </span>
                     </div>
 
-                    {/* From & To Route */}
-                    <div className="flex items-center gap-2 text-xs bg-surface-elevated/40 p-2 rounded-lg border border-border/50">
-                      <div className="flex items-center gap-1 min-w-0 flex-1">
-                        <span className="text-[10px] uppercase font-bold text-text-muted shrink-0">From:</span>
+                    {/* From & To Product */}
+                    <div className="flex flex-col gap-1 text-xs bg-surface-elevated/40 p-2.5 rounded-lg border border-border/50">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] uppercase font-bold text-text-muted shrink-0">From Product:</span>
                         <span className="font-semibold text-text-primary text-xs truncate">{getFromName(tx)}</span>
                       </div>
-                      <span className="text-text-muted font-bold px-1">→</span>
-                      <div className="flex items-center gap-1 min-w-0 flex-1">
-                        <span className="text-[10px] uppercase font-bold text-text-muted shrink-0">To:</span>
-                        <span className="font-semibold text-text-primary text-xs truncate">{getToName(tx)}</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[10px] uppercase font-bold text-text-muted shrink-0">To Product:</span>
+                        <span className="font-semibold text-primary text-xs truncate">{getToName(tx)}</span>
                       </div>
                     </div>
 
@@ -520,8 +560,8 @@ export default function RebrandLedgerClient({
                     <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Delivery Note</SortableHeader>
                     <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Product Details</SortableHeader>
                     <SortableHeader field="sku" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">SKU</SortableHeader>
-                    <SortableHeader field="from" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">From</SortableHeader>
-                    <SortableHeader field="to" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">To / Destination</SortableHeader>
+                    <SortableHeader field="from" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">From Product</SortableHeader>
+                    <SortableHeader field="to" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">To Product</SortableHeader>
                     <SortableHeader field="type" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Action Type</SortableHeader>
                     <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3 px-4 text-center">Quantity</SortableHeader>
                     <SortableHeader field="serials" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Associated Serials</SortableHeader>
@@ -725,11 +765,11 @@ export default function RebrandLedgerClient({
                 </div>
                 <div className="flex items-center gap-4 text-xs text-text-secondary pt-1 border-t border-border/50">
                   <div>
-                    From: <strong className="text-text-primary">{getFromName(giveBackTx)}</strong>
+                    From Product: <strong className="text-text-primary">{getFromName(giveBackTx)}</strong>
                   </div>
                   <div>→</div>
                   <div>
-                    To: <strong className="text-text-primary">{getToName(giveBackTx)}</strong>
+                    To Product: <strong className="text-text-primary">{getToName(giveBackTx)}</strong>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-xs text-text-muted pt-1">
