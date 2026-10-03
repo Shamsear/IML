@@ -1735,10 +1735,18 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                             {item.prodCategory?.toUpperCase() === 'UNIFORM' && (
                               <div className="flex flex-col gap-1.5 mt-3 p-3 bg-accent/5 border border-accent/20 rounded-lg sm:col-span-2">
                                 <label className="text-xs font-semibold text-text-secondary">Uniform Size *</label>
-                                <select
+                                <CustomSelect
+                                  options={[
+                                    { value: 'XS', label: 'X-Small (XS)' },
+                                    { value: 'S', label: 'Small (S)' },
+                                    { value: 'M', label: 'Medium (M)' },
+                                    { value: 'L', label: 'Large (L)' },
+                                    { value: 'XL', label: 'X-Large (XL)' },
+                                    { value: 'XXL', label: 'XX-Large (XXL)' },
+                                    { value: 'XXXL', label: 'XXX-Large (XXXL)' },
+                                  ]}
                                   value={item.prodSize || ''}
-                                  onChange={(e) => {
-                                    const newSize = e.target.value;
+                                  onChange={(newSize) => {
                                     updateItemField(idx, 'prodSize', newSize);
                                     if (item.prodName) {
                                       const baseName = item.prodName.replace(/\s*\((XS|S|M|L|XL|XXL|XXXL)\)\s*$/i, '').trim();
@@ -1746,18 +1754,8 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                                       updateItemField(idx, 'prodName', newName);
                                     }
                                   }}
-                                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
-                                  required={item.prodCategory?.toUpperCase() === 'UNIFORM'}
-                                >
-                                  <option value="">Select Size</option>
-                                  <option value="XS">X-Small (XS)</option>
-                                  <option value="S">Small (S)</option>
-                                  <option value="M">Medium (M)</option>
-                                  <option value="L">Large (L)</option>
-                                  <option value="XL">X-Large (XL)</option>
-                                  <option value="XXL">XX-Large (XXL)</option>
-                                  <option value="XXXL">XXX-Large (XXXL)</option>
-                                </select>
+                                  placeholder="Select Size..."
+                                />
                                 <span className="text-[10px] text-accent mt-0.5">Size will be automatically added to product name</span>
                               </div>
                             )}

@@ -11,6 +11,7 @@ import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useToast } from '@/components/Toast';
 import { giveBackRebrandTransaction } from '@/app/actions/transactions';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function RebrandLedgerClient({
   transactions = [],
@@ -134,6 +135,13 @@ export default function RebrandLedgerClient({
     }
   };
 
+  const typeOptions = [
+    { value: 'ALL', label: 'All Rebrand Types' },
+    { value: 'REBRAND', label: 'Rebrand (Outbound)' },
+    { value: 'REBRAND_OUT', label: 'Rebrand Out (Loss)' },
+    { value: 'REBRAND_IN', label: 'Rebrand In (Gain)' },
+  ];
+
   const brandOptions = useMemo(() => {
     const map = {};
     (transactions || []).forEach(tx => {
@@ -141,7 +149,10 @@ export default function RebrandLedgerClient({
         map[tx.product.brand.id || tx.product.brand.name] = tx.product.brand.name;
       }
     });
-    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return [
+      { value: 'ALL', label: 'All Brands' },
+      ...Object.entries(map).map(([id, name]) => ({ value: id, label: name })).sort((a, b) => a.label.localeCompare(b.label))
+    ];
   }, [transactions]);
 
   const categoryOptions = useMemo(() => {
@@ -151,7 +162,10 @@ export default function RebrandLedgerClient({
         set.add(tx.product.category);
       }
     });
-    return Array.from(set).sort();
+    return [
+      { value: 'ALL', label: 'All Categories' },
+      ...Array.from(set).sort().map(cat => ({ value: cat, label: cat }))
+    ];
   }, [transactions]);
 
   // Filter items
@@ -311,45 +325,33 @@ export default function RebrandLedgerClient({
         </div>
 
         {/* Type Filter */}
-        <div className="sm:w-48">
-          <select
+        <div className="w-full sm:w-48">
+          <CustomSelect
+            options={typeOptions}
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
-          >
-            <option value="ALL">All Rebrand Types</option>
-            <option value="REBRAND">Rebrand (Outbound)</option>
-            <option value="REBRAND_OUT">Rebrand Out (Loss)</option>
-            <option value="REBRAND_IN">Rebrand In (Gain)</option>
-          </select>
+            onChange={(val) => setTypeFilter(val)}
+            placeholder="All Rebrand Types"
+          />
         </div>
 
         {/* Brand Filter */}
-        <div className="sm:w-44">
-          <select
+        <div className="w-full sm:w-44">
+          <CustomSelect
+            options={brandOptions}
             value={brandFilter}
-            onChange={(e) => setBrandFilter(e.target.value)}
-            className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
-          >
-            <option value="ALL">All Brands</option>
-            {brandOptions.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+            onChange={(val) => setBrandFilter(val)}
+            placeholder="All Brands"
+          />
         </div>
 
         {/* Category Filter */}
-        <div className="sm:w-44">
-          <select
+        <div className="w-full sm:w-44">
+          <CustomSelect
+            options={categoryOptions}
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
-          >
-            <option value="ALL">All Categories</option>
-            {categoryOptions.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+            onChange={(val) => setCategoryFilter(val)}
+            placeholder="All Categories"
+          />
         </div>
 
         {(searchTerm || typeFilter !== 'ALL' || brandFilter !== 'ALL' || categoryFilter !== 'ALL') && (
@@ -748,22 +750,23 @@ export default function RebrandLedgerClient({
                 <label className="text-xs font-semibold text-text-secondary">
                   Return to Product Definition
                 </label>
-                <select
-                  value={giveBackProductId}
-                  onChange={(e) => setGiveBackProductId(e.target.value)}
-                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value={giveBackTx.product?.id}>
-                    Original: {giveBackTx.product?.name} ({giveBackTx.product?.itemCode || 'No SKU'})
-                  </option>
-                  {products
-                    .filter((p) => p.id !== giveBackTx.product?.id)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.brand?.name || 'General'})
-                      </option>
-                    ))}
-                </select>
+                <CustomSelect
+                  options={[
+                    {
+                      value: giveBackTx.product?.id,
+                      label: `Original: ${giveBackTx.product?.name} (${giveBackTx.product?.itemCode || 'No SKU'})`,
+                    },
+                    ...products
+                      .filter((p) => p.id !== giveBackTx.product?.id)
+                      .map((p) => ({
+                        value: p.id,
+                        label: `${p.name} (${p.brand?.name || 'General'})`,
+                      })),
+                  ]}
+                  value={giveBackProductId || giveBackTx.product?.id}
+                  onChange={(val) => setGiveBackProductId(val)}
+                  placeholder="Select product definition..."
+                />
                 <span className="text-[10px] text-text-muted">
                   The central warehouse stock will be credited back under this product catalog definition.
                 </span>

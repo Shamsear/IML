@@ -985,15 +985,12 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       </div>
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">Region</label>
-                        <select
+                        <CustomSelect
+                          options={['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'].map(r => ({ value: r, label: r }))}
                           value={newStoreRegion}
-                          onChange={e => setNewStoreRegion(e.target.value)}
-                          className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary appearance-none"
-                        >
-                          {['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'].map(r => (
-                            <option key={r} value={r}>{r}</option>
-                          ))}
-                        </select>
+                          onChange={(val) => setNewStoreRegion(val)}
+                          placeholder="Select Region"
+                        />
                       </div>
                     </div>
                     <div className="flex flex-col gap-1">

@@ -12,6 +12,7 @@ import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function ReturnsClient({
   transactions = [],
@@ -83,6 +84,16 @@ export default function ReturnsClient({
     );
   };
 
+  const storeOptions = useMemo(() => [
+    { value: '', label: 'All Stores' },
+    ...stores.map(s => ({ value: s.id, label: s.name }))
+  ], [stores]);
+
+  const supervisorOptions = useMemo(() => [
+    { value: '', label: 'All Supervisors' },
+    ...supervisors.map(s => ({ value: s.id, label: s.name }))
+  ], [supervisors]);
+
   const brandOptions = useMemo(() => {
     const map = {};
     (transactions || []).forEach(tx => {
@@ -90,7 +101,10 @@ export default function ReturnsClient({
         map[tx.product.brandId] = tx.product.brand.name;
       }
     });
-    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    return [
+      { value: '', label: 'All Brands' },
+      ...Object.entries(map).map(([id, name]) => ({ value: id, label: name })).sort((a, b) => a.label.localeCompare(b.label))
+    ];
   }, [transactions]);
 
   const categoryOptions = useMemo(() => {
@@ -100,7 +114,10 @@ export default function ReturnsClient({
         set.add(tx.product.category);
       }
     });
-    return Array.from(set).sort();
+    return [
+      { value: '', label: 'All Categories' },
+      ...Array.from(set).sort().map(cat => ({ value: cat, label: cat }))
+    ];
   }, [transactions]);
 
   // --- Filtering ---
@@ -363,37 +380,37 @@ export default function ReturnsClient({
       <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
         {/* Filters */}
         <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col sm:flex-row gap-3 items-center">
-          <div className="relative w-full sm:flex-1">
-            <Store size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-            <select value={searchStore} onChange={(e) => setSearchStore(e.target.value)}
-              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
-              <option value="">All Stores</option>
-              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+          <div className="w-full sm:flex-1">
+            <CustomSelect
+              options={storeOptions}
+              value={searchStore}
+              onChange={(val) => setSearchStore(val)}
+              placeholder="All Stores"
+            />
           </div>
-          <div className="relative w-full sm:flex-1">
-            <UserCheck size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-            <select value={searchSupervisor} onChange={(e) => setSearchSupervisor(e.target.value)}
-              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
-              <option value="">All Supervisors</option>
-              {supervisors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+          <div className="w-full sm:flex-1">
+            <CustomSelect
+              options={supervisorOptions}
+              value={searchSupervisor}
+              onChange={(val) => setSearchSupervisor(val)}
+              placeholder="All Supervisors"
+            />
           </div>
-          <div className="relative w-full sm:flex-1">
-            <Tag size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-            <select value={searchBrand} onChange={(e) => setSearchBrand(e.target.value)}
-              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
-              <option value="">All Brands</option>
-              {brandOptions.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+          <div className="w-full sm:flex-1">
+            <CustomSelect
+              options={brandOptions}
+              value={searchBrand}
+              onChange={(val) => setSearchBrand(val)}
+              placeholder="All Brands"
+            />
           </div>
-          <div className="relative w-full sm:flex-1">
-            <Layers size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-            <select value={searchCategory} onChange={(e) => setSearchCategory(e.target.value)}
-              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
-              <option value="">All Categories</option>
-              {categoryOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
+          <div className="w-full sm:flex-1">
+            <CustomSelect
+              options={categoryOptions}
+              value={searchCategory}
+              onChange={(val) => setSearchCategory(val)}
+              placeholder="All Categories"
+            />
           </div>
           <div className="relative w-full sm:flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />

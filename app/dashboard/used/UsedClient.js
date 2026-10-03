@@ -12,6 +12,7 @@ import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function UsedClient({ transactions = [], stores = [], pastUsed = [] }) {
   const router = useRouter();
@@ -49,6 +50,11 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
     const matchStore = !searchStore || tx.toEntityId === searchStore;
     return matchDN && matchStore;
   }), [transactions, searchDN, searchStore]);
+
+  const storeOptions = useMemo(() => [
+    { value: '', label: 'All Stores' },
+    ...stores.map(s => ({ value: s.id, label: s.name }))
+  ], [stores]);
 
   const txCustomGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
@@ -230,13 +236,13 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
         {/* Filters */}
         {activeTab !== 'history' && (
           <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Store size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <select value={searchStore} onChange={(e) => setSearchStore(e.target.value)}
-                className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors font-semibold appearance-none">
-                <option value="">All Stores</option>
-                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+            <div className="flex-1">
+              <CustomSelect
+                options={storeOptions}
+                value={searchStore}
+                onChange={(val) => setSearchStore(val)}
+                placeholder="All Stores"
+              />
             </div>
             <div className="relative flex-1">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
