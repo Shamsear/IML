@@ -1268,7 +1268,7 @@ export async function createBulkRebrandTransactions(formData) {
     newSecondary: ''
   }));
 
-  const nonSerializedQty = parseInt(formData.get('nonSerializedQty') || '0', 10);
+  const nonSerializedQty = parseFloat(formData.get('nonSerializedQty') || '0');
   const qty = barcodes.length > 0 ? barcodes.length : nonSerializedQty;
 
   return processRebrand({

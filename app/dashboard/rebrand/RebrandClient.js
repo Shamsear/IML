@@ -566,7 +566,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         }
       }
     } else {
-      const qty = parseInt(nonSerializedQty, 10);
+      const qty = parseFloat(nonSerializedQty);
       if (!qty || qty <= 0) {
         setError('Quantity must be greater than 0');
         setLoading(false);
@@ -1224,17 +1224,41 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         {/* Mappings Queue Card List */}
         {sourceSelectedProduct?.isSerialized && (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="flex items-center justify-between pb-2 border-b border-border flex-wrap gap-2">
             <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Serials to Rebrand ({currentScannedCount} items selected)</span>
-            {mappings.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setMappings([])}
-                className="text-xs text-danger font-bold hover:underline"
-              >
-                Clear All mappings
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {availableBarcodes.length > 0 && mappings.length < availableBarcodes.length && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const unmapped = availableBarcodes.filter(
+                      b => !mappings.some(m => m.sourceBarcode.toLowerCase() === b.barcode.toLowerCase())
+                    );
+                    setMappings(prev => [
+                      ...prev.map(m => ({ ...m, isExpanded: false })),
+                      ...unmapped.map(b => ({
+                        sourceBarcode: b.barcode,
+                        targetBarcode: '',
+                        isExpanded: false,
+                        error: ''
+                      }))
+                    ]);
+                  }}
+                  className="text-xs text-primary font-bold hover:underline cursor-pointer"
+                >
+                  Select All Available ({availableBarcodes.length})
+                </button>
+              )}
+              {mappings.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setMappings([])}
+                  className="text-xs text-danger font-bold hover:underline cursor-pointer"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
           </div>
 
           {mappings.length === 0 ? (
@@ -1352,22 +1376,33 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
                     In Stock: <strong className="text-primary">{sourceSelectedProduct.warehouseStock || 0}</strong>
                   </span>
                 </label>
-                <input
-                  type="number"
-                  className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                  min={1}
-                  max={sourceSelectedProduct.warehouseStock}
-                  value={nonSerializedQty}
-                  onChange={(e) => setNonSerializedQty(e.target.value)}
-                  placeholder="e.g. 10"
-                  required
-                />
-                {parseInt(nonSerializedQty, 10) > sourceSelectedProduct.warehouseStock && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="any"
+                    className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 font-mono font-bold"
+                    min="0.001"
+                    max={sourceSelectedProduct.warehouseStock}
+                    value={nonSerializedQty}
+                    onChange={(e) => setNonSerializedQty(e.target.value)}
+                    placeholder="e.g. 10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setNonSerializedQty(String(sourceSelectedProduct.warehouseStock))}
+                    className="px-2.5 py-2 text-xs font-bold rounded-lg border border-border bg-surface-elevated hover:bg-surface-elevated/80 text-text-secondary hover:text-text-primary transition-colors whitespace-nowrap cursor-pointer"
+                    title="Rebrand entire available stock"
+                  >
+                    All ({sourceSelectedProduct.warehouseStock})
+                  </button>
+                </div>
+                {parseFloat(nonSerializedQty) > sourceSelectedProduct.warehouseStock && (
                   <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse">
                     ⚠️ Warning: Quantity exceeds available stock ({sourceSelectedProduct.warehouseStock})!
                   </span>
                 )}
-                {parseInt(nonSerializedQty, 10) <= 0 && nonSerializedQty !== '' && (
+                {parseFloat(nonSerializedQty) <= 0 && nonSerializedQty !== '' && (
                   <span className="text-[10px] font-semibold text-danger mt-1">
                     ⚠️ Warning: Quantity must be greater than 0.
                   </span>
