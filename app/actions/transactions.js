@@ -2686,3 +2686,137 @@ export async function returnClientItemsToWarehouse(payload) {
   return transactions;
 }
 
+// Revert or Give Back Rebranded Items (vendor dispatch or warehouse product conversion)
+export async function giveBackRebrandTransaction({
+  transactionId,
+  quantity,
+  targetProductId,
+  notes,
+  barcodes = [],
+}) {
+  await checkAuth();
+
+  if (!transactionId) throw new Error('Transaction ID is required');
+
+  const originalTx = await prisma.inventoryTransaction.findUnique({
+    where: { id: transactionId },
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          isSerialized: true,
+          brand: { select: { id: true, name: true } }
+        }
+      },
+      serialNumbers: {
+        include: { serialNumber: true }
+      }
+    }
+  });
+
+  if (!originalTx) throw new Error('Original rebranding transaction not found');
+
+  const remainingQty = originalTx.quantity - (originalTx.returnedQty || 0);
+  const returnQty = parseFloat(quantity || remainingQty);
+
+  if (returnQty <= 0) {
+    throw new Error('Give back quantity must be greater than 0');
+  }
+  if (returnQty > remainingQty + 0.0001) {
+    throw new Error(`Cannot give back ${returnQty}. Only ${remainingQty} items remaining.`);
+  }
+
+  const brandName = originalTx.product?.brand?.name || 'General';
+
+  await prisma.$transaction(async (tx) => {
+    const newReturnedQty = (originalTx.returnedQty || 0) + returnQty;
+    const newStatus = newReturnedQty >= originalTx.quantity - 0.0001 ? 'RETURNED' : 'PARTIAL';
+    const combinedReturnNotes = originalTx.returnNotes
+      ? `${originalTx.returnNotes} | ${notes || 'Returned to source'}`
+      : (notes || 'Returned to source');
+
+    // 1. Update original transaction with returned tracking
+    await tx.inventoryTransaction.update({
+      where: { id: transactionId },
+      data: {
+        returnedQty: newReturnedQty,
+        returnStatus: newStatus,
+        returnNotes: combinedReturnNotes,
+      }
+    });
+
+    const returnDeliveryNote = await generateCustomRef(tx, 'RTR', brandName);
+
+    // 2. Determine target product and route
+    // If original was outbound to a vendor (REBRAND / from WH to VENDOR):
+    // Stock returns from vendor back to central warehouse.
+    const finalProductId = targetProductId || originalTx.productId;
+    const targetProduct = await tx.product.findUnique({
+      where: { id: finalProductId },
+      select: { id: true, name: true, isSerialized: true }
+    });
+    if (!targetProduct) throw new Error('Target product not found');
+
+    const giveBackTx = await tx.inventoryTransaction.create({
+      data: {
+        productId: finalProductId,
+        transactionType: 'REBRAND_IN',
+        fromEntityType: originalTx.toEntityType || 'VENDOR',
+        fromEntityId: originalTx.toEntityId || null,
+        toEntityType: 'WAREHOUSE',
+        toEntityId: 'WH-MAIN',
+        quantity: returnQty,
+        deliveryNote: returnDeliveryNote,
+        notes: `Returned to source from ${originalTx.deliveryNote || originalTx.id}. ${notes || ''}`.trim(),
+        deliveryStatus: 'Delivered',
+      }
+    });
+
+    // 3. Handle Serialized Products if any
+    if (originalTx.product.isSerialized) {
+      // Find serials to return
+      let serialsToReturn = [];
+      if (barcodes.length > 0) {
+        serialsToReturn = await tx.productSerialNumber.findMany({
+          where: { barcode: { in: barcodes } }
+        });
+      } else if (originalTx.serialNumbers.length > 0) {
+        // Take up to returnQty serials from original transaction
+        serialsToReturn = originalTx.serialNumbers
+          .map(s => s.serialNumber)
+          .slice(0, Math.round(returnQty));
+      }
+
+      if (serialsToReturn.length > 0) {
+        const serialIds = serialsToReturn.map(s => s.id);
+
+        // Update serials to be available in warehouse under target product
+        await tx.productSerialNumber.updateMany({
+          where: { id: { in: serialIds } },
+          data: {
+            productId: finalProductId,
+            status: 'AVAILABLE',
+            currentLocationType: 'WAREHOUSE',
+            currentLocationId: 'WH-MAIN',
+          }
+        });
+
+        // Link serials to the return transaction
+        await tx.transactionSerialNumber.createMany({
+          data: serialIds.map(serialNumberId => ({
+            transactionId: giveBackTx.id,
+            serialNumberId,
+          }))
+        });
+      }
+    }
+  }, { timeout: 20000 });
+
+  revalidateTransactionPaths();
+  revalidatePath('/dashboard/rebrand');
+
+  return { success: true };
+}
+

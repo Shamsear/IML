@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Package } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Package, ArrowLeftRight } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkRebrandTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
@@ -695,10 +695,31 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
 
       <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
         {/* Destination Header */}
-        <h3 className="font-display font-bold text-lg text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-          <RefreshCw size={20} className="text-warning animate-spin-slow" />
-          <span>Rebrand Direction</span>
-        </h3>
+        <div className="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
+          <h3 className="font-display font-bold text-lg text-text-primary flex items-center gap-2">
+            <RefreshCw size={20} className="text-warning animate-spin-slow" />
+            <span>Rebrand Direction</span>
+          </h3>
+          {!isNewProduct && (
+            <button
+              type="button"
+              onClick={() => {
+                const prevSource = sourceProductId;
+                const prevTarget = targetProductId;
+                setSourceProductId(prevTarget);
+                setTargetProductId(prevSource);
+                setMappings([]);
+                setAvailableBarcodes([]);
+              }}
+              disabled={!sourceProductId && !targetProductId}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-elevated/70 border border-border text-text-secondary hover:text-text-primary hover:border-primary/50 hover:bg-surface-elevated transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Reverse conversion: swap Source and Target products"
+            >
+              <ArrowLeftRight size={13} className="text-primary" />
+              <span>Swap Direction (⇄)</span>
+            </button>
+          )}
+        </div>
 
         {/* Direction Fields */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -3,21 +3,33 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { RefreshCw, Plus, Search, X, Package, FileText, Store } from 'lucide-react';
+import { RefreshCw, Plus, Search, X, Package, FileText, Store, RotateCcw, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import ExportToExcel from '@/components/ExportToExcel';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import { useToast } from '@/components/Toast';
+import { giveBackRebrandTransaction } from '@/app/actions/transactions';
 
 export default function RebrandLedgerClient({
   transactions = [],
   entityNames = {},
+  products = [],
   initialPage = 1,
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const toast = useToast();
+
+  // Give Back Modal state
+  const [giveBackTx, setGiveBackTx] = useState(null);
+  const [giveBackQty, setGiveBackQty] = useState('');
+  const [giveBackProductId, setGiveBackProductId] = useState('');
+  const [giveBackNotes, setGiveBackNotes] = useState('');
+  const [giveBackLoading, setGiveBackLoading] = useState(false);
+  const [giveBackError, setGiveBackError] = useState('');
 
   // Search & Type Filters
   const [searchTerm, setSearchTerm] = useState(searchParams?.get('q') || searchParams?.get('search') || '');
@@ -72,6 +84,52 @@ export default function RebrandLedgerClient({
     if (tx.transactionType === 'REBRAND_IN') return 'REBRAND IN (Gain)';
     if (tx.transactionType === 'REBRAND_OUT') return 'REBRAND OUT (Loss)';
     return 'REBRAND (Outbound)';
+  };
+
+  const handleOpenGiveBack = (tx) => {
+    setGiveBackTx(tx);
+    const remaining = Math.max(0, tx.quantity - (tx.returnedQty || 0));
+    setGiveBackQty(remaining > 0 ? String(remaining) : String(tx.quantity));
+    setGiveBackProductId(tx.product?.id || '');
+    setGiveBackNotes('');
+    setGiveBackError('');
+  };
+
+  const handleCloseGiveBack = () => {
+    setGiveBackTx(null);
+    setGiveBackQty('');
+    setGiveBackProductId('');
+    setGiveBackNotes('');
+    setGiveBackError('');
+    setGiveBackLoading(false);
+  };
+
+  const handleConfirmGiveBack = async (e) => {
+    if (e) e.preventDefault();
+    if (!giveBackTx) return;
+
+    const qtyNum = parseFloat(giveBackQty);
+    if (!qtyNum || qtyNum <= 0) {
+      setGiveBackError('Please enter a valid quantity greater than 0');
+      return;
+    }
+
+    setGiveBackLoading(true);
+    setGiveBackError('');
+    try {
+      await giveBackRebrandTransaction({
+        transactionId: giveBackTx.id,
+        quantity: qtyNum,
+        targetProductId: giveBackProductId || giveBackTx.product?.id,
+        notes: giveBackNotes.trim(),
+      });
+      toast.success('Give Back Successful', `Returned ${qtyNum} items to source warehouse.`);
+      handleCloseGiveBack();
+      router.refresh();
+    } catch (err) {
+      setGiveBackError(err.message || 'Failed to process return to source.');
+      setGiveBackLoading(false);
+    }
   };
 
   // Filter items
@@ -339,14 +397,38 @@ export default function RebrandLedgerClient({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-text-muted pt-1 border-t border-border/40">
-                      <span>{dateStr}</span>
-                      <TransactionActions
-                        txId={tx.id}
-                        deliveryNote={tx.deliveryNote}
-                        notes={tx.notes || ''}
-                        showDeliveryNote={false}
-                      />
+                    <div className="flex items-center justify-between text-[11px] text-text-muted pt-1 border-t border-border/40 gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{dateStr}</span>
+                        {tx.returnStatus && (
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${
+                            tx.returnStatus === 'RETURNED'
+                              ? 'bg-success/10 text-success border border-success/20'
+                              : 'bg-warning/10 text-warning border border-warning/20'
+                          }`}>
+                            {tx.returnStatus} ({tx.returnedQty || 0}/{tx.quantity})
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {tx.transactionType !== 'REBRAND_IN' && (!tx.returnStatus || tx.returnStatus === 'PARTIAL') && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenGiveBack(tx)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/20 font-bold text-[10px] transition-colors cursor-pointer"
+                            title="Give Back / Return stock to source"
+                          >
+                            <RotateCcw size={11} />
+                            <span>Give Back</span>
+                          </button>
+                        )}
+                        <TransactionActions
+                          txId={tx.id}
+                          deliveryNote={tx.deliveryNote}
+                          notes={tx.notes || ''}
+                          showDeliveryNote={false}
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -463,12 +545,34 @@ export default function RebrandLedgerClient({
                           {tx.notes || '---'}
                         </td>
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <TransactionActions
-                            txId={tx.id}
-                            deliveryNote={tx.deliveryNote}
-                            notes={tx.notes || ''}
-                            showDeliveryNote={false}
-                          />
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            {tx.returnStatus && (
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                                tx.returnStatus === 'RETURNED'
+                                  ? 'bg-success/10 text-success border border-success/20'
+                                  : 'bg-warning/10 text-warning border border-warning/20'
+                              }`}>
+                                {tx.returnStatus} ({tx.returnedQty || 0}/{tx.quantity})
+                              </span>
+                            )}
+                            {tx.transactionType !== 'REBRAND_IN' && (!tx.returnStatus || tx.returnStatus === 'PARTIAL') && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenGiveBack(tx)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/20 font-bold text-xs transition-colors cursor-pointer"
+                                title="Give Back / Return stock to source"
+                              >
+                                <RotateCcw size={12} />
+                                <span>Give Back</span>
+                              </button>
+                            )}
+                            <TransactionActions
+                              txId={tx.id}
+                              deliveryNote={tx.deliveryNote}
+                              notes={tx.notes || ''}
+                              showDeliveryNote={false}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -489,6 +593,180 @@ export default function RebrandLedgerClient({
           </>
         )}
       </div>
+
+      {/* Give Back to Source Modal */}
+      {giveBackTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-scale-up flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-elevated/40">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center text-secondary">
+                  <RotateCcw size={16} />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-base text-text-primary">
+                    Give Back Rebranded Stock
+                  </h3>
+                  <p className="text-xs text-text-muted">
+                    Return stock back to source warehouse / product
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseGiveBack}
+                disabled={giveBackLoading}
+                className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleConfirmGiveBack} className="p-6 flex flex-col gap-4">
+              {giveBackError && (
+                <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle size={15} className="shrink-0" />
+                  <span>{giveBackError}</span>
+                </div>
+              )}
+
+              {/* Transaction Summary Card */}
+              <div className="bg-surface-elevated/40 border border-border rounded-xl p-3.5 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                    Original Rebrand Log
+                  </span>
+                  {giveBackTx.deliveryNote && (
+                    <span className="font-mono text-primary font-semibold text-xs bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                      {giveBackTx.deliveryNote}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm font-bold text-text-primary">
+                  {giveBackTx.product?.name}
+                </div>
+                <div className="flex items-center gap-4 text-xs text-text-secondary pt-1 border-t border-border/50">
+                  <div>
+                    From: <strong className="text-text-primary">{getFromName(giveBackTx)}</strong>
+                  </div>
+                  <div>→</div>
+                  <div>
+                    To: <strong className="text-text-primary">{getToName(giveBackTx)}</strong>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-text-muted pt-1">
+                  <span>
+                    Total Dispatched: <strong>{giveBackTx.quantity}</strong>
+                  </span>
+                  <span>
+                    Remaining Unreturned:{' '}
+                    <strong className="text-secondary">
+                      {Math.max(0, giveBackTx.quantity - (giveBackTx.returnedQty || 0))}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Target / Destination Product */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
+                  Return to Product Definition
+                </label>
+                <select
+                  value={giveBackProductId}
+                  onChange={(e) => setGiveBackProductId(e.target.value)}
+                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value={giveBackTx.product?.id}>
+                    Original: {giveBackTx.product?.name} ({giveBackTx.product?.itemCode || 'No SKU'})
+                  </option>
+                  {products
+                    .filter((p) => p.id !== giveBackTx.product?.id)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.brand?.name || 'General'})
+                      </option>
+                    ))}
+                </select>
+                <span className="text-[10px] text-text-muted">
+                  The central warehouse stock will be credited back under this product catalog definition.
+                </span>
+              </div>
+
+              {/* Quantity to Return */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-text-secondary">
+                    Quantity to Give Back
+                  </label>
+                  <span className="text-xs text-text-muted">
+                    Max:{' '}
+                    <strong className="text-primary">
+                      {Math.max(0, giveBackTx.quantity - (giveBackTx.returnedQty || 0))}
+                    </strong>
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  step="any"
+                  min="0.001"
+                  max={Math.max(0, giveBackTx.quantity - (giveBackTx.returnedQty || 0))}
+                  value={giveBackQty}
+                  onChange={(e) => setGiveBackQty(e.target.value)}
+                  placeholder="Enter quantity"
+                  required
+                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono font-bold"
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
+                  Remarks / Return Reason (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={giveBackNotes}
+                  onChange={(e) => setGiveBackNotes(e.target.value)}
+                  placeholder="e.g. Advamedia completed rebranding, return unused stock to warehouse..."
+                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={handleCloseGiveBack}
+                  disabled={giveBackLoading}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-elevated border border-border transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={giveBackLoading}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-secondary hover:bg-secondary-hover text-white shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {giveBackLoading ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw size={13} />
+                      <span>Confirm Give Back</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

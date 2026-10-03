@@ -26,9 +26,10 @@ export default async function RebrandPage({ searchParams }) {
   let transactions = [];
   let totalCount = 0;
   let stores = [];
+  let products = [];
 
   try {
-    const [txs, count, storeList] = await Promise.all([
+    const [txs, count, storeList, prodList] = await Promise.all([
       prisma.inventoryTransaction.findMany({
         where: {
           transactionType: { in: ['REBRAND', 'REBRAND_OUT', 'REBRAND_IN'] },
@@ -43,6 +44,9 @@ export default async function RebrandPage({ searchParams }) {
           quantity: true,
           deliveryNote: true,
           notes: true,
+          returnStatus: true,
+          returnedQty: true,
+          returnNotes: true,
           timestamp: true,
           product: {
             select: {
@@ -71,12 +75,22 @@ export default async function RebrandPage({ searchParams }) {
       prisma.store.findMany({
         select: { id: true, name: true },
         orderBy: { name: 'asc' }
+      }),
+      prisma.product.findMany({
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          brand: { select: { name: true } }
+        },
+        orderBy: { name: 'asc' }
       })
     ]);
 
     transactions = txs;
     totalCount = count;
     stores = storeList;
+    products = prodList;
   } catch (err) {
     console.error('Error fetching rebrand transactions:', err);
   }
@@ -94,6 +108,7 @@ export default async function RebrandPage({ searchParams }) {
       <RebrandLedgerClient
         transactions={formattedTransactions}
         entityNames={entityNames}
+        products={products}
         totalCount={totalCount}
         initialPage={initialPage}
       />
