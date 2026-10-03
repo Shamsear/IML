@@ -411,7 +411,9 @@ export default function ReturnsClient({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
-                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-primary truncate hover:text-primary-hover transition-colors">{tx.product?.name}</Link>
+                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-primary hover:text-primary-hover hover:underline transition-colors break-words">
+                            {tx.product?.name}
+                          </Link>
                           {tx.product?.isReturnable && tx.product?.isDisposable ? (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
                           ) : (
@@ -475,13 +477,24 @@ export default function ReturnsClient({
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/30'}`}>
                         <td className="py-2.5 sm:py-3 pl-4 sm:pl-5 pr-2 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
-                        <td className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
-                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-primary hover:text-primary-hover transition-colors">{tx.product?.name}</Link>
-                          {tx.product?.isReturnable && tx.product?.isDisposable ? (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
-                          ) : (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
-                          )}
+                        <td className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 min-w-[220px] max-w-sm sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
+                          <div className="flex flex-col">
+                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-primary hover:text-primary-hover hover:underline transition-colors break-words leading-snug">
+                              {tx.product?.name}
+                            </Link>
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                              {tx.product?.itemCode && (
+                                <span className="font-mono text-[10px] text-text-muted">
+                                  {tx.product.itemCode}
+                                </span>
+                              )}
+                              {tx.product?.isReturnable && tx.product?.isDisposable ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
@@ -736,9 +749,9 @@ export default function ReturnsClient({
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
                           {new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary min-w-[200px]">
                           <div className="flex flex-col">
-                            <span className="text-primary font-bold">{tx.product?.name}</span>
+                            <span className="text-primary font-bold break-words">{tx.product?.name}</span>
                             <span className="text-[10px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>
                           </div>
                         </td>
