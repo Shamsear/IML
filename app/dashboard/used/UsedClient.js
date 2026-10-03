@@ -235,20 +235,42 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
       <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
         {/* Filters */}
         {activeTab !== 'history' && (
-          <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <CustomSelect
-                options={storeOptions}
-                value={searchStore}
-                onChange={(val) => setSearchStore(val)}
-                placeholder="All Stores"
-              />
-            </div>
-            <div className="relative flex-1">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input type="text" placeholder="Search Delivery Note..." value={searchDN}
+          <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col gap-3">
+            <div className="relative w-full">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input type="text" placeholder="Search Delivery Note or store..." value={searchDN}
                 onChange={(e) => setSearchDN(e.target.value)}
-                className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors font-semibold font-mono" />
+                className="w-full bg-surface text-text-primary border border-border rounded-xl pl-10 pr-9 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold font-mono shadow-xs" />
+              {searchDN && (
+                <button
+                  type="button"
+                  onClick={() => setSearchDN('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+              <div className="w-full">
+                <CustomSelect
+                  options={storeOptions}
+                  value={searchStore}
+                  onChange={(val) => setSearchStore(val)}
+                  placeholder="All Stores"
+                />
+              </div>
+              {(searchDN || searchStore) && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => { setSearchDN(''); setSearchStore(''); }}
+                    className="px-3 py-2.5 text-xs font-semibold text-text-secondary hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -192,32 +192,57 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
       {activeTab === 'transactions' && (
         <div className="flex flex-col gap-4 animate-fade-in">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 bg-surface p-4 rounded-xl border border-border shadow-sm">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+          <div className="flex flex-col gap-3 bg-surface p-4 rounded-xl border border-border shadow-sm">
+            {/* Top Search Bar */}
+            <div className="w-full relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input
                 type="text"
                 placeholder="Search by product name..."
-                className="w-full pl-9 pr-4 py-2.5 bg-surface text-text-primary border border-border rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
+                className="w-full pl-10 pr-9 py-2.5 bg-surface text-text-primary border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold shadow-xs"
                 value={productFilter}
                 onChange={e => setProductFilter(e.target.value)}
               />
+              {productFilter && (
+                <button
+                  type="button"
+                  onClick={() => setProductFilter('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              )}
             </div>
-            <div className="flex-1 sm:max-w-xs">
-              <CustomSelect
-                options={brandOptions}
-                value={brandId}
-                onChange={setBrandId}
-                placeholder="All Brands"
-              />
-            </div>
-            <div className="flex-1 sm:max-w-xs">
-              <CustomSelect
-                options={categoryOptions}
-                value={categoryFilter}
-                onChange={setCategoryFilter}
-                placeholder="All Categories"
-              />
+
+            {/* Dropdown Filters Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+              <div className="w-full">
+                <CustomSelect
+                  options={brandOptions}
+                  value={brandId}
+                  onChange={setBrandId}
+                  placeholder="All Brands"
+                />
+              </div>
+              <div className="flex items-center gap-2 w-full">
+                <div className="flex-1">
+                  <CustomSelect
+                    options={categoryOptions}
+                    value={categoryFilter}
+                    onChange={setCategoryFilter}
+                    placeholder="All Categories"
+                  />
+                </div>
+                {(productFilter || brandId || categoryFilter) && (
+                  <button
+                    type="button"
+                    onClick={() => { setProductFilter(''); setBrandId(''); setCategoryFilter(''); }}
+                    className="px-3 py-2.5 text-xs font-semibold text-text-secondary hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all whitespace-nowrap flex items-center justify-center shrink-0"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

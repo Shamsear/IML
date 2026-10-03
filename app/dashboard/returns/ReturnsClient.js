@@ -379,66 +379,77 @@ export default function ReturnsClient({
 
       <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
         {/* Filters */}
-        <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col sm:flex-row gap-3 items-center">
-          <div className="w-full sm:flex-1">
-            <CustomSelect
-              options={storeOptions}
-              value={searchStore}
-              onChange={(val) => setSearchStore(val)}
-              placeholder="All Stores"
-            />
-          </div>
-          <div className="w-full sm:flex-1">
-            <CustomSelect
-              options={supervisorOptions}
-              value={searchSupervisor}
-              onChange={(val) => setSearchSupervisor(val)}
-              placeholder="All Supervisors"
-            />
-          </div>
-          <div className="w-full sm:flex-1">
-            <CustomSelect
-              options={brandOptions}
-              value={searchBrand}
-              onChange={(val) => setSearchBrand(val)}
-              placeholder="All Brands"
-            />
-          </div>
-          <div className="w-full sm:flex-1">
-            <CustomSelect
-              options={categoryOptions}
-              value={searchCategory}
-              onChange={(val) => setSearchCategory(val)}
-              placeholder="All Categories"
-            />
-          </div>
-          <div className="relative w-full sm:flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-            <input type="text" placeholder="Search item, SKU, DN..." value={searchDN}
+        <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col gap-3">
+          {/* Top Search Bar */}
+          <div className="relative w-full">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search item, SKU, DN, store, or supervisor..."
+              value={searchDN}
               onChange={(e) => setSearchDN(e.target.value)}
-              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-8 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold" />
+              className="w-full bg-surface text-text-primary border border-border rounded-xl pl-10 pr-9 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold shadow-xs"
+            />
             {searchDN && (
               <button
                 type="button"
                 onClick={() => setSearchDN('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
                 title="Clear search"
               >
-                <X size={14} />
+                <X size={15} />
               </button>
             )}
           </div>
-          {(searchDN || searchStore || searchSupervisor || searchBrand || searchCategory) && (
-            <button
-              type="button"
-              onClick={() => { setSearchDN(''); setSearchStore(''); setSearchSupervisor(''); setSearchBrand(''); setSearchCategory(''); }}
-              className="w-full sm:w-auto px-3 py-2.5 text-xs font-semibold text-text-muted hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0"
-              title="Reset all filters"
-            >
-              <X size={14} />
-              <span>Reset</span>
-            </button>
-          )}
+
+          {/* Filters Row (Grid: 2 columns on mobile/tablet, 4 columns on desktop + reset) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center">
+            <div className="w-full">
+              <CustomSelect
+                options={storeOptions}
+                value={searchStore}
+                onChange={(val) => setSearchStore(val)}
+                placeholder="All Stores"
+              />
+            </div>
+            <div className="w-full">
+              <CustomSelect
+                options={supervisorOptions}
+                value={searchSupervisor}
+                onChange={(val) => setSearchSupervisor(val)}
+                placeholder="All Supervisors"
+              />
+            </div>
+            <div className="w-full">
+              <CustomSelect
+                options={brandOptions}
+                value={searchBrand}
+                onChange={(val) => setSearchBrand(val)}
+                placeholder="All Brands"
+              />
+            </div>
+            <div className="flex items-center gap-2 w-full">
+              <div className="flex-1">
+                <CustomSelect
+                  options={categoryOptions}
+                  value={searchCategory}
+                  onChange={(val) => setSearchCategory(val)}
+                  placeholder="All Categories"
+                />
+              </div>
+              {(searchDN || searchStore || searchSupervisor || searchBrand || searchCategory) && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchDN(''); setSearchStore(''); setSearchSupervisor(''); setSearchBrand(''); setSearchCategory(''); }}
+                  className="px-3 py-2.5 text-xs font-semibold text-text-muted hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0"
+                  title="Reset all filters"
+                >
+                  <X size={14} />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
