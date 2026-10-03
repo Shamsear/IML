@@ -32,8 +32,15 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
 
   // Brand filter for source product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
+  // Category filter for source product selection
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+
   // Brand filter for target product selection
   const [targetBrandFilter, setTargetBrandFilter] = useState('ALL');
+  // Category filter for target product selection
+  const [targetCategoryFilter, setTargetCategoryFilter] = useState('ALL');
+
+  const uniqueCategories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort(), [products]);
 
   // Inline product registration states for rebranding target product
   const [isNewProduct, setIsNewProduct] = useState(false);
@@ -725,26 +732,47 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5 relative">
             <label className="text-xs font-semibold text-text-secondary">Source Product (Convert From)</label>
-            {/* Brand filter pills */}
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => setBrandFilter('ALL')}
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-              >All Brands</button>
-              {brands.map(b => (
+            {/* Brand & Category filter pills */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold text-text-secondary uppercase">Brand:</span>
                 <button
-                  key={b.id}
                   type="button"
-                  onClick={() => setBrandFilter(b.id)}
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                >{b.name}</button>
-              ))}
+                  onClick={() => setBrandFilter('ALL')}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                >All</button>
+                {brands.map(b => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setBrandFilter(b.id)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                  >{b.name}</button>
+                ))}
+              </div>
+              {uniqueCategories.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold text-text-secondary uppercase">Cat:</span>
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter('ALL')}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${categoryFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                  >All</button>
+                  {uniqueCategories.map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setCategoryFilter(cat)}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${categoryFilter === cat ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                    >{cat}</button>
+                  ))}
+                </div>
+              )}
             </div>
             <CustomSelect
               options={sourceProducts
-                .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
-                .map(p => ({ value: p.id, label: p.name, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
+                .filter(p => (brandFilter === 'ALL' || p.brand?.id === brandFilter) && (categoryFilter === 'ALL' || p.category === categoryFilter))
+                .map(p => ({ value: p.id, label: `${p.name} (${p.category})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
               value={sourceProductId}
               onChange={(val) => setSourceProductId(val)}
               placeholder="Select Source Product..."
@@ -796,26 +824,47 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slide-down">
             <div className="flex flex-col gap-1.5 relative sm:col-span-2">
               <label className="text-xs font-semibold text-text-secondary">Target Product (Convert To)</label>
-              {/* Target Brand filter pills */}
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setTargetBrandFilter('ALL')}
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${targetBrandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                >All Brands</button>
-                {brands.map(b => (
+              {/* Target Brand & Category filter pills */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold text-text-secondary uppercase">Brand:</span>
                   <button
-                    key={b.id}
                     type="button"
-                    onClick={() => setTargetBrandFilter(b.id)}
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${targetBrandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                  >{b.name}</button>
-                ))}
+                    onClick={() => setTargetBrandFilter('ALL')}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${targetBrandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                  >All</button>
+                  {brands.map(b => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setTargetBrandFilter(b.id)}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${targetBrandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                    >{b.name}</button>
+                  ))}
+                </div>
+                {uniqueCategories.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold text-text-secondary uppercase">Cat:</span>
+                    <button
+                      type="button"
+                      onClick={() => setTargetCategoryFilter('ALL')}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${targetCategoryFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                    >All</button>
+                    {uniqueCategories.map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setTargetCategoryFilter(cat)}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${targetCategoryFilter === cat ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                      >{cat}</button>
+                    ))}
+                  </div>
+                )}
               </div>
               <CustomSelect
                 options={products
-                  .filter(p => (targetBrandFilter === 'ALL' || p.brandId === targetBrandFilter || p.brand?.id === targetBrandFilter) && p.id !== sourceProductId)
-                  .map(p => ({ value: p.id, label: `${p.name} (${p.brand?.name || 'General'})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
+                  .filter(p => (targetBrandFilter === 'ALL' || p.brandId === targetBrandFilter || p.brand?.id === targetBrandFilter) && (targetCategoryFilter === 'ALL' || p.category === targetCategoryFilter) && p.id !== sourceProductId)
+                  .map(p => ({ value: p.id, label: `${p.name} (${p.category || p.brand?.name || 'General'})`, imageUrl: p.imageUrl, warehouseStock: p.warehouseStock }))}
                 value={targetProductId}
                 onChange={(val) => setTargetProductId(val)}
                 placeholder="Select Target Product..."

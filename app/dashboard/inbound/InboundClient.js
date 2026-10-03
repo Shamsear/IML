@@ -38,13 +38,15 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
   // Brand filter for product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
-  const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  // Category filter for product selection
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const uniqueCategories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort(), [products]);
 
   const handleGlobalBrandChange = (brandId) => {
     setBrandFilter(brandId);
     const firstMatchedProduct = brandId === 'ALL' 
       ? null 
-      : products.find(p => p.brand?.id === brandId);
+      : products.find(p => p.brand?.id === brandId && (categoryFilter === 'ALL' || p.category === categoryFilter));
 
     setItems(prev => prev.map(item => {
       const updated = { ...item, brandFilter: brandId };
@@ -55,6 +57,22 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
           updated.productId = firstMatchedProduct.id;
           updated.quantity = firstMatchedProduct.isSerialized ? 0 : 1;
         }
+      }
+      return updated;
+    }));
+  };
+
+  const handleGlobalCategoryChange = (cat) => {
+    setCategoryFilter(cat);
+    const firstMatchedProduct = cat === 'ALL'
+      ? null
+      : products.find(p => p.category === cat && (brandFilter === 'ALL' || p.brand?.id === brandFilter));
+
+    setItems(prev => prev.map(item => {
+      const updated = { ...item, categoryFilter: cat };
+      if (cat !== 'ALL' && !item.isNewProduct && firstMatchedProduct) {
+        updated.productId = firstMatchedProduct.id;
+        updated.quantity = firstMatchedProduct.isSerialized ? 0 : 1;
       }
       return updated;
     }));
@@ -171,6 +189,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
       prodSimStoreCode: '',
       prodAutoGenName: true,
       brandFilter: activeFilter,
+      categoryFilter: categoryFilter || 'ALL',
     };
   };
 
@@ -1055,44 +1074,88 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
         </div>
       </div>
 
-      {/* Global Brand Filter */}
-      {brands.length > 0 && (
-        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <Tag size={15} className="text-primary" />
-            <span className="text-sm font-bold text-text-primary">Global Brand Filter</span>
-            <span className="text-xs text-text-muted">— sets all items at once, override per-item below</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => handleGlobalBrandChange('ALL')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                brandFilter === 'ALL'
-                  ? 'bg-primary text-white border-primary shadow-sm'
-                  : 'bg-surface border-border text-text-secondary hover:border-primary/50'
-              }`}
-            >
-              All Brands
-            </button>
-            {brands.map(b => (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => handleGlobalBrandChange(b.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                  brandFilter === b.id
-                    ? 'bg-primary text-white border-primary shadow-sm'
-                    : 'bg-surface border-border text-text-secondary hover:border-primary/50'
-                }`}
-              >
-                {b.name}
-              </button>
-            ))}
-          </div>
-          {brandFilter !== 'ALL' && (
+      {/* Global Brand & Category Filters */}
+      {(brands.length > 0 || uniqueCategories.length > 0) && (
+        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex flex-col gap-4">
+          {brands.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Tag size={15} className="text-primary" />
+                <span className="text-sm font-bold text-text-primary">Global Brand Filter</span>
+                <span className="text-xs text-text-muted">— sets all items at once, override per-item below</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleGlobalBrandChange('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                    brandFilter === 'ALL'
+                      ? 'bg-primary text-white border-primary shadow-sm'
+                      : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                  }`}
+                >
+                  All Brands
+                </button>
+                {brands.map(b => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => handleGlobalBrandChange(b.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      brandFilter === b.id
+                        ? 'bg-primary text-white border-primary shadow-sm'
+                        : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                    }`}
+                  >
+                    {b.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {uniqueCategories.length > 0 && (
+            <div className="flex flex-col gap-2 pt-2 border-t border-border/60">
+              <div className="flex items-center gap-2">
+                <Layers size={15} className="text-primary" />
+                <span className="text-sm font-bold text-text-primary">Global Category Filter</span>
+                <span className="text-xs text-text-muted">— filter products by category</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleGlobalCategoryChange('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                    categoryFilter === 'ALL'
+                      ? 'bg-primary text-white border-primary shadow-sm'
+                      : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                  }`}
+                >
+                  All Categories
+                </button>
+                {uniqueCategories.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleGlobalCategoryChange(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      categoryFilter === cat
+                        ? 'bg-primary text-white border-primary shadow-sm'
+                        : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(brandFilter !== 'ALL' || categoryFilter !== 'ALL') && (
             <p className="text-[11px] text-primary font-semibold">
-              Showing only <strong>{brands.find(b => b.id === brandFilter)?.name}</strong> products · {products.filter(p => p.brand?.id === brandFilter).length} products available
+              Filtered: {brandFilter !== 'ALL' && <span>Brand: <strong>{brands.find(b => b.id === brandFilter)?.name}</strong> </span>}
+              {categoryFilter !== 'ALL' && <span>Category: <strong>{categoryFilter}</strong> </span>}
+              · {products.filter(p => (brandFilter === 'ALL' || p.brand?.id === brandFilter) && (categoryFilter === 'ALL' || p.category === categoryFilter)).length} products available
             </p>
           )}
         </div>
@@ -1268,25 +1331,46 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1.5 sm:col-span-2">
                           <label className="text-xs font-semibold text-text-secondary">Product to Receive</label>
-                          {/* Per-item brand override pills */}
-                          <div className="flex flex-wrap gap-1.5 mt-1">
-                            <button
-                              type="button"
-                              onClick={() => updateItemField(idx, 'brandFilter', 'ALL')}
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${(item.brandFilter || 'ALL') === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                            >All Brands</button>
-                            {brands.map(b => (
+                          {/* Per-item brand and category override pills */}
+                          <div className="flex flex-col gap-1.5 mt-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold text-text-secondary uppercase">Brand:</span>
                               <button
-                                key={b.id}
                                 type="button"
-                                onClick={() => updateItemField(idx, 'brandFilter', b.id)}
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                              >{b.name}</button>
-                            ))}
+                                onClick={() => updateItemField(idx, 'brandFilter', 'ALL')}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${(item.brandFilter || 'ALL') === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              >All</button>
+                              {brands.map(b => (
+                                <button
+                                  key={b.id}
+                                  type="button"
+                                  onClick={() => updateItemField(idx, 'brandFilter', b.id)}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                                >{b.name}</button>
+                              ))}
+                            </div>
+                            {uniqueCategories.length > 0 && (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-bold text-text-secondary uppercase">Cat:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateItemField(idx, 'categoryFilter', 'ALL')}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${(item.categoryFilter || 'ALL') === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                                >All</button>
+                                {uniqueCategories.map(cat => (
+                                  <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => updateItemField(idx, 'categoryFilter', cat)}
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.categoryFilter === cat ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                                  >{cat}</button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <CustomSelect
                             options={products
-                              .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
+                              .filter(p => ((item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter) && ((item.categoryFilter || 'ALL') === 'ALL' || p.category === item.categoryFilter))
                               .map(p => ({
                                 value: p.id,
                                 label: `${p.name} (${p.category})`,
@@ -1296,11 +1380,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
                               }))}
                             value={item.productId}
                             onChange={(val) => updateItemField(idx, 'productId', val)}
-                            placeholder={
-                              (item.brandFilter || 'ALL') === 'ALL'
-                                ? '-- Select Product --'
-                                : `-- Select ${brands.find(b => b.id === item.brandFilter)?.name || ''} Product --`
-                            }
+                            placeholder="-- Select Product --"
                             required
                           />
                           {selectedProd?.imageUrl && (

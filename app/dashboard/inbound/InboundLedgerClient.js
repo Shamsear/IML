@@ -34,6 +34,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
   // Filters for Transactions Tab
   const [productFilter, setProductFilter] = useState('');
   const [brandId, setBrandId] = useState(''); // '' = all brands
+  const [categoryFilter, setCategoryFilter] = useState(''); // '' = all categories
 
   // Search filter for Receive Notes Tab
   const [dnSearch, setDnSearch] = useState('');
@@ -57,6 +58,17 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
       }
     });
     return [{ value: '', label: 'All Brands' }, ...Object.entries(map).map(([id, name]) => ({ value: id, label: name })).sort((a, b) => a.label.localeCompare(b.label))];
+  }, [transactions]);
+
+  // Derive unique categories from transactions
+  const categoryOptions = useMemo(() => {
+    const set = new Set();
+    (transactions || []).forEach(tx => {
+      if (tx.product?.category) {
+        set.add(tx.product.category);
+      }
+    });
+    return [{ value: '', label: 'All Categories' }, ...Array.from(set).sort().map(cat => ({ value: cat, label: cat }))];
   }, [transactions]);
 
   // Group by Receive Note + Source Entity ID
@@ -88,11 +100,12 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
   // Filtered transactions for the Ledger tab
   const filteredTransactions = useMemo(() => {
     return (transactions || []).filter(tx => {
-      const matchProduct = tx.product.name.toLowerCase().includes(productFilter.toLowerCase());
-      const matchBrand = brandId ? tx.product.brandId === brandId : true;
-      return matchProduct && matchBrand;
+      const matchProduct = (tx.product?.name || '').toLowerCase().includes(productFilter.toLowerCase());
+      const matchBrand = brandId ? tx.product?.brandId === brandId : true;
+      const matchCategory = categoryFilter ? tx.product?.category === categoryFilter : true;
+      return matchProduct && matchBrand && matchCategory;
     });
-  }, [transactions, productFilter, brandId]);
+  }, [transactions, productFilter, brandId, categoryFilter]);
 
   const inboundGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
@@ -190,7 +203,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                 onChange={e => setProductFilter(e.target.value)}
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 sm:max-w-xs">
               <CustomSelect
                 options={brandOptions}
                 value={brandId}
@@ -198,10 +211,18 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                 placeholder="All Brands"
               />
             </div>
+            <div className="flex-1 sm:max-w-xs">
+              <CustomSelect
+                options={categoryOptions}
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                placeholder="All Categories"
+              />
+            </div>
           </div>
 
           {/* Top Pagination */}
-          {totalPages > 1 && !productFilter && !brandId && (
+          {totalPages > 1 && !productFilter && !brandId && !categoryFilter && (
             <div className="flex items-center justify-between px-5 py-3 border border-border bg-surface rounded-xl shadow-sm text-xs print:hidden">
               <span className="text-text-muted">
                 Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{" "}

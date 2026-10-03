@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone, ShieldAlert, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone, ShieldAlert, CheckCircle, Tag, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkDamageTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes, getProductStockAtLocation, getProductBatchesAtLocation, findProductByBarcode } from '@/app/actions/products';
@@ -24,8 +24,10 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmData, setConfirmData] = useState({ title: '', message: '' });
 
-  // Brand filter for product selection
+  // Brand and category filters for product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const uniqueCategories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort(), [products]);
 
   // Report type: locked by prop, or preset via ?type= URL param
   const [reportType, setReportType] = useState(() => {
@@ -847,28 +849,49 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mr-8">
                   <div className="flex flex-col gap-1.5 md:col-span-2">
                     <label className="text-xs font-semibold text-text-secondary">Product Item</label>
-                    {/* Brand filter pills */}
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setBrandFilter('ALL')}
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                      >All Brands</button>
-                      {brands.map(b => (
+                    {/* Brand and Category filter pills */}
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-text-secondary uppercase">Brand:</span>
                         <button
-                          key={b.id}
                           type="button"
-                          onClick={() => setBrandFilter(b.id)}
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                        >{b.name}</button>
-                      ))}
+                          onClick={() => setBrandFilter('ALL')}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                        >All</button>
+                        {brands.map(b => (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => setBrandFilter(b.id)}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                          >{b.name}</button>
+                        ))}
+                      </div>
+                      {uniqueCategories.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold text-text-secondary uppercase">Cat:</span>
+                          <button
+                            type="button"
+                            onClick={() => setCategoryFilter('ALL')}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${categoryFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                          >All</button>
+                          {uniqueCategories.map(cat => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => setCategoryFilter(cat)}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${categoryFilter === cat ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                            >{cat}</button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <CustomSelect
                       options={products
-                        .filter(p => brandFilter === 'ALL' || p.brand?.id === brandFilter)
+                        .filter(p => (brandFilter === 'ALL' || p.brand?.id === brandFilter) && (categoryFilter === 'ALL' || p.category === categoryFilter))
                         .map(p => ({
                           value: p.id,
-                          label: p.name,
+                          label: `${p.name} (${p.category})`,
                           imageUrl: p.imageUrl,
                           warehouseStock: p.warehouseStock,
                           disabled: p.isSerialized && items.filter((_, i) => i !== index).map(it => it.productId).filter(Boolean).includes(p.id)

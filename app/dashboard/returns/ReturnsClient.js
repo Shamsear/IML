@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Package, Search, Store, UserCheck, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, FileText, X } from 'lucide-react';
+import { Package, Search, Store, UserCheck, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, FileText, X, Tag, Layers } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -40,6 +40,8 @@ export default function ReturnsClient({
   const [searchDN, setSearchDN] = useState(dnVal);
   const [searchStore, setSearchStore] = useState('');
   const [searchSupervisor, setSearchSupervisor] = useState('');
+  const [searchBrand, setSearchBrand] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
   const [processingItems, setProcessingItems] = useState({});
   const [expandedGroups, setExpandedGroups] = useState(dnVal ? { [dnVal]: true } : {});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,7 +59,7 @@ export default function ReturnsClient({
     setTxPage(1);
     setGroupPage(1);
     setHistoryPage(1);
-  }, [searchDN, searchStore, searchSupervisor]);
+  }, [searchDN, searchStore, searchSupervisor, searchBrand, searchCategory]);
 
   const supervisorNames = useMemo(() => {
     const map = {};
@@ -81,6 +83,26 @@ export default function ReturnsClient({
     );
   };
 
+  const brandOptions = useMemo(() => {
+    const map = {};
+    (transactions || []).forEach(tx => {
+      if (tx.product?.brandId && tx.product?.brand?.name) {
+        map[tx.product.brandId] = tx.product.brand.name;
+      }
+    });
+    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [transactions]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set();
+    (transactions || []).forEach(tx => {
+      if (tx.product?.category) {
+        set.add(tx.product.category);
+      }
+    });
+    return Array.from(set).sort();
+  }, [transactions]);
+
   // --- Filtering ---
   const filteredTransactions = useMemo(() => {
     const q = (searchDN || '').toLowerCase().trim();
@@ -91,12 +113,15 @@ export default function ReturnsClient({
         tx.deliverySupervisorId === searchSupervisor || 
         tx.deliverySupervisor?.id === searchSupervisor ||
         (tx.toEntityType === 'SUPERVISOR' && tx.toEntityId === searchSupervisor);
+      const matchBrand = !searchBrand || tx.product?.brandId === searchBrand;
+      const matchCategory = !searchCategory || tx.product?.category === searchCategory;
 
-      if (!matchStore || !matchSupervisor) return false;
+      if (!matchStore || !matchSupervisor || !matchBrand || !matchCategory) return false;
       if (!q) return true;
 
       const pName = tx.product?.name?.toLowerCase() || '';
       const bName = tx.product?.brand?.name?.toLowerCase() || '';
+      const cName = tx.product?.category?.toLowerCase() || '';
       const sku = tx.product?.itemCode?.toLowerCase() || '';
       const dn = tx.deliveryNote?.toLowerCase() || '';
       const storeName = (storeMap[tx.toEntityId] || '').toLowerCase();
@@ -107,6 +132,7 @@ export default function ReturnsClient({
       return (
         pName.includes(q) ||
         bName.includes(q) ||
+        cName.includes(q) ||
         sku.includes(q) ||
         dn.includes(q) ||
         storeName.includes(q) ||
@@ -115,7 +141,7 @@ export default function ReturnsClient({
         barcode.includes(q)
       );
     });
-  }, [transactions, searchDN, searchStore, searchSupervisor, storeMap, supervisorNames]);
+  }, [transactions, searchDN, searchStore, searchSupervisor, searchBrand, searchCategory, storeMap, supervisorNames]);
 
   const txCustomGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
@@ -354,8 +380,24 @@ export default function ReturnsClient({
             </select>
           </div>
           <div className="relative w-full sm:flex-1">
+            <Tag size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <select value={searchBrand} onChange={(e) => setSearchBrand(e.target.value)}
+              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
+              <option value="">All Brands</option>
+              {brandOptions.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
+          <div className="relative w-full sm:flex-1">
+            <Layers size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <select value={searchCategory} onChange={(e) => setSearchCategory(e.target.value)}
+              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
+              <option value="">All Categories</option>
+              {categoryOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
+          </div>
+          <div className="relative w-full sm:flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-            <input type="text" placeholder="Search item, supervisor, store, DN, SKU..." value={searchDN}
+            <input type="text" placeholder="Search item, SKU, DN..." value={searchDN}
               onChange={(e) => setSearchDN(e.target.value)}
               className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-8 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold" />
             {searchDN && (
@@ -369,10 +411,10 @@ export default function ReturnsClient({
               </button>
             )}
           </div>
-          {(searchDN || searchStore || searchSupervisor) && (
+          {(searchDN || searchStore || searchSupervisor || searchBrand || searchCategory) && (
             <button
               type="button"
-              onClick={() => { setSearchDN(''); setSearchStore(''); setSearchSupervisor(''); }}
+              onClick={() => { setSearchDN(''); setSearchStore(''); setSearchSupervisor(''); setSearchBrand(''); setSearchCategory(''); }}
               className="w-full sm:w-auto px-3 py-2.5 text-xs font-semibold text-text-muted hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0"
               title="Reset all filters"
             >

@@ -66,14 +66,16 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
     setStoreList(stores);
   }, [stores]);
 
-  // Global brand filter — sets all items at once; per-item pills override individually
+  // Global brand and category filters — sets all items at once; per-item pills override individually
   const [globalBrand, setGlobalBrand] = useState('ALL');
+  const [globalCategory, setGlobalCategory] = useState('ALL');
+  const uniqueCategories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort(), [products]);
 
   const handleGlobalBrandChange = (brandId) => {
     setGlobalBrand(brandId);
     const firstMatchedProduct = brandId === 'ALL' 
       ? null 
-      : products.find(p => p.brand?.id === brandId);
+      : products.find(p => p.brand?.id === brandId && (globalCategory === 'ALL' || p.category === globalCategory));
 
     setItems(prev => prev.map(item => {
       const updated = { ...item, brandFilter: brandId };
@@ -81,6 +83,33 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         updated.productId = firstMatchedProduct.id;
         updated.quantity = firstMatchedProduct.isSerialized ? 0 : 1;
         // Reset promoter assignment type if needed
+        const isUniform = firstMatchedProduct.category?.toUpperCase() === 'UNIFORM';
+        if (isUniform && !updated.promoterAssignment) {
+          updated.promoterAssignment = {
+            isNewPromoter: true,
+            promoterName: '',
+            promoterPhone: '',
+            existingStaffId: '',
+          };
+        } else if (!isUniform) {
+          updated.promoterAssignment = null;
+        }
+      }
+      return updated;
+    }));
+  };
+
+  const handleGlobalCategoryChange = (cat) => {
+    setGlobalCategory(cat);
+    const firstMatchedProduct = cat === 'ALL'
+      ? null
+      : products.find(p => p.category === cat && (globalBrand === 'ALL' || p.brand?.id === globalBrand));
+
+    setItems(prev => prev.map(item => {
+      const updated = { ...item, categoryFilter: cat };
+      if (cat !== 'ALL' && firstMatchedProduct) {
+        updated.productId = firstMatchedProduct.id;
+        updated.quantity = firstMatchedProduct.isSerialized ? 0 : 1;
         const isUniform = firstMatchedProduct.category?.toUpperCase() === 'UNIFORM';
         if (isUniform && !updated.promoterAssignment) {
           updated.promoterAssignment = {
@@ -154,6 +183,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       isExpanded: true,
       error: '',
       brandFilter: activeFilter,
+      categoryFilter: globalCategory || 'ALL',
       promoterAssignment: null,
       availableBatches: [],
       selectedBatches: []
@@ -168,6 +198,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         selectedBarcodes: item.selectedBarcodes || [],
         availableBarcodes: item.availableBarcodes || [],
         brandFilter: item.productId ? (products.find(p => p.id === item.productId)?.brandId || 'ALL') : 'ALL',
+        categoryFilter: item.productId ? (products.find(p => p.id === item.productId)?.category || 'ALL') : 'ALL',
       }));
     }
     return [];
@@ -1282,44 +1313,88 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         )}
       </div>
 
-      {/* Global Brand Filter */}
-      {brands.length > 0 && (
-        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <Tag size={15} className="text-primary" />
-            <span className="text-sm font-bold text-text-primary">Global Brand Filter</span>
-            <span className="text-xs text-text-muted">— sets all items at once, override per-item below</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => handleGlobalBrandChange('ALL')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                globalBrand === 'ALL'
-                  ? 'bg-primary text-white border-primary shadow-sm'
-                  : 'bg-surface border-border text-text-secondary hover:border-primary/50'
-              }`}
-            >
-              All Brands
-            </button>
-            {brands.map(b => (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => handleGlobalBrandChange(b.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                  globalBrand === b.id
-                    ? 'bg-primary text-white border-primary shadow-sm'
-                    : 'bg-surface border-border text-text-secondary hover:border-primary/50'
-                }`}
-              >
-                {b.name}
-              </button>
-            ))}
-          </div>
-          {globalBrand !== 'ALL' && (
+      {/* Global Brand & Category Filters */}
+      {(brands.length > 0 || uniqueCategories.length > 0) && (
+        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex flex-col gap-4">
+          {brands.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Tag size={15} className="text-primary" />
+                <span className="text-sm font-bold text-text-primary">Global Brand Filter</span>
+                <span className="text-xs text-text-muted">— sets all items at once, override per-item below</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleGlobalBrandChange('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                    globalBrand === 'ALL'
+                      ? 'bg-primary text-white border-primary shadow-sm'
+                      : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                  }`}
+                >
+                  All Brands
+                </button>
+                {brands.map(b => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => handleGlobalBrandChange(b.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      globalBrand === b.id
+                        ? 'bg-primary text-white border-primary shadow-sm'
+                        : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                    }`}
+                  >
+                    {b.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {uniqueCategories.length > 0 && (
+            <div className="flex flex-col gap-2 pt-2 border-t border-border/60">
+              <div className="flex items-center gap-2">
+                <Layers size={15} className="text-primary" />
+                <span className="text-sm font-bold text-text-primary">Global Category Filter</span>
+                <span className="text-xs text-text-muted">— filter products by category</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleGlobalCategoryChange('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                    globalCategory === 'ALL'
+                      ? 'bg-primary text-white border-primary shadow-sm'
+                      : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                  }`}
+                >
+                  All Categories
+                </button>
+                {uniqueCategories.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleGlobalCategoryChange(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      globalCategory === cat
+                        ? 'bg-primary text-white border-primary shadow-sm'
+                        : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(globalBrand !== 'ALL' || globalCategory !== 'ALL') && (
             <p className="text-[11px] text-primary font-semibold">
-              Showing only <strong>{brands.find(b => b.id === globalBrand)?.name}</strong> products · {products.filter(p => p.brand?.id === globalBrand).length} products available
+              Filtered: {globalBrand !== 'ALL' && <span>Brand: <strong>{brands.find(b => b.id === globalBrand)?.name}</strong> </span>}
+              {globalCategory !== 'ALL' && <span>Category: <strong>{globalCategory}</strong> </span>}
+              · {products.filter(p => (globalBrand === 'ALL' || p.brand?.id === globalBrand) && (globalCategory === 'ALL' || p.category === globalCategory)).length} products available
             </p>
           )}
         </div>
@@ -1446,7 +1521,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                             <button
                               type="button"
                               onClick={() => updateItemField(idx, 'brandFilter', 'ALL')}
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${(item.brandFilter || 'ALL') === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
                             >All</button>
                             {brands.map(b => (
                               <button
@@ -1458,12 +1533,35 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                             ))}
                           </div>
                         </div>
-                        {/* Product selector filtered by this item's brandFilter */}
+                        {/* Per-item category pills */}
+                        {uniqueCategories.length > 0 && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex-shrink-0 flex items-center gap-1">
+                              <Layers size={10} /> Cat:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => updateItemField(idx, 'categoryFilter', 'ALL')}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${(item.categoryFilter || 'ALL') === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              >All</button>
+                              {uniqueCategories.map(cat => (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => updateItemField(idx, 'categoryFilter', cat)}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.categoryFilter === cat ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                                >{cat}</button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* Product selector filtered by this item's brandFilter and categoryFilter */}
                         <div className="flex flex-col gap-1.5">
                           <label className="text-xs font-semibold text-text-secondary">Product to Dispatch</label>
                           <CustomSelect
                             options={products
-                              .filter(p => (item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter)
+                              .filter(p => ((item.brandFilter || 'ALL') === 'ALL' || p.brand?.id === item.brandFilter) && ((item.categoryFilter || 'ALL') === 'ALL' || p.category === item.categoryFilter))
                               .map(p => ({
                                 value: p.id,
                                 label: `${p.name} (${p.category})`,
@@ -1473,12 +1571,8 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                               }))}
                             value={item.productId}
                             onChange={(val) => handleProductChange(idx, val)}
-                            placeholder={
-                              (item.brandFilter || 'ALL') === 'ALL'
-                                ? '-- Select Product --'
-                                : `-- Select ${brands.find(b => b.id === item.brandFilter)?.name || ''} Product --`
-                            }
-                            />
+                            placeholder="-- Select Product --"
+                          />
                         </div>
                         {selectedProd && (
                           <div className="flex flex-col gap-2.5 mt-1 animate-fade-in">

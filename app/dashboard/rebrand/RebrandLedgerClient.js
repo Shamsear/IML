@@ -34,6 +34,8 @@ export default function RebrandLedgerClient({
   // Search & Type Filters
   const [searchTerm, setSearchTerm] = useState(searchParams?.get('q') || searchParams?.get('search') || '');
   const [typeFilter, setTypeFilter] = useState(searchParams?.get('type') || 'ALL');
+  const [brandFilter, setBrandFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
 
   // Pagination
   const itemsPerPage = 25;
@@ -43,7 +45,7 @@ export default function RebrandLedgerClient({
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, typeFilter]);
+  }, [searchTerm, typeFilter, brandFilter, categoryFilter]);
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
@@ -132,6 +134,26 @@ export default function RebrandLedgerClient({
     }
   };
 
+  const brandOptions = useMemo(() => {
+    const map = {};
+    (transactions || []).forEach(tx => {
+      if (tx.product?.brand?.name) {
+        map[tx.product.brand.id || tx.product.brand.name] = tx.product.brand.name;
+      }
+    });
+    return Object.entries(map).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [transactions]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set();
+    (transactions || []).forEach(tx => {
+      if (tx.product?.category) {
+        set.add(tx.product.category);
+      }
+    });
+    return Array.from(set).sort();
+  }, [transactions]);
+
   // Filter items
   const filteredTransactions = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
@@ -140,10 +162,21 @@ export default function RebrandLedgerClient({
       if (typeFilter !== 'ALL' && tx.transactionType !== typeFilter) {
         return false;
       }
+      // Brand match
+      if (brandFilter !== 'ALL') {
+        const bId = tx.product?.brand?.id || tx.product?.brand?.name;
+        if (bId !== brandFilter) return false;
+      }
+      // Category match
+      if (categoryFilter !== 'ALL') {
+        if (tx.product?.category !== categoryFilter) return false;
+      }
+
       if (!q) return true;
 
       const pName = tx.product?.name?.toLowerCase() || '';
       const bName = tx.product?.brand?.name?.toLowerCase() || '';
+      const cName = tx.product?.category?.toLowerCase() || '';
       const sku = tx.product?.itemCode?.toLowerCase() || '';
       const dn = tx.deliveryNote?.toLowerCase() || '';
       const from = getFromName(tx).toLowerCase();
@@ -154,6 +187,7 @@ export default function RebrandLedgerClient({
       return (
         pName.includes(q) ||
         bName.includes(q) ||
+        cName.includes(q) ||
         sku.includes(q) ||
         dn.includes(q) ||
         from.includes(q) ||
@@ -162,7 +196,7 @@ export default function RebrandLedgerClient({
         serials.includes(q)
       );
     });
-  }, [transactions, searchTerm, typeFilter, entityNames]);
+  }, [transactions, searchTerm, typeFilter, brandFilter, categoryFilter, entityNames]);
 
   const customGetters = useMemo(() => ({
     date: (tx) => (tx.timestamp ? new Date(tx.timestamp).getTime() : 0),
@@ -277,7 +311,7 @@ export default function RebrandLedgerClient({
         </div>
 
         {/* Type Filter */}
-        <div className="sm:w-56">
+        <div className="sm:w-48">
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
@@ -289,6 +323,46 @@ export default function RebrandLedgerClient({
             <option value="REBRAND_IN">Rebrand In (Gain)</option>
           </select>
         </div>
+
+        {/* Brand Filter */}
+        <div className="sm:w-44">
+          <select
+            value={brandFilter}
+            onChange={(e) => setBrandFilter(e.target.value)}
+            className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+          >
+            <option value="ALL">All Brands</option>
+            {brandOptions.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Category Filter */}
+        <div className="sm:w-44">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold"
+          >
+            <option value="ALL">All Categories</option>
+            {categoryOptions.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+
+        {(searchTerm || typeFilter !== 'ALL' || brandFilter !== 'ALL' || categoryFilter !== 'ALL') && (
+          <button
+            type="button"
+            onClick={() => { setSearchTerm(''); setTypeFilter('ALL'); setBrandFilter('ALL'); setCategoryFilter('ALL'); }}
+            className="px-3 py-2.5 text-xs font-semibold text-text-muted hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0"
+            title="Reset all filters"
+          >
+            <X size={14} />
+            <span>Reset</span>
+          </button>
+        )}
       </div>
 
       {/* Transactions Table */}

@@ -53,6 +53,7 @@ export default async function RebrandPage({ searchParams }) {
               id: true,
               name: true,
               itemCode: true,
+              category: true,
               brand: { select: { id: true, name: true } }
             }
           },
@@ -81,6 +82,7 @@ export default async function RebrandPage({ searchParams }) {
           id: true,
           name: true,
           itemCode: true,
+          category: true,
           brand: { select: { name: true } }
         },
         orderBy: { name: 'asc' }

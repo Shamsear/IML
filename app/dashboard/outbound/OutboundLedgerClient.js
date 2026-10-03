@@ -57,6 +57,8 @@ export default function OutboundLedgerClient({
   // Filters for Transactions Tab
   const [productFilter, setProductFilter] = useState(searchParams ? (searchParams.get('q') || searchParams.get('search') || '') : '');
   const [storeId, setStoreId] = useState(searchParams ? (searchParams.get('storeId') || '') : '');
+  const [brandId, setBrandId] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   // Pagination for Transactions Tab
   const itemsPerPage = 25;
@@ -78,7 +80,7 @@ export default function OutboundLedgerClient({
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [productFilter, storeId]);
+  }, [productFilter, storeId, brandId, categoryFilter]);
 
   useEffect(() => {
     setDnPage(1);
@@ -123,6 +125,26 @@ export default function OutboundLedgerClient({
     ...stores.map(s => ({ value: s.id, label: s.name }))
   ], [stores]);
 
+  const brandOptions = useMemo(() => {
+    const map = {};
+    (transactions || []).forEach(tx => {
+      if (tx.product?.brandId && tx.product?.brand?.name) {
+        map[tx.product.brandId] = tx.product.brand.name;
+      }
+    });
+    return [{ value: '', label: 'All Brands' }, ...Object.entries(map).map(([id, name]) => ({ value: id, label: name })).sort((a, b) => a.label.localeCompare(b.label))];
+  }, [transactions]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set();
+    (transactions || []).forEach(tx => {
+      if (tx.product?.category) {
+        set.add(tx.product.category);
+      }
+    });
+    return [{ value: '', label: 'All Categories' }, ...Array.from(set).sort().map(cat => ({ value: cat, label: cat }))];
+  }, [transactions]);
+
   // Comprehensive multi-field filtering across all outbound transactions
   const filteredTransactions = useMemo(() => {
     const q = productFilter.trim().toLowerCase();
@@ -132,11 +154,18 @@ export default function OutboundLedgerClient({
         : true;
       if (!matchStore) return false;
 
+      const matchBrand = brandId ? tx.product?.brandId === brandId : true;
+      if (!matchBrand) return false;
+
+      const matchCat = categoryFilter ? tx.product?.category === categoryFilter : true;
+      if (!matchCat) return false;
+
       if (!q) return true;
 
       const prodName = tx.product?.name?.toLowerCase() || '';
       const prodCode = tx.product?.itemCode?.toLowerCase() || '';
       const brandName = tx.product?.brand?.name?.toLowerCase() || '';
+      const catName = tx.product?.category?.toLowerCase() || '';
       const dn = tx.deliveryNote?.toLowerCase() || '';
       const dest = (entityNames[tx.toEntityId] || tx.toEntityId || '').toLowerCase();
       const sup = (tx.deliverySupervisor?.name || supervisorNames[tx.deliverySupervisorId] || '').toLowerCase();
@@ -146,13 +175,14 @@ export default function OutboundLedgerClient({
         prodName.includes(q) ||
         prodCode.includes(q) ||
         brandName.includes(q) ||
+        catName.includes(q) ||
         dn.includes(q) ||
         dest.includes(q) ||
         sup.includes(q) ||
         notes.includes(q)
       );
     });
-  }, [transactions, productFilter, storeId, entityNames, supervisorNames]);
+  }, [transactions, productFilter, storeId, brandId, categoryFilter, entityNames, supervisorNames]);
 
   const outboundGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
@@ -199,6 +229,8 @@ export default function OutboundLedgerClient({
   const clearFilters = () => {
     setProductFilter('');
     setStoreId('');
+    setBrandId('');
+    setCategoryFilter('');
     setPage(1);
     const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
     params.delete('search');
@@ -294,7 +326,7 @@ export default function OutboundLedgerClient({
                 </button>
               )}
             </div>
-            <div className="flex-1 w-full">
+            <div className="w-full sm:w-44">
               <CustomSelect
                 options={storeOptions}
                 value={storeId}
@@ -302,7 +334,23 @@ export default function OutboundLedgerClient({
                 placeholder="All Stores"
               />
             </div>
-            {(productFilter || storeId) && (
+            <div className="w-full sm:w-44">
+              <CustomSelect
+                options={brandOptions}
+                value={brandId}
+                onChange={setBrandId}
+                placeholder="All Brands"
+              />
+            </div>
+            <div className="w-full sm:w-44">
+              <CustomSelect
+                options={categoryOptions}
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                placeholder="All Categories"
+              />
+            </div>
+            {(productFilter || storeId || brandId || categoryFilter) && (
               <button
                 type="button"
                 onClick={clearFilters}
