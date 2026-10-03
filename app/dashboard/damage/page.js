@@ -30,19 +30,17 @@ export default async function DamagePage({ searchParams }) {
             id: true,
             name: true,
             itemCode: true,
+            category: true,
             brandId: true,
-            brand: { select: { name: true } }
+            brand: { select: { id: true, name: true } }
           }
         }
       },
       orderBy: { timestamp: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      take: 1000,
     }),
     prisma.inventoryTransaction.count({ where: whereClause })
   ]);
-
-  const totalPages = Math.ceil(totalCount / pageSize);
 
   const uniqueStoreIds = new Set();
   const uniqueSupervisorIds = new Set();
@@ -78,8 +76,7 @@ export default async function DamagePage({ searchParams }) {
     <DamageLedgerClient
       transactions={formattedTransactions}
       totalCount={totalCount}
-      totalPages={totalPages}
-      page={page}
+      initialPage={page}
       pageSize={pageSize}
       entityNames={entityNames}
     />
