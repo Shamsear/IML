@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Package, ArrowLeftRight } from 'lucide-react';
 import Link from 'next/link';
