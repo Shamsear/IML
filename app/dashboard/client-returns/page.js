@@ -19,7 +19,7 @@ export default async function ClientReturnsPage({ searchParams }) {
     ]
   };
 
-  // Query all client transactions with skip and take
+  // Query client transactions (take up to 1000 to group by gate pass accurately)
   const [transactions, totalCount] = await Promise.all([
     prisma.inventoryTransaction.findMany({
       where: whereClause,
@@ -58,8 +58,7 @@ export default async function ClientReturnsPage({ searchParams }) {
       orderBy: {
         timestamp: 'desc',
       },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      take: 1000,
     }),
     prisma.inventoryTransaction.count({
       where: whereClause

@@ -7,6 +7,7 @@ import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Lo
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
+import Pagination from '@/components/Pagination';
 import { useToast } from '@/components/Toast';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -26,12 +27,15 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
 
   // Grouped Return Notes Tab Filters
   const [dnSearch, setDnSearch] = useState('');
+  const [groupPage, setGroupPage] = useState(1);
+  const groupsPerPage = 25;
 
   // Expand state for Return Notes
   const [expandedDn, setExpandedDn] = useState({});
 
   const changeTab = (tab) => {
     setActiveTab(tab);
+    setGroupPage(1);
     const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
     params.set('tab', tab);
     if (typeof window !== 'undefined') {
@@ -91,15 +95,35 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
   const dispatchedGroups = useMemo(() => buildGroups(dispatchedTxs), [dispatchedTxs]);
   const returnedGroups = useMemo(() => buildGroups(returnedTxs), [returnedTxs]);
 
-  const filteredDispatchedGroups = dispatchedGroups.filter(g =>
-    g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) ||
-    g.brandName.toLowerCase().includes(dnSearch.toLowerCase())
-  );
+  const filteredDispatchedGroups = useMemo(() => {
+    return dispatchedGroups.filter(g =>
+      g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) ||
+      g.brandName.toLowerCase().includes(dnSearch.toLowerCase())
+    );
+  }, [dispatchedGroups, dnSearch]);
 
-  const filteredReturnedGroups = returnedGroups.filter(g =>
-    g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) ||
-    g.brandName.toLowerCase().includes(dnSearch.toLowerCase())
-  );
+  const filteredReturnedGroups = useMemo(() => {
+    return returnedGroups.filter(g =>
+      g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) ||
+      g.brandName.toLowerCase().includes(dnSearch.toLowerCase())
+    );
+  }, [returnedGroups, dnSearch]);
+
+  // Gate Pass pagination calculation
+  const isGroupedView = !activeTab.includes('-flat');
+  const currentActiveGroups = activeTab === 'dispatched' ? filteredDispatchedGroups : filteredReturnedGroups;
+  const totalGroupPages = Math.ceil(currentActiveGroups.length / groupsPerPage);
+  const paginatedGroups = useMemo(() => {
+    const start = (groupPage - 1) * groupsPerPage;
+    return currentActiveGroups.slice(start, start + groupsPerPage);
+  }, [currentActiveGroups, groupPage, groupsPerPage]);
+
+  const handleGroupPageChange = (newPage) => {
+    setGroupPage(newPage);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Filtered flat transaction lists
   const filteredDispatchedTxs = useMemo(() => {
@@ -163,7 +187,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
   };
 
   // Shared grouped gate pass list renderer
-  const renderGroupedGatePasses = (groups, emptyMessage) => (
+  const renderGroupedGatePasses = (items, allGroupsCount, emptyMessage) => (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-surface border border-border p-4 rounded-xl shadow-sm">
         <div className="relative w-full sm:max-w-md">
@@ -173,21 +197,24 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
             placeholder="Search Gate Pass Number or Client..."
             className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary font-medium"
             value={dnSearch}
-            onChange={(e) => setDnSearch(e.target.value)}
+            onChange={(e) => {
+              setDnSearch(e.target.value);
+              setGroupPage(1);
+            }}
           />
         </div>
         <span className="text-[11px] text-text-secondary font-semibold font-mono">
-          Showing {groups.length} Gate Pass batches
+          Showing {allGroupsCount} Gate Pass {allGroupsCount === 1 ? 'batch' : 'batches'}
         </span>
       </div>
 
       <div className="flex flex-col gap-3">
-        {groups.length === 0 ? (
+        {items.length === 0 ? (
           <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-muted text-xs shadow-sm">
             {emptyMessage}
           </div>
         ) : (
-          groups.map(group => {
+          items.map(group => {
             const groupKey = `${group.deliveryNote}_${group.brandId}_${group.direction}`;
             const isExpanded = !!expandedDn[groupKey];
             const dateStr = new Date(group.timestamp).toLocaleDateString('en-US', {
@@ -534,67 +561,89 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
       </div>
 
       {/* Top Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
-          <span className="text-text-muted">
-            Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{' '}
-            <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{' '}
-            <strong className="text-text-primary">{totalCount}</strong> entries
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => changePage(page - 1)}
-              disabled={page <= 1}
-              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              onClick={() => changePage(page + 1)}
-              disabled={page >= totalPages}
-              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
-            >
-              Next
-            </button>
+      {isGroupedView ? (
+        <Pagination
+          currentPage={groupPage}
+          totalPages={totalGroupPages}
+          totalItems={currentActiveGroups.length}
+          itemsPerPage={groupsPerPage}
+          onPageChange={handleGroupPageChange}
+          itemLabel="Gate Pass batches"
+        />
+      ) : (
+        totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
+            <span className="text-text-muted">
+              Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{' '}
+              <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{' '}
+              <strong className="text-text-primary">{totalCount}</strong> transactions
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => changePage(page - 1)}
+                disabled={page <= 1}
+                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => changePage(page + 1)}
+                disabled={page >= totalPages}
+                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Content */}
-      {activeTab === 'dispatched' && renderGroupedGatePasses(filteredDispatchedGroups, 'No dispatch gate passes logged yet.')}
+      {activeTab === 'dispatched' && renderGroupedGatePasses(paginatedGroups, filteredDispatchedGroups.length, 'No dispatch gate passes logged yet.')}
       {activeTab === 'dispatched-flat' && renderFlatTransactions(filteredDispatchedTxs)}
-      {activeTab === 'returned' && renderGroupedGatePasses(filteredReturnedGroups, 'No return gate passes logged yet.')}
+      {activeTab === 'returned' && renderGroupedGatePasses(paginatedGroups, filteredReturnedGroups.length, 'No return gate passes logged yet.')}
       {activeTab === 'returned-flat' && renderFlatTransactions(filteredReturnedTxs)}
 
       {/* Bottom Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
-          <span className="text-text-muted">
-            Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{' '}
-            <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{' '}
-            <strong className="text-text-primary">{totalCount}</strong> entries
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => changePage(page - 1)}
-              disabled={page <= 1}
-              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              onClick={() => changePage(page + 1)}
-              disabled={page >= totalPages}
-              className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
-            >
-              Next
-            </button>
+      {isGroupedView ? (
+        <Pagination
+          currentPage={groupPage}
+          totalPages={totalGroupPages}
+          totalItems={currentActiveGroups.length}
+          itemsPerPage={groupsPerPage}
+          onPageChange={handleGroupPageChange}
+          itemLabel="Gate Pass batches"
+        />
+      ) : (
+        totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
+            <span className="text-text-muted">
+              Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{' '}
+              <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{' '}
+              <strong className="text-text-primary">{totalCount}</strong> transactions
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => changePage(page - 1)}
+                disabled={page <= 1}
+                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => changePage(page + 1)}
+                disabled={page >= totalPages}
+                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
     </div>
   );
