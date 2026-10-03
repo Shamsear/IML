@@ -164,7 +164,20 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
 
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [brandFilter, setBrandFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Precompute unique categories from products
+  const categoryOptions = useMemo(() => {
+    const set = new Set();
+    (products || []).forEach(p => {
+      if (p.category) set.add(p.category);
+    });
+    return [
+      { value: 'ALL', label: 'All Categories' },
+      ...Array.from(set).sort().map(cat => ({ value: cat, label: cat }))
+    ];
+  }, [products]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
@@ -480,9 +493,10 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
 
   const filteredProducts = products.filter(p => {
     const matchesBrand = brandFilter === 'ALL' || p.brandId === brandFilter;
+    const matchesCategory = categoryFilter === 'ALL' || p.category === categoryFilter;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (p.itemCode && p.itemCode.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesBrand && matchesSearch;
+    return matchesBrand && matchesCategory && matchesSearch;
   });
 
   const productCustomGetters = useMemo(() => ({
@@ -504,10 +518,10 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
     handleSort: handleProductSort,
   } = useTableSort(filteredProducts, 'name', 'asc', productCustomGetters);
 
-  // Reset pagination on brand filter or search change
+  // Reset pagination on brand, category filter or search change
   useEffect(() => {
     setCurrentPage(0);
-  }, [brandFilter, searchQuery]);
+  }, [brandFilter, categoryFilter, searchQuery]);
 
   const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
   const paginatedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
@@ -823,35 +837,68 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
         {/* Products List Pane */}
         <div className="w-full flex flex-col gap-4">
           {/* Filters & Search Bar */}
-          <div className="bg-surface border border-border rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3 sm:gap-4 shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 items-end flex-1 w-full max-w-2xl">
-              {/* Search Input */}
-              <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Search Catalog</label>
-                <div className="relative w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={13} />
-                  <input
-                    type="text"
-                    placeholder="Search by name or SKU..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all h-[34px]"
-                  />
-                </div>
-              </div>
+          <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3 shadow-sm">
+            {/* Top Search Bar */}
+            <div className="relative w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" size={15} />
+              <input
+                type="text"
+                placeholder="Search by name, SKU, or keyword..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-surface-elevated/40 text-text-primary placeholder:text-text-muted border border-border rounded-xl pl-10 pr-9 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold shadow-xs"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
 
+            {/* Filter Dropdowns Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-center">
               {/* Brand Filter */}
-              <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Filter by Brand</label>
+              <div className="w-full">
                 <CustomSelect
                   options={[{ value: 'ALL', label: 'All Brands' }, ...brands.map(brand => ({ value: brand.id, label: brand.name }))]}
                   value={brandFilter}
                   onChange={(val) => setBrandFilter(val)}
-                  size="sm"
+                  placeholder="All Brands"
                 />
               </div>
+
+              {/* Category Filter */}
+              <div className="w-full">
+                <CustomSelect
+                  options={categoryOptions}
+                  value={categoryFilter}
+                  onChange={(val) => setCategoryFilter(val)}
+                  placeholder="All Categories"
+                />
+              </div>
+
+              {/* Reset & Count */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 w-full">
+                {(searchQuery || brandFilter !== 'ALL' || categoryFilter !== 'ALL') && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setBrandFilter('ALL'); setCategoryFilter('ALL'); }}
+                    className="px-3 py-2 text-xs font-semibold text-text-muted hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all flex items-center gap-1.5"
+                    title="Reset all filters"
+                  >
+                    <X size={13} />
+                    <span>Clear</span>
+                  </button>
+                )}
+                <span className="text-xs font-semibold text-text-muted whitespace-nowrap">
+                  {filteredProducts.length} products total
+                </span>
+              </div>
             </div>
-            <span className="text-xs font-semibold text-text-muted pb-2">{filteredProducts.length} products total</span>
           </div>
 
           {/* Bulk Update / Duplicate Bar */}
