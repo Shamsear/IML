@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Package, Search, Store, UserCheck, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, FileText } from 'lucide-react';
+import { Package, Search, Store, UserCheck, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, FileText, X } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -56,6 +56,7 @@ export default function ReturnsClient({
   useEffect(() => {
     setTxPage(1);
     setGroupPage(1);
+    setHistoryPage(1);
   }, [searchDN, searchStore, searchSupervisor]);
 
   const supervisorNames = useMemo(() => {
@@ -63,6 +64,12 @@ export default function ReturnsClient({
     supervisors.forEach(s => { map[s.id] = s.name; });
     return map;
   }, [supervisors]);
+
+  const storeMap = useMemo(() => {
+    const map = {};
+    stores.forEach(s => { map[s.id] = s.name; });
+    return map;
+  }, [stores]);
 
   const getSupervisorName = (tx) => {
     return (
@@ -75,15 +82,40 @@ export default function ReturnsClient({
   };
 
   // --- Filtering ---
-  const filteredTransactions = useMemo(() => (transactions || []).filter(tx => {
-    const matchDN = !searchDN || tx.deliveryNote?.toLowerCase().includes(searchDN.toLowerCase());
-    const matchStore = !searchStore || tx.toEntityId === searchStore;
-    const matchSupervisor = !searchSupervisor || 
-      tx.deliverySupervisorId === searchSupervisor || 
-      tx.deliverySupervisor?.id === searchSupervisor ||
-      (tx.toEntityType === 'SUPERVISOR' && tx.toEntityId === searchSupervisor);
-    return matchDN && matchStore && matchSupervisor;
-  }), [transactions, searchDN, searchStore, searchSupervisor]);
+  const filteredTransactions = useMemo(() => {
+    const q = (searchDN || '').toLowerCase().trim();
+
+    return (transactions || []).filter(tx => {
+      const matchStore = !searchStore || tx.toEntityId === searchStore;
+      const matchSupervisor = !searchSupervisor || 
+        tx.deliverySupervisorId === searchSupervisor || 
+        tx.deliverySupervisor?.id === searchSupervisor ||
+        (tx.toEntityType === 'SUPERVISOR' && tx.toEntityId === searchSupervisor);
+
+      if (!matchStore || !matchSupervisor) return false;
+      if (!q) return true;
+
+      const pName = tx.product?.name?.toLowerCase() || '';
+      const bName = tx.product?.brand?.name?.toLowerCase() || '';
+      const sku = tx.product?.itemCode?.toLowerCase() || '';
+      const dn = tx.deliveryNote?.toLowerCase() || '';
+      const storeName = (storeMap[tx.toEntityId] || '').toLowerCase();
+      const supName = getSupervisorName(tx).toLowerCase();
+      const notes = tx.notes?.toLowerCase() || '';
+      const barcode = tx.barcode?.toLowerCase() || '';
+
+      return (
+        pName.includes(q) ||
+        bName.includes(q) ||
+        sku.includes(q) ||
+        dn.includes(q) ||
+        storeName.includes(q) ||
+        supName.includes(q) ||
+        notes.includes(q) ||
+        barcode.includes(q)
+      );
+    });
+  }, [transactions, searchDN, searchStore, searchSupervisor, storeMap, supervisorNames]);
 
   const txCustomGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
@@ -131,6 +163,41 @@ export default function ReturnsClient({
   const totalGroupPages = Math.ceil(deliveryNoteGroups.length / itemsPerPage);
   const paginatedGroups = deliveryNoteGroups.slice((groupPage - 1) * itemsPerPage, groupPage * itemsPerPage);
 
+  const filteredHistory = useMemo(() => {
+    const q = (searchDN || '').toLowerCase().trim();
+
+    return (pastReturns || []).filter(tx => {
+      const matchStore = !searchStore || tx.fromEntityId === searchStore;
+      const matchSupervisor = !searchSupervisor || 
+        tx.deliverySupervisorId === searchSupervisor || 
+        tx.deliverySupervisor?.id === searchSupervisor ||
+        (tx.fromEntityType === 'SUPERVISOR' && tx.fromEntityId === searchSupervisor);
+
+      if (!matchStore || !matchSupervisor) return false;
+      if (!q) return true;
+
+      const pName = tx.product?.name?.toLowerCase() || '';
+      const bName = tx.product?.brand?.name?.toLowerCase() || '';
+      const sku = tx.product?.itemCode?.toLowerCase() || '';
+      const dn = tx.deliveryNote?.toLowerCase() || '';
+      const fromStore = (storeMap[tx.fromEntityId] || tx.fromEntityType || '').toLowerCase();
+      const supName = getSupervisorName(tx).toLowerCase();
+      const notes = tx.notes?.toLowerCase() || '';
+      const barcode = tx.barcode?.toLowerCase() || '';
+
+      return (
+        pName.includes(q) ||
+        bName.includes(q) ||
+        sku.includes(q) ||
+        dn.includes(q) ||
+        fromStore.includes(q) ||
+        supName.includes(q) ||
+        notes.includes(q) ||
+        barcode.includes(q)
+      );
+    });
+  }, [pastReturns, searchDN, searchStore, searchSupervisor, storeMap, supervisorNames]);
+
   const historyCustomGetters = useMemo(() => ({
     date: (tx) => tx.timestamp,
     product: (tx) => tx.product?.name || '',
@@ -145,7 +212,7 @@ export default function ReturnsClient({
     sortField: historySortField,
     sortDirection: historySortDirection,
     handleSort: handleHistorySort,
-  } = useTableSort(pastReturns, 'date', 'desc', historyCustomGetters);
+  } = useTableSort(filteredHistory, 'date', 'desc', historyCustomGetters);
 
   const totalHistoryPages = Math.ceil(sortedHistory.length / itemsPerPage);
   const paginatedHistory = sortedHistory.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage);
@@ -269,32 +336,51 @@ export default function ReturnsClient({
 
       <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
         {/* Filters */}
-        {activeTab !== 'history' && (
-          <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Store size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <select value={searchStore} onChange={(e) => setSearchStore(e.target.value)}
-                className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
-                <option value="">All Stores</option>
-                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div className="relative flex-1">
-              <UserCheck size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <select value={searchSupervisor} onChange={(e) => setSearchSupervisor(e.target.value)}
-                className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
-                <option value="">All Supervisors</option>
-                {supervisors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div className="relative flex-1">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input type="text" placeholder="Search Delivery Note..." value={searchDN}
-                onChange={(e) => setSearchDN(e.target.value)}
-                className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold font-mono" />
-            </div>
+        <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col sm:flex-row gap-3 items-center">
+          <div className="relative w-full sm:flex-1">
+            <Store size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <select value={searchStore} onChange={(e) => setSearchStore(e.target.value)}
+              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
+              <option value="">All Stores</option>
+              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
           </div>
-        )}
+          <div className="relative w-full sm:flex-1">
+            <UserCheck size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <select value={searchSupervisor} onChange={(e) => setSearchSupervisor(e.target.value)}
+              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
+              <option value="">All Supervisors</option>
+              {supervisors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="relative w-full sm:flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <input type="text" placeholder="Search item, supervisor, store, DN, SKU..." value={searchDN}
+              onChange={(e) => setSearchDN(e.target.value)}
+              className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-8 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold" />
+            {searchDN && (
+              <button
+                type="button"
+                onClick={() => setSearchDN('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          {(searchDN || searchStore || searchSupervisor) && (
+            <button
+              type="button"
+              onClick={() => { setSearchDN(''); setSearchStore(''); setSearchSupervisor(''); }}
+              className="w-full sm:w-auto px-3 py-2.5 text-xs font-semibold text-text-muted hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0"
+              title="Reset all filters"
+            >
+              <X size={14} />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
 
@@ -619,7 +705,7 @@ export default function ReturnsClient({
             <Pagination
               currentPage={historyPage}
               totalPages={totalHistoryPages}
-              totalItems={pastReturns.length}
+              totalItems={filteredHistory.length}
               itemsPerPage={itemsPerPage}
               onPageChange={setHistoryPage}
               itemLabel="returns"
@@ -683,7 +769,7 @@ export default function ReturnsClient({
             <Pagination
               currentPage={historyPage}
               totalPages={totalHistoryPages}
-              totalItems={pastReturns.length}
+              totalItems={filteredHistory.length}
               itemsPerPage={itemsPerPage}
               onPageChange={setHistoryPage}
               itemLabel="returns"
