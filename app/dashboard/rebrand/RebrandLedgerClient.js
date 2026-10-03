@@ -42,9 +42,31 @@ export default function RebrandLedgerClient({
     }
   };
 
-  const getDestinationName = (tx) => {
-    return entityNames[tx.toEntityId] || tx.toEntityId || tx.toEntityType || '—';
+  const getFromName = (tx) => {
+    if (tx.fromEntityType === 'WAREHOUSE' || tx.fromEntityId === 'WH-MAIN') return 'Main Warehouse';
+    if (entityNames[tx.fromEntityId]) return entityNames[tx.fromEntityId];
+    if (tx.fromEntityId) return tx.fromEntityId;
+    if (tx.fromEntityType) return tx.fromEntityType;
+    if (tx.notes && tx.notes.includes('Rebrand input <-')) {
+      const match = tx.notes.match(/Rebrand input <-\s*([^.]+)/);
+      if (match) return match[1].trim();
+    }
+    return '—';
   };
+
+  const getToName = (tx) => {
+    if (tx.toEntityType === 'WAREHOUSE' || tx.toEntityId === 'WH-MAIN') return 'Main Warehouse';
+    if (entityNames[tx.toEntityId]) return entityNames[tx.toEntityId];
+    if (tx.toEntityId) return tx.toEntityId;
+    if (tx.toEntityType) return tx.toEntityType;
+    if (tx.notes && tx.notes.includes('Rebrand output ->')) {
+      const match = tx.notes.match(/Rebrand output ->\s*([^.]+)/);
+      if (match) return match[1].trim();
+    }
+    return '—';
+  };
+
+  const getDestinationName = (tx) => getToName(tx);
 
   const getTypeName = (tx) => {
     if (tx.transactionType === 'REBRAND_IN') return 'REBRAND IN (Gain)';
@@ -66,7 +88,8 @@ export default function RebrandLedgerClient({
       const bName = tx.product?.brand?.name?.toLowerCase() || '';
       const sku = tx.product?.itemCode?.toLowerCase() || '';
       const dn = tx.deliveryNote?.toLowerCase() || '';
-      const dest = getDestinationName(tx).toLowerCase();
+      const from = getFromName(tx).toLowerCase();
+      const to = getToName(tx).toLowerCase();
       const notes = tx.notes?.toLowerCase() || '';
       const serials = (tx.serialNumbers || []).map((s) => s.serialNumber?.barcode?.toLowerCase() || '').join(' ');
 
@@ -75,7 +98,8 @@ export default function RebrandLedgerClient({
         bName.includes(q) ||
         sku.includes(q) ||
         dn.includes(q) ||
-        dest.includes(q) ||
+        from.includes(q) ||
+        to.includes(q) ||
         notes.includes(q) ||
         serials.includes(q)
       );
@@ -88,7 +112,9 @@ export default function RebrandLedgerClient({
     product: (tx) => tx.product?.name || '',
     brand: (tx) => tx.product?.brand?.name || '',
     sku: (tx) => tx.product?.itemCode || '',
-    destination: (tx) => getDestinationName(tx),
+    from: (tx) => getFromName(tx),
+    to: (tx) => getToName(tx),
+    destination: (tx) => getToName(tx),
     type: (tx) => getTypeName(tx),
     quantity: (tx) => (tx.transactionType === 'REBRAND_IN' ? tx.quantity : -tx.quantity),
     serials: (tx) => (tx.serialNumbers || []).map((s) => s.serialNumber?.barcode).join(', '),
@@ -139,7 +165,8 @@ export default function RebrandLedgerClient({
               Product: tx.product?.name || '',
               Brand: tx.product?.brand?.name || '',
               SKU: tx.product?.itemCode || '',
-              Destination: getDestinationName(tx),
+              From: getFromName(tx),
+              To: getToName(tx),
               Quantity: tx.quantity,
               Barcodes: (tx.serialNumbers || []).map((s) => s.serialNumber?.barcode).filter(Boolean).join(', '),
               Notes: tx.notes || '',
@@ -151,7 +178,8 @@ export default function RebrandLedgerClient({
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'SKU', key: 'SKU', width: 16 },
-              { header: 'Destination', key: 'Destination', width: 20 },
+              { header: 'From', key: 'From', width: 20 },
+              { header: 'To', key: 'To', width: 20 },
               { header: 'Quantity', key: 'Quantity', width: 10 },
               { header: 'Barcodes', key: 'Barcodes', width: 22 },
               { header: 'Notes', key: 'Notes', width: 25 },
@@ -296,12 +324,19 @@ export default function RebrandLedgerClient({
                       >
                         {getTypeName(tx)}
                       </span>
-                      {getDestinationName(tx) !== '—' && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-text-muted">
-                          <Store size={12} />
-                          {getDestinationName(tx)}
-                        </span>
-                      )}
+                    </div>
+
+                    {/* From & To Route */}
+                    <div className="flex items-center gap-2 text-xs bg-surface-elevated/40 p-2 rounded-lg border border-border/50">
+                      <div className="flex items-center gap-1 min-w-0 flex-1">
+                        <span className="text-[10px] uppercase font-bold text-text-muted shrink-0">From:</span>
+                        <span className="font-semibold text-text-primary text-xs truncate">{getFromName(tx)}</span>
+                      </div>
+                      <span className="text-text-muted font-bold px-1">→</span>
+                      <div className="flex items-center gap-1 min-w-0 flex-1">
+                        <span className="text-[10px] uppercase font-bold text-text-muted shrink-0">To:</span>
+                        <span className="font-semibold text-text-primary text-xs truncate">{getToName(tx)}</span>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-text-muted pt-1 border-t border-border/40">
@@ -327,7 +362,8 @@ export default function RebrandLedgerClient({
                     <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Delivery Note</SortableHeader>
                     <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Product Details</SortableHeader>
                     <SortableHeader field="sku" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">SKU</SortableHeader>
-                    <SortableHeader field="destination" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Destination / Vendor</SortableHeader>
+                    <SortableHeader field="from" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">From</SortableHeader>
+                    <SortableHeader field="to" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">To / Destination</SortableHeader>
                     <SortableHeader field="type" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Action Type</SortableHeader>
                     <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3 px-4 text-center">Quantity</SortableHeader>
                     <SortableHeader field="serials" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Associated Serials</SortableHeader>
@@ -378,8 +414,11 @@ export default function RebrandLedgerClient({
                         <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs text-text-secondary">
                           {tx.product?.itemCode || '---'}
                         </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap text-xs font-medium text-text-secondary">
+                          {getFromName(tx)}
+                        </td>
                         <td className="py-3.5 px-4 whitespace-nowrap text-xs font-semibold text-text-primary">
-                          {getDestinationName(tx)}
+                          {getToName(tx)}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span
