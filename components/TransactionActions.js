@@ -48,34 +48,40 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
     }
   };
 
+  const isRebrand = transactionType?.startsWith('REBRAND') || 
+                    (deliveryNote && deliveryNote.startsWith('RBD-')) ||
+                    copyType === 'rebrand';
+
+  const editHref = !isRebrand && deliveryNote && (copyType === 'inbound' || copyType === 'outbound')
+    ? `/dashboard/${copyType}/${encodeURIComponent(deliveryNote)}/edit`
+    : `/dashboard/transactions/${txId}/edit`;
+
+  const copyHref = isRebrand
+    ? `/dashboard/rebrand/new`
+    : deliveryNote
+    ? `/dashboard/${copyType}/new?copyDn=${deliveryNote}`
+    : `/dashboard/${copyType}/new?copyTxId=${txId}`;
+
   return (
     <>
       <div className="flex items-center gap-1.5">
         {!isReturn && (
           <div className="has-tooltip">
             <Link
-              href={
-                deliveryNote && (copyType === 'inbound' || copyType === 'outbound')
-                  ? `/dashboard/${copyType}/${encodeURIComponent(deliveryNote)}/edit`
-                  : `/dashboard/transactions/${txId}/edit`
-              }
+              href={editHref}
               className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
-              aria-label={deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : 'Edit transaction'}
+              aria-label={!isRebrand && deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : 'Edit transaction'}
             >
               <Edit2 size={13} />
             </Link>
             <span className="tooltip-box tooltip-left">
-              {deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : "Edit transaction"}
+              {!isRebrand && deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : "Edit transaction"}
             </span>
           </div>
         )}
         <div className="has-tooltip">
           <Link
-            href={
-              deliveryNote
-                ? `/dashboard/${copyType}/new?copyDn=${deliveryNote}`
-                : `/dashboard/${copyType}/new?copyTxId=${txId}`
-            }
+            href={copyHref}
             className="p-1.5 rounded-md text-text-muted hover:text-success hover:bg-success/10 transition-colors"
             aria-label={deliveryNote ? `Duplicate full ${noteName.toLowerCase()}` : 'Duplicate transaction'}
           >

@@ -577,6 +577,8 @@ export default function RebrandLedgerClient({
                           deliveryNote={tx.deliveryNote}
                           notes={tx.notes || ''}
                           showDeliveryNote={false}
+                          copyType="rebrand"
+                          transactionType={tx.transactionType}
                         />
                       </div>
                     </div>
@@ -721,6 +723,8 @@ export default function RebrandLedgerClient({
                               deliveryNote={tx.deliveryNote}
                               notes={tx.notes || ''}
                               showDeliveryNote={false}
+                              copyType="rebrand"
+                              transactionType={tx.transactionType}
                             />
                           </div>
                         </td>
