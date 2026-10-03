@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, ArrowDownLeft, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Tag, Copy } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, ArrowDownLeft, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Tag, Copy, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkReceiveTransactions, updateBulkReceiveTransactions } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';

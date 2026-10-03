@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2, UserCheck, Tag, Copy, Shirt, Info } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, ArrowUpRight, AlertCircle, QrCode, Camera, X, Smartphone, CheckCircle, Edit2, UserCheck, Tag, Copy, Shirt, Info, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { createBulkIssueTransactions, updateBulkIssueTransactions } from '@/app/actions/transactions';
 import { createStore } from '@/app/actions/stores';
