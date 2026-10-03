@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Package, Search, Store, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, FileText } from 'lucide-react';
+import { Package, Search, Store, UserCheck, RotateCcw, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, FileText } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -13,26 +13,35 @@ import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
-export default function ReturnsClient({ transactions = [], stores = [], pastReturns = [] }) {
+export default function ReturnsClient({
+  transactions = [],
+  stores = [],
+  pastReturns = [],
+  supervisors = [],
+  initialTab,
+  initialDN
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const initialDN = searchParams.get('dn') || '';
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || (initialDN ? 'grouped' : 'transactions'));
+  const dnVal = initialDN || (searchParams ? searchParams.get('dn') || '' : '');
+  const tabVal = initialTab || (searchParams ? searchParams.get('tab') : '') || (dnVal ? 'grouped' : 'transactions');
+  const [activeTab, setActiveTab] = useState(tabVal);
 
   const changeTab = (tab) => {
     setActiveTab(tab);
-    const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
-    params.set('tab', tab);
     if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('tab', tab);
       window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
     }
   };
 
-  const [searchDN, setSearchDN] = useState(initialDN);
+  const [searchDN, setSearchDN] = useState(dnVal);
   const [searchStore, setSearchStore] = useState('');
+  const [searchSupervisor, setSearchSupervisor] = useState('');
   const [processingItems, setProcessingItems] = useState({});
-  const [expandedGroups, setExpandedGroups] = useState(initialDN ? { [initialDN]: true } : {});
+  const [expandedGroups, setExpandedGroups] = useState(dnVal ? { [dnVal]: true } : {});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,23 +56,44 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
   useEffect(() => {
     setTxPage(1);
     setGroupPage(1);
-  }, [searchDN, searchStore]);
+  }, [searchDN, searchStore, searchSupervisor]);
+
+  const supervisorNames = useMemo(() => {
+    const map = {};
+    supervisors.forEach(s => { map[s.id] = s.name; });
+    return map;
+  }, [supervisors]);
+
+  const getSupervisorName = (tx) => {
+    return (
+      tx.deliverySupervisor?.name ||
+      supervisorNames[tx.deliverySupervisorId] ||
+      (tx.toEntityType === 'SUPERVISOR' ? supervisorNames[tx.toEntityId] : null) ||
+      (tx.fromEntityType === 'SUPERVISOR' ? supervisorNames[tx.fromEntityId] : null) ||
+      ''
+    );
+  };
 
   // --- Filtering ---
   const filteredTransactions = useMemo(() => (transactions || []).filter(tx => {
     const matchDN = !searchDN || tx.deliveryNote?.toLowerCase().includes(searchDN.toLowerCase());
     const matchStore = !searchStore || tx.toEntityId === searchStore;
-    return matchDN && matchStore;
-  }), [transactions, searchDN, searchStore]);
+    const matchSupervisor = !searchSupervisor || 
+      tx.deliverySupervisorId === searchSupervisor || 
+      tx.deliverySupervisor?.id === searchSupervisor ||
+      (tx.toEntityType === 'SUPERVISOR' && tx.toEntityId === searchSupervisor);
+    return matchDN && matchStore && matchSupervisor;
+  }), [transactions, searchDN, searchStore, searchSupervisor]);
 
   const txCustomGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
     date: (tx) => tx.timestamp,
     store: (tx) => stores.find(s => s.id === tx.toEntityId)?.name || '',
+    supervisor: (tx) => getSupervisorName(tx),
     available: (tx) => tx.quantity - (tx.returnedQty || 0),
     deliveryNote: (tx) => tx.deliveryNote || '',
     remarks: (tx) => tx.notes || '',
-  }), [stores]);
+  }), [stores, supervisorNames]);
 
   const {
     sortedItems: sortedTransactions,
@@ -80,13 +110,23 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
     const groups = {};
     filteredTransactions.forEach(tx => {
       const key = tx.deliveryNote || 'No DN';
+      const sup = getSupervisorName(tx);
       if (!groups[key]) {
-        groups[key] = { dn: key, storeName: stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown', storeId: tx.toEntityId, timestamp: tx.timestamp, items: [] };
+        groups[key] = {
+          dn: key,
+          storeName: stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown',
+          storeId: tx.toEntityId,
+          supervisorName: sup,
+          timestamp: tx.timestamp,
+          items: []
+        };
+      } else if (!groups[key].supervisorName && sup) {
+        groups[key].supervisorName = sup;
       }
       groups[key].items.push(tx);
     });
     return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  }, [filteredTransactions, stores]);
+  }, [filteredTransactions, stores, supervisorNames]);
 
   const totalGroupPages = Math.ceil(deliveryNoteGroups.length / itemsPerPage);
   const paginatedGroups = deliveryNoteGroups.slice((groupPage - 1) * itemsPerPage, groupPage * itemsPerPage);
@@ -95,9 +135,10 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
     date: (tx) => tx.timestamp,
     product: (tx) => tx.product?.name || '',
     returnedFrom: (tx) => stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || '',
+    supervisor: (tx) => getSupervisorName(tx),
     quantity: (tx) => tx.quantity ?? 0,
     notes: (tx) => tx.notes || '',
-  }), [stores]);
+  }), [stores, supervisorNames]);
 
   const {
     sortedItems: sortedHistory,
@@ -178,6 +219,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
               Brand: tx.product?.brand?.name || '',
               Category: tx.product?.category || '',
               Store: stores.find(s => s.id === tx.toEntityId)?.name || tx.toEntityId || '',
+              Supervisor: getSupervisorName(tx) || '',
               Quantity: tx.quantity,
               'Delivery Note': tx.deliveryNote || '',
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
@@ -190,6 +232,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'Category', key: 'Category', width: 18 },
               { header: 'Store', key: 'Store', width: 20 },
+              { header: 'Supervisor', key: 'Supervisor', width: 18 },
               { header: 'Quantity', key: 'Quantity', width: 10 },
               { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
               { header: 'Date', key: 'Date', width: 18 },
@@ -237,6 +280,14 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
               </select>
             </div>
             <div className="relative flex-1">
+              <UserCheck size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+              <select value={searchSupervisor} onChange={(e) => setSearchSupervisor(e.target.value)}
+                className="w-full bg-surface text-text-primary border border-border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold appearance-none">
+                <option value="">All Supervisors</option>
+                {supervisors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="relative flex-1">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
               <input type="text" placeholder="Search Delivery Note..." value={searchDN}
                 onChange={(e) => setSearchDN(e.target.value)}
@@ -281,8 +332,17 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted flex-wrap">
                           <span>{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</span>
+                          {getSupervisorName(tx) && (
+                            <>
+                              <span>·</span>
+                              <span className="inline-flex items-center gap-1 text-primary font-semibold">
+                                <UserCheck size={11} />
+                                {getSupervisorName(tx)}
+                              </span>
+                            </>
+                          )}
                           <span>·</span>
                           <span>{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</span>
                         </div>
@@ -310,6 +370,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                     <SortableHeader field="product" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</SortableHeader>
                     <SortableHeader field="date" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
                     <SortableHeader field="store" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</SortableHeader>
+                    <SortableHeader field="supervisor" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supervisor</SortableHeader>
                     <SortableHeader field="available" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} align="right" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Available</SortableHeader>
                     <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 w-32">Return Qty</th>
                     <SortableHeader field="deliveryNote" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Delivery Note</SortableHeader>
@@ -318,7 +379,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {sortedTransactions.length === 0 ? (
-                    <tr><td colSpan="8" className="py-12 text-center text-text-muted">
+                    <tr><td colSpan="9" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returnable items found.</span></div>
                     </td></tr>
                   ) : paginatedTransactions.map(tx => {
@@ -340,6 +401,16 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
+                          {getSupervisorName(tx) ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                              <UserCheck size={12} />
+                              {getSupervisorName(tx)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-text-muted">—</span>
+                          )}
+                        </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary">{remainingQty}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                           <input type="number" min="1" max={remainingQty} disabled={!isSelected}
@@ -349,7 +420,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
                           {tx.deliveryNote ? (
                             <a
-                              href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                              href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}${(tx.product?.brandId || tx.product?.brand?.id) ? `&brandId=${tx.product?.brandId || tx.product?.brand?.id}` : ''}&dn=${encodeURIComponent(tx.deliveryNote)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold has-tooltip"
@@ -428,6 +499,12 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="font-bold text-text-primary font-mono text-sm truncate">{group.dn}</h3>
                             <span className="text-[10px] bg-secondary/15 text-secondary border border-secondary/10 px-2 py-0.5 rounded uppercase tracking-wider font-bold whitespace-nowrap flex-shrink-0">{group.storeName}</span>
+                            {group.supervisorName && (
+                              <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-bold whitespace-nowrap flex-shrink-0 inline-flex items-center gap-1">
+                                <UserCheck size={11} />
+                                {group.supervisorName}
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-text-secondary mt-0.5">
                             {new Date(group.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' })} · {group.items.length} product(s)
@@ -440,7 +517,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                         onClick={(e) => e.stopPropagation()}
                       >
                         <a
-                          href={`/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId}&dn=${group.dn}`}
+                          href={`/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}${(group.items[0]?.product?.brandId || group.items[0]?.product?.brand?.id) ? `&brandId=${group.items[0]?.product?.brandId || group.items[0]?.product?.brand?.id}` : ''}&dn=${encodeURIComponent(group.dn)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
@@ -466,6 +543,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                             <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                               <th className="py-2.5 pl-5 pr-3 w-10"></th>
                               <th className="py-2.5 px-3">Product</th>
+                              <th className="py-2.5 px-3">Supervisor</th>
                               <th className="py-2.5 px-3 text-right whitespace-nowrap">Available</th>
                               <th className="py-2.5 px-3 w-28 whitespace-nowrap">Return Qty</th>
                               <th className="py-2.5 px-3">Remarks</th>
@@ -488,6 +566,16 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
                                       )}
                                     </div>
+                                  </td>
+                                  <td className="py-2.5 px-3 whitespace-nowrap text-xs">
+                                    {getSupervisorName(tx) ? (
+                                      <span className="inline-flex items-center gap-1 text-primary font-semibold">
+                                        <UserCheck size={11} />
+                                        {getSupervisorName(tx)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-text-muted">—</span>
+                                    )}
                                   </td>
                                   <td className="py-2.5 px-3 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">{remainingQty}</td>
                                   <td className="py-2.5 px-3">
@@ -544,6 +632,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                     <SortableHeader field="date" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
                     <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</SortableHeader>
                     <SortableHeader field="returnedFrom" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Returned From</SortableHeader>
+                    <SortableHeader field="supervisor" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supervisor</SortableHeader>
                     <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Returned Qty</SortableHeader>
                     <SortableHeader field="notes" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
                     <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions / Undo</th>
@@ -551,7 +640,7 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {sortedHistory.length === 0 ? (
-                    <tr><td colSpan="6" className="py-12 text-center text-text-muted">
+                    <tr><td colSpan="7" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returns logs found.</span></div>
                     </td></tr>
                   ) : paginatedHistory.map(tx => {
@@ -568,6 +657,16 @@ export default function ReturnsClient({ transactions = [], stores = [], pastRetu
                           </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary">{fromStore}</td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
+                          {getSupervisorName(tx) ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                              <UserCheck size={12} />
+                              {getSupervisorName(tx)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-text-muted">—</span>
+                          )}
+                        </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-success">+{tx.quantity}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">

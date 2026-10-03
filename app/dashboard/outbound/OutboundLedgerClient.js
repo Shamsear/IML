@@ -1,42 +1,71 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { ArrowUpRight, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPlus, Loader2, RotateCcw, Trash2, UserCheck, Edit2 } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Plus,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  CopyPlus,
+  Loader2,
+  RotateCcw,
+  Trash2,
+  UserCheck,
+  Edit2,
+  X
+} from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
 import TabNav from '@/components/TabNav';
 import PageHeader from '@/components/PageHeader';
+import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
-export default function OutboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {}, stores = [], supervisorNames = {} }) {
+export default function OutboundLedgerClient({
+  transactions = [],
+  entityNames = {},
+  stores = [],
+  supervisorNames = {},
+  initialPage = 1,
+  initialTab = 'transactions',
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'transactions');
+
+  const tabVal = initialTab || (searchParams ? searchParams.get('tab') : '') || 'transactions';
+  const [activeTab, setActiveTab] = useState(tabVal);
 
   const changeTab = (tab) => {
     setActiveTab(tab);
-    const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
-    params.set('tab', tab);
     if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('tab', tab);
       window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
     }
   };
-  const [pdfLoadingKey, setPdfLoadingKey] = useState(null); // tracks which group's PDF button is loading
-  
+
+  const [pdfLoadingKey, setPdfLoadingKey] = useState(null);
+
   // Filters for Transactions Tab
-  const [productFilter, setProductFilter] = useState('');
-  const [storeId, setStoreId] = useState(''); // '' = all stores
+  const [productFilter, setProductFilter] = useState(searchParams ? (searchParams.get('q') || searchParams.get('search') || '') : '');
+  const [storeId, setStoreId] = useState(searchParams ? (searchParams.get('storeId') || '') : '');
 
-  // Search filter for Delivery Notes Tab
+  // Pagination for Transactions Tab
+  const itemsPerPage = 25;
+  const startPage = initialPage || (searchParams ? parseInt(searchParams.get('page') || '1', 10) : 1);
+  const [page, setPage] = useState(startPage > 0 ? startPage : 1);
+
+  // Search and Pagination for Delivery Notes Tab
   const [dnSearch, setDnSearch] = useState('');
-
-  // Expand state for Delivery Notes
+  const [dnPage, setDnPage] = useState(1);
   const [expandedDn, setExpandedDn] = useState({});
 
   const toggleDnExpand = (dnKey) => {
@@ -46,17 +75,39 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
     }));
   };
 
-  // Group by Delivery Note (only for STORE destinations with a DN)
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [productFilter, storeId]);
+
+  useEffect(() => {
+    setDnPage(1);
+  }, [dnSearch]);
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('page', String(newPage));
+      window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
+    }
+  };
+
+  // Group by Delivery Note across all transactions
   const deliveryNotesGroups = useMemo(() => {
     const groups = {};
     transactions.forEach(tx => {
-      if (tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId) {
-        const key = `${tx.deliveryNote}_${tx.toEntityId}`;
+      if (tx.deliveryNote) {
+        const destId = tx.toEntityId || tx.fromEntityId || 'unknown';
+        const key = `${tx.deliveryNote}_${destId}`;
         if (!groups[key]) {
+          const destName = tx.toEntityType === 'CLIENT'
+            ? (tx.toEntityId || 'Client Possession')
+            : (entityNames[tx.toEntityId] || tx.toEntityId || '---');
           groups[key] = {
             deliveryNote: tx.deliveryNote,
             storeId: tx.toEntityId,
-            storeName: entityNames[tx.toEntityId] || tx.toEntityId,
+            storeName: destName,
             timestamp: tx.timestamp,
             items: []
           };
@@ -72,16 +123,36 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
     ...stores.map(s => ({ value: s.id, label: s.name }))
   ], [stores]);
 
-  // Filtered transactions for the Ledger tab
+  // Comprehensive multi-field filtering across all outbound transactions
   const filteredTransactions = useMemo(() => {
+    const q = productFilter.trim().toLowerCase();
     return transactions.filter(tx => {
-      const matchProduct = tx.product.name.toLowerCase().includes(productFilter.toLowerCase());
       const matchStore = storeId
         ? (tx.toEntityType === 'STORE' && tx.toEntityId === storeId)
         : true;
-      return matchProduct && matchStore;
+      if (!matchStore) return false;
+
+      if (!q) return true;
+
+      const prodName = tx.product?.name?.toLowerCase() || '';
+      const prodCode = tx.product?.itemCode?.toLowerCase() || '';
+      const brandName = tx.product?.brand?.name?.toLowerCase() || '';
+      const dn = tx.deliveryNote?.toLowerCase() || '';
+      const dest = (entityNames[tx.toEntityId] || tx.toEntityId || '').toLowerCase();
+      const sup = (tx.deliverySupervisor?.name || supervisorNames[tx.deliverySupervisorId] || '').toLowerCase();
+      const notes = tx.notes?.toLowerCase() || '';
+
+      return (
+        prodName.includes(q) ||
+        prodCode.includes(q) ||
+        brandName.includes(q) ||
+        dn.includes(q) ||
+        dest.includes(q) ||
+        sup.includes(q) ||
+        notes.includes(q)
+      );
     });
-  }, [transactions, productFilter, storeId]);
+  }, [transactions, productFilter, storeId, entityNames, supervisorNames]);
 
   const outboundGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
@@ -89,7 +160,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
     sku: (tx) => tx.product?.itemCode || '',
     destinationType: (tx) => tx.toEntityType || '',
     destination: (tx) => tx.toEntityType === 'CLIENT' ? (tx.toEntityId || 'Client Possession') : (entityNames[tx.toEntityId] || tx.toEntityId || ''),
-    supervisor: (tx) => tx.deliverySupervisorId ? (supervisorNames[tx.deliverySupervisorId] || tx.deliverySupervisorId) : '',
+    supervisor: (tx) => tx.deliverySupervisor?.name || (tx.deliverySupervisorId ? (supervisorNames[tx.deliverySupervisorId] || tx.deliverySupervisorId) : ''),
     quantity: (tx) => tx.quantity ?? 0,
     deliveryNote: (tx) => tx.deliveryNote || '',
     notes: (tx) => tx.notes || '',
@@ -102,10 +173,42 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
     handleSort: handleOutboundSort,
   } = useTableSort(filteredTransactions, 'date', 'desc', outboundGetters);
 
-  const filteredGroups = deliveryNotesGroups.filter(g => 
-    g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) || 
-    g.storeName.toLowerCase().includes(dnSearch.toLowerCase())
-  );
+  const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage);
+  const paginatedTransactions = useMemo(() => {
+    return sortedTransactions.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  }, [sortedTransactions, page, itemsPerPage]);
+
+  const filteredGroups = useMemo(() => {
+    const q = dnSearch.trim().toLowerCase();
+    if (!q) return deliveryNotesGroups;
+    return deliveryNotesGroups.filter(g =>
+      g.deliveryNote.toLowerCase().includes(q) ||
+      g.storeName.toLowerCase().includes(q) ||
+      g.items.some(item =>
+        item.product?.name?.toLowerCase().includes(q) ||
+        item.product?.itemCode?.toLowerCase().includes(q)
+      )
+    );
+  }, [deliveryNotesGroups, dnSearch]);
+
+  const totalDnPages = Math.ceil(filteredGroups.length / itemsPerPage);
+  const paginatedGroups = useMemo(() => {
+    return filteredGroups.slice((dnPage - 1) * itemsPerPage, dnPage * itemsPerPage);
+  }, [filteredGroups, dnPage, itemsPerPage]);
+
+  const clearFilters = () => {
+    setProductFilter('');
+    setStoreId('');
+    setPage(1);
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : '');
+    params.delete('search');
+    params.delete('q');
+    params.delete('storeId');
+    params.set('page', '1');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 relative">
@@ -125,7 +228,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
               'Dest. Type': tx.toEntityType || '',
               Destination: tx.toEntityType === 'STORE' ? (entityNames[tx.toEntityId] || tx.toEntityId) : (tx.toEntityType === 'SUPERVISOR' ? (supervisorNames[tx.toEntityId] || tx.toEntityId) : tx.toEntityId || ''),
-              Supervisor: tx.deliverySupervisorId ? (supervisorNames[tx.deliverySupervisorId] || tx.deliverySupervisorId) : '',
+              Supervisor: tx.deliverySupervisor?.name || (tx.deliverySupervisorId ? (supervisorNames[tx.deliverySupervisorId] || tx.deliverySupervisorId) : ''),
               Quantity: tx.quantity,
               'Delivery Note': tx.deliveryNote || '',
               Notes: tx.notes || '',
@@ -171,18 +274,27 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
       {activeTab === 'transactions' && (
         <div className="flex flex-col gap-4 animate-fade-in">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 bg-surface p-4 rounded-xl border border-border shadow-sm">
-            <div className="flex-1 relative">
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-surface p-4 rounded-xl border border-border shadow-sm">
+            <div className="flex-1 w-full relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input
                 type="text"
-                placeholder="Search by product name..."
+                placeholder="Search by product, SKU, delivery note, store, or supervisor..."
                 className="w-full pl-9 pr-4 py-2.5 bg-surface text-text-primary border border-border rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                 value={productFilter}
                 onChange={e => setProductFilter(e.target.value)}
               />
+              {productFilter && (
+                <button
+                  type="button"
+                  onClick={() => setProductFilter('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
-            <div className="flex-1">
+            <div className="flex-1 w-full">
               <CustomSelect
                 options={storeOptions}
                 value={storeId}
@@ -190,56 +302,75 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                 placeholder="All Stores"
               />
             </div>
+            {(productFilter || storeId) && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="px-3 py-2.5 text-xs font-semibold text-text-secondary hover:text-primary border border-border hover:border-primary/40 rounded-lg transition-colors whitespace-nowrap"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
 
           {/* Top Pagination */}
-          {totalPages > 1 && !productFilter && !storeId && (
-            <div className="flex items-center justify-between px-5 py-3 border border-border bg-surface rounded-xl shadow-sm text-xs print:hidden">
-              <span className="text-text-muted">
-                Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{" "}
-                <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{" "}
-                <strong className="text-text-primary">{totalCount}</strong> dispatches
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Link href={`/dashboard/outbound?page=${Math.max(1, page - 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}>Previous</Link>
-                <Link href={`/dashboard/outbound?page=${Math.min(totalPages, page + 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === totalPages ? 'pointer-events-none opacity-50' : ''}`}>Next</Link>
-              </div>
-            </div>
-          )}
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={sortedTransactions.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            itemLabel="dispatches"
+          />
 
           {/* Mobile Card View */}
           {sortedTransactions.length === 0 ? (
             <div className="md:hidden bg-surface border border-border rounded-xl shadow-sm py-16 text-center flex flex-col items-center gap-3 text-text-muted">
-              <ArrowUpRight size={48} className="text-text-muted" />
+              <ArrowUpRight size={48} className="text-text-muted opacity-30" />
               <h3 className="font-display font-bold text-lg text-text-primary">No matching transactions</h3>
+              <p className="text-xs text-text-muted">Try changing your search keywords or store filter.</p>
             </div>
           ) : (
             <div className="md:hidden flex flex-col gap-3">
-              {sortedTransactions.map((tx) => {
+              {paginatedTransactions.map((tx) => {
                 const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-                let destinationName = tx.toEntityType === 'CLIENT' ? (tx.toEntityId || 'Client Possession') : (entityNames[tx.toEntityId] || tx.toEntityId || '---');
+                const destinationName = tx.toEntityType === 'CLIENT' ? (tx.toEntityId || 'Client Possession') : (entityNames[tx.toEntityId] || tx.toEntityId || '---');
+                const supName = tx.deliverySupervisor?.name || (tx.deliverySupervisorId ? supervisorNames[tx.deliverySupervisorId] : '');
+
                 return (
                   <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{tx.product.name}</Link>
-                        <span className="text-[11px] text-text-muted">{tx.product.brand.name}</span>
+                        <div className="flex items-center gap-2 text-[11px] text-text-muted mt-0.5">
+                          <span>{tx.product.brand?.name || 'General'}</span>
+                          {tx.product.itemCode && <span>· SKU: {tx.product.itemCode}</span>}
+                        </div>
                       </div>
                       <span className="badge text-[10px] bg-secondary/15 text-secondary border border-secondary/10 flex-shrink-0">{tx.toEntityType}</span>
                     </div>
+
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-text-secondary font-medium">{dateStr}</span>
                       <span className="font-mono font-bold text-sm text-primary">-{tx.quantity}</span>
                     </div>
+
                     <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
-                      <span className="text-text-secondary truncate max-w-[55%">{destinationName}</span>
-                      <div className="flex items-center gap-2">
-                        {tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId && (
-                          <Link href={`/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`} target="_blank" className="text-primary font-semibold hover:underline">
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <span className="text-text-secondary font-medium truncate">{destinationName}</span>
+                        {supName && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-primary font-semibold mt-0.5">
+                            <UserCheck size={11} /> {supName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {tx.deliveryNote && (
+                          <Link href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&dn=${encodeURIComponent(tx.deliveryNote)}`} target="_blank" className="text-primary font-semibold hover:underline">
                             {tx.deliveryNote}
                           </Link>
                         )}
-                        <TransactionActions txId={tx.id} notes={tx.notes || ''} deliveryNote={tx.deliveryNote || ''} showDeliveryNote={tx.toEntityType === 'STORE'} />
+                        <TransactionActions txId={tx.id} notes={tx.notes || ''} deliveryNote={tx.deliveryNote || ''} showDeliveryNote={true} />
                       </div>
                     </div>
                   </div>
@@ -252,8 +383,9 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
           <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
             {sortedTransactions.length === 0 ? (
               <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted bg-surface">
-                <ArrowUpRight size={48} className="text-text-muted" />
+                <ArrowUpRight size={48} className="text-text-muted opacity-30" />
                 <h3 className="font-display font-bold text-lg text-text-primary">No matching transactions</h3>
+                <p className="text-xs text-text-muted">Try changing your search keywords or store filter.</p>
               </div>
             ) : (
               <>
@@ -274,22 +406,24 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
-                      {sortedTransactions.map((tx) => {
+                      {paginatedTransactions.map((tx) => {
                         const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai',
                           day: 'numeric', month: 'short', year: 'numeric',
                           hour: '2-digit', minute: '2-digit'
                         });
 
-                        let destinationName = tx.toEntityType === 'CLIENT' 
+                        const destinationName = tx.toEntityType === 'CLIENT' 
                           ? (tx.toEntityId || 'Client Possession') 
                           : (entityNames[tx.toEntityId] || tx.toEntityId || '---');
+
+                        const supName = tx.deliverySupervisor?.name || (tx.deliverySupervisorId ? supervisorNames[tx.deliverySupervisorId] : '');
 
                         return (
                           <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
                             <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                               <div className="flex flex-col">
                                 <span className="font-semibold">{tx.product.name}</span>
-                                <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
+                                <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand?.name || 'General'}</span>
                               </div>
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
@@ -299,10 +433,10 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary whitespace-nowrap">{destinationName}</td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
-                              {tx.deliverySupervisorId ? (
+                              {supName ? (
                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
                                   <UserCheck size={12} />
-                                  {supervisorNames[tx.deliverySupervisorId] || '---'}
+                                  {supName}
                                 </span>
                               ) : (
                                 <span className="text-xs text-text-muted">—</span>
@@ -310,10 +444,10 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-primary">-{tx.quantity}</td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
-                              {tx.deliveryNote && tx.toEntityType === 'STORE' && tx.toEntityId ? (
+                              {tx.deliveryNote ? (
                                 <div className="has-tooltip">
                                   <Link
-                                    href={`/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
+                                    href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&dn=${encodeURIComponent(tx.deliveryNote)}`}
                                     target="_blank"
                                     className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold"
                                   >
@@ -333,7 +467,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                                 deliveryNote={tx.deliveryNote || ''}
                                 showDeliveryNote={true}
                                 copyType="outbound"
-                                copyDnUrl={tx.deliveryNote ? `/dashboard/outbound/new?copyDn=${tx.deliveryNote}` : null}
+                                copyDnUrl={tx.deliveryNote ? `/dashboard/outbound/new?copyDn=${encodeURIComponent(tx.deliveryNote)}` : null}
                               />
                             </td>
                           </tr>
@@ -343,19 +477,17 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                   </table>
                 </div>
 
-                {totalPages > 1 && !productFilter && !storeId && (
-                  <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
-                    <span className="text-text-muted">
-                      Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{" "}
-                      <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{" "}
-                      <strong className="text-text-primary">{totalCount}</strong> dispatches
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <Link href={`/dashboard/outbound?page=${Math.max(1, page - 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}>Previous</Link>
-                      <Link href={`/dashboard/outbound?page=${Math.min(totalPages, page + 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === totalPages ? 'pointer-events-none opacity-50' : ''}`}>Next</Link>
-                    </div>
-                  </div>
-                )}
+                {/* Bottom Pagination */}
+                <div className="p-4 border-t border-border bg-surface-elevated/20">
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={sortedTransactions.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                    itemLabel="dispatches"
+                  />
+                </div>
               </>
             )}
           </div>
@@ -369,22 +501,42 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
               <input
                 type="text"
-                placeholder="Search Delivery Notes or Stores..."
+                placeholder="Search Delivery Notes, stores, or products..."
                 className="w-full pl-9 pr-4 py-2 bg-surface-elevated/50 border border-border rounded-lg text-sm focus:outline-none focus:border-primary transition-colors"
                 value={dnSearch}
                 onChange={e => setDnSearch(e.target.value)}
               />
+              {dnSearch && (
+                <button
+                  type="button"
+                  onClick={() => setDnSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Top Pagination for Delivery Notes */}
+          <Pagination
+            currentPage={dnPage}
+            totalPages={totalDnPages}
+            totalItems={filteredGroups.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setDnPage}
+            itemLabel="delivery notes"
+          />
 
           <div className="flex flex-col gap-3">
             {filteredGroups.length === 0 ? (
               <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted bg-surface rounded-xl border border-border">
-                <FileText size={48} className="text-text-muted" />
+                <FileText size={48} className="text-text-muted opacity-30" />
                 <h3 className="font-display font-bold text-lg text-text-primary">No Delivery Notes found</h3>
+                <p className="text-xs text-text-muted">No delivery notes match your search criteria.</p>
               </div>
             ) : (
-              filteredGroups.map(group => {
+              paginatedGroups.map(group => {
                 const groupKey = `${group.deliveryNote}_${group.storeId}`;
                 const isExpanded = expandedDn[groupKey];
                 
@@ -424,14 +576,14 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                           <span className="hidden sm:inline">Edit</span>
                         </button>
                         <button
-                          onClick={() => router.push(`/dashboard/outbound/new?copyDn=${group.deliveryNote}`)}
+                          onClick={() => router.push(`/dashboard/outbound/new?copyDn=${encodeURIComponent(group.deliveryNote)}`)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
                           title="Duplicate"
                         >
                           <CopyPlus size={13} />
                           <span className="hidden sm:inline">Duplicate</span>
                         </button>
-                        {group.items.some(tx => tx.product.isReturnable) && (
+                        {group.items.some(tx => tx.product?.isReturnable) && (
                           <button
                             onClick={() => router.push(`/dashboard/returns?dn=${encodeURIComponent(group.deliveryNote)}`)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
@@ -441,7 +593,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                             <span className="hidden sm:inline">Return</span>
                           </button>
                         )}
-                        {group.items.some(tx => tx.product.isDisposable) && (
+                        {group.items.some(tx => tx.product?.isDisposable) && (
                           <button
                             onClick={() => router.push(`/dashboard/used?dn=${encodeURIComponent(group.deliveryNote)}`)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
@@ -454,7 +606,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                         <button
                           onClick={() => {
                             setPdfLoadingKey(groupKey);
-                            const pdfApiUrl = `/api/dashboard/stores/${group.storeId}/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId}&dn=${group.deliveryNote}`;
+                            const pdfApiUrl = `/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&dn=${encodeURIComponent(group.deliveryNote)}`;
                             router.push(`/pdf-preview?url=${encodeURIComponent(pdfApiUrl)}&title=${encodeURIComponent(group.deliveryNote)}`);
                           }}
                           disabled={pdfLoadingKey === groupKey}
@@ -483,13 +635,13 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                           <tbody className="divide-y divide-border text-text-primary">
                             {group.items.map(tx => (
                               <tr key={tx.id} className="hover:bg-surface-elevated/40 transition-colors">
-                                <td className="py-2.5 pl-5 pr-4 font-medium text-xs">{tx.product.name}</td>
-                                <td className="py-2.5 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">{tx.product.itemCode || '---'}</td>
-                                <td className="py-2.5 px-4 text-xs text-text-secondary whitespace-nowrap">{tx.product.brand.name}</td>
+                                <td className="py-2.5 pl-5 pr-4 font-medium text-xs">{tx.product?.name}</td>
+                                <td className="py-2.5 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">{tx.product?.itemCode || '---'}</td>
+                                <td className="py-2.5 px-4 text-xs text-text-secondary whitespace-nowrap">{tx.product?.brand?.name || 'General'}</td>
                                 <td className="py-2.5 px-4 text-center font-mono text-xs font-bold text-primary whitespace-nowrap">-{tx.quantity}</td>
                                 <td className="py-2.5 px-4 text-right">
                                   <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                    {tx.product.isReturnable && (
+                                    {tx.product?.isReturnable && (
                                       <button
                                         type="button"
                                         onClick={() => router.push(`/dashboard/returns?dn=${encodeURIComponent(tx.deliveryNote || '')}`)}
@@ -498,7 +650,7 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
                                         <RotateCcw size={10} /> Return
                                       </button>
                                     )}
-                                    {tx.product.isDisposable && (
+                                    {tx.product?.isDisposable && (
                                       <button
                                         type="button"
                                         onClick={() => router.push(`/dashboard/used?dn=${encodeURIComponent(tx.deliveryNote || '')}`)}
@@ -527,6 +679,16 @@ export default function OutboundLedgerClient({ transactions = [], totalCount = 0
               })
             )}
           </div>
+
+          {/* Bottom Pagination for Delivery Notes */}
+          <Pagination
+            currentPage={dnPage}
+            totalPages={totalDnPages}
+            totalItems={filteredGroups.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setDnPage}
+            itemLabel="delivery notes"
+          />
         </div>
       )}
     </div>

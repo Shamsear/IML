@@ -1773,6 +1773,7 @@ export async function processOutboundReturns(returnsPayload) {
             notes: `Auto-generated Return from Outbound ${transactionId}. ${notes || ''}`,
             deliveryStatus: 'Delivered',
             deliveryNote,
+            deliverySupervisorId: originalTx.deliverySupervisorId || null,
             manufactureDate: originalTx.manufactureDate,
             expiryDate: originalTx.expiryDate,
           }

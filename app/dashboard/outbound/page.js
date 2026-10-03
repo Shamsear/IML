@@ -1,92 +1,96 @@
-import { Suspense } from 'react';
 import { prisma } from '@/lib/prisma';
 import OutboundLedgerClient from './OutboundLedgerClient';
+import { Suspense } from 'react';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Outbound Dispatches Ledger - Inventory System',
   description: 'Log and review outbound dispatches and allocations',
 };
 
+function OutboundLoading() {
+  return (
+    <div className="flex flex-col gap-6 animate-pulse">
+      <div className="h-14 bg-surface-elevated/40 rounded-xl w-64" />
+      <div className="h-10 bg-surface-elevated/30 rounded-xl w-72" />
+      <div className="h-96 bg-surface-elevated/20 rounded-2xl" />
+    </div>
+  );
+}
+
 export default async function OutboundPage({ searchParams }) {
   const params = await searchParams;
-  const page = parseInt(params?.page || '1', 10);
-  const pageSize = 25;
+  const initialPage = parseInt(params?.page || '1', 10);
+  const initialTab = params?.tab || 'transactions';
 
-  // Query all ISSUE transactions with skip and take
-  const [transactions, totalCount] = await Promise.all([
-    prisma.inventoryTransaction.findMany({
-      where: {
-        transactionType: 'ISSUE',
-      },
-      select: {
-        id: true,
-        transactionType: true,
-        toEntityType: true,
-        toEntityId: true,
-        quantity: true,
-        deliveryNote: true,
-        deliverySupervisorId: true,
-        timestamp: true,
-        notes: true,
-        product: {
-          select: {
-            id: true,
-            name: true,
-            brandId: true,
-            isReturnable: true,
-            isDisposable: true,
-            brand: {
-              select: {
-                name: true
+  let transactions = [];
+  let stores = [];
+  let supervisors = [];
+  let staffList = [];
+
+  try {
+    [transactions, stores, supervisors, staffList] = await Promise.all([
+      prisma.inventoryTransaction.findMany({
+        where: {
+          transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+        },
+        select: {
+          id: true,
+          transactionType: true,
+          toEntityType: true,
+          toEntityId: true,
+          fromEntityType: true,
+          fromEntityId: true,
+          quantity: true,
+          deliveryNote: true,
+          deliverySupervisorId: true,
+          timestamp: true,
+          notes: true,
+          product: {
+            select: {
+              id: true,
+              name: true,
+              itemCode: true,
+              brandId: true,
+              isReturnable: true,
+              isDisposable: true,
+              brand: {
+                select: {
+                  id: true,
+                  name: true
+                }
               }
             }
+          },
+          deliverySupervisor: {
+            select: {
+              id: true,
+              name: true
+            }
           }
-        }
-      },
-      orderBy: {
-        timestamp: 'desc',
-      },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.inventoryTransaction.count({
-      where: {
-        transactionType: 'ISSUE',
-      }
-    })
-  ]);
-
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  // Resolve destination names in memory using selective ID queries
-  const uniqueStoreIds = new Set();
-  const uniqueStaffIds = new Set();
-  const uniqueSupervisorIds = new Set();
-
-  transactions.forEach(t => {
-    if (t.fromEntityType === 'STORE' && t.fromEntityId) uniqueStoreIds.add(t.fromEntityId);
-    if (t.toEntityType === 'STORE' && t.toEntityId) uniqueStoreIds.add(t.toEntityId);
-    if (t.fromEntityType === 'STAFF' && t.fromEntityId) uniqueStaffIds.add(t.fromEntityId);
-    if (t.toEntityType === 'STAFF' && t.toEntityId) uniqueStaffIds.add(t.toEntityId);
-    if (t.fromEntityType === 'SUPERVISOR' && t.fromEntityId) uniqueSupervisorIds.add(t.fromEntityId);
-    if (t.toEntityType === 'SUPERVISOR' && t.toEntityId) uniqueSupervisorIds.add(t.toEntityId);
-    if (t.deliverySupervisorId) uniqueSupervisorIds.add(t.deliverySupervisorId);
-  });
-
-  const [stores, supervisors, staffList] = await Promise.all([
-    prisma.store.findMany({
-      where: { id: { in: Array.from(uniqueStoreIds) } },
-      select: { id: true, name: true }
-    }),
-    prisma.supervisor.findMany({
-      where: { id: { in: Array.from(uniqueSupervisorIds) } },
-      select: { id: true, name: true }
-    }),
-    prisma.staff.findMany({
-      where: { id: { in: Array.from(uniqueStaffIds) } },
-      select: { id: true, name: true }
-    }),
-  ]);
+        },
+        orderBy: {
+          timestamp: 'desc',
+        },
+        take: 1000,
+      }),
+      prisma.store.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.supervisor.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' }
+      }),
+      prisma.staff.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' }
+      }),
+    ]);
+  } catch (err) {
+    console.error('Error fetching outbound ledger data:', err);
+  }
 
   const entityNames = {};
   stores.forEach(s => { entityNames[s.id] = s.name; });
@@ -97,6 +101,15 @@ export default async function OutboundPage({ searchParams }) {
   supervisors.forEach(s => { supervisorNames[s.id] = s.name; });
 
   return (
-    <OutboundLedgerClient transactions={transactions} totalCount={totalCount} totalPages={totalPages} page={page} entityNames={entityNames} stores={stores} supervisorNames={supervisorNames} />
+    <Suspense fallback={<OutboundLoading />}>
+      <OutboundLedgerClient
+        transactions={transactions}
+        entityNames={entityNames}
+        stores={stores}
+        supervisorNames={supervisorNames}
+        initialPage={initialPage}
+        initialTab={initialTab}
+      />
+    </Suspense>
   );
 }
