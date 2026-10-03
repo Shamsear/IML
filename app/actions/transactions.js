@@ -717,7 +717,7 @@ export async function createBulkIssueTransactions(payload) {
 
   revalidateTransactionPaths();
 
-  const totalQty = (items || []).reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
+  const totalQty = (items || []).reduce((acc, curr) => acc + parseFloat(curr.quantity || 0), 0);
   safeNotifyTransaction({
     type: 'ISSUE',
     productName: `${items?.length || 1} product item${(items?.length || 1) > 1 ? 's' : ''}`,
@@ -970,7 +970,7 @@ export async function createBulkReceiveTransactions(formData) {
 
   revalidateTransactionPaths();
 
-  const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
+  const totalQty = items.reduce((acc, curr) => acc + parseFloat(curr.quantity || 0), 0);
   safeNotifyTransaction({
     type: 'RECEIVE',
     productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
@@ -1126,7 +1126,7 @@ export async function createBulkDamageTransactions(payload) {
 
   revalidateTransactionPaths();
 
-  const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
+  const totalQty = items.reduce((acc, curr) => acc + parseFloat(curr.quantity || 0), 0);
   const firstItemProduct = items[0] ? productsMap.get(items[0].productId) : null;
   const brandName = firstItemProduct?.brand?.name || 'General';
 
@@ -2675,7 +2675,7 @@ export async function returnClientItemsToWarehouse(payload) {
 
   revalidateTransactionPaths();
 
-  const totalQty = items.reduce((acc, curr) => acc + parseInt(curr.quantity || 0, 10), 0);
+  const totalQty = items.reduce((acc, curr) => acc + parseFloat(curr.quantity || 0), 0);
   safeNotifyTransaction({
     type: 'CLIENT_RETURN',
     productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,

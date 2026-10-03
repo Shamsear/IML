@@ -654,12 +654,13 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       return;
     }
     const prod = products.find(p => p.id === item.productId);
-    if (!prod?.isSerialized && (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10)))) {
+    const numQty = parseFloat(item.quantity);
+    if (!prod?.isSerialized && (isNaN(numQty) || numQty <= 0)) {
       updateItemField(idx, 'error', 'Quantity must be greater than 0');
       return;
     }
     if (!prod?.isSerialized) {
-      const qty = parseInt(item.quantity, 10);
+      const qty = numQty;
       const originalItem = (initialItems && editMode) ? initialItems.find(x => x.productId === item.productId) : null;
       const originalQty = originalItem ? originalItem.quantity : 0;
       const stock = (prod?.warehouseStock || 0) + originalQty;
@@ -721,13 +722,14 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
           return;
         }
       } else if (!prod?.isSerialized) {
-        if (parseInt(item.quantity, 10) <= 0 || isNaN(parseInt(item.quantity, 10))) {
+        const numQty = parseFloat(item.quantity);
+        if (isNaN(numQty) || numQty <= 0) {
           updateItemField(i, 'error', 'Quantity must be greater than 0');
           handleExpandItem(i);
           setLoading(false);
           return;
         }
-        const qty = parseInt(item.quantity, 10);
+        const qty = numQty;
         const originalItem = (initialItems && editMode) ? initialItems[i] : null;
         const originalQty = originalItem ? originalItem.quantity : 0;
         const stock = (prod?.warehouseStock || 0) + originalQty;
@@ -800,7 +802,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       } else {
         itemsPayload.push({
           productId: item.productId,
-          quantity: prod?.isSerialized ? item.selectedBarcodes.length : parseInt(item.quantity, 10),
+          quantity: prod?.isSerialized ? item.selectedBarcodes.length : parseFloat(item.quantity),
           barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
           notes: item.notes,
           ...(isUniform ? { promoterAssignment: item.promoterAssignment } : {})
@@ -1644,11 +1646,13 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                             <label className="text-xs font-semibold text-text-secondary">Quantity to Dispatch</label>
                             <input
                               type="number"
+                              step="any"
+                              min="0"
                               className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none disabled:bg-surface-elevated/40"
                               value={item.quantity}
                               onChange={(e) => updateItemField(idx, 'quantity', e.target.value)}
                               disabled={selectedProd?.isSerialized || selectedProd?.trackExpiry}
-                              placeholder={selectedProd?.isSerialized ? 'Select serial numbers below' : selectedProd?.trackExpiry ? 'Select batches below' : 'e.g. 50'}
+                              placeholder={selectedProd?.isSerialized ? 'Select serial numbers below' : selectedProd?.trackExpiry ? 'Select batches below' : 'e.g. 50 or 0.125'}
                               required
                             />
                             {selectedProd?.isSerialized && (
@@ -1657,12 +1661,12 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                             {selectedProd?.trackExpiry && !selectedProd?.isSerialized && (
                               <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected batch quantities below.</span>
                             )}
-                            {!selectedProd?.isSerialized && !selectedProd?.trackExpiry && selectedProd && parseInt(item.quantity, 10) > selectedProd.warehouseStock && (
+                            {!selectedProd?.isSerialized && !selectedProd?.trackExpiry && selectedProd && parseFloat(item.quantity) > selectedProd.warehouseStock && (
                               <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse">
                                 ⚠️ Warning: Quantity ({item.quantity}) exceeds available warehouse stock ({selectedProd.warehouseStock} units)!
                               </span>
                             )}
-                            {!selectedProd?.isSerialized && selectedProd && parseInt(item.quantity, 10) <= 0 && (
+                            {!selectedProd?.isSerialized && selectedProd && item.quantity !== '' && (parseFloat(item.quantity) <= 0 || isNaN(parseFloat(item.quantity))) && (
                               <span className="text-[10px] font-semibold text-danger mt-1">
                                 ⚠️ Warning: Quantity must be greater than 0.
                               </span>
@@ -1714,6 +1718,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                           <label className="text-[10px] font-bold text-text-secondary uppercase">Qty:</label>
                                           <input
                                             type="number"
+                                            step="any"
                                             min="0"
                                             max={batch.quantity}
                                             className="w-20 bg-surface border border-border rounded px-2.5 py-1 text-xs text-center focus:outline-none focus:border-primary font-bold text-text-primary"
@@ -1721,8 +1726,8 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                             placeholder="0"
                                             onChange={(e) => {
                                               const enteredVal = e.target.value;
-                                              const valInt = parseInt(enteredVal, 10) || 0;
-                                              const cappedVal = Math.min(valInt, batch.quantity);
+                                              const valFloat = parseFloat(enteredVal) || 0;
+                                              const cappedVal = Math.min(valFloat, batch.quantity);
                                               
                                               const currentSelected = item.selectedBatches || [];
                                               const existingIdx = currentSelected.findIndex(b => 
