@@ -104,6 +104,36 @@ export default function RebrandLedgerClient({
     return tx.product?.name || '—';
   };
 
+  // Historical target product mapping traced directly from original Excel sheets (REBRANDING & Purchase)
+  const HISTORICAL_REBRAND_TARGETS = {
+    'RBD-SAD-210824-001': 'Sadia Promotional Stand (1*1) "Back to School" English',
+    'RBD-SAD-250924-001': 'Sadia Promotional Stand (1*1)  Carrefour',
+    'RBD-SAD-291024-001': 'Sadia Promotional Stand (1*1) - For Union Coop',
+    'RBD-SAD-051124-001': 'Sadia Promotional Stand (1*1) - Generic',
+    'RBD-SAD-061124-001': 'Sadia Promotional Stand (1*1) - For LULU New Dec 2024',
+    'RBD-SAD-061124-002': 'Sadia Promotional Stand (1*1) - For Union Coop',
+    'RBD-SAD-291124-001': 'Sadia Promotional Stand (1*1) - Mortadella',
+    'RBD-SAD-291124-002': 'Sadia Promotional Stand (1*1) - Mortadella',
+    'RBD-SAD-050225-001': 'Sadia Promotional Stand (1*1) - Generic',
+    'RBD-SAD-100225-001': 'Sadia Promotional Stand (1*1) - Ramadan Like a pro',
+    'RBD-SAD-120225-001': 'Sadia Promotional Stand (1*1) - Ramadan Like a pro',
+    'RBD-SAD-130225-001': 'Sadia Promotional Stand (1*1) - Ramadan Like a pro',
+    'RBD-SAD-130525-001': 'Sadia Promotional Stand (1*1) - Generic New 2025 (Buy Scan & Win)',
+    'RBD-SAD-200525-001': 'Sadia Promotional Stand (1*1) - Generic New 2025 (Buy Scan & Win)',
+    'RBD-SAD-140825-001': 'Sadia Promotional Stand (1*1) "Back to School" English 2025',
+    'RBD-SAD-240925-001': 'Sadia Promotional Stand (1*1) "1000 Carrefour Voucher" 2025',
+    'RBD-SAD-250925-001': 'Sadia Wooden Chef Stand',
+    'RBD-SAD-211025-001': 'Sadia Promotional Stand (1*1) "Win Big With Sadia" 2025',
+    'RBD-SAD-101125-001': 'Sadia Promotional Stand (1*1) "Win Big With Sadia" 2025',
+    'RBD-SAD-091225-001': 'Sadia Promotional Stand (1*1) - Ramadan 2026',
+    'RBD-SAD-260126-001': 'Sadia Promotional Stand (1*1) - Ramadan 2026',
+    'RBD-SAD-200426-001': 'Sadia Promotional Stand (1*1) - Ramadan 2026',
+    'RBD-SAD-180526-001': 'Sadia Promotional Stand (1*1) - Back To School "AED 40 2026"',
+    'RBD-SAD-170826-001': 'Sadia Promotional Stand (1*1) - Back To School "AED 40 2026"',
+    'RBD-SAD-250826-001': 'Sadia Promotional Stand (1*1) - Back To School "AED 40 2026"',
+    'RBD-SAD-250826-002': 'Sadia Promotional Stand (1*1) - Back To School "AED 40 2026"',
+  };
+
   // Extract target (to) product name
   const getToProductName = (tx) => {
     // 1. If this is a REBRAND_IN gain, tx.product IS the target product
@@ -116,7 +146,12 @@ export default function RebrandLedgerClient({
       return rebrandPairMap[tx.deliveryNote].toProduct;
     }
 
-    // 3. Check serial number replacement (replacedBy -> new serial -> product)
+    // 3. Historical delivery note exact target product resolution from Excel
+    if (tx.deliveryNote && HISTORICAL_REBRAND_TARGETS[tx.deliveryNote]) {
+      return HISTORICAL_REBRAND_TARGETS[tx.deliveryNote];
+    }
+
+    // 4. Check serial number replacement (replacedBy -> new serial -> product)
     if (tx.serialNumbers && tx.serialNumbers.length > 0) {
       for (const s of tx.serialNumbers) {
         if (s.serialNumber?.replacedBy?.product?.name) {
@@ -125,7 +160,7 @@ export default function RebrandLedgerClient({
       }
     }
 
-    // 4. Parse notes for 'Rebrand output -> [Target Product]'
+    // 5. Parse notes for 'Rebrand output -> [Target Product]'
     if (tx.notes) {
       const match = tx.notes.match(/Rebrand output ->\s*([^.]+)/i);
       if (match) return match[1].trim();
