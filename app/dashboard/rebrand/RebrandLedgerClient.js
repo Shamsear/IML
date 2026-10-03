@@ -84,7 +84,16 @@ export default function RebrandLedgerClient({
       return rebrandPairMap[tx.deliveryNote].fromProduct;
     }
 
-    // 3. Fallback: Parse notes for 'Rebrand input <- [Source Product]'
+    // 3. Check serial number replacements (replaces -> old serial -> product)
+    if (tx.serialNumbers && tx.serialNumbers.length > 0) {
+      for (const s of tx.serialNumbers) {
+        if (s.serialNumber?.replaces?.product?.name) {
+          return s.serialNumber.replaces.product.name;
+        }
+      }
+    }
+
+    // 4. Fallback: Parse notes for 'Rebrand input <- [Source Product]'
     if (tx.notes) {
       const match = tx.notes.match(/Rebrand input <-\s*([^.]+)/i);
       if (match) return match[1].trim();
@@ -107,14 +116,40 @@ export default function RebrandLedgerClient({
       return rebrandPairMap[tx.deliveryNote].toProduct;
     }
 
-    // 3. Parse notes for 'Rebrand output -> [Target Product]'
+    // 3. Check serial number replacement (replacedBy -> new serial -> product)
+    if (tx.serialNumbers && tx.serialNumbers.length > 0) {
+      for (const s of tx.serialNumbers) {
+        if (s.serialNumber?.replacedBy?.product?.name) {
+          return s.serialNumber.replacedBy.product.name;
+        }
+      }
+    }
+
+    // 4. Parse notes for 'Rebrand output -> [Target Product]'
     if (tx.notes) {
       const match = tx.notes.match(/Rebrand output ->\s*([^.]+)/i);
       if (match) return match[1].trim();
+
       const matchLegacy = tx.notes.match(/rebrand(?:ed|ing)?\s+on\s*\(([^)]+)\)/i);
-      if (matchLegacy) return matchLegacy[1].trim();
+      if (matchLegacy) {
+        let val = matchLegacy[1].trim();
+        if (val.toLowerCase().startsWith('for ')) val = val.substring(4).trim();
+        return val;
+      }
+
+      const matchForParen = tx.notes.match(/\(for\s+([^)]+)\)/i);
+      if (matchForParen) {
+        let val = matchForParen[1].trim();
+        if (val.toLowerCase().startsWith('for ')) val = val.substring(4).trim();
+        return val;
+      }
+
       const matchFor = tx.notes.match(/for rebranding on\s+([^(]+)\(/i);
-      if (matchFor) return matchFor[1].trim();
+      if (matchFor) {
+        let val = matchFor[1].trim();
+        if (val.toLowerCase().startsWith('for ')) val = val.substring(4).trim();
+        return val;
+      }
     }
 
     return '—';

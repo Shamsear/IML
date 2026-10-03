@@ -59,7 +59,23 @@ export default async function RebrandPage({ searchParams }) {
           },
           serialNumbers: {
             select: {
-              serialNumber: { select: { barcode: true } }
+              serialNumber: {
+                select: {
+                  barcode: true,
+                  replaces: {
+                    select: {
+                      barcode: true,
+                      product: { select: { name: true } }
+                    }
+                  },
+                  replacedBy: {
+                    select: {
+                      barcode: true,
+                      product: { select: { name: true } }
+                    }
+                  }
+                }
+              }
             }
           }
         },
