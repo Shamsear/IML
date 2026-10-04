@@ -78,20 +78,11 @@ export default function BrandPortalClient({ brand }) {
           .map(p => {
             const stock = computeProductStock(p);
             const remark = h.remarks?.[p.id] || '';
-            const cap = p.stockCap !== null && p.stockCap !== undefined ? p.stockCap : '';
-            
-            // Stock Level calculation
-            let stockLevel = 'AVAILABLE';
-            if (stock.warehouse <= 0) {
-              stockLevel = 'NOT AVAILABLE';
-            } else if (cap !== '' && parseInt(cap, 10) > 0 && stock.warehouse <= parseInt(cap, 10)) {
-              stockLevel = 'LOW';
-            }
+            const stockLevel = stock.warehouse > 0 ? 'AVAILABLE' : 'NOT AVAILABLE';
 
             return {
               product: p,
               availableQty: stock.warehouse,
-              stockCap: cap,
               stockLevel,
               remark,
               stock,
@@ -125,14 +116,7 @@ export default function BrandPortalClient({ brand }) {
         })
         .map(p => {
           const stock = computeProductStock(p);
-          const cap = p.stockCap !== null && p.stockCap !== undefined ? p.stockCap : '';
-          
-          let stockLevel = 'AVAILABLE';
-          if (stock.warehouse <= 0) {
-            stockLevel = 'NOT AVAILABLE';
-          } else if (cap !== '' && parseInt(cap, 10) > 0 && stock.warehouse <= parseInt(cap, 10)) {
-            stockLevel = 'LOW';
-          }
+          const stockLevel = stock.warehouse > 0 ? 'AVAILABLE' : 'NOT AVAILABLE';
 
           let defaultRemark = '';
           if (stock.damage > 0) defaultRemark = `${stock.damage} Damaged`;
@@ -141,7 +125,6 @@ export default function BrandPortalClient({ brand }) {
           return {
             product: p,
             availableQty: stock.warehouse,
-            stockCap: cap,
             stockLevel,
             remark: defaultRemark,
             stock,
@@ -380,7 +363,7 @@ export default function BrandPortalClient({ brand }) {
                           <>
                             {/* Mobile Card List */}
                             <div className="md:hidden divide-y divide-border">
-                              {section.items.map(({ product: p, availableQty, stockCap, stockLevel, remark }) => (
+                              {section.items.map(({ product: p, availableQty, stockLevel, remark }) => (
                                 <div key={p.id} className="p-4 flex flex-col gap-2 hover:bg-surface-elevated/20 transition-colors">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-2.5 min-w-0">
@@ -405,23 +388,15 @@ export default function BrandPortalClient({ brand }) {
                                     <span className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded shrink-0 border ${
                                       stockLevel === 'AVAILABLE'
                                         ? 'bg-success/10 text-success border-success/20'
-                                        : stockLevel === 'LOW'
-                                        ? 'bg-warning/10 text-warning border-warning/20'
                                         : 'bg-danger/10 text-danger border-danger/20'
                                     }`}>
                                       {stockLevel}
                                     </span>
                                   </div>
 
-                                  <div className="grid grid-cols-2 gap-2 text-xs bg-surface-elevated/40 p-2 rounded-lg border border-border/60">
-                                    <div>
-                                      <span className="text-[10px] text-text-muted block">Available Qty</span>
-                                      <span className="font-mono font-bold text-text-primary">{availableQty}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-[10px] text-text-muted block">Stock Cap</span>
-                                      <span className="font-mono text-text-secondary">{stockCap !== '' ? stockCap : '—'}</span>
-                                    </div>
+                                  <div className="flex items-center justify-between text-xs bg-surface-elevated/40 px-3 py-2 rounded-lg border border-border/60">
+                                    <span className="text-[10px] text-text-muted font-medium">Available in Warehouse</span>
+                                    <span className="font-mono font-bold text-success text-sm">{availableQty}</span>
                                   </div>
 
                                   {remark && (
@@ -439,13 +414,12 @@ export default function BrandPortalClient({ brand }) {
                                 <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
                                   <th className="py-2.5 px-4">Item Description</th>
                                   <th className="py-2.5 px-4 text-center w-28">Available Qty</th>
-                                  <th className="py-2.5 px-4 text-center w-24">Stock Cap</th>
                                   <th className="py-2.5 px-4 text-center w-32">Stock Level</th>
                                   <th className="py-2.5 px-4">Remarks</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-border text-xs">
-                                {section.items.map(({ product: p, availableQty, stockCap, stockLevel, remark }) => (
+                                {section.items.map(({ product: p, availableQty, stockLevel, remark }) => (
                                   <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
                                     <td className="py-2.5 px-4">
                                       <div className="flex items-center gap-3 min-w-0">
@@ -473,15 +447,10 @@ export default function BrandPortalClient({ brand }) {
                                         {availableQty}
                                       </span>
                                     </td>
-                                    <td className="py-2.5 px-4 text-center font-mono text-text-secondary">
-                                      {stockCap !== '' ? stockCap : '—'}
-                                    </td>
                                     <td className="py-2.5 px-4 text-center">
                                       <span className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded border ${
                                         stockLevel === 'AVAILABLE'
                                           ? 'bg-success/10 text-success border-success/20'
-                                          : stockLevel === 'LOW'
-                                          ? 'bg-warning/10 text-warning border-warning/20'
                                           : 'bg-danger/10 text-danger border-danger/20'
                                       }`}>
                                         {stockLevel}
@@ -693,22 +662,14 @@ export default function BrandPortalClient({ brand }) {
                             <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-secondary">{stock.reBrand}</td>
                             <td className="py-3 px-3 text-center font-mono font-bold whitespace-nowrap">{stock.total}</td>
                             <td className="py-3 px-3 text-center whitespace-nowrap">
-                              {p.stockCap ? (
-                                stock.warehouse <= 0 ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
-                                    Out
-                                  </span>
-                                ) : stock.warehouse < p.stockCap ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
-                                    Low
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
-                                    Ok
-                                  </span>
-                                )
+                              {stock.warehouse <= 0 ? (
+                                <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
+                                  Out of Stock
+                                </span>
                               ) : (
-                                <span className="text-text-muted text-[10px]">---</span>
+                                <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
+                                  Available
+                                </span>
                               )}
                             </td>
                           </tr>
