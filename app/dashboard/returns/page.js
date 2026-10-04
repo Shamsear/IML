@@ -31,11 +31,24 @@ export default async function ReturnsPage({ searchParams }) {
       prisma.inventoryTransaction.findMany({
         where: {
           transactionType: { in: ['ISSUE', 'OUTBOUND'] },
-          product: { isReturnable: true },
           OR: [
             { returnStatus: null },
             { returnStatus: { notIn: ['RETURNED', 'USED'] } }
-          ]
+          ],
+          product: {
+            OR: [
+              { isReturnable: true },
+              { isDisposable: false },
+              { category: { contains: 'UNIFORM', mode: 'insensitive' } },
+              { category: { contains: 'Uniform', mode: 'insensitive' } },
+              { name: { contains: 'Uniform', mode: 'insensitive' } },
+              { name: { contains: 'Shirt', mode: 'insensitive' } },
+              { name: { contains: 'T-Shirt', mode: 'insensitive' } },
+              { name: { contains: 'Cap', mode: 'insensitive' } },
+              { name: { contains: 'Apron', mode: 'insensitive' } },
+              { name: { contains: 'Vest', mode: 'insensitive' } }
+            ]
+          }
         },
         select: {
           id: true,
@@ -147,8 +160,7 @@ export default async function ReturnsPage({ searchParams }) {
   });
 
   const transactions = rawTransactions.filter(t => 
-    (t.quantity - (t.returnedQty || 0)) > 0 &&
-    (!t.product?.category || !t.product.category.toUpperCase().includes('UNIFORM'))
+    (t.quantity - (t.returnedQty || 0)) > 0
   );
 
   return (

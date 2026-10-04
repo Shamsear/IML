@@ -753,6 +753,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError('');
     setSuccessMsg('');

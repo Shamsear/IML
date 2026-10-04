@@ -37,6 +37,8 @@ function revalidateTransactionPaths() {
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/transactions');
   revalidatePath('/dashboard/products');
+  revalidatePath('/dashboard/returns');
+  revalidatePath('/dashboard/staff');
 }
 
 // 2. Fetch all transactions
@@ -2257,6 +2259,48 @@ export async function processOutboundReturns(returnsPayload) {
           }
         });
 
+        // 3. Keep any associated promoter uniform allocation in sync
+        if (originalTx.deliveryNote) {
+          const allocations = await tx.staffUniformAllocation.findMany({
+            where: { ref: originalTx.deliveryNote }
+          });
+          for (const alloc of allocations) {
+            let dynamicItems = [];
+            if (alloc.allocatedItems) {
+              if (typeof alloc.allocatedItems === 'string') {
+                try { dynamicItems = JSON.parse(alloc.allocatedItems); } catch(e){}
+              } else if (Array.isArray(alloc.allocatedItems)) {
+                dynamicItems = alloc.allocatedItems;
+              }
+            }
+            let itemMatched = false;
+            const updatedItems = dynamicItems.map(item => {
+              if (item.productId === originalTx.productId && !item.returned) {
+                itemMatched = true;
+                return { ...item, returned: true, returnedAt: new Date().toISOString() };
+              }
+              return item;
+            });
+
+            const isFullyReturned = newStatus === 'RETURNED';
+            const updateData = {};
+            if (itemMatched) {
+              updateData.allocatedItems = updatedItems;
+            }
+            if (isFullyReturned) {
+              updateData.uniformReturned = true;
+              updateData.capReturned = true;
+              updateData.returnDate = new Date();
+            }
+            if (Object.keys(updateData).length > 0) {
+              await tx.staffUniformAllocation.update({
+                where: { id: alloc.id },
+                data: updateData
+              });
+            }
+          }
+        }
+
       } else if (actionType === 'USED') {
         const useQty = (qty && parseInt(qty, 10) > 0) ? parseInt(qty, 10) : remainingQty;
         const newReturnedQty = (originalTx.returnedQty || 0) + useQty;
@@ -2292,6 +2336,18 @@ export async function processOutboundReturns(returnsPayload) {
             expiryDate: originalTx.expiryDate,
           }
         });
+
+        // 3. Keep associated uniform allocation in sync
+        if (originalTx.deliveryNote && newStatus === 'USED') {
+          await tx.staffUniformAllocation.updateMany({
+            where: { ref: originalTx.deliveryNote },
+            data: {
+              uniformReturned: true,
+              capReturned: true,
+              returnDate: new Date(),
+            }
+          });
+        }
       }
     }
   }, { timeout: 20000 });
