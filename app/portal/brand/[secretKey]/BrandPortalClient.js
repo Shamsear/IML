@@ -12,7 +12,7 @@ import { useTableSort } from '@/hooks/useTableSort';
 export default function BrandPortalClient({ brand }) {
   const [activeTab, setActiveTab] = useState('summary'); // 'summary' | 'catalog'
   const [searchQuery, setSearchQuery] = useState('');
-  const [productTypeFilter, setProductTypeFilter] = useState('ALL');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [summarySearch, setSummarySearch] = useState('');
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
   const [collapsedSections, setCollapsedSections] = useState({});
@@ -24,7 +24,7 @@ export default function BrandPortalClient({ brand }) {
   // Reset pages on search/filter changes
   React.useEffect(() => {
     setProductPage(0);
-  }, [searchQuery, productTypeFilter]);
+  }, [searchQuery, selectedCategory]);
 
   // Helper to compute stock with serialized status reconciliation
   const computeProductStock = (p) => {
@@ -157,17 +157,30 @@ export default function BrandPortalClient({ brand }) {
     setCollapsedSections(next);
   };
 
-  // Filter products by search query and type filter for Catalog Tab
-  const filteredProducts = (brand?.products || []).filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.itemCode && p.itemCode.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesType = productTypeFilter === 'ALL' ||
-      (productTypeFilter === 'SERIALIZED' && p.isSerialized) ||
-      (productTypeFilter === 'BULK' && !p.isSerialized);
+  // Extract unique categories for this brand
+  const uniqueCategories = useMemo(() => {
+    const set = new Set();
+    (brand?.products || []).forEach(p => {
+      if (p.category && p.category.trim()) {
+        set.add(p.category.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [brand?.products]);
+
+  // Filter products by search query and category filter for Catalog Tab
+  const filteredProducts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return (brand?.products || []).filter(p => {
+      const matchesSearch = !q || p.name.toLowerCase().includes(q) ||
+        (p.itemCode && p.itemCode.toLowerCase().includes(q));
       
-    return matchesSearch && matchesType;
-  });
+      const matchesCategory = selectedCategory === 'ALL' ||
+        (p.category && p.category.trim().toLowerCase() === selectedCategory.toLowerCase());
+        
+      return matchesSearch && matchesCategory;
+    });
+  }, [brand?.products, searchQuery, selectedCategory]);
 
   const customGetters = useMemo(() => ({
     name: (p) => p.name || '',
@@ -479,46 +492,77 @@ export default function BrandPortalClient({ brand }) {
         {/* ========================================================================= */}
         {activeTab === 'catalog' && (
           <div className="bg-surface border border-border p-5 rounded-2xl shadow-sm flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <Package size={20} className="text-primary" />
-                <h3 className="font-display font-bold text-lg text-text-primary">
-                  Product Catalog &amp; Stock Levels
-                </h3>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex flex-col gap-3 border-b border-border pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Package size={20} className="text-primary" />
+                  <h3 className="font-display font-bold text-lg text-text-primary">
+                    Product Catalog &amp; Stock Levels
+                  </h3>
+                </div>
+                
                 {/* Search Bar */}
-                <div className="relative w-full sm:w-60">
+                <div className="relative w-full sm:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                   <input
                     type="text"
                     placeholder="Search products by name, SKU..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-surface-elevated/45 text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-surface-elevated/45 text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-8 py-1.5 text-xs focus:outline-none focus:border-primary transition-colors"
                   />
-                </div>
-                
-                {/* Product Type Filter */}
-                <div className="flex bg-surface-elevated p-1 rounded-lg border border-border">
-                  {['ALL', 'SERIALIZED', 'BULK'].map(type => (
+                  {searchQuery && (
                     <button
-                      key={type}
                       type="button"
-                      onClick={() => setProductTypeFilter(type)}
-                      className={`px-3 py-1 text-[10px] font-bold rounded transition-colors uppercase cursor-pointer
-                        ${productTypeFilter === type 
-                          ? 'bg-surface text-primary shadow-sm border border-border/60' 
-                          : 'text-text-secondary hover:text-text-primary'
-                        }
-                      `}
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary cursor-pointer"
                     >
-                      {type === 'ALL' ? 'All' : type.toLowerCase()}
+                      <X size={13} />
                     </button>
-                  ))}
+                  )}
                 </div>
               </div>
+
+              {/* Category Filter Pills */}
+              {uniqueCategories.length > 0 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('ALL')}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                      selectedCategory === 'ALL'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'bg-surface-elevated/70 text-text-secondary hover:text-text-primary hover:bg-surface-elevated border border-border/60'
+                    }`}
+                  >
+                    All ({brand?.products?.length || 0})
+                  </button>
+                  {uniqueCategories.map(cat => {
+                    const count = (brand?.products || []).filter(p => p.category?.trim().toLowerCase() === cat.toLowerCase()).length;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                          selectedCategory.toLowerCase() === cat.toLowerCase()
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'bg-surface-elevated/70 text-text-secondary hover:text-text-primary hover:bg-surface-elevated border border-border/60'
+                        }`}
+                      >
+                        <span>{cat}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                          selectedCategory.toLowerCase() === cat.toLowerCase()
+                            ? 'bg-white/20 text-white'
+                            : 'bg-surface text-text-muted border border-border/40'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {filteredProducts.length === 0 ? (

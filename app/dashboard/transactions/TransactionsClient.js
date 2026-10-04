@@ -397,38 +397,7 @@ export default function TransactionsClient({
                           {tx.quantity}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap text-xs text-text-secondary">
-                          {tx.deliveryNote ? (
-                            (tx.transactionType === 'RECEIVE' || tx.transactionType === 'RETURN') ? (
-                              <a
-                                href={`/api/dashboard/inbound/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 text-success hover:text-success/80 hover:underline transition-colors"
-                                title="Download Inbound Delivery Note PDF"
-                              >
-                                <FileText size={13} />
-                                <span className="font-semibold">{tx.deliveryNote}</span>
-                              </a>
-                            ) : (tx.transactionType === 'ISSUE' && tx.toEntityType === 'STORE' && tx.toEntityId) ? (
-                              <a
-                                href={`/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 text-primary hover:text-primary-hover hover:underline transition-colors"
-                                title="Download Delivery Note PDF"
-                              >
-                                <FileText size={13} />
-                                <span className="font-semibold">{tx.deliveryNote}</span>
-                              </a>
-                            ) : (
-                              <div className="flex items-center gap-1.5">
-                                <FileText size={13} className="text-text-muted" />
-                                <span>{tx.deliveryNote}</span>
-                              </div>
-                            )
-                          ) : (
-                            <span className="text-text-muted">N/A</span>
-                          )}
+                          <DeliveryNoteLink tx={tx} />
                         </td>
                         <td className="py-3.5 pl-4 whitespace-nowrap text-xs text-text-secondary">
                           <div className="flex items-center gap-1.5">
