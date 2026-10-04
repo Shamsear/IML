@@ -91,6 +91,9 @@ export default async function ReturnsPage({ searchParams }) {
           id: true,
           quantity: true,
           timestamp: true,
+          deliveryNote: true,
+          barcode: true,
+          transactionType: true,
           fromEntityType: true,
           fromEntityId: true,
           notes: true,
@@ -100,7 +103,8 @@ export default async function ReturnsPage({ searchParams }) {
               id: true,
               name: true,
               itemCode: true,
-              brand: { select: { name: true } }
+              brandId: true,
+              brand: { select: { id: true, name: true } }
             }
           },
           deliverySupervisor: {
@@ -108,7 +112,7 @@ export default async function ReturnsPage({ searchParams }) {
           }
         },
         orderBy: { timestamp: 'desc' },
-        take: 100
+        take: 500
       }),
       prisma.supervisor.findMany({
         select: { id: true, name: true },

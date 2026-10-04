@@ -244,6 +244,7 @@ export default function ReturnsClient({
 
   const historyCustomGetters = useMemo(() => ({
     date: (tx) => tx.timestamp,
+    deliveryNote: (tx) => tx.deliveryNote || '',
     product: (tx) => tx.product?.name || '',
     returnedFrom: (tx) => stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || '',
     supervisor: (tx) => getSupervisorName(tx),
@@ -323,7 +324,17 @@ export default function ReturnsClient({
         description="Return issued stock back to the warehouse. Only returnable products appear here."
         actions={<>
           <ExportToExcel
-            data={transactions.map(tx => ({
+            data={activeTab === 'history' ? filteredHistory.map(tx => ({
+              'Return Note': tx.deliveryNote || '—',
+              Product: tx.product?.name || '',
+              SKU: tx.product?.itemCode || '',
+              Brand: tx.product?.brand?.name || '',
+              'Returned From': stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || '',
+              Supervisor: getSupervisorName(tx) || '',
+              Quantity: tx.quantity,
+              Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+              Remarks: tx.notes || '',
+            })) : transactions.map(tx => ({
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',
               Barcode: tx.barcode || '',
@@ -336,7 +347,17 @@ export default function ReturnsClient({
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
               Notes: tx.notes || '',
             }))}
-            columns={[
+            columns={activeTab === 'history' ? [
+              { header: 'Return Note', key: 'Return Note', width: 22 },
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'SKU', key: 'SKU', width: 14 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Returned From', key: 'Returned From', width: 20 },
+              { header: 'Supervisor', key: 'Supervisor', width: 18 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'Date', key: 'Date', width: 20 },
+              { header: 'Remarks', key: 'Remarks', width: 25 },
+            ] : [
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'SKU', key: 'SKU', width: 14 },
               { header: 'Barcode', key: 'Barcode', width: 22 },
@@ -349,7 +370,7 @@ export default function ReturnsClient({
               { header: 'Date', key: 'Date', width: 18 },
               { header: 'Notes', key: 'Notes', width: 25 },
             ]}
-            filename="IML-Returns"
+            filename={activeTab === 'history' ? 'IML-Returns-History' : 'IML-Returns'}
           />
         </>
       }
@@ -788,25 +809,47 @@ export default function ReturnsClient({
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
                     <SortableHeader field="date" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
+                    <SortableHeader field="deliveryNote" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Return Note</SortableHeader>
                     <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</SortableHeader>
                     <SortableHeader field="returnedFrom" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Returned From</SortableHeader>
                     <SortableHeader field="supervisor" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supervisor</SortableHeader>
                     <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Returned Qty</SortableHeader>
                     <SortableHeader field="notes" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions / Undo</th>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {sortedHistory.length === 0 ? (
-                    <tr><td colSpan="7" className="py-12 text-center text-text-muted">
+                    <tr><td colSpan="8" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No returns logs found.</span></div>
                     </td></tr>
                   ) : paginatedHistory.map(tx => {
                     const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
+                    const brandId = tx.product?.brandId || tx.product?.brand?.id || '';
+                    const dateStr = new Date(tx.timestamp).toISOString().split('T')[0];
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
                           {new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
+                          {tx.deliveryNote ? (
+                            <div className="flex items-center gap-2">
+                              <DeliveryNoteLink tx={tx} deliveryNote={tx.deliveryNote} />
+                              <a
+                                href={`/api/dashboard/returns/delivery-note?date=${dateStr}${brandId ? `&brandId=${brandId}` : ''}&dn=${encodeURIComponent(tx.deliveryNote)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-[10px] rounded transition-colors"
+                                title="View Return Note PDF"
+                              >
+                                <FileText size={11} />
+                                PDF
+                              </a>
+                            </div>
+                          ) : (
+                            <span className="text-text-muted text-xs">—</span>
+                          )}
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary min-w-[200px]">
                           <div className="flex flex-col">
@@ -828,7 +871,14 @@ export default function ReturnsClient({
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-success">+{tx.quantity}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
-                          <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
+                          <TransactionActions 
+                            txId={tx.id} 
+                            deliveryNote={tx.deliveryNote}
+                            transactionType="RETURN"
+                            notes={tx.notes || ''} 
+                            copyType="returns"
+                            showDeliveryNote={false} 
+                          />
                         </td>
                       </tr>
                     );

@@ -318,220 +318,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
     </div>
   );
 
-  // Shared flat transaction table component
-  function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilter, selectedBrandId, setSelectedBrandId }) {
-    const [flatPage, setFlatPage] = useState(1);
-    const itemsPerPage = 25;
 
-    const customGetters = useMemo(() => ({
-      product: (tx) => tx.product?.name || '',
-      date: (tx) => tx.timestamp,
-      deliveryNote: (tx) => tx.deliveryNote || '',
-      brand: (tx) => tx.product?.brand?.name || '',
-      quantity: (tx) => tx.quantity ?? 0,
-      notes: (tx) => tx.notes || '',
-    }), []);
-
-    const {
-      sortedItems,
-      sortField,
-      sortDirection,
-      handleSort,
-    } = useTableSort(txs, 'date', 'desc', customGetters);
-
-    const totalFlatPages = Math.ceil(sortedItems.length / itemsPerPage);
-    const paginatedFlatItems = useMemo(() => {
-      const start = (flatPage - 1) * itemsPerPage;
-      return sortedItems.slice(start, start + itemsPerPage);
-    }, [sortedItems, flatPage, itemsPerPage]);
-
-    const getGatePassEndpoint = (tx) => {
-      const isReturn = ['CLIENT_RETURN', 'RETURN'].includes(tx.transactionType) ||
-                       (tx.deliveryNote && (
-                         tx.deliveryNote.startsWith('RET-') ||
-                         tx.deliveryNote.startsWith('RTN-') ||
-                         tx.deliveryNote.startsWith('CRN-') ||
-                         tx.deliveryNote.startsWith('CRR-')
-                       ));
-      return isReturn ? 'return-gate-pass' : 'gate-pass';
-    };
-
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface border border-border p-4 rounded-xl shadow-sm">
-          <div className="relative col-span-1 sm:col-span-2">
-            <Search className="absolute left-3 top-2.5 text-text-muted" size={16} />
-            <input
-              type="text"
-              placeholder="Search product name, SKU code..."
-              className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary font-medium"
-              value={productFilter}
-              onChange={(e) => {
-                setProductFilter(e.target.value);
-                setFlatPage(1);
-              }}
-            />
-          </div>
-          <div className="col-span-1">
-            <CustomSelect
-              options={brandOptions}
-              value={selectedBrandId}
-              onChange={(val) => {
-                setSelectedBrandId(val);
-                setFlatPage(1);
-              }}
-            />
-          </div>
-        </div>
-
-        {totalFlatPages > 1 && (
-          <Pagination
-            currentPage={flatPage}
-            totalPages={totalFlatPages}
-            totalItems={sortedItems.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setFlatPage}
-            itemLabel="transactions"
-          />
-        )}
-
-        {/* Mobile Card View */}
-        <div className="md:hidden flex flex-col gap-3">
-          {paginatedFlatItems.length === 0 ? (
-            <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-muted text-xs shadow-sm">
-              No matching transactions found.
-            </div>
-          ) : (
-            paginatedFlatItems.map((tx) => {
-              const dateObj = new Date(tx.timestamp);
-              const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-              return (
-                <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <span className="font-semibold text-sm text-text-primary block truncate">{tx.product?.name}</span>
-                      <span className="text-[11px] text-text-muted font-mono">{tx.product?.itemCode || 'No SKU'}</span>
-                    </div>
-                    <span className="font-mono font-bold text-sm flex-shrink-0">{tx.quantity}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-text-secondary font-semibold">{tx.product?.brand?.name || '—'}</span>
-                    <span className="text-text-muted">{formattedDate}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
-                    {tx.deliveryNote ? (
-                      <a
-                        href={`/api/dashboard/client-returns/${getGatePassEndpoint(tx)}?dn=${encodeURIComponent(tx.deliveryNote)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline font-mono font-bold inline-flex items-center gap-1"
-                        title="View / Download Gate Pass PDF"
-                      >
-                        <span>Gate Pass: {tx.deliveryNote}</span>
-                        <ExternalLink size={10} className="inline opacity-70" />
-                      </a>
-                    ) : (
-                      <span className="text-text-muted">Direct Transaction</span>
-                    )}
-                    <TransactionActions
-                      transactionId={tx.id}
-                      deliveryNote={tx.deliveryNote}
-                      transactionType={tx.transactionType}
-                      barcode={tx.barcode}
-                      copyType="client-returns"
-                    />
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Desktop Table View */}
-        <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 pl-5 pr-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</SortableHeader>
-                <SortableHeader field="date" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Date</SortableHeader>
-                <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Gate Pass No</SortableHeader>
-                <SortableHeader field="brand" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Client Brand</SortableHeader>
-                <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3 px-4 text-center font-semibold">Qty</SortableHeader>
-                <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Remarks</SortableHeader>
-                <th className="py-3 pr-5 pl-4 text-right font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {paginatedFlatItems.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
-                    No matching transactions found.
-                  </td>
-                </tr>
-              ) : (
-                paginatedFlatItems.map((tx) => {
-                  const dateObj = new Date(tx.timestamp);
-                  const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-                  const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-                  return (
-                    <tr key={tx.id} className="text-xs hover:bg-surface-elevated/20 transition-colors group/row">
-                      <td className="py-3 pl-5 pr-4 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
-                        <span className="font-semibold block">{tx.product?.name}</span>
-                        <span className="text-[10px] font-mono text-text-muted block mt-0.5">{tx.product?.itemCode || 'No SKU'}</span>
-                      </td>
-                      <td className="py-3 px-4 font-semibold whitespace-nowrap text-text-secondary">
-                        {formattedDate} <span className="text-[10px] font-normal block mt-0.5">{formattedTime}</span>
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold uppercase text-[11px] whitespace-nowrap">
-                        {tx.deliveryNote ? (
-                          <a
-                            href={`/api/dashboard/client-returns/${getGatePassEndpoint(tx)}?dn=${encodeURIComponent(tx.deliveryNote)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline inline-flex items-center gap-1"
-                            title="View / Download Gate Pass PDF"
-                          >
-                            <span>{tx.deliveryNote}</span>
-                            <ExternalLink size={10} className="inline opacity-70" />
-                          </a>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
-                      <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
-                      <td className="py-3 px-4 text-text-secondary font-medium max-w-xs truncate">{tx.notes || '—'}</td>
-                      <td className="py-3 pr-5 pl-4 text-right whitespace-nowrap">
-                        <TransactionActions
-                          transactionId={tx.id}
-                          deliveryNote={tx.deliveryNote}
-                          transactionType={tx.transactionType}
-                          barcode={tx.barcode}
-                          copyType="client-returns"
-                        />
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {totalFlatPages > 1 && (
-          <Pagination
-            currentPage={flatPage}
-            totalPages={totalFlatPages}
-            totalItems={sortedItems.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setFlatPage}
-            itemLabel="transactions"
-          />
-        )}
-      </div>
-    );
-  }
 
   const renderFlatTransactions = (txs) => (
     <FlatTransactionTable
@@ -748,3 +535,219 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
     </div>
   );
 }
+
+// Shared flat transaction table component
+function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilter, selectedBrandId, setSelectedBrandId }) {
+  const [flatPage, setFlatPage] = useState(1);
+  const itemsPerPage = 25;
+
+  const customGetters = useMemo(() => ({
+    product: (tx) => tx.product?.name || '',
+    date: (tx) => tx.timestamp,
+    deliveryNote: (tx) => tx.deliveryNote || '',
+    brand: (tx) => tx.product?.brand?.name || '',
+    quantity: (tx) => tx.quantity ?? 0,
+    notes: (tx) => tx.notes || '',
+  }), []);
+
+  const {
+    sortedItems,
+    sortField,
+    sortDirection,
+    handleSort,
+  } = useTableSort(txs, 'date', 'desc', customGetters);
+
+  const totalFlatPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const paginatedFlatItems = useMemo(() => {
+    const start = (flatPage - 1) * itemsPerPage;
+    return sortedItems.slice(start, start + itemsPerPage);
+  }, [sortedItems, flatPage, itemsPerPage]);
+
+  const getGatePassEndpoint = (tx) => {
+    const isReturn = ['CLIENT_RETURN', 'RETURN'].includes(tx.transactionType) ||
+                     (tx.deliveryNote && (
+                       tx.deliveryNote.startsWith('RET-') ||
+                       tx.deliveryNote.startsWith('RTN-') ||
+                       tx.deliveryNote.startsWith('CRN-') ||
+                       tx.deliveryNote.startsWith('CRR-')
+                     ));
+    return isReturn ? 'return-gate-pass' : 'gate-pass';
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface border border-border p-4 rounded-xl shadow-sm">
+        <div className="relative col-span-1 sm:col-span-2">
+          <Search className="absolute left-3 top-2.5 text-text-muted" size={16} />
+          <input
+            type="text"
+            placeholder="Search product name, SKU code..."
+            className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary font-medium"
+            value={productFilter}
+            onChange={(e) => {
+              setProductFilter(e.target.value);
+              setFlatPage(1);
+            }}
+          />
+        </div>
+        <div className="col-span-1">
+          <CustomSelect
+            options={brandOptions}
+            value={selectedBrandId}
+            onChange={(val) => {
+              setSelectedBrandId(val);
+              setFlatPage(1);
+            }}
+          />
+        </div>
+      </div>
+
+      {totalFlatPages > 1 && (
+        <Pagination
+          currentPage={flatPage}
+          totalPages={totalFlatPages}
+          totalItems={sortedItems.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setFlatPage}
+          itemLabel="transactions"
+        />
+      )}
+
+      {/* Mobile Card View */}
+      <div className="md:hidden flex flex-col gap-3">
+        {paginatedFlatItems.length === 0 ? (
+          <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-muted text-xs shadow-sm">
+            No matching transactions found.
+          </div>
+        ) : (
+          paginatedFlatItems.map((tx) => {
+            const dateObj = new Date(tx.timestamp);
+            const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+            return (
+              <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-semibold text-sm text-text-primary block truncate">{tx.product?.name}</span>
+                    <span className="text-[11px] text-text-muted font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                  </div>
+                  <span className="font-mono font-bold text-sm flex-shrink-0">{tx.quantity}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-text-secondary font-semibold">{tx.product?.brand?.name || '—'}</span>
+                  <span className="text-text-muted">{formattedDate}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                  {tx.deliveryNote ? (
+                    <a
+                      href={`/api/dashboard/client-returns/${getGatePassEndpoint(tx)}?dn=${encodeURIComponent(tx.deliveryNote)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline font-mono font-bold inline-flex items-center gap-1"
+                      title="View / Download Gate Pass PDF"
+                    >
+                      <span>Gate Pass: {tx.deliveryNote}</span>
+                      <ExternalLink size={10} className="inline opacity-70" />
+                    </a>
+                  ) : (
+                    <span className="text-text-muted">Direct Transaction</span>
+                  )}
+                  <TransactionActions
+                    transactionId={tx.id}
+                    deliveryNote={tx.deliveryNote}
+                    transactionType={tx.transactionType}
+                    barcode={tx.barcode}
+                    copyType="client-returns"
+                  />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+              <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 pl-5 pr-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</SortableHeader>
+              <SortableHeader field="date" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Date</SortableHeader>
+              <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Gate Pass No</SortableHeader>
+              <SortableHeader field="brand" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Client Brand</SortableHeader>
+              <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3 px-4 text-center font-semibold">Qty</SortableHeader>
+              <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Remarks</SortableHeader>
+              <th className="py-3 pr-5 pl-4 text-right font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
+            {paginatedFlatItems.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
+                  No matching transactions found.
+                </td>
+              </tr>
+            ) : (
+              paginatedFlatItems.map((tx) => {
+                const dateObj = new Date(tx.timestamp);
+                const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                return (
+                  <tr key={tx.id} className="text-xs hover:bg-surface-elevated/20 transition-colors group/row">
+                    <td className="py-3 pl-5 pr-4 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                      <span className="font-semibold block">{tx.product?.name}</span>
+                      <span className="text-[10px] font-mono text-text-muted block mt-0.5">{tx.product?.itemCode || 'No SKU'}</span>
+                    </td>
+                    <td className="py-3 px-4 font-semibold whitespace-nowrap text-text-secondary">
+                      {formattedDate} <span className="text-[10px] font-normal block mt-0.5">{formattedTime}</span>
+                    </td>
+                    <td className="py-3 px-4 font-mono font-bold uppercase text-[11px] whitespace-nowrap">
+                      {tx.deliveryNote ? (
+                        <a
+                          href={`/api/dashboard/client-returns/${getGatePassEndpoint(tx)}?dn=${encodeURIComponent(tx.deliveryNote)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1"
+                          title="View / Download Gate Pass PDF"
+                        >
+                          <span>{tx.deliveryNote}</span>
+                          <ExternalLink size={10} className="inline opacity-70" />
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
+                    <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
+                    <td className="py-3 px-4 text-text-secondary font-medium max-w-xs truncate">{tx.notes || '—'}</td>
+                    <td className="py-3 pr-5 pl-4 text-right whitespace-nowrap">
+                      <TransactionActions
+                        transactionId={tx.id}
+                        deliveryNote={tx.deliveryNote}
+                        transactionType={tx.transactionType}
+                        barcode={tx.barcode}
+                        copyType="client-returns"
+                      />
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {totalFlatPages > 1 && (
+        <Pagination
+          currentPage={flatPage}
+          totalPages={totalFlatPages}
+          totalItems={sortedItems.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setFlatPage}
+          itemLabel="transactions"
+        />
+      )}
+    </div>
+  );
+}
+
