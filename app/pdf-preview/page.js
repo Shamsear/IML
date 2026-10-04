@@ -1,16 +1,55 @@
-﻿'use client';
+'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Suspense, useState } from 'react';
-import { ArrowLeft, Download, FileText, Loader2 } from 'lucide-react';
+import { Suspense, useState, useEffect } from 'react';
+import { ArrowLeft, Download, FileText, Loader2, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
 
 function PDFPreviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [loaded, setLoaded] = useState(false);
-
+  
   const pdfUrl = searchParams.get('url');
   const title = searchParams.get('title') || 'Delivery Note';
+
+  const [loading, setLoading] = useState(true);
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  const fetchPDF = async () => {
+    if (!pdfUrl) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        let errMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+          const json = await response.json();
+          if (json.error || json.message) errMessage = json.error || json.message;
+        } catch {
+          const text = await response.text();
+          if (text) errMessage = text;
+        }
+        throw new Error(errMessage);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setBlobUrl(url);
+    } catch (err) {
+      setError(err.message || 'Failed to load PDF preview');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPDF();
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [pdfUrl]);
 
   if (!pdfUrl) {
     return (
@@ -30,50 +69,95 @@ function PDFPreviewContent() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f3f4f6' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
       {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: '#fff', borderBottom: '1px solid #e5e7eb', flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={() => router.back()}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', fontWeight: 500 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '13px', color: '#475569', fontWeight: 600 }}
           >
             <ArrowLeft size={15} />
             Back
           </button>
-          <span style={{ color: '#d1d5db' }}>|</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <FileText size={15} color="#6366f1" />
-            <span style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>{title}</span>
+          <span style={{ color: '#cbd5e1' }}>|</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={15} color="#2563eb" />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a' }}>{title}</span>
           </div>
         </div>
 
-        <a
-          href={pdfUrl}
-          download
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 16px', background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: '13px', borderRadius: '8px', textDecoration: 'none' }}
-        >
-          <Download size={14} />
-          Download PDF
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {blobUrl && (
+            <a
+              href={blobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', background: '#fff', color: '#475569', fontWeight: 600, fontSize: '13px', borderRadius: '8px', border: '1px solid #cbd5e1', textDecoration: 'none' }}
+            >
+              <ExternalLink size={14} />
+              Open in Tab
+            </a>
+          )}
+          {blobUrl && (
+            <a
+              href={blobUrl}
+              download={`${title}.pdf`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 16px', background: '#2563eb', color: '#fff', fontWeight: 700, fontSize: '13px', borderRadius: '8px', textDecoration: 'none', boxShadow: '0 1px 2px rgba(37,99,235,0.2)' }}
+            >
+              <Download size={14} />
+              Download PDF
+            </a>
+          )}
+        </div>
       </div>
 
       {/* PDF area */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        {/* Loading overlay */}
-        {!loaded && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', zIndex: 10, gap: '12px' }}>
-            <Loader2 size={36} color="#6366f1" style={{ animation: 'spin 1s linear infinite' }} />
-            <p style={{ fontSize: '14px', color: '#6b7280', fontWeight: 500 }}>Generating PDF, please wait...</p>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#64748b' }}>
+        {loading && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', zIndex: 10, gap: '14px' }}>
+            <Loader2 size={38} color="#2563eb" style={{ animation: 'spin 1s linear infinite' }} />
+            <p style={{ fontSize: '14px', color: '#475569', fontWeight: 600 }}>Rendering document preview, please wait...</p>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
-        <iframe
-          src={pdfUrl}
-          onLoad={() => setLoaded(true)}
-          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-          title={title}
-        />
+
+        {error && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff', zIndex: 10, padding: '24px' }}>
+            <div style={{ maxWidth: '440px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertCircle size={28} color="#dc2626" />
+              </div>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Unable to Load Document</h3>
+              <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.5, margin: 0 }}>{error}</p>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button
+                  onClick={fetchPDF}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: '13px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+                >
+                  <RefreshCw size={14} />
+                  Try Again
+                </button>
+                <button
+                  onClick={() => router.back()}
+                  style={{ padding: '8px 16px', background: '#f1f5f9', color: '#475569', fontWeight: 600, fontSize: '13px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+                >
+                  Go Back
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {blobUrl && !loading && !error && (
+          <iframe
+            src={blobUrl}
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+            title={title}
+          />
+        )}
       </div>
     </div>
   );
@@ -82,10 +166,10 @@ function PDFPreviewContent() {
 export default function PDFPreviewPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: '#6b7280' }}>
-          <div style={{ width: '36px', height: '36px', border: '3px solid #e5e7eb', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <p style={{ fontSize: '14px', fontWeight: 500 }}>Loading...</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: '#64748b' }}>
+          <div style={{ width: '36px', height: '36px', border: '3px solid #e2e8f0', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <p style={{ fontSize: '14px', fontWeight: 600 }}>Loading Preview...</p>
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
