@@ -12,6 +12,7 @@ import TabNav from '@/components/TabNav';
 import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import DeliveryNoteGroup from '@/components/DeliveryNoteGroup';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
@@ -356,22 +357,8 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary whitespace-nowrap">{sourceName}</td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap">+{tx.quantity}</td>
-                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
-                              {tx.deliveryNote ? (
-                                <div className="has-tooltip">
-                                  <a
-                                    href={`/api/dashboard/inbound/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold"
-                                  >
-                                    {tx.deliveryNote}
-                                  </a>
-                                  <span className="tooltip-box">Download Receive Note PDF</span>
-                                </div>
-                              ) : (
-                                <span>---</span>
-                              )}
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap font-mono text-xs">
+                              <DeliveryNoteLink tx={tx} />
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
@@ -486,20 +473,16 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                           <CopyPlus size={13} />
                           <span className="hidden sm:inline">Duplicate</span>
                         </button>
-                        <button
-                          onClick={() => {
-                            setPdfLoadingKey(groupKey);
-                            const pdfApiUrl = `/api/dashboard/inbound/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId}&dn=${group.deliveryNote}`;
-                            router.push(`/pdf-preview?url=${encodeURIComponent(pdfApiUrl)}&title=${encodeURIComponent(group.deliveryNote)}`);
-                          }}
-                          disabled={pdfLoadingKey === groupKey}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-lg transition-colors border border-primary/20 disabled:opacity-60 disabled:cursor-wait whitespace-nowrap"
-                          title="View PDF"
+                        <a
+                          href={`/api/dashboard/inbound/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId}&dn=${encodeURIComponent(group.deliveryNote)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                          title="View / Download PDF"
                         >
-                          {pdfLoadingKey === groupKey
-                            ? <><Loader2 size={13} className="animate-spin" /><span className="hidden sm:inline">Loading…</span></>
-                            : <><FileText size={13} /><span className="hidden sm:inline">View PDF</span></>}
-                        </button>
+                          <FileText size={13} />
+                          <span>PDF</span>
+                        </a>
                       </div>
                     </div>
 

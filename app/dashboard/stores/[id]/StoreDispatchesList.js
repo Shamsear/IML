@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Printer, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Printer, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 
 export default function StoreDispatchesList({ storeId, groupedDispatches = [], pageSize = 15 }) {
   const [page, setPage] = useState(1);
@@ -58,10 +58,11 @@ export default function StoreDispatchesList({ storeId, groupedDispatches = [], p
               href={`/api/dashboard/stores/${storeId}/delivery-note?date=${disp.date}&brandId=${disp.brandId}&dn=${disp.deliveryNote}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 hover:bg-success/10 text-success rounded-md transition-colors flex-shrink-0"
-              title="Print Delivery Note"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap flex-shrink-0"
+              title="View / Download Delivery Note PDF"
             >
-              <Printer size={13} />
+              <FileText size={12} />
+              <span>PDF</span>
             </a>
           </div>
         ))}

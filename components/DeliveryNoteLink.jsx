@@ -6,11 +6,11 @@ import { FileText } from 'lucide-react';
 export function getDeliveryNotePdfUrl(tx) {
   if (!tx || (!tx.deliveryNote && typeof tx !== 'string')) return null;
   const dn = typeof tx === 'string' ? tx : tx.deliveryNote;
-  if (!dn || dn === 'UNASSIGNED') return null;
+  if (!dn || dn === 'UNASSIGNED' || dn === '—') return null;
 
   const dateStr = (typeof tx === 'object' && tx?.timestamp)
     ? new Date(tx.timestamp).toISOString().split('T')[0]
-    : new Date().toISOString().split('T')[0];
+    : '';
 
   const brandId = typeof tx === 'object'
     ? (tx.product?.brandId || tx.product?.brand?.id || '')
@@ -18,27 +18,34 @@ export function getDeliveryNotePdfUrl(tx) {
 
   const txType = typeof tx === 'object' ? tx.transactionType : '';
 
-  if (txType === 'DAMAGE' || dn.startsWith('DAM-') || dn.startsWith('IML-DAM-')) {
-    return `/api/dashboard/damage/delivery-note?date=${dateStr}&brandId=${brandId}&dn=${encodeURIComponent(dn)}`;
+  const queryParams = new URLSearchParams();
+  queryParams.set('dn', dn);
+  if (brandId) queryParams.set('brandId', brandId);
+  if (dateStr) queryParams.set('date', dateStr);
+
+  const qs = queryParams.toString();
+
+  if (txType === 'DAMAGE' || dn.startsWith('DAM-') || dn.startsWith('DMG-')) {
+    return `/api/dashboard/damage/delivery-note?${qs}`;
   }
-  if (txType === 'LOST' || dn.startsWith('LOS-') || dn.startsWith('IML-LOS-')) {
-    return `/api/dashboard/loss/delivery-note?date=${dateStr}&brandId=${brandId}&dn=${encodeURIComponent(dn)}`;
+  if (txType === 'LOST' || dn.startsWith('LOS-') || dn.startsWith('LSS-')) {
+    return `/api/dashboard/loss/delivery-note?${qs}`;
   }
   if (dn.startsWith('CGP-') || dn.startsWith('GP-') || txType === 'CLIENT_STOCK') {
-    return `/api/dashboard/client-returns/gate-pass?dn=${encodeURIComponent(dn)}&brandId=${brandId}&date=${dateStr}`;
+    return `/api/dashboard/client-returns/gate-pass?${qs}`;
   }
-  if (dn.startsWith('CRP-') || dn.startsWith('CRN-') || dn.startsWith('CRR-') || txType === 'CLIENT_RETURN') {
-    return `/api/dashboard/client-returns/return-gate-pass?dn=${encodeURIComponent(dn)}&brandId=${brandId}&date=${dateStr}`;
+  if (dn.startsWith('CRP-') || dn.startsWith('CRN-') || dn.startsWith('CRR-') || dn.startsWith('CLT-') || txType === 'CLIENT_RETURN') {
+    return `/api/dashboard/client-returns/return-gate-pass?${qs}`;
   }
   if (txType === 'RECEIVE' || dn.startsWith('REC-') || dn.startsWith('IN-')) {
-    return `/api/dashboard/inbound/delivery-note?date=${dateStr}&brandId=${brandId}&dn=${encodeURIComponent(dn)}`;
+    return `/api/dashboard/inbound/delivery-note?${qs}`;
   }
   if (txType === 'ISSUE' && typeof tx === 'object' && tx.toEntityType === 'STORE' && tx.toEntityId) {
-    return `/api/dashboard/stores/${tx.toEntityId}/delivery-note?date=${dateStr}&brandId=${brandId}&dn=${encodeURIComponent(dn)}`;
+    return `/api/dashboard/stores/${tx.toEntityId}/delivery-note?${qs}`;
   }
 
   // Default fallback for dispatches, returns, rebrands, used, etc.
-  return `/api/dashboard/returns/delivery-note?date=${dateStr}&brandId=${brandId}&dn=${encodeURIComponent(dn)}`;
+  return `/api/dashboard/returns/delivery-note?${qs}`;
 }
 
 export default function DeliveryNoteLink({
@@ -49,8 +56,8 @@ export default function DeliveryNoteLink({
   variant = 'default',
 }) {
   const dnText = deliveryNote || (typeof tx === 'object' ? tx?.deliveryNote : tx);
-  if (!dnText || dnText === 'UNASSIGNED') {
-    return <span className="text-text-muted">---</span>;
+  if (!dnText || dnText === 'UNASSIGNED' || dnText === '—') {
+    return <span className="text-text-muted font-mono text-xs">—</span>;
   }
 
   const pdfUrl = getDeliveryNotePdfUrl(typeof tx === 'object' ? tx : { deliveryNote: dnText });
@@ -59,11 +66,11 @@ export default function DeliveryNoteLink({
     return <span className="font-mono text-xs text-text-secondary">{dnText}</span>;
   }
 
-  let badgeStyle = 'text-primary hover:text-primary-hover hover:underline transition-colors font-mono font-semibold text-xs inline-flex items-center gap-1.5 has-tooltip';
+  let badgeStyle = 'text-primary hover:text-primary-hover hover:underline transition-colors font-mono font-bold text-xs inline-flex items-center gap-1.5 has-tooltip';
   if (variant === 'badge') {
-    badgeStyle = 'inline-flex items-center gap-1 font-mono text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 px-2 py-0.5 rounded transition-all has-tooltip';
+    badgeStyle = 'inline-flex items-center gap-1 font-mono text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 px-2 py-0.5 rounded transition-all has-tooltip';
   } else if (variant === 'success') {
-    badgeStyle = 'inline-flex items-center gap-1 font-mono text-xs font-semibold text-success hover:text-success/80 hover:underline transition-all has-tooltip';
+    badgeStyle = 'inline-flex items-center gap-1 font-mono text-xs font-bold text-success hover:text-success/80 hover:underline transition-all has-tooltip';
   }
 
   return (
@@ -74,9 +81,9 @@ export default function DeliveryNoteLink({
       className={`${badgeStyle} ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
-      {showIcon && <FileText size={13} className="shrink-0" />}
+      {showIcon && <FileText size={13} className="shrink-0 text-primary" />}
       <span>{dnText}</span>
-      <span className="tooltip-box">View / Download Note PDF ({dnText})</span>
+      <span className="tooltip-box">View / Download PDF ({dnText})</span>
     </a>
   );
 }

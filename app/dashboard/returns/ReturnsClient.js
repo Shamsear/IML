@@ -833,23 +833,7 @@ export default function ReturnsClient({
                           {new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
-                          {tx.deliveryNote ? (
-                            <div className="flex items-center gap-2">
-                              <DeliveryNoteLink tx={tx} deliveryNote={tx.deliveryNote} />
-                              <a
-                                href={`/api/dashboard/returns/delivery-note?date=${dateStr}${brandId ? `&brandId=${brandId}` : ''}&dn=${encodeURIComponent(tx.deliveryNote)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-[10px] rounded transition-colors"
-                                title="View Return Note PDF"
-                              >
-                                <FileText size={11} />
-                                PDF
-                              </a>
-                            </div>
-                          ) : (
-                            <span className="text-text-muted text-xs">—</span>
-                          )}
+                          <DeliveryNoteLink tx={tx} deliveryNote={tx.deliveryNote} />
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary min-w-[200px]">
                           <div className="flex flex-col">

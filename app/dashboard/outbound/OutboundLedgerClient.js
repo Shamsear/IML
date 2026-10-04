@@ -25,6 +25,7 @@ import ExportToExcel from '@/components/ExportToExcel';
 import TabNav from '@/components/TabNav';
 import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
@@ -498,21 +499,8 @@ export default function OutboundLedgerClient({
                               )}
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-primary">-{tx.quantity}</td>
-                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
-                              {tx.deliveryNote ? (
-                                <div className="has-tooltip">
-                                  <Link
-                                    href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&dn=${encodeURIComponent(tx.deliveryNote)}`}
-                                    target="_blank"
-                                    className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold"
-                                  >
-                                    {tx.deliveryNote}
-                                  </Link>
-                                  <span className="tooltip-box">Download Delivery Note PDF</span>
-                                </div>
-                              ) : (
-                                <span>{tx.deliveryNote || '---'}</span>
-                              )}
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap font-mono text-xs">
+                              <DeliveryNoteLink tx={tx} />
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
@@ -658,20 +646,16 @@ export default function OutboundLedgerClient({
                             <span className="hidden sm:inline">Mark Used</span>
                           </button>
                         )}
-                        <button
-                          onClick={() => {
-                            setPdfLoadingKey(groupKey);
-                            const pdfApiUrl = `/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&dn=${encodeURIComponent(group.deliveryNote)}`;
-                            router.push(`/pdf-preview?url=${encodeURIComponent(pdfApiUrl)}&title=${encodeURIComponent(group.deliveryNote)}`);
-                          }}
-                          disabled={pdfLoadingKey === groupKey}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-lg transition-colors border border-primary/20 disabled:opacity-60 disabled:cursor-wait whitespace-nowrap"
-                          title="View PDF"
+                        <a
+                          href={`/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&dn=${encodeURIComponent(group.deliveryNote)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                          title="View / Download PDF"
                         >
-                          {pdfLoadingKey === groupKey
-                            ? <><Loader2 size={13} className="animate-spin" /><span className="hidden sm:inline">Loading…</span></>
-                            : <><FileText size={13} /><span className="hidden sm:inline">View PDF</span></>}
-                        </button>
+                          <FileText size={13} />
+                          <span>PDF</span>
+                        </a>
                       </div>
                     </div>
 

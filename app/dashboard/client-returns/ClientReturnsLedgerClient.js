@@ -12,6 +12,7 @@ import Pagination from '@/components/Pagination';
 import { useToast } from '@/components/Toast';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 
 export default function ClientReturnsLedgerClient({ transactions, totalCount, totalPages, page, brands }) {
   const router = useRouter();
@@ -266,19 +267,16 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                       <Edit2 size={13} />
                       <span>Edit</span>
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadPDF(group)}
-                      disabled={pdfLoadingKey === groupKey}
-                      className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary-hover font-bold text-xs rounded-lg transition-colors border border-primary/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap flex-shrink-0"
+                    <a
+                      href={`/api/dashboard/client-returns/${group.direction === 'fromClient' ? 'return-gate-pass' : 'gate-pass'}?dn=${encodeURIComponent(group.deliveryNote)}${group.brandId ? `&brandId=${group.brandId}` : ''}&date=${new Date(group.timestamp).toISOString().split('T')[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap flex-shrink-0"
+                      title="View / Download PDF"
                     >
-                      {pdfLoadingKey === groupKey ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <FileText size={13} />
-                      )}
-                      <span>Gate Pass</span>
-                    </button>
+                      <FileText size={13} />
+                      <span>PDF</span>
+                    </a>
                   </div>
                 </div>
 
@@ -637,20 +635,7 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
                   <span className="text-text-muted">{formattedDate}</span>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
-                  {tx.deliveryNote ? (
-                    <a
-                      href={`/api/dashboard/client-returns/${getGatePassEndpoint(tx)}?dn=${encodeURIComponent(tx.deliveryNote)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline font-mono font-bold inline-flex items-center gap-1"
-                      title="View / Download Gate Pass PDF"
-                    >
-                      <span>Gate Pass: {tx.deliveryNote}</span>
-                      <ExternalLink size={10} className="inline opacity-70" />
-                    </a>
-                  ) : (
-                    <span className="text-text-muted">Direct Transaction</span>
-                  )}
+                  <DeliveryNoteLink tx={tx} />
                   <TransactionActions
                     transactionId={tx.id}
                     deliveryNote={tx.deliveryNote}
@@ -701,21 +686,8 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
                     <td className="py-3 px-4 font-semibold whitespace-nowrap text-text-secondary">
                       {formattedDate} <span className="text-[10px] font-normal block mt-0.5">{formattedTime}</span>
                     </td>
-                    <td className="py-3 px-4 font-mono font-bold uppercase text-[11px] whitespace-nowrap">
-                      {tx.deliveryNote ? (
-                        <a
-                          href={`/api/dashboard/client-returns/${getGatePassEndpoint(tx)}?dn=${encodeURIComponent(tx.deliveryNote)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline inline-flex items-center gap-1"
-                          title="View / Download Gate Pass PDF"
-                        >
-                          <span>{tx.deliveryNote}</span>
-                          <ExternalLink size={10} className="inline opacity-70" />
-                        </a>
-                      ) : (
-                        '—'
-                      )}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <DeliveryNoteLink tx={tx} />
                     </td>
                     <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
                     <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
