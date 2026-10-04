@@ -30,19 +30,30 @@ export default function ProductDetailClient({ product }) {
 
   const serialNumbers = product?.serialNumbers || [];
   const transactions = product?.transactions || [];
+  const entityNames = product?.entityNames || {};
   const brand = product?.brand;
   const stock = product?.stock || {};
   const _count = product?._count || {};
+
+  const formatEntity = (type, id) => {
+    if (!type && !id) return '---';
+    if (id && entityNames[id]) return entityNames[id];
+    if (type === 'WAREHOUSE') return 'WAREHOUSE';
+    if (type === 'SUPPLIER' || type === 'VENDOR') return id || 'SUPPLIER';
+    if (type === 'CLIENT' || type === 'DIRECT') return id || 'Client Possession';
+    if (id) return id;
+    return type || '---';
+  };
 
   const serialCustomGetters = useMemo(() => ({
     barcode: (s) => s.barcode || '',
     secondaryBarcode: (s) => s.secondaryBarcode || '',
     status: (s) => s.status || '',
-    location: (s) => s.currentLocationType || '',
+    location: (s) => formatEntity(s.currentLocationType, s.currentLocationId),
     manufactureDate: (s) => s.manufactureDate,
     expiryDate: (s) => s.expiryDate,
     createdAt: (s) => s.createdAt,
-  }), []);
+  }), [entityNames]);
 
   const {
     sortedItems: sortedSerials,
@@ -57,14 +68,14 @@ export default function ProductDetailClient({ product }) {
   const txCustomGetters = useMemo(() => ({
     date: (tx) => tx.timestamp,
     type: (tx) => tx.transactionType || '',
-    from: (tx) => tx.fromEntityType || '',
-    to: (tx) => tx.toEntityType || '',
+    from: (tx) => formatEntity(tx.fromEntityType, tx.fromEntityId),
+    to: (tx) => formatEntity(tx.toEntityType, tx.toEntityId),
     quantity: (tx) => tx.quantity ?? 0,
     mfgDate: (tx) => tx.manufactureDate,
     expDate: (tx) => tx.expiryDate,
     deliveryNote: (tx) => tx.deliveryNote || '',
     status: (tx) => tx.transactionType || '',
-  }), []);
+  }), [entityNames]);
 
   const {
     sortedItems: sortedTxs,

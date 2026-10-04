@@ -264,56 +264,71 @@ export async function getBrandPortalDetails(secretKey) {
     throw new Error('Brand Portal Secret Key is required');
   }
 
-  // Verify that the secretKey is a valid signed JWT token for the brand
-  const payload = verifyBrandJWT(secretKey);
-  if (!payload || !payload.brandId) {
-    console.warn("Unauthorized access attempt with invalid Brand JWT secretKey.");
-    return null;
+  const brandInclude = {
+    stores: {
+      select: {
+        id: true,
+        name: true
+      }
+    },
+    products: {
+      select: {
+        id: true,
+        name: true,
+        itemCode: true,
+        category: true,
+        imageUrl: true,
+        isSerialized: true,
+        transactions: {
+          select: {
+            id: true,
+            transactionType: true,
+            quantity: true,
+            fromEntityType: true,
+            fromEntityId: true,
+            toEntityType: true,
+            toEntityId: true,
+            timestamp: true,
+            notes: true,
+            returnStatus: true,
+          },
+          orderBy: { timestamp: 'desc' }
+        }
+      },
+      orderBy: { name: 'asc' }
+    }
+  };
+
+  // 1. Try finding brand directly by matching secretKey
+  let brand = await prisma.brand.findFirst({
+    where: { secretKey },
+    include: brandInclude
+  });
+
+  // 2. If not found, check if secretKey is a signed JWT token
+  if (!brand) {
+    const payload = verifyBrandJWT(secretKey);
+    if (payload && payload.brandId) {
+      brand = await prisma.brand.findUnique({
+        where: { id: payload.brandId },
+        include: brandInclude
+      });
+    }
   }
 
-  // Fetch the brand and all staff members concurrently
-  const [brand, staffList] = await Promise.all([
-    prisma.brand.findUnique({
-      where: { id: payload.brandId, secretKey },
-      include: {
-        stores: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        products: {
-          select: {
-            id: true,
-            name: true,
-            itemCode: true,
-            category: true,
-            imageUrl: true,
-            isSerialized: true,
-            transactions: {
-              select: {
-                id: true,
-                transactionType: true,
-                quantity: true,
-                fromEntityType: true,
-                fromEntityId: true,
-                toEntityType: true,
-                toEntityId: true,
-                timestamp: true,
-                notes: true,
-                returnStatus: true,
-              },
-              orderBy: { timestamp: 'desc' }
-            }
-          },
-          orderBy: { name: 'asc' }
-        }
-      }
-    }),
-    prisma.staff.findMany({
-      select: { id: true, name: true }
-    })
-  ]);
+  // 3. Fallback: Check if secretKey is directly a brand id
+  if (!brand) {
+    brand = await prisma.brand.findUnique({
+      where: { id: secretKey },
+      include: brandInclude
+    });
+  }
+
+  if (!brand) return null;
+
+  const staffList = await prisma.staff.findMany({
+    select: { id: true, name: true }
+  });
 
   if (!brand) return null;
 

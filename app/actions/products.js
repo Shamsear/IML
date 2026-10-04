@@ -800,7 +800,7 @@ export async function getProductDetail(id) {
   await requireAuth();
   if (!id) return null;
 
-  const [product, allStockTxs] = await Promise.all([
+  const [product, allStockTxs, stores, staff, supervisors] = await Promise.all([
     prisma.product.findUnique({
       where: { id },
       include: {
@@ -852,7 +852,10 @@ export async function getProductDetail(id) {
         toEntityType: true,
         returnStatus: true,
       }
-    })
+    }),
+    prisma.store.findMany({ select: { id: true, name: true } }),
+    prisma.staff.findMany({ select: { id: true, name: true } }),
+    prisma.supervisor.findMany({ select: { id: true, name: true } }),
   ]);
 
   if (!product) return null;
@@ -909,10 +912,16 @@ export async function getProductDetail(id) {
     stock.total = sWarehouse;
   }
 
+  const entityNames = {};
+  (stores || []).forEach(s => { if (s?.id && s?.name) entityNames[s.id] = s.name; });
+  (staff || []).forEach(s => { if (s?.id && s?.name) entityNames[s.id] = s.name; });
+  (supervisors || []).forEach(s => { if (s?.id && s?.name) entityNames[s.id] = s.name; });
+
   return {
     ...product,
     warehouseStock,
     stock,
+    entityNames,
   };
 }
 
