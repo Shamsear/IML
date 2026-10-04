@@ -59,6 +59,8 @@ export async function GET(request) {
             notes: true,
             quantity: true,
             receivedBy: true,
+            fromEntityType: true,
+            fromEntityId: true,
             deliverySupervisorId: true,
             deliverySupervisor: {
               select: { id: true, name: true, phone: true }
@@ -75,7 +77,7 @@ export async function GET(request) {
             ]
           },
           include: {
-            staff: { select: { id: true, name: true, phone: true } },
+            staff: { select: { id: true, name: true, phone: true, shirtSize: true } },
             supervisor: { select: { id: true, name: true, phone: true } }
           },
           orderBy: { createdAt: 'desc' },
@@ -89,6 +91,10 @@ export async function GET(request) {
 
       notes = txs[0]?.notes?.includes(' | ') ? txs[0].notes.split(' | ')[0] : (txs[0]?.notes || '');
 
+      // Check if from supplier
+      const isSupplier = txs.some(t => t.fromEntityType === 'SUPPLIER' || t.fromEntityType === 'VENDOR');
+      const supplierName = isSupplier ? (txs[0]?.fromEntityId || 'Supplier') : '';
+
       // Resolve supervisor name
       const txSupervisor = txs.find(t => t.deliverySupervisor?.name)?.deliverySupervisor;
       if (txSupervisor) {
@@ -97,13 +103,17 @@ export async function GET(request) {
         supervisorName = uniformAllocations[0].supervisor.name;
       }
 
-      // Resolve receiver name (e.g. allocated promoter or store staff)
+      // Resolve receiver name & staff details
+      const allocStaff = uniformAllocations.length > 0 ? uniformAllocations[0].staff : null;
       const txReceiver = txs.find(t => t.receivedBy)?.receivedBy;
-      if (txReceiver) {
+
+      if (isSupplier) {
+        receiverName = txReceiver || `${store.name} Staff`;
+      } else if (allocStaff?.name) {
+        receiverName = `${allocStaff.name} (Promoter)`;
+        contactDetails = allocStaff.phone || '';
+      } else if (txReceiver) {
         receiverName = txReceiver;
-      } else if (uniformAllocations.length > 0 && uniformAllocations[0].staff?.name) {
-        receiverName = uniformAllocations[0].staff.name;
-        contactDetails = uniformAllocations[0].staff.phone || '';
       } else {
         const storeStaff = await prisma.staff.findFirst({
           where: { storeId: id },
@@ -113,22 +123,26 @@ export async function GET(request) {
           receiverName = storeStaff.name;
           contactDetails = storeStaff.phone || '';
         } else {
-          receiverName = 'Store In-charge';
+          receiverName = `${store.name} In-charge`;
         }
       }
-
-      // Check if any specific uniform allocation is linked
-      const uniformPersonName = uniformAllocations.length > 0 ? uniformAllocations[0].staff?.name : '';
 
       const productGroups = {};
       for (const tx of txs) {
         const prod = tx.product;
         const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
-        const isUniform = prod.category?.toUpperCase() === 'UNIFORM';
+        const isUniform = prod.category?.toUpperCase() === 'UNIFORM' || prod.name?.toLowerCase().includes('shirt') || prod.name?.toLowerCase().includes('cap');
         
         let remarks = parsedItemNotes;
-        if (isUniform && uniformPersonName) {
-          remarks = remarks ? `${remarks} (Allocated to: ${uniformPersonName})` : `Allocated to: ${uniformPersonName}`;
+        if ((isUniform || allocStaff) && allocStaff?.name) {
+          const details = [
+            `Promoter: ${allocStaff.name}${allocStaff.phone ? ` (${allocStaff.phone})` : ''}`,
+            allocStaff.shirtSize ? `Size: ${allocStaff.shirtSize}` : null,
+            `Store: ${store.name}`,
+            uniformAllocations[0]?.workingPeriod ? `Period: ${uniformAllocations[0].workingPeriod}` : null,
+          ].filter(Boolean).join(' | ');
+
+          remarks = remarks ? `${remarks} [${details}]` : details;
         }
 
         if (!productGroups[prod.id]) {
@@ -167,7 +181,7 @@ export async function GET(request) {
         receiverName = staffMember.name;
         contactDetails = staffMember.phone || '';
       } else {
-        receiverName = 'Store In-charge';
+        receiverName = `${store.name} In-charge`;
       }
 
       const dateObj = new Date();

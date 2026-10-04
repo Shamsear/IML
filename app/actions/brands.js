@@ -259,6 +259,23 @@ export async function createStoreAndLinkToBrand(brandId, formData) {
   revalidatePath('/dashboard/stores');
 }
 
+export async function updateBrandPortalConfig(brandId, portalConfig) {
+  await requireAuth();
+  if (!brandId) throw new Error('Brand ID is required');
+
+  const configStr = typeof portalConfig === 'string' ? portalConfig : JSON.stringify(portalConfig);
+  
+  await prisma.brand.update({
+    where: { id: brandId },
+    data: { portalConfig: configStr }
+  });
+
+  revalidatePath(`/dashboard/brands/${brandId}`);
+  revalidatePath('/dashboard/brands');
+  revalidatePath('/portal/brand/[secretKey]');
+  return { success: true };
+}
+
 export async function getBrandPortalDetails(secretKey) {
   if (!secretKey) {
     throw new Error('Brand Portal Secret Key is required');

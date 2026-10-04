@@ -40,6 +40,7 @@ model Brand {
   shelf       String?
   isPublic    Boolean   @default(true)
   secretKey   String    @unique @default(uuid())
+  portalConfig String?   @db.Text
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

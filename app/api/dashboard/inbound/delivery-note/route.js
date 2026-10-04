@@ -35,7 +35,7 @@ export async function GET(request) {
         product: { brandId: brandIdQuery }
       },
       select: {
-        id: true, notes: true, quantity: true, fromEntityId: true,
+        id: true, notes: true, quantity: true, fromEntityId: true, fromEntityType: true, receivedBy: true,
         product: { select: { id: true, name: true, itemCode: true, category: true, isSerialized: true } },
         serialNumbers: { select: { serialNumber: { select: { barcode: true } } } }
       }
@@ -46,8 +46,8 @@ export async function GET(request) {
     }
 
     const notes = txs[0]?.notes?.includes(' | ') ? txs[0].notes.split(' | ')[0] : (txs[0]?.notes || '');
-    const supplierName = txs[0]?.fromEntityId || '';
-    const receiverName = session.user.name || 'Warehouse Staff';
+    const supplierName = txs[0]?.fromEntityId || 'Supplier';
+    const receiverName = session.user?.name || 'Warehouse Staff';
 
     const productGroups = {};
     for (const tx of txs) {
@@ -70,6 +70,19 @@ export async function GET(request) {
     const inventory = Object.values(productGroups);
     const dateStr = formatDate(dateQuery);
 
+    const leftMeta = [
+      { label: 'Warehouse', value: 'IML Warehouse Al qouz' },
+      { label: 'Brand', value: brandName },
+      { label: 'Supplier / Vendor', value: supplierName },
+      { label: 'Received By', value: receiverName },
+      { label: 'Notes', value: notes },
+    ];
+
+    const rightMeta = [
+      { label: 'Date', value: dateStr },
+      { label: 'Document No', value: dnQuery },
+    ];
+
     const pdfStream = await renderToStream(
       <DeliveryNoteDocument
         title="RECEIVE NOTE"
@@ -80,6 +93,15 @@ export async function GET(request) {
         docNo={dnQuery}
         receiverName={receiverName}
         notes={notes}
+        metaFields={{
+          left: leftMeta,
+          right: rightMeta
+        }}
+        signatureLabels={[
+          { label: 'RECEIVED BY (WH)' },
+          { label: 'CHECKED BY' },
+          { label: 'DELIVERED BY (SUPPLIER)' },
+        ]}
       />
     );
 

@@ -4,9 +4,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { createProduct, importBarcodes, getProductSerials } from '@/app/actions/products';
+import { updateBrandPortalConfig } from '@/app/actions/brands';
 import { 
   ArrowLeft, Store, Plus, Package, Edit2, Trash2, QrCode, 
-  Loader2, X, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight, Share2
+  Loader2, X, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight, Share2,
+  ListTree, ArrowUp, ArrowDown, MoveVertical, Check, Eye, ChevronDown, ChevronRight, Layers, Settings2
 } from 'lucide-react';
 import { getProductStock } from '@/lib/stock';
 import StockBreakdown from '@/components/StockBreakdown';
@@ -82,6 +84,130 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   // Camera scanning states
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const [cameraTargetField, setCameraTargetField] = useState('');
+
+  // Portal Summary Configuration State
+  const [portalHeadings, setPortalHeadings] = useState([]);
+  const [newHeadingTitle, setNewHeadingTitle] = useState('');
+  const [isSavingPortalConfig, setIsSavingPortalConfig] = useState(false);
+  const [activePickerHeadingId, setActivePickerHeadingId] = useState(null);
+  const [pickerSearch, setPickerSearch] = useState('');
+
+  // Initialize portal headings from config or auto-group from products
+  const initPortalHeadings = () => {
+    if (brand.portalConfig) {
+      try {
+        const parsed = typeof brand.portalConfig === 'string' ? JSON.parse(brand.portalConfig) : brand.portalConfig;
+        if (parsed && Array.isArray(parsed.headings)) {
+          setPortalHeadings(parsed.headings);
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing brand portalConfig:', e);
+      }
+    }
+
+    // Default: Group by existing product categories
+    const catMap = {};
+    (brand.products || []).forEach(p => {
+      const cat = (p.category || 'OTHERS').toUpperCase().trim();
+      if (!catMap[cat]) catMap[cat] = [];
+      catMap[cat].push(p.id);
+    });
+
+    const defaultHeadings = Object.keys(catMap).sort().map(cat => ({
+      id: `heading-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      title: cat,
+      productIds: catMap[cat],
+      remarks: {}
+    }));
+
+    setPortalHeadings(defaultHeadings);
+  };
+
+  const handleAddHeading = () => {
+    if (!newHeadingTitle.trim()) return;
+    const newHeading = {
+      id: `heading-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      title: newHeadingTitle.trim().toUpperCase(),
+      productIds: [],
+      remarks: {}
+    };
+    setPortalHeadings(prev => [...prev, newHeading]);
+    setNewHeadingTitle('');
+  };
+
+  const handleRemoveHeading = (headingId) => {
+    setPortalHeadings(prev => prev.filter(h => h.id !== headingId));
+  };
+
+  const handleMoveHeading = (index, direction) => {
+    setPortalHeadings(prev => {
+      const next = [...prev];
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= next.length) return prev;
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      return next;
+    });
+  };
+
+  const handleRenameHeading = (headingId, newTitle) => {
+    setPortalHeadings(prev => prev.map(h => h.id === headingId ? { ...h, title: newTitle } : h));
+  };
+
+  const handleAddProductToHeading = (headingId, productId) => {
+    setPortalHeadings(prev => prev.map(h => {
+      if (h.id === headingId) {
+        if (!h.productIds.includes(productId)) {
+          return { ...h, productIds: [...h.productIds, productId] };
+        }
+      }
+      return h;
+    }));
+  };
+
+  const handleRemoveProductFromHeading = (headingId, productId) => {
+    setPortalHeadings(prev => prev.map(h => {
+      if (h.id === headingId) {
+        const nextIds = h.productIds.filter(id => id !== productId);
+        const nextRemarks = { ...(h.remarks || {}) };
+        delete nextRemarks[productId];
+        return { ...h, productIds: nextIds, remarks: nextRemarks };
+      }
+      return h;
+    }));
+  };
+
+  const handleUpdateProductRemark = (headingId, productId, remark) => {
+    setPortalHeadings(prev => prev.map(h => {
+      if (h.id === headingId) {
+        return {
+          ...h,
+          remarks: {
+            ...(h.remarks || {}),
+            [productId]: remark
+          }
+        };
+      }
+      return h;
+    }));
+  };
+
+  const handleSavePortalConfig = async () => {
+    try {
+      setIsSavingPortalConfig(true);
+      await updateBrandPortalConfig(brand.id, { headings: portalHeadings });
+      toast.show('Brand Portal Summary Headings saved successfully!', { type: 'success' });
+      setActiveModal(null);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      toast.show(err.message || 'Failed to save portal configuration', { type: 'error' });
+    } finally {
+      setIsSavingPortalConfig(false);
+    }
+  };
 
   // Sync category with product type
   useEffect(() => {
@@ -319,6 +445,18 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         </div>
         
         <div className="flex flex-wrap lg:justify-end items-start gap-1.5 sm:gap-2">
+          <button 
+            type="button" 
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer"
+            onClick={() => {
+              initPortalHeadings();
+              setActiveModal('portalConfig');
+            }}
+          >
+            <ListTree size={12} className="text-secondary" />
+            <span className="hidden xs:inline">Portal Summary Headings</span>
+            <span className="xs:hidden">Headings</span>
+          </button>
           <button 
             type="button" 
             className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 border rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${
@@ -941,6 +1079,287 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Manage Brand Portal Summary Headings Modal */}
+      {activeModal === 'portalConfig' && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-6 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-slide-down">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-border flex items-center justify-between gap-4 bg-surface-elevated/40">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ListTree size={20} className="text-primary" />
+                  <h3 className="font-display font-extrabold text-lg text-text-primary">
+                    Configure Portal Summary Headings
+                  </h3>
+                </div>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Organize products into custom categorized sections and custom remarks for the {brand.name} Partner Portal.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/portal/brand/${brand.secretKey}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+                >
+                  <Eye size={13} />
+                  <span>Preview Portal</span>
+                </a>
+                <button 
+                  className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer" 
+                  onClick={() => setActiveModal(null)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Toolbar: Add New Heading & Auto-group */}
+            <div className="p-4 border-b border-border bg-surface flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="text"
+                  placeholder="New heading name (e.g. PROMOTIONAL STANDS)..."
+                  value={newHeadingTitle}
+                  onChange={(e) => setNewHeadingTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddHeading(); } }}
+                  className="w-full sm:max-w-xs bg-surface-elevated/50 text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary font-bold uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddHeading}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer shadow-2xs"
+                >
+                  <Plus size={14} />
+                  <span>Add Heading</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={initPortalHeadings}
+                  className="px-2.5 py-1.5 bg-surface-elevated/60 hover:bg-surface-elevated border border-border rounded-lg text-text-secondary hover:text-text-primary text-xs font-semibold transition-colors cursor-pointer"
+                  title="Auto-fill headings from product categories"
+                >
+                  Reset from Categories
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Scrollable Headings Body */}
+            <div className="p-5 overflow-y-auto flex-1 flex flex-col gap-5 bg-background/50">
+              {portalHeadings.length === 0 ? (
+                <div className="py-16 text-center text-xs text-text-muted italic bg-surface border border-dashed border-border rounded-xl">
+                  No headings defined yet. Type a heading name above and click &quot;Add Heading&quot; or &quot;Reset from Categories&quot;.
+                </div>
+              ) : (
+                portalHeadings.map((heading, idx) => {
+                  const headingProducts = (heading.productIds || [])
+                    .map(pid => (brand.products || []).find(p => p.id === pid))
+                    .filter(Boolean);
+
+                  const isPickerOpen = activePickerHeadingId === heading.id;
+                  const availableToAdd = (brand.products || []).filter(
+                    p => !(heading.productIds || []).includes(p.id) &&
+                    (p.name.toLowerCase().includes(pickerSearch.toLowerCase()) || (p.itemCode && p.itemCode.toLowerCase().includes(pickerSearch.toLowerCase())))
+                  );
+
+                  return (
+                    <div key={heading.id} className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+                      {/* Heading Header Bar */}
+                      <div className="px-4 py-3 bg-surface-elevated/40 border-b border-border flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                          {/* Reorder Buttons */}
+                          <div className="flex items-center gap-0.5 bg-surface border border-border rounded-md p-0.5">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveHeading(idx, -1)}
+                              className="p-1 text-text-muted hover:text-text-primary disabled:opacity-30 rounded hover:bg-surface-elevated transition-colors cursor-pointer"
+                              title="Move heading up"
+                            >
+                              <ArrowUp size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === portalHeadings.length - 1}
+                              onClick={() => handleMoveHeading(idx, 1)}
+                              className="p-1 text-text-muted hover:text-text-primary disabled:opacity-30 rounded hover:bg-surface-elevated transition-colors cursor-pointer"
+                              title="Move heading down"
+                            >
+                              <ArrowDown size={12} />
+                            </button>
+                          </div>
+
+                          {/* Editable Title */}
+                          <input
+                            type="text"
+                            value={heading.title}
+                            onChange={(e) => handleRenameHeading(heading.id, e.target.value.toUpperCase())}
+                            className="font-display font-extrabold text-sm text-text-primary uppercase bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:bg-surface-elevated px-1.5 py-0.5 rounded focus:outline-none transition-all flex-1 min-w-[150px]"
+                            placeholder="HEADING TITLE"
+                          />
+
+                          <span className="text-[10px] font-bold text-text-muted bg-surface-elevated px-2 py-0.5 rounded-full border border-border/60 shrink-0">
+                            {headingProducts.length} items
+                          </span>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActivePickerHeadingId(isPickerOpen ? null : heading.id);
+                              setPickerSearch('');
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            <Plus size={12} />
+                            <span>Add Product</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveHeading(heading.id)}
+                            className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors cursor-pointer"
+                            title="Delete this heading"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Product Picker Dropdown Panel */}
+                      {isPickerOpen && (
+                        <div className="p-3 bg-surface-elevated/60 border-b border-border flex flex-col gap-2 animate-slide-down">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-text-primary">Select products to add to &quot;{heading.title}&quot;:</span>
+                            <button onClick={() => setActivePickerHeadingId(null)} className="text-text-muted hover:text-text-primary p-0.5">
+                              <X size={14} />
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Filter products to add..."
+                            value={pickerSearch}
+                            onChange={(e) => setPickerSearch(e.target.value)}
+                            className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary"
+                          />
+                          <div className="max-h-40 overflow-y-auto flex flex-col gap-1 divide-y divide-border/40 bg-surface rounded-lg border border-border p-1">
+                            {availableToAdd.length === 0 ? (
+                              <div className="py-3 text-center text-xs text-text-muted italic">
+                                No available products found.
+                              </div>
+                            ) : (
+                              availableToAdd.map(p => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => handleAddProductToHeading(heading.id, p.id)}
+                                  className="px-2.5 py-1.5 text-left text-xs hover:bg-primary/10 hover:text-primary rounded flex items-center justify-between transition-colors cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2 truncate">
+                                    <span className="font-semibold text-text-primary truncate">{p.name}</span>
+                                    <span className="text-[10px] font-mono text-text-muted">{p.itemCode || '---'}</span>
+                                  </div>
+                                  <span className="text-[10px] font-bold text-primary shrink-0 bg-primary/10 px-1.5 py-0.5 rounded">
+                                    + Add
+                                  </span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Products List & Custom Remarks */}
+                      <div className="divide-y divide-border">
+                        {headingProducts.length === 0 ? (
+                          <div className="py-6 text-center text-xs text-text-muted italic">
+                            No products in this heading. Click &quot;+ Add Product&quot; to assign products.
+                          </div>
+                        ) : (
+                          headingProducts.map(p => {
+                            const remarkVal = heading.remarks?.[p.id] || '';
+                            return (
+                              <div key={p.id} className="p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 hover:bg-surface-elevated/20 transition-colors">
+                                <div className="flex items-center gap-2.5 min-w-0 sm:w-1/2">
+                                  {p.imageUrl ? (
+                                    <img 
+                                      src={getOptimizedImageUrl(p.imageUrl, 60, 60)} 
+                                      alt={p.name} 
+                                      className="w-7 h-7 rounded object-cover border border-border shrink-0" 
+                                    />
+                                  ) : (
+                                    <div className="w-7 h-7 rounded bg-primary/5 text-primary flex items-center justify-center text-[9px] font-bold border border-primary/10 shrink-0">
+                                      {p.name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <span className="font-semibold text-xs text-text-primary block truncate">{p.name}</span>
+                                    <span className="text-[10px] font-mono text-text-muted">{p.itemCode || '---'}</span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 flex-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Custom remark (e.g. 3 Damage / Skirt Broken)..."
+                                    value={remarkVal}
+                                    onChange={(e) => handleUpdateProductRemark(heading.id, p.id, e.target.value)}
+                                    className="w-full bg-surface-elevated/40 text-text-primary placeholder:text-text-muted border border-border rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-primary transition-colors italic"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveProductFromHeading(heading.id, p.id)}
+                                    className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors shrink-0 cursor-pointer"
+                                    title="Remove from this heading"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-border bg-surface-elevated/40 flex items-center justify-between gap-3">
+              <span className="text-xs text-text-muted">
+                {portalHeadings.length} headings defined with {portalHeadings.reduce((acc, h) => acc + (h.productIds || []).length, 0)} product assignments
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingPortalConfig}
+                  onClick={handleSavePortalConfig}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingPortalConfig ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  <span>Save &amp; Publish Portal Summary</span>
+                </button>
               </div>
             </div>
           </div>

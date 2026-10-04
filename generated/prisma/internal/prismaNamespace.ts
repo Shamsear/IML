@@ -1379,6 +1379,7 @@ export const BrandScalarFieldEnum = {
   shelf: 'shelf',
   isPublic: 'isPublic',
   secretKey: 'secretKey',
+  portalConfig: 'portalConfig',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

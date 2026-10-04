@@ -79,9 +79,16 @@ export async function GET(request) {
       brandName = txs[0].product.brand.name;
     }
 
-    // Determine document type
+    // Determine transaction nature
     const isReturn = txs.some(t => t.transactionType === 'RETURN') || (dnQuery && dnQuery.includes('-RET-'));
-    const docTitle = isReturn ? 'RETURN NOTE' : 'DELIVERY NOTE';
+    const isSupplierReceive = txs.some(t => t.transactionType === 'RECEIVE' || t.fromEntityType === 'SUPPLIER' || t.fromEntityType === 'VENDOR') || (dnQuery && (dnQuery.startsWith('REC-') || dnQuery.startsWith('IN-')));
+    
+    let docTitle = 'DELIVERY NOTE';
+    if (isReturn) {
+      docTitle = 'RETURN NOTE';
+    } else if (isSupplierReceive) {
+      docTitle = 'RECEIVE NOTE';
+    }
 
     // Resolve Store Name
     const storeId = txs[0].toEntityType === 'STORE' ? txs[0].toEntityId : (txs[0].fromEntityType === 'STORE' ? txs[0].fromEntityId : null);
@@ -104,22 +111,85 @@ export async function GET(request) {
       }
     }
 
-    const receiverName = txs.find(t => t.receivedBy)?.receivedBy || (storeName ? `${storeName} In-charge` : '');
-    const supplierName = txs.find(t => t.fromEntityType === 'SUPPLIER')?.fromEntityId || '';
+    // Find Supplier Name (if supplier transaction)
+    const supplierTx = txs.find(t => t.fromEntityType === 'SUPPLIER' || t.fromEntityType === 'VENDOR');
+    const supplierName = supplierTx?.fromEntityId || (isSupplierReceive ? (txs[0]?.fromEntityId || 'Supplier') : '');
+
+    // Check Staff / Uniform Allocation for Promoter Details
+    let uniformAlloc = null;
+    if (dnQuery && dnQuery !== 'UNASSIGNED') {
+      uniformAlloc = await prisma.staffUniformAllocation.findFirst({
+        where: { ref: dnQuery },
+        include: {
+          staff: { include: { store: true } },
+          store: true,
+          supervisor: true
+        }
+      });
+    }
+    if (!uniformAlloc && storeId) {
+      uniformAlloc = await prisma.staffUniformAllocation.findFirst({
+        where: { storeId },
+        include: {
+          staff: { include: { store: true } },
+          store: true,
+          supervisor: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    }
+
+    let promoterName = uniformAlloc?.staff?.name || '';
+    let promoterPhone = uniformAlloc?.staff?.phone || '';
+    let promoterSize = uniformAlloc?.staff?.shirtSize || '';
+    let promoterStore = uniformAlloc?.store?.name || uniformAlloc?.staff?.store?.name || storeName || '';
+    let workingPeriod = uniformAlloc?.workingPeriod || '';
+
+    if (!supervisorName && uniformAlloc?.supervisor?.name) {
+      supervisorName = uniformAlloc.supervisor.name;
+    }
+
+    // Resolve Receiver Name cleanly according to transaction type
+    let receiverName = '';
+    if (isSupplierReceive) {
+      // When stock comes from a Supplier/Vendor, Receiver is Warehouse Staff (never promoter)
+      const rawRx = txs.find(t => t.receivedBy)?.receivedBy;
+      receiverName = (rawRx && rawRx !== promoterName) ? rawRx : 'IML Warehouse Staff';
+    } else if (promoterName) {
+      receiverName = `${promoterName} (Promoter)`;
+    } else {
+      receiverName = txs.find(t => t.receivedBy)?.receivedBy || (storeName ? `${storeName} In-charge` : 'Store Representative');
+    }
+
     const notes = txs[0]?.notes?.split(' | ')[0] || '';
 
-    // Group items by product
+    // Group items by product & append promoter info to uniform items or allocations
     const productGroups = {};
     for (const tx of txs) {
       const prod = tx.product;
       const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
+      const isUniform = (prod.category?.toUpperCase() === 'UNIFORM') || prod.name?.toLowerCase().includes('shirt') || prod.name?.toLowerCase().includes('uniform') || prod.name?.toLowerCase().includes('cap');
+
+      let itemRemarks = parsedItemNotes;
+
+      if ((isUniform || uniformAlloc) && promoterName) {
+        const details = [
+          `Promoter: ${promoterName}${promoterPhone ? ` (${promoterPhone})` : ''}`,
+          promoterSize ? `Size: ${promoterSize}` : null,
+          promoterStore ? `Store: ${promoterStore}` : null,
+          workingPeriod ? `Period: ${workingPeriod}` : null,
+        ].filter(Boolean).join(' | ');
+
+        itemRemarks = itemRemarks ? `${itemRemarks} [${details}]` : details;
+      }
+
       if (!productGroups[prod.id]) {
         productGroups[prod.id] = {
           name: prod.name,
           isSerialized: prod.isSerialized,
           quantity: 0,
           serials: [],
-          notes: parsedItemNotes
+          notes: itemRemarks
         };
       }
       productGroups[prod.id].quantity += tx.quantity;
@@ -135,32 +205,40 @@ export async function GET(request) {
     const inventory = Object.values(productGroups);
     const cleanDateStr = dateQuery ? dateQuery.split('T')[0] : new Date(txs[0].timestamp).toISOString().split('T')[0];
     const dateStr = formatDate(cleanDateStr);
-    const docNo = (dnQuery && dnQuery !== 'UNASSIGNED') ? dnQuery : `IML-${isReturn ? 'RTN' : 'DN'}-${cleanDateStr.replace(/-/g, '')}`;
+    const docNo = (dnQuery && dnQuery !== 'UNASSIGNED') ? dnQuery : `IML-${isReturn ? 'RTN' : (isSupplierReceive ? 'REC' : 'DN')}-${cleanDateStr.replace(/-/g, '')}`;
 
     const leftMeta = [
       { label: 'Warehouse', value: 'IML Warehouse Al qouz' },
       { label: 'Brand', value: brandName },
+      ...(isSupplierReceive && supplierName ? [{ label: 'Supplier / Vendor', value: supplierName }] : []),
       ...(storeName ? [{ label: isReturn ? 'Returned From Store' : 'Store Name', value: storeName }] : []),
-      ...(supplierName ? [{ label: 'Supplier', value: supplierName }] : []),
-      ...(supervisorName ? [{ label: isReturn ? 'Delivered By / Supervisor' : 'Supervisor', value: supervisorName }] : []),
-      ...(receiverName ? [{ label: 'Receiver Name', value: receiverName }] : []),
+      ...(promoterName ? [{ label: 'Promoter Name', value: `${promoterName}${promoterPhone ? ` (${promoterPhone})` : ''}` }] : []),
+      ...(supervisorName ? [{ label: isReturn ? 'Returned By / Supervisor' : 'Supervisor', value: supervisorName }] : []),
+      ...(!isSupplierReceive && receiverName ? [{ label: 'Receiver Name', value: receiverName }] : []),
+      ...(isSupplierReceive ? [{ label: 'Received By', value: receiverName }] : []),
       { label: 'Notes', value: notes },
     ];
 
     const rightMeta = [
       { label: 'Date', value: dateStr },
       { label: 'Document No', value: docNo },
+      ...(workingPeriod ? [{ label: 'Working Period', value: workingPeriod }] : []),
+      ...(promoterSize ? [{ label: 'Promoter Size', value: promoterSize }] : []),
     ];
 
     const signatureLabels = isReturn ? [
       { label: 'PREPARED BY' },
       { label: 'CHECKED BY' },
       { label: 'AUTHORIZED BY' },
+    ] : (isSupplierReceive ? [
+      { label: 'RECEIVED BY (WH)' },
+      { label: 'CHECKED BY' },
+      { label: 'DELIVERED BY (SUPPLIER)' },
     ] : [
       { label: 'PREPARED BY' },
       { label: 'CHECKED BY' },
       { label: 'RECEIVED BY' },
-    ];
+    ]);
 
     const pdfStream = await renderToStream(
       <DeliveryNoteDocument
