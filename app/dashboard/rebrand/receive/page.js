@@ -15,9 +15,12 @@ export default async function ReceiveRebrandPage({ searchParams }) {
   const targetTxId = params?.txId || '';
   const targetDn = params?.dn || '';
 
-  const [products, brands, pendingTxs] = await Promise.all([
+  const [products, brands, stores, pendingTxs] = await Promise.all([
     getProductsSlim(),
     getBrands(),
+    prisma.store.findMany({
+      select: { id: true, name: true }
+    }),
     prisma.inventoryTransaction.findMany({
       where: {
         transactionType: { in: ['REBRAND', 'REBRAND_OUT'] },
@@ -57,6 +60,9 @@ export default async function ReceiveRebrandPage({ searchParams }) {
       take: 100
     })
   ]);
+
+  const storeNames = {};
+  stores.forEach(s => { storeNames[s.id] = s.name; });
 
   // If a specific txId or dn was passed but isn't in pendingTxs, fetch it directly
   let selectedTx = pendingTxs.find(tx => tx.id === targetTxId || (targetDn && tx.deliveryNote === targetDn));
@@ -123,6 +129,7 @@ export default async function ReceiveRebrandPage({ searchParams }) {
     <ReceiveRebrandClient
       products={products}
       brands={brands}
+      storeNames={storeNames}
       pendingTransactions={serializedPendingTxs}
       initialSelectedTx={initialSelectedTx}
       initialTxId={targetTxId}

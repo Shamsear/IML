@@ -26,6 +26,7 @@ import { receiveRebrandItems } from '@/app/actions/transactions';
 export default function ReceiveRebrandClient({
   products = [],
   brands = [],
+  storeNames = {},
   pendingTransactions = [],
   initialSelectedTx = null,
   initialTxId = '',
@@ -80,10 +81,14 @@ export default function ReceiveRebrandClient({
       const remaining = Math.max(0, selectedTx.quantity - (selectedTx.returnedQty || 0));
       setQuantity(remaining > 0 ? String(remaining) : String(selectedTx.quantity));
 
-      // Attempt to auto-detect vendor from origin notes or entity
-      if (selectedTx.toEntityId && selectedTx.toEntityType === 'VENDOR') {
+      // Resolve human-readable vendor name
+      if (selectedTx.toEntityId && storeNames[selectedTx.toEntityId]) {
+        setVendorName(storeNames[selectedTx.toEntityId]);
+      } else if (selectedTx.toEntityId && selectedTx.toEntityType === 'VENDOR' && !selectedTx.toEntityId.startsWith('STR-')) {
         setVendorName(selectedTx.toEntityId);
       } else if (selectedTx.notes && selectedTx.notes.toLowerCase().includes('advamedia')) {
+        setVendorName('Advamedia');
+      } else {
         setVendorName('Advamedia');
       }
 
@@ -92,7 +97,7 @@ export default function ReceiveRebrandClient({
         setBrandFilter(selectedTx.product.brand.id);
       }
     }
-  }, [selectedTxId]);
+  }, [selectedTxId, selectedTx, storeNames]);
 
   // Categories list for target selector
   const uniqueCategories = useMemo(() => {
@@ -436,15 +441,14 @@ export default function ReceiveRebrandClient({
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-text-secondary">
-                  Quantity Received <span className="text-danger">*</span>
+                  Quantity to Receive <span className="text-danger">*</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(String(remainingPending))}
-                  className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
-                >
-                  Fill Remaining ({remainingPending})
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-text-muted">Pending balance:</span>
+                  <span className="text-[10px] font-bold text-warning font-mono bg-warning/10 px-1.5 py-0.5 rounded border border-warning/20">
+                    {remainingPending} units
+                  </span>
+                </div>
               </div>
               <input
                 type="number"
@@ -453,7 +457,7 @@ export default function ReceiveRebrandClient({
                 max={remainingPending > 0 ? remainingPending : undefined}
                 value={quantity}
                 onChange={e => setQuantity(e.target.value)}
-                placeholder="Enter received units"
+                placeholder="Enter quantity to stock in"
                 required
                 className="w-full bg-surface text-text-primary border border-border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono font-bold"
               />
@@ -463,20 +467,9 @@ export default function ReceiveRebrandClient({
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-text-secondary">
-                  Vendor Name
+                  Vendor / Workshop Partner
                 </label>
-                <div className="flex gap-1">
-                  {['Advamedia', 'Vendor'].map(v => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setVendorName(v)}
-                      className="text-[10px] font-semibold text-text-muted hover:text-primary cursor-pointer"
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
+                <span className="text-[10px] text-text-muted">Branding Partner</span>
               </div>
               <div className="relative">
                 <input
