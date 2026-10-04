@@ -117,39 +117,36 @@ export async function GET(request) {
       if (supObj?.name) supervisorName = supObj.name;
     }
 
-    // Look up Staff & Uniform Allocations for Promoter Details
-    const allocationConditions = [{ ref: dnQuery }];
-    if (origTx?.deliveryNote) allocationConditions.push({ ref: origTx.deliveryNote });
-    if (storeId) allocationConditions.push({ storeId: storeId });
+    // Look up Staff & Uniform Allocations for Promoter Details (Only for store-related transactions)
+    let uniformAllocations = [];
+    let primaryStaff = null;
 
-    let uniformAllocations = await prisma.staffUniformAllocation.findMany({
-      where: { OR: allocationConditions },
-      include: {
-        staff: { include: { store: true } },
-        store: true,
-        supervisor: true
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 5
-    });
+    if (!isSupplierReceive && (storeId || dnQuery)) {
+      const allocationConditions = [];
+      if (dnQuery && dnQuery !== 'UNASSIGNED') allocationConditions.push({ ref: dnQuery });
+      if (origTx?.deliveryNote) allocationConditions.push({ ref: origTx.deliveryNote });
+      if (storeId) allocationConditions.push({ storeId: storeId });
 
-    let primaryStaff = uniformAllocations[0]?.staff || null;
-    if (!primaryStaff && storeId) {
-      primaryStaff = await prisma.staff.findFirst({
-        where: { storeId: storeId },
-        include: { store: true }
-      });
-    }
+      if (allocationConditions.length > 0) {
+        uniformAllocations = await prisma.staffUniformAllocation.findMany({
+          where: { OR: allocationConditions },
+          include: {
+            staff: { include: { store: true } },
+            store: true,
+            supervisor: true
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        });
 
-    // Fallback: If still no primary staff, look up any staff in the brand/store or recent allocation
-    if (!primaryStaff) {
-      const recentAlloc = await prisma.staffUniformAllocation.findFirst({
-        include: { staff: true, store: true, supervisor: true },
-        orderBy: { createdAt: 'desc' }
-      });
-      if (recentAlloc?.staff) {
-        primaryStaff = recentAlloc.staff;
-        if (!uniformAllocations.length) uniformAllocations = [recentAlloc];
+        primaryStaff = uniformAllocations[0]?.staff || null;
+      }
+
+      if (!primaryStaff && storeId) {
+        primaryStaff = await prisma.staff.findFirst({
+          where: { storeId: storeId },
+          include: { store: true }
+        });
       }
     }
 
@@ -172,10 +169,14 @@ export async function GET(request) {
       const isUniform = prod.category?.toUpperCase() === 'UNIFORM' || 
                         prod.name?.toLowerCase().includes('shirt') || 
                         prod.name?.toLowerCase().includes('uniform') || 
-                        prod.name?.toLowerCase().includes('cap');
+                        prod.name?.toLowerCase().includes('cap') ||
+                        prod.name?.toLowerCase().includes('frock') ||
+                        prod.name?.toLowerCase().includes('abaya') ||
+                        prod.name?.toLowerCase().includes('apron');
 
+      // STRICT RULE: Only uniform items with an assigned promoter get promoter subtext
       let itemSubtext = '';
-      if ((isUniform || primaryStaff) && primaryStaff?.name) {
+      if (isUniform && !isSupplierReceive && primaryStaff?.name) {
         const itemSize = prod.size || primaryStaff.shirtSize || '';
         itemSubtext = [
           `Promoter: ${primaryStaff.name}${primaryStaff.phone ? ` (${primaryStaff.phone})` : ''}`,

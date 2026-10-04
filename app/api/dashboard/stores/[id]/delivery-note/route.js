@@ -131,10 +131,16 @@ export async function GET(request) {
       for (const tx of txs) {
         const prod = tx.product;
         const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
-        const isUniform = prod.category?.toUpperCase() === 'UNIFORM' || prod.name?.toLowerCase().includes('shirt') || prod.name?.toLowerCase().includes('cap');
+        const isUniform = prod.category?.toUpperCase() === 'UNIFORM' || 
+                          prod.name?.toLowerCase().includes('shirt') || 
+                          prod.name?.toLowerCase().includes('uniform') || 
+                          prod.name?.toLowerCase().includes('cap') ||
+                          prod.name?.toLowerCase().includes('frock') ||
+                          prod.name?.toLowerCase().includes('abaya') ||
+                          prod.name?.toLowerCase().includes('apron');
         
         let itemSubtext = '';
-        if ((isUniform || allocStaff) && allocStaff?.name) {
+        if (isUniform && allocStaff?.name) {
           itemSubtext = [
             `Promoter: ${allocStaff.name}${allocStaff.phone ? ` (${allocStaff.phone})` : ''}`,
             allocStaff.shirtSize ? `Size: ${allocStaff.shirtSize}` : null,
