@@ -462,16 +462,16 @@ export default function RebrandLedgerClient({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-border">
         <div>
-          <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
             Stock Rebranding Ledger
           </h1>
           <p className="text-text-secondary text-sm mt-1">
             Logs of stock items dispatched or converted into different product definitions.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
           <ExportToExcel
             data={filteredTransactions.map((tx) => ({
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', {
@@ -510,14 +510,14 @@ export default function RebrandLedgerClient({
           />
           <Link
             href="/dashboard/rebrand/receive"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-success/10 hover:bg-success/20 text-success border border-success/30 font-semibold text-sm rounded-lg transition-all duration-200 cursor-pointer"
+            className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-success/10 hover:bg-success/20 text-success border border-success/30 font-semibold text-xs sm:text-sm rounded-lg transition-all duration-200 whitespace-nowrap cursor-pointer"
           >
             <ArrowDownLeft size={16} />
             <span>Receive Stock</span>
           </Link>
           <Link
             href="/dashboard/rebrand/new"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-sm hover:shadow transition-all duration-200 whitespace-nowrap cursor-pointer"
           >
             <Plus size={16} />
             <span>New Rebranding Map</span>
