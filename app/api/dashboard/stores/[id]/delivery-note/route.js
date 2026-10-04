@@ -133,31 +133,32 @@ export async function GET(request) {
         const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
         const isUniform = prod.category?.toUpperCase() === 'UNIFORM' || prod.name?.toLowerCase().includes('shirt') || prod.name?.toLowerCase().includes('cap');
         
-        let remarks = parsedItemNotes;
+        let itemSubtext = '';
         if ((isUniform || allocStaff) && allocStaff?.name) {
-          const details = [
+          itemSubtext = [
             `Promoter: ${allocStaff.name}${allocStaff.phone ? ` (${allocStaff.phone})` : ''}`,
             allocStaff.shirtSize ? `Size: ${allocStaff.shirtSize}` : null,
             `Store: ${store.name}`,
             uniformAllocations[0]?.workingPeriod ? `Period: ${uniformAllocations[0].workingPeriod}` : null,
           ].filter(Boolean).join(' | ');
-
-          remarks = remarks ? `${remarks} [${details}]` : details;
         }
 
         if (!productGroups[prod.id]) {
           productGroups[prod.id] = {
             name: prod.name,
+            subtext: itemSubtext,
             isSerialized: prod.isSerialized,
             quantity: 0,
             serials: [],
-            notes: remarks
+            notes: parsedItemNotes
           };
         }
         productGroups[prod.id].quantity += tx.quantity;
         if (prod.isSerialized && tx.serialNumbers) {
           for (const sNum of tx.serialNumbers) {
-            productGroups[prod.id].serials.push({ barcode: sNum.serialNumber.barcode });
+            if (sNum.serialNumber?.barcode) {
+              productGroups[prod.id].serials.push({ barcode: sNum.serialNumber.barcode });
+            }
           }
         }
       }
@@ -173,17 +174,6 @@ export async function GET(request) {
       }
       if (inventory[0]?.brandName) brandName = inventory[0].brandName;
 
-      const staffMember = await prisma.staff.findFirst({
-        where: { storeId: id },
-        select: { name: true, phone: true }
-      });
-      if (staffMember) {
-        receiverName = staffMember.name;
-        contactDetails = staffMember.phone || '';
-      } else {
-        receiverName = `${store.name} In-charge`;
-      }
-
       const dateObj = new Date();
       const dd = String(dateObj.getDate()).padStart(2, '0');
       const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -193,6 +183,8 @@ export async function GET(request) {
       docNo = `IML-${brandName || 'SADIA'}-DN-${dateStr}-${timeHash}`;
     }
 
+    const effectiveReceiver = supervisorName || '';
+
     const pdfStream = await renderToStream(
       <DeliveryNoteDocument
         title="DELIVERY NOTE"
@@ -201,22 +193,19 @@ export async function GET(request) {
         dateStr={dateStr}
         docNo={docNo}
         supervisorName={supervisorName}
-        receiverName={receiverName}
-        contactDetails={contactDetails}
+        receiverName={effectiveReceiver}
         notes={notes}
         metaFields={{
           left: [
             { label: 'Warehouse', value: 'IML Warehouse Al qouz' },
             { label: 'Brand', value: brandName },
             { label: 'Store Name', value: store.name },
-            ...(supervisorName ? [{ label: 'Supervisor', value: supervisorName }] : []),
-            { label: 'Notes', value: notes },
+            ...(effectiveReceiver ? [{ label: 'Receiver Name', value: effectiveReceiver }] : []),
+            ...(notes ? [{ label: 'Notes', value: notes }] : []),
           ],
           right: [
             { label: 'Date', value: dateStr },
             { label: 'Document No', value: docNo },
-            { label: 'Receiver Name', value: receiverName },
-            ...(contactDetails ? [{ label: 'Contact Details', value: contactDetails }] : []),
           ],
         }}
       />

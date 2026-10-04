@@ -162,22 +162,13 @@ export async function GET(request) {
       supervisorName = uniformAlloc.supervisor.name;
     }
 
-    // Resolve Receiver Name cleanly according to transaction type
-    let receiverName = '';
-    if (isSupplierReceive) {
-      // When stock comes from a Supplier/Vendor, Receiver is Warehouse Staff (never promoter)
-      const rawRx = txs.find(t => t.receivedBy)?.receivedBy;
-      receiverName = (rawRx && rawRx !== promoterName) ? rawRx : 'IML Warehouse Staff';
-    } else if (promoterName) {
-      receiverName = `${promoterName} (Promoter)`;
-    } else {
-      receiverName = txs.find(t => t.receivedBy)?.receivedBy || (storeName ? `${storeName} In-charge` : 'Store Representative');
-    }
+    // Receiver Name is Supervisor (if null, empty)
+    const receiverName = supervisorName || '';
 
     const rawNotes = txs[0]?.notes?.split(' | ')[0] || '';
     const notes = cleanNotes(rawNotes);
 
-    // Group items by product & append promoter info to uniform items or allocations
+    // Group items by product & put promoter details in subtext below item description
     const productGroups = {};
     for (const tx of txs) {
       const prod = tx.product;
@@ -185,26 +176,24 @@ export async function GET(request) {
       const parsedItemNotes = cleanNotes(rawItemNotes);
       const isUniform = (prod.category?.toUpperCase() === 'UNIFORM') || prod.name?.toLowerCase().includes('shirt') || prod.name?.toLowerCase().includes('uniform') || prod.name?.toLowerCase().includes('cap');
 
-      let itemRemarks = parsedItemNotes;
-
+      let itemSubtext = '';
       if ((isUniform || uniformAlloc) && promoterName) {
-        const details = [
+        itemSubtext = [
           `Promoter: ${promoterName}${promoterPhone ? ` (${promoterPhone})` : ''}`,
           promoterSize ? `Size: ${promoterSize}` : null,
           promoterStore ? `Store: ${promoterStore}` : null,
           workingPeriod ? `Period: ${workingPeriod}` : null,
         ].filter(Boolean).join(' | ');
-
-        itemRemarks = itemRemarks ? `${itemRemarks} [${details}]` : details;
       }
 
       if (!productGroups[prod.id]) {
         productGroups[prod.id] = {
           name: prod.name,
+          subtext: itemSubtext,
           isSerialized: prod.isSerialized,
           quantity: 0,
           serials: [],
-          notes: itemRemarks
+          notes: parsedItemNotes
         };
       }
       productGroups[prod.id].quantity += tx.quantity;
@@ -227,10 +216,7 @@ export async function GET(request) {
       { label: 'Brand', value: brandName },
       ...(isSupplierReceive && supplierName ? [{ label: 'Supplier / Vendor', value: supplierName }] : []),
       ...(storeName ? [{ label: isReturn ? 'Returned From Store' : 'Store Name', value: storeName }] : []),
-      ...(promoterName ? [{ label: 'Promoter Name', value: `${promoterName}${promoterPhone ? ` (${promoterPhone})` : ''}` }] : []),
-      ...(supervisorName ? [{ label: isReturn ? 'Returned By / Supervisor' : 'Supervisor', value: supervisorName }] : []),
-      ...(!isSupplierReceive && receiverName ? [{ label: 'Receiver Name', value: receiverName }] : []),
-      ...(isSupplierReceive ? [{ label: 'Received By', value: receiverName }] : []),
+      ...(receiverName ? [{ label: isReturn ? 'Returned By / Supervisor' : 'Receiver Name', value: receiverName }] : []),
       ...(notes ? [{ label: 'Notes', value: notes }] : []),
     ];
 
@@ -238,7 +224,6 @@ export async function GET(request) {
       { label: 'Date', value: dateStr },
       { label: 'Document No', value: docNo },
       ...(workingPeriod ? [{ label: 'Working Period', value: workingPeriod }] : []),
-      ...(promoterSize ? [{ label: 'Promoter Size', value: promoterSize }] : []),
     ];
 
     const signatureLabels = isReturn ? [
