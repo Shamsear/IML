@@ -92,7 +92,6 @@ export default async function ReturnsPage({ searchParams }) {
           quantity: true,
           timestamp: true,
           deliveryNote: true,
-          barcode: true,
           transactionType: true,
           fromEntityType: true,
           fromEntityId: true,
