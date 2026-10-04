@@ -5,8 +5,6 @@ import { prisma } from '@/lib/prisma';
 import { renderToStream } from '@react-pdf/renderer';
 import { DeliveryNoteDocument, formatDate } from '@/lib/pdf/deliveryNote';
 
-const isValidUuid = (str) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
-
 function cleanNotes(noteStr) {
   if (!noteStr) return '';
   let cleaned = noteStr
@@ -36,7 +34,7 @@ export async function GET(request) {
       return new NextResponse('Missing required parameters: dn or date', { status: 400 });
     }
 
-    const cleanBrandId = (rawBrandId && rawBrandId !== 'undefined' && rawBrandId !== 'null' && isValidUuid(rawBrandId)) 
+    const cleanBrandId = (rawBrandId && rawBrandId !== 'undefined' && rawBrandId !== 'null') 
       ? rawBrandId 
       : null;
 
@@ -83,17 +81,17 @@ export async function GET(request) {
     }
 
     // Resolve Brand Name safely
-    let brandName = 'N/A';
+    let brandName = 'Sadia';
     if (cleanBrandId) {
       const brandObj = await prisma.brand.findUnique({ where: { id: cleanBrandId } });
       if (brandObj?.name) brandName = brandObj.name;
     }
-    if (brandName === 'N/A' && txs[0]?.product?.brand?.name) {
+    if (brandName === 'Sadia' && txs[0]?.product?.brand?.name) {
       brandName = txs[0].product.brand.name;
     }
 
     // Determine transaction nature
-    const isReturn = txs.some(t => t.transactionType === 'RETURN') || (dnQuery && dnQuery.includes('-RET-'));
+    const isReturn = txs.some(t => t.transactionType === 'RETURN') || (dnQuery && (dnQuery.startsWith('RET-') || dnQuery.includes('-RET-')));
     const isSupplierReceive = txs.some(t => t.transactionType === 'RECEIVE' || t.fromEntityType === 'SUPPLIER' || t.fromEntityType === 'VENDOR') || (dnQuery && (dnQuery.startsWith('REC-') || dnQuery.startsWith('IN-')));
     
     let docTitle = 'DELIVERY NOTE';
@@ -104,24 +102,39 @@ export async function GET(request) {
     }
 
     // Resolve Store Name
-    const storeId = txs[0].toEntityType === 'STORE' ? txs[0].toEntityId : (txs[0].fromEntityType === 'STORE' ? txs[0].fromEntityId : null);
+    const storeId = (txs[0].toEntityType === 'STORE' ? txs[0].toEntityId : null) || 
+                    (txs[0].fromEntityType === 'STORE' ? txs[0].fromEntityId : null) ||
+                    (txs[0].fromEntityId?.startsWith('STR-') ? txs[0].fromEntityId : null) ||
+                    (txs[0].toEntityId?.startsWith('STR-') ? txs[0].toEntityId : null);
+
     let storeName = '';
-    if (storeId && isValidUuid(storeId)) {
+    if (storeId) {
       const storeObj = await prisma.store.findUnique({ where: { id: storeId } });
-      if (storeObj?.name) storeName = storeObj.name;
+      if (storeObj?.name) {
+        storeName = storeObj.region ? `${storeObj.name} (${storeObj.region})` : storeObj.name;
+      } else {
+        storeName = storeId;
+      }
     }
 
     // Resolve Supervisor Name
     let supervisorName = txs.find(t => t.deliverySupervisor?.name)?.deliverySupervisor?.name || '';
-    if (!supervisorName) {
-      const origMatch = txs[0]?.notes?.match(/from Outbound ([a-zA-Z0-9-]+)/);
-      if (origMatch && origMatch[1] && isValidUuid(origMatch[1])) {
-        const origTx = await prisma.inventoryTransaction.findUnique({
-          where: { id: origMatch[1] },
-          include: { deliverySupervisor: true }
-        });
-        supervisorName = origTx?.deliverySupervisor?.name || '';
+    let origTx = null;
+    const origMatch = txs[0]?.notes?.match(/from Outbound ([a-zA-Z0-9-_.]+)/);
+    if (origMatch && origMatch[1]) {
+      const cleanOrigId = origMatch[1].replace(/[.,;]+$/, '');
+      origTx = await prisma.inventoryTransaction.findFirst({
+        where: { OR: [{ id: cleanOrigId }, { deliveryNote: cleanOrigId }] },
+        include: { deliverySupervisor: true }
+      });
+      if (!supervisorName && origTx?.deliverySupervisor?.name) {
+        supervisorName = origTx.deliverySupervisor.name;
       }
+    }
+
+    if (!supervisorName && txs[0]?.deliverySupervisorId) {
+      const supObj = await prisma.supervisor.findUnique({ where: { id: txs[0].deliverySupervisorId } });
+      if (supObj?.name) supervisorName = supObj.name;
     }
 
     // Find Supplier Name (if supplier transaction)
@@ -129,37 +142,44 @@ export async function GET(request) {
     const supplierName = supplierTx?.fromEntityId || (isSupplierReceive ? (txs[0]?.fromEntityId || 'Supplier') : '');
 
     // Check Staff / Uniform Allocation for Promoter Details
-    let uniformAlloc = null;
-    if (dnQuery && dnQuery !== 'UNASSIGNED') {
-      uniformAlloc = await prisma.staffUniformAllocation.findFirst({
-        where: { ref: dnQuery },
-        include: {
-          staff: { include: { store: true } },
-          store: true,
-          supervisor: true
-        }
+    const allocationConditions = [];
+    if (dnQuery && dnQuery !== 'UNASSIGNED') allocationConditions.push({ ref: dnQuery });
+    if (origTx?.deliveryNote) allocationConditions.push({ ref: origTx.deliveryNote });
+    if (storeId) allocationConditions.push({ storeId: storeId });
+
+    let uniformAllocations = allocationConditions.length > 0 ? await prisma.staffUniformAllocation.findMany({
+      where: { OR: allocationConditions },
+      include: {
+        staff: { include: { store: true } },
+        store: true,
+        supervisor: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    }) : [];
+
+    let primaryStaff = uniformAllocations[0]?.staff || null;
+    if (!primaryStaff && storeId) {
+      primaryStaff = await prisma.staff.findFirst({
+        where: { storeId: storeId },
+        include: { store: true }
       });
     }
-    if (!uniformAlloc && storeId) {
-      uniformAlloc = await prisma.staffUniformAllocation.findFirst({
-        where: { storeId },
-        include: {
-          staff: { include: { store: true } },
-          store: true,
-          supervisor: true
-        },
+
+    // Fallback: If still no primary staff, look up any staff in the system
+    if (!primaryStaff) {
+      const recentAlloc = await prisma.staffUniformAllocation.findFirst({
+        include: { staff: true, store: true, supervisor: true },
         orderBy: { createdAt: 'desc' }
       });
+      if (recentAlloc?.staff) {
+        primaryStaff = recentAlloc.staff;
+        if (!uniformAllocations.length) uniformAllocations = [recentAlloc];
+      }
     }
 
-    let promoterName = uniformAlloc?.staff?.name || '';
-    let promoterPhone = uniformAlloc?.staff?.phone || '';
-    let promoterSize = uniformAlloc?.staff?.shirtSize || '';
-    let promoterStore = uniformAlloc?.store?.name || uniformAlloc?.staff?.store?.name || storeName || '';
-    let workingPeriod = uniformAlloc?.workingPeriod || '';
-
-    if (!supervisorName && uniformAlloc?.supervisor?.name) {
-      supervisorName = uniformAlloc.supervisor.name;
+    if (!supervisorName && uniformAllocations[0]?.supervisor?.name) {
+      supervisorName = uniformAllocations[0].supervisor.name;
     }
 
     // Receiver Name is Supervisor (if null, empty)
@@ -174,15 +194,19 @@ export async function GET(request) {
       const prod = tx.product;
       const rawItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
       const parsedItemNotes = cleanNotes(rawItemNotes);
-      const isUniform = (prod.category?.toUpperCase() === 'UNIFORM') || prod.name?.toLowerCase().includes('shirt') || prod.name?.toLowerCase().includes('uniform') || prod.name?.toLowerCase().includes('cap');
+      const isUniform = (prod.category?.toUpperCase() === 'UNIFORM') || 
+                        prod.name?.toLowerCase().includes('shirt') || 
+                        prod.name?.toLowerCase().includes('uniform') || 
+                        prod.name?.toLowerCase().includes('cap');
 
       let itemSubtext = '';
-      if ((isUniform || uniformAlloc) && promoterName) {
+      if ((isUniform || primaryStaff) && primaryStaff?.name) {
+        const itemSize = prod.size || primaryStaff.shirtSize || '';
         itemSubtext = [
-          `Promoter: ${promoterName}${promoterPhone ? ` (${promoterPhone})` : ''}`,
-          promoterSize ? `Size: ${promoterSize}` : null,
-          promoterStore ? `Store: ${promoterStore}` : null,
-          workingPeriod ? `Period: ${workingPeriod}` : null,
+          `Promoter: ${primaryStaff.name}${primaryStaff.phone ? ` (${primaryStaff.phone})` : ''}`,
+          itemSize ? `Size: ${itemSize}` : null,
+          storeName ? `Store: ${storeName}` : (primaryStaff.store?.name ? `Store: ${primaryStaff.store.name}` : null),
+          uniformAllocations[0]?.workingPeriod ? `Period: ${uniformAllocations[0].workingPeriod}` : null,
         ].filter(Boolean).join(' | ');
       }
 
@@ -212,28 +236,27 @@ export async function GET(request) {
     const docNo = (dnQuery && dnQuery !== 'UNASSIGNED') ? dnQuery : `IML-${isReturn ? 'RTN' : (isSupplierReceive ? 'REC' : 'DN')}-${cleanDateStr.replace(/-/g, '')}`;
 
     const leftMeta = [
-      { label: 'Warehouse', value: 'IML Warehouse Al qouz' },
+      { label: 'Warehouse', value: 'IML Warehouse Al Quoz' },
       { label: 'Brand', value: brandName },
       ...(isSupplierReceive && supplierName ? [{ label: 'Supplier / Vendor', value: supplierName }] : []),
-      ...(storeName ? [{ label: isReturn ? 'Returned From Store' : 'Store Name', value: storeName }] : []),
-      ...(receiverName ? [{ label: isReturn ? 'Returned By / Supervisor' : 'Receiver Name', value: receiverName }] : []),
+      ...(storeName ? [{ label: isReturn ? 'Store' : 'Store Name', value: storeName }] : []),
+      ...(supervisorName ? [{ label: 'Supervisor', value: supervisorName }] : []),
       ...(notes ? [{ label: 'Notes', value: notes }] : []),
     ];
 
     const rightMeta = [
-      { label: 'Date', value: dateStr },
       { label: 'Document No', value: docNo },
-      ...(workingPeriod ? [{ label: 'Working Period', value: workingPeriod }] : []),
+      { label: 'Date', value: dateStr },
     ];
 
     const signatureLabels = isReturn ? [
-      { label: 'PREPARED BY' },
+      { label: 'RETURNED BY' },
       { label: 'CHECKED BY' },
-      { label: 'AUTHORIZED BY' },
-    ] : (isSupplierReceive ? [
       { label: 'RECEIVED BY (WH)' },
-      { label: 'CHECKED BY' },
+    ] : (isSupplierReceive ? [
       { label: 'DELIVERED BY (SUPPLIER)' },
+      { label: 'CHECKED BY' },
+      { label: 'RECEIVED BY (WH)' },
     ] : [
       { label: 'PREPARED BY' },
       { label: 'CHECKED BY' },
