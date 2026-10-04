@@ -310,26 +310,22 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
   };
 
   return (
-    <div className="flex flex-col gap-6 font-sans relative">
-      <div className="absolute top-0 right-0 pointer-events-none opacity-5 overflow-hidden">
-        <BarChart3 size={250} />
-      </div>
-
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/client-returns" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
+    <div className="flex flex-col gap-6 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/client-returns" className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors">
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
-              With Client
+            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
+              With Client Balances
             </h1>
-            <p className="text-text-secondary text-sm mt-1">
+            <p className="text-text-secondary text-xs sm:text-sm mt-0.5">
               Real-time summary of inventory balances currently held by client brand owners.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <ExportToExcel
             data={filteredBalances.map(b => ({
               SKU: b.itemCode || '',
@@ -347,12 +343,12 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
             ]}
             filename="IML-Client-Balances"
           />
-          <div className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl shadow-sm">
-            <ClipboardList size={16} />
-            <span className="text-xs font-bold font-mono">Total with Clients: {totalStockWithClients} items</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-bold font-mono">
+            <ClipboardList size={14} />
+            <span>Total: {totalStockWithClients} items</span>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Tabs */}
       <TabNav
@@ -412,19 +408,19 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                   </h3>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="min-w-full divide-y divide-border text-xs">
                       <thead>
-                        <tr className="border-b border-border text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                          <th className="py-2 pl-4 pr-4 font-semibold">SKU / Item Code</th>
-                          <th className="py-2 pr-4 font-semibold">Product Description</th>
-                          <th className="py-2 pr-4 font-semibold">Category</th>
-                          <th className="py-2 pr-4 text-center font-semibold">Stock Qty</th>
-                          <th className="py-2 font-semibold text-right">Action</th>
+                        <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                          <th className="py-2.5 pl-4 pr-4 font-semibold">SKU / Item Code</th>
+                          <th className="py-2.5 pr-4 font-semibold">Product Description</th>
+                          <th className="py-2.5 pr-4 font-semibold">Category</th>
+                          <th className="py-2.5 pr-4 text-center font-semibold">Stock Qty</th>
+                          <th className="py-2.5 pr-4 font-semibold text-right">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-border/40">
+                      <tbody className="divide-y divide-border text-text-primary">
                         {brandGroup.items.map((bal, idx) => (
-                          <tr key={idx} className="text-xs hover:bg-surface-elevated/20 transition-colors">
+                          <tr key={idx} className="hover:bg-surface-elevated/20 transition-colors group/row">
                             <td className="py-3 pl-4 pr-4 font-mono font-bold text-[11px] text-primary">{bal.itemCode || '—'}</td>
                             <td className="py-3 pr-4 font-bold text-text-primary">{bal.productName}</td>
                             <td className="py-3 pr-4 text-text-secondary font-semibold">{bal.category || 'General'}</td>
@@ -481,12 +477,13 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
         /* TAB 2: HISTORY */
         <div className="flex flex-col gap-4">
           {/* History Filters */}
+          {/* History Filters */}
           <div className="bg-surface border border-border p-4 rounded-xl shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-2.5 text-text-muted" size={16} />
               <input
                 type="text"
-                placeholder="Search by product, SKU, brand, gate pass..."
+                placeholder="Search by product, SKU, brand, delivery note..."
                 className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary font-medium"
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
@@ -518,16 +515,14 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
 
           {/* Top Pagination */}
           {filteredHistory.length > 0 && (
-            <div className="bg-surface border border-border rounded-xl px-4 py-2 shadow-sm">
-              <Pagination
-                currentPage={historyPage}
-                totalPages={totalHistoryPages}
-                totalItems={filteredHistory.length}
-                itemsPerPage={historyItemsPerPage}
-                onPageChange={setHistoryPage}
-                itemLabel="transactions"
-              />
-            </div>
+            <Pagination
+              currentPage={historyPage}
+              totalPages={totalHistoryPages}
+              totalItems={filteredHistory.length}
+              itemsPerPage={historyItemsPerPage}
+              onPageChange={setHistoryPage}
+              itemLabel="transactions"
+            />
           )}
 
           {/* Mobile Card View */}
@@ -561,81 +556,84 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
 
           {/* Desktop Table View */}
           <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                  <SortableHeader field="direction" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 pl-5 pr-4 font-semibold">Direction</SortableHeader>
-                  <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Product</SortableHeader>
-                  <SortableHeader field="gatePass" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Delivery Note</SortableHeader>
-                  <SortableHeader field="brand" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Brand</SortableHeader>
-                  <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-3 px-4 text-center font-semibold">Qty</SortableHeader>
-                  <SortableHeader field="date" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Date</SortableHeader>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {sortedHistory.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-text-muted text-xs">
-                      No transactions found.
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border text-xs">
+                <thead>
+                  <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                    <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                    <SortableHeader field="direction" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Direction</SortableHeader>
+                    <SortableHeader field="gatePass" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Delivery Note</SortableHeader>
+                    <SortableHeader field="brand" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Brand</SortableHeader>
+                    <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Qty</SortableHeader>
+                    <SortableHeader field="date" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
                   </tr>
-                ) : (
-                  paginatedHistory.map((tx) => {
-                    const isFromClient = tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE';
-                    const direction = isFromClient ? 'fromClient' : 'toClient';
-                    const dateObj = new Date(tx.timestamp);
-                    const formattedDate = dateObj.toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' });
-                    const formattedTime = dateObj.toLocaleTimeString('en-AE', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', hour12: true });
+                </thead>
+                <tbody className="divide-y divide-border text-text-primary">
+                  {sortedHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-text-muted text-xs">
+                        No transactions found.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedHistory.map((tx) => {
+                      const isFromClient = tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE';
+                      const dateObj = new Date(tx.timestamp);
+                      const formattedDate = dateObj.toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' });
+                      const formattedTime = dateObj.toLocaleTimeString('en-AE', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', hour12: true });
 
-                    return (
-                      <tr key={tx.id} className="text-xs hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3 pl-5 pr-4">
-                          {isFromClient ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-success/10 text-success border border-success/20 rounded-full text-[10px] font-bold">
-                              <ArrowDownLeft size={10} />
-                              From Client
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-bold">
-                              <ArrowUpRight size={10} />
-                              To Client
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="font-semibold block">{tx.product?.name}</span>
-                          <span className="text-[10px] font-mono text-text-muted block mt-0.5">{tx.product?.itemCode || 'No SKU'}</span>
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <DeliveryNoteLink tx={tx} />
-                        </td>
-                        <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
-                        <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="font-semibold text-text-secondary">{formattedDate}</span>
-                          <span className="text-[10px] text-text-muted block mt-0.5">{formattedTime}</span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Bottom Pagination */}
-          {filteredHistory.length > 0 && (
-            <div className="bg-surface border border-border rounded-xl px-4 py-2 shadow-sm">
-              <Pagination
-                currentPage={historyPage}
-                totalPages={totalHistoryPages}
-                totalItems={filteredHistory.length}
-                itemsPerPage={historyItemsPerPage}
-                onPageChange={setHistoryPage}
-                itemLabel="transactions"
-              />
+                      return (
+                        <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
+                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-text-primary">{tx.product?.name}</span>
+                              <span className="text-[11px] text-text-muted mt-0.5 font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
+                            {isFromClient ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-success/10 text-success border border-success/20 rounded-full text-[10px] font-bold">
+                                <ArrowDownLeft size={10} />
+                                From Client
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-bold">
+                                <ArrowUpRight size={10} />
+                                To Client
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
+                            <DeliveryNoteLink tx={tx} />
+                          </td>
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-bold text-primary whitespace-nowrap">{tx.product?.brand?.name || '—'}</td>
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap">{tx.quantity}</td>
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
+                            <span className="font-semibold text-text-secondary">{formattedDate}</span>
+                            <span className="text-[10px] text-text-muted block mt-0.5">{formattedTime}</span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {/* Bottom Pagination */}
+            {filteredHistory.length > 0 && (
+              <div className="p-4 border-t border-border bg-surface-elevated/20">
+                <Pagination
+                  currentPage={historyPage}
+                  totalPages={totalHistoryPages}
+                  totalItems={filteredHistory.length}
+                  itemsPerPage={historyItemsPerPage}
+                  onPageChange={setHistoryPage}
+                  itemLabel="transactions"
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
 

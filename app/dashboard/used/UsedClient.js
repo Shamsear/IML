@@ -405,30 +405,22 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
             </div>
 
             {/* Bottom Pagination */}
-            <Pagination
-              currentPage={txPage}
-              totalPages={totalTxPages}
-              totalItems={filteredTransactions.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setTxPage}
-              itemLabel="items"
-            />
+            <div className="p-4 border-t border-border bg-surface-elevated/20">
+              <Pagination
+                currentPage={txPage}
+                totalPages={totalTxPages}
+                totalItems={filteredTransactions.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setTxPage}
+                itemLabel="items"
+              />
+            </div>
             </>
           )}
 
           {/* ── TAB: BY USAGE NOTE ── */}
           {activeTab === 'grouped' && (
             <>
-            {/* Top Pagination */}
-            <Pagination
-              currentPage={groupPage}
-              totalPages={totalGroupPages}
-              totalItems={deliveryNoteGroups.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setGroupPage}
-              itemLabel="delivery notes"
-            />
-
             <div className="flex flex-col divide-y divide-border">
               {deliveryNoteGroups.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center gap-3 text-text-muted">
@@ -481,11 +473,11 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                       <div className="border-t border-border bg-surface/50 overflow-x-auto">
                         <table className="min-w-full divide-y divide-border text-xs">
                           <thead>
-                            <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
+                            <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
                               <th className="py-2.5 pl-5 pr-3 w-10"></th>
-                              <th className="py-2.5 px-3">Product</th>
-                              <th className="py-2.5 px-3 text-right whitespace-nowrap">Qty to Mark</th>
-                              <th className="py-2.5 px-3">Remarks</th>
+                              <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</th>
+                              <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">Qty to Mark</th>
+                              <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border text-text-primary">
@@ -497,7 +489,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                   <td className="py-2.5 pl-5 pr-3">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
                                   </td>
-                                  <td className="py-2.5 px-3 font-medium text-xs text-warning">
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-warning">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <span>{tx.product?.name}</span>
                                       {tx.product?.isReturnable && tx.product?.isDisposable && (
@@ -505,7 +497,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                       )}
                                     </div>
                                   </td>
-                                  <td className="py-2.5 px-3 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">
                                     {isSelected ? (
                                       <input
                                         type="number"
@@ -519,7 +511,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                       <span>{remainingQty}</span>
                                     )}
                                   </td>
-                                  <td className="py-2.5 px-3">
+                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                                     <input type="text" placeholder="Notes..." disabled={!isSelected}
                                       value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
                                       className="w-full min-w-[120px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
@@ -537,43 +529,35 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
             </div>
 
             {/* Bottom Pagination */}
-            <Pagination
-              currentPage={groupPage}
-              totalPages={totalGroupPages}
-              totalItems={deliveryNoteGroups.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setGroupPage}
-              itemLabel="delivery notes"
-            />
+            <div className="p-4 border-t border-border bg-surface-elevated/20">
+              <Pagination
+                currentPage={groupPage}
+                totalPages={totalGroupPages}
+                totalItems={deliveryNoteGroups.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setGroupPage}
+                itemLabel="delivery notes"
+              />
+            </div>
             </>
           )}
 
           {/* ── TAB: CONSUMED HISTORY ── */}
           {activeTab === 'history' && (
             <>
-            {/* Top Pagination */}
-            <Pagination
-              currentPage={historyPage}
-              totalPages={totalHistoryPages}
-              totalItems={pastUsed.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setHistoryPage}
-              itemLabel="entries"
-            />
-
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-text-secondary border-collapse">
-                <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
-                  <tr>
+              <table className="min-w-full divide-y divide-border text-xs">
+                <thead>
+                  <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                    <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
                     <SortableHeader field="date" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
-                    <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</SortableHeader>
                     <SortableHeader field="store" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</SortableHeader>
                     <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Consumed Qty</SortableHeader>
                     <SortableHeader field="notes" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
                     <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions / Undo</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody className="divide-y divide-border">
                   {sortedHistory.length === 0 ? (
                     <tr><td colSpan="6" className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No consumed logs found.</span></div>
@@ -581,15 +565,17 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                   ) : paginatedHistory.map(tx => {
                     const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
                     return (
-                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
+                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
+                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <div className="flex flex-col">
+                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors">
+                              {tx.product?.name}
+                            </Link>
+                            <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>
+                          </div>
+                        </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
                           {new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="text-warning font-bold">{tx.product?.name}</span>
-                            <span className="text-[10px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>
-                          </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary">{fromStore}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-warning">-{tx.quantity}</td>
@@ -605,14 +591,16 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
             </div>
 
             {/* Bottom Pagination */}
-            <Pagination
-              currentPage={historyPage}
-              totalPages={totalHistoryPages}
-              totalItems={pastUsed.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setHistoryPage}
-              itemLabel="entries"
-            />
+            <div className="p-4 border-t border-border bg-surface-elevated/20">
+              <Pagination
+                currentPage={historyPage}
+                totalPages={totalHistoryPages}
+                totalItems={pastUsed.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setHistoryPage}
+                itemLabel="entries"
+              />
+            </div>
             </>
           )}
 

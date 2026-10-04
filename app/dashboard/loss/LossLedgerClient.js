@@ -308,26 +308,18 @@ export default function LossLedgerClient({
           </div>
         ) : (
           <>
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={sortedTransactions.length}
-              itemsPerPage={pageSize}
-              onPageChange={handlePageChange}
-              itemLabel="loss reports"
-            />
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border text-sm">
+              <table className="min-w-full divide-y divide-border text-xs">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                    <SortableHeader field="date" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Date</SortableHeader>
-                    <SortableHeader field="product" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Product Details</SortableHeader>
-                    <SortableHeader field="sku" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">SKU</SortableHeader>
-                    <SortableHeader field="source" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Lost From</SortableHeader>
-                    <SortableHeader field="quantity" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="py-3 px-5">Quantity</SortableHeader>
-                    <SortableHeader field="deliveryNote" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Loss Note</SortableHeader>
-                    <SortableHeader field="notes" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-3 px-5">Remarks</SortableHeader>
-                    <th className="py-3 px-5 text-right">Actions</th>
+                    <SortableHeader field="product" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                    <SortableHeader field="date" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
+                    <SortableHeader field="sku" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">SKU</SortableHeader>
+                    <SortableHeader field="source" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Lost From</SortableHeader>
+                    <SortableHeader field="quantity" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Quantity</SortableHeader>
+                    <SortableHeader field="deliveryNote" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Loss Note</SortableHeader>
+                    <SortableHeader field="notes" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
+                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-text-primary">
@@ -343,15 +335,12 @@ export default function LossLedgerClient({
                     });
                     const sourceName = getSourceName(tx);
                     return (
-                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
-                          {dateStr}
-                        </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap">
+                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
+                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex flex-col">
                             <Link
                               href={`/dashboard/products/${tx.product?.id}`}
-                              className="font-semibold text-primary hover:text-primary-hover hover:underline transition-colors"
+                              className="font-semibold text-text-primary hover:text-primary transition-colors"
                             >
                               {tx.product?.name}
                             </Link>
@@ -360,25 +349,28 @@ export default function LossLedgerClient({
                             </span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap font-mono text-xs text-text-secondary">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
+                          {dateStr}
+                        </td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap font-mono text-xs text-text-secondary">
                           {tx.product?.itemCode || '---'}
                         </td>
-                        <td className="py-3.5 px-5 font-semibold text-xs text-text-secondary">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary">
                           {sourceName}
                         </td>
-                        <td className="py-3.5 px-3 sm:px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-warning">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap text-warning">
                           -{tx.quantity}
                         </td>
-                        <td className="py-3.5 px-3 sm:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs whitespace-nowrap">
                           <DeliveryNoteLink tx={tx} />
                         </td>
                         <td
-                          className="py-3.5 px-3 sm:px-5 max-w-xs truncate text-xs text-text-secondary"
+                          className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-xs truncate text-xs text-text-secondary"
                           title={tx.notes || ''}
                         >
                           {tx.notes || '---'}
                         </td>
-                        <td className="py-3.5 px-3 sm:px-5 text-right">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
                           <TransactionActions
                             txId={tx.id}
                             deliveryNote={tx.deliveryNote}
@@ -395,14 +387,16 @@ export default function LossLedgerClient({
               </table>
             </div>
 
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={sortedTransactions.length}
-              itemsPerPage={pageSize}
-              onPageChange={handlePageChange}
-              itemLabel="loss reports"
-            />
+            <div className="p-4 border-t border-border bg-surface-elevated/20">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={sortedTransactions.length}
+                itemsPerPage={pageSize}
+                onPageChange={handlePageChange}
+                itemLabel="loss reports"
+              />
+            </div>
           </>
         )}
       </div>

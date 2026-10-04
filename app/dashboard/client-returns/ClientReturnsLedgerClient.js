@@ -652,73 +652,81 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
 
       {/* Desktop Table View */}
       <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-              <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 pl-5 pr-4 font-semibold sticky left-0 bg-surface-sticky z-10 border-r border-border shadow-sm">Product Description</SortableHeader>
-              <SortableHeader field="date" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Date</SortableHeader>
-              <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Gate Pass No</SortableHeader>
-              <SortableHeader field="brand" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Client Brand</SortableHeader>
-              <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3 px-4 text-center font-semibold">Qty</SortableHeader>
-              <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Remarks</SortableHeader>
-              <th className="py-3 pr-5 pl-4 text-right font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/60">
-            {paginatedFlatItems.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
-                  No matching transactions found.
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-border text-xs">
+            <thead>
+              <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                <SortableHeader field="date" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
+                <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Delivery Note</SortableHeader>
+                <SortableHeader field="brand" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Client Brand</SortableHeader>
+                <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Qty</SortableHeader>
+                <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
+                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
               </tr>
-            ) : (
-              paginatedFlatItems.map((tx) => {
-                const dateObj = new Date(tx.timestamp);
-                const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-                const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            </thead>
+            <tbody className="divide-y divide-border text-text-primary">
+              {paginatedFlatItems.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
+                    No matching transactions found.
+                  </td>
+                </tr>
+              ) : (
+                paginatedFlatItems.map((tx) => {
+                  const dateObj = new Date(tx.timestamp);
+                  const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                  const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-                return (
-                  <tr key={tx.id} className="text-xs hover:bg-surface-elevated/20 transition-colors group/row">
-                    <td className="py-3 pl-5 pr-4 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
-                      <span className="font-semibold block">{tx.product?.name}</span>
-                      <span className="text-[10px] font-mono text-text-muted block mt-0.5">{tx.product?.itemCode || 'No SKU'}</span>
-                    </td>
-                    <td className="py-3 px-4 font-semibold whitespace-nowrap text-text-secondary">
-                      {formattedDate} <span className="text-[10px] font-normal block mt-0.5">{formattedTime}</span>
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <DeliveryNoteLink tx={tx} />
-                    </td>
-                    <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
-                    <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
-                    <td className="py-3 px-4 text-text-secondary font-medium max-w-xs truncate">{tx.notes || '—'}</td>
-                    <td className="py-3 pr-5 pl-4 text-right whitespace-nowrap">
-                      <TransactionActions
-                        transactionId={tx.id}
-                        deliveryNote={tx.deliveryNote}
-                        transactionType={tx.transactionType}
-                        barcode={tx.barcode}
-                        copyType="client-returns"
-                      />
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                  return (
+                    <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
+                      <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-text-primary">{tx.product?.name}</span>
+                          <span className="text-[11px] text-text-muted mt-0.5 font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
+                        <span>{formattedDate}</span>
+                        <span className="text-[10px] text-text-muted block mt-0.5">{formattedTime}</span>
+                      </td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
+                        <DeliveryNoteLink tx={tx} />
+                      </td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-bold text-primary whitespace-nowrap">{tx.product?.brand?.name || '—'}</td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap">{tx.quantity}</td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-text-secondary font-medium max-w-xs truncate text-xs" title={tx.notes || ''}>{tx.notes || '—'}</td>
+                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
+                        <TransactionActions
+                          transactionId={tx.id}
+                          deliveryNote={tx.deliveryNote}
+                          transactionType={tx.transactionType}
+                          barcode={tx.barcode}
+                          copyType="client-returns"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Bottom Pagination */}
+        {totalFlatPages > 1 && (
+          <div className="p-4 border-t border-border bg-surface-elevated/20">
+            <Pagination
+              currentPage={flatPage}
+              totalPages={totalFlatPages}
+              totalItems={sortedItems.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setFlatPage}
+              itemLabel="transactions"
+            />
+          </div>
+        )}
       </div>
-
-      {totalFlatPages > 1 && (
-        <Pagination
-          currentPage={flatPage}
-          totalPages={totalFlatPages}
-          totalItems={sortedItems.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setFlatPage}
-          itemLabel="transactions"
-        />
-      )}
     </div>
   );
 }

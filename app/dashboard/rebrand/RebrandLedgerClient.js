@@ -579,16 +579,6 @@ export default function RebrandLedgerClient({
           </div>
         ) : (
           <>
-            {/* Top Pagination */}
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={sortedTransactions.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={handlePageChange}
-              itemLabel="rebranding logs"
-            />
-
             {/* Mobile Card View */}
             <div className="md:hidden flex flex-col divide-y divide-border">
               {paginatedTransactions.map((tx) => {
@@ -724,23 +714,23 @@ export default function RebrandLedgerClient({
 
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-border text-sm">
-                <thead>
-                  <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                    <SortableHeader field="date" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Date</SortableHeader>
-                    <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Delivery Note</SortableHeader>
-                    <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Product Details</SortableHeader>
-                    <SortableHeader field="sku" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">SKU</SortableHeader>
-                    <SortableHeader field="from" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">From Product</SortableHeader>
-                    <SortableHeader field="to" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">To Product</SortableHeader>
-                    <SortableHeader field="type" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Action Type</SortableHeader>
-                    <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3 px-4 text-center">Quantity</SortableHeader>
-                    <SortableHeader field="serials" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Associated Serials</SortableHeader>
-                    <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4">Remarks</SortableHeader>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border text-text-primary">
+              <table className="min-w-full divide-y divide-border text-xs">
+                  <thead>
+                    <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                      <SortableHeader field="product" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-0 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                      <SortableHeader field="date" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date</SortableHeader>
+                      <SortableHeader field="deliveryNote" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Delivery Note</SortableHeader>
+                      <SortableHeader field="sku" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">SKU</SortableHeader>
+                      <SortableHeader field="from" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">From Product</SortableHeader>
+                      <SortableHeader field="to" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">To Product</SortableHeader>
+                      <SortableHeader field="type" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Action Type</SortableHeader>
+                      <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Quantity</SortableHeader>
+                      <SortableHeader field="serials" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Associated Serials</SortableHeader>
+                      <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
+                      <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border text-text-primary">
                   {paginatedTransactions.map((tx) => {
                     const dateObj = new Date(tx.timestamp);
                     const dateStr = dateObj.toLocaleDateString('en-AE', {
@@ -758,18 +748,12 @@ export default function RebrandLedgerClient({
                     const canRevert = !isReverted && !isPendingOrPartial && !tx.deliveryNote?.startsWith('REV-') && tx.returnStatus !== 'REVERTED';
 
                     return (
-                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3.5 px-4 whitespace-nowrap text-xs text-text-secondary font-medium">
-                          {dateStr}
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs">
-                          <DeliveryNoteLink tx={tx} variant="badge" />
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap max-w-xs truncate">
+                      <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
+                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex flex-col">
                             <Link
                               href={`/dashboard/products/${tx.product?.id}`}
-                              className="font-semibold text-primary hover:text-primary-hover hover:underline transition-colors"
+                              className="font-semibold text-text-primary hover:text-primary transition-colors"
                             >
                               {tx.product?.name}
                             </Link>
@@ -778,16 +762,22 @@ export default function RebrandLedgerClient({
                             </span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs text-text-secondary">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
+                          {dateStr}
+                        </td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap font-mono text-xs">
+                          <DeliveryNoteLink tx={tx} />
+                        </td>
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap font-mono text-xs text-text-secondary">
                           {tx.product?.itemCode || '---'}
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-xs font-medium text-text-secondary">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs font-medium text-text-secondary">
                           {getFromName(tx)}
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-xs font-semibold text-text-primary">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs font-semibold text-text-primary">
                           {getToName(tx)}
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <span
                             className={`badge text-[10px] px-2 py-0.5 rounded font-bold ${
                               isReverted
@@ -803,13 +793,13 @@ export default function RebrandLedgerClient({
                           </span>
                         </td>
                         <td
-                          className={`py-3.5 px-4 text-center font-mono font-bold text-sm whitespace-nowrap ${
+                          className={`py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap ${
                             isGain ? 'text-success' : 'text-danger'
                           }`}
                         >
                           {isGain ? `+${tx.quantity}` : `-${tx.quantity}`}
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           {tx.serialNumbers?.length > 0 ? (
                             <span
                               className="max-w-[180px] truncate block text-xs font-mono bg-surface-elevated px-1.5 py-0.5 rounded text-[10px]"
@@ -826,12 +816,12 @@ export default function RebrandLedgerClient({
                           )}
                         </td>
                         <td
-                          className="py-3.5 px-4 max-w-xs truncate text-xs text-text-secondary"
+                          className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-xs truncate text-xs text-text-secondary"
                           title={tx.notes || ''}
                         >
                           {tx.notes || '---'}
                         </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {(tx.returnStatus || isReverted) && (
                               <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
@@ -891,13 +881,15 @@ export default function RebrandLedgerClient({
               </table>
             </div>
 
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={sortedTransactions.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={handlePageChange}
-            />
+            <div className="p-4 border-t border-border bg-surface-elevated/20">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={sortedTransactions.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+              />
+            </div>
           </>
         )}
       </div>
