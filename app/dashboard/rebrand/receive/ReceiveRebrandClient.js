@@ -117,6 +117,11 @@ export default function ReceiveRebrandClient({
     return products.find(p => p.id === targetProductId) || null;
   }, [products, targetProductId]);
 
+  // Dynamic calculation of pending balance after this receipt
+  const inputQtyNum = parseFloat(quantity);
+  const validQty = !isNaN(inputQtyNum) && inputQtyNum >= 0 ? inputQtyNum : 0;
+  const pendingAfterReceive = remainingPending - validQty;
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!selectedTx) {
@@ -445,9 +450,23 @@ export default function ReceiveRebrandClient({
                 </label>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-text-muted">Pending balance:</span>
-                  <span className="text-[10px] font-bold text-warning font-mono bg-warning/10 px-1.5 py-0.5 rounded border border-warning/20">
-                    {remainingPending} units
-                  </span>
+                  {validQty === 0 ? (
+                    <span className="text-[10px] font-bold text-warning font-mono bg-warning/10 px-1.5 py-0.5 rounded border border-warning/20">
+                      {remainingPending} {remainingPending === 1 ? 'unit' : 'units'}
+                    </span>
+                  ) : pendingAfterReceive > 0 ? (
+                    <span className="text-[10px] font-bold text-warning font-mono bg-warning/10 px-1.5 py-0.5 rounded border border-warning/20">
+                      {pendingAfterReceive} {pendingAfterReceive === 1 ? 'unit' : 'units'}
+                    </span>
+                  ) : pendingAfterReceive === 0 ? (
+                    <span className="text-[10px] font-bold text-success font-mono bg-success/10 px-1.5 py-0.5 rounded border border-success/20">
+                      0 units (Complete)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-danger font-mono bg-danger/10 px-1.5 py-0.5 rounded border border-danger/20">
+                      Exceeds by {Math.abs(pendingAfterReceive)}
+                    </span>
+                  )}
                 </div>
               </div>
               <input
