@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } fr
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone, ShieldAlert, CheckCircle, Tag, Layers } from 'lucide-react';
 import Link from 'next/link';
-import { createBulkDamageTransactions } from '@/app/actions/transactions';
+import { createBulkDamageTransactions, updateBulkDamageTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes, getProductStockAtLocation, getProductBatchesAtLocation, findProductByBarcode } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -14,7 +14,18 @@ import { playBeep } from '@/lib/audio';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 
-function DamageFormContent({ products, brands = [], initialItems = null, lockedType = null, stores = [], directSellers = [] }) {
+function DamageFormContent({ 
+  products, 
+  brands = [], 
+  initialItems = null, 
+  lockedType = null, 
+  stores = [], 
+  directSellers = [],
+  editMode = false,
+  existingDn = null,
+  initialFromType = 'WAREHOUSE',
+  initialFromId = ''
+}) {
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -38,8 +49,8 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     }
     return 'DAMAGE';
   });
-  const [fromType, setFromType] = useState('WAREHOUSE'); // 'WAREHOUSE', 'STORE', 'DIRECT'
-  const [fromId, setFromId] = useState('');
+  const [fromType, setFromType] = useState(initialFromType || 'WAREHOUSE'); // 'WAREHOUSE', 'STORE', 'DIRECT'
+  const [fromId, setFromId] = useState(initialFromId || '');
   const [showDirectSellerSuggestions, setShowDirectSellerSuggestions] = useState(false);
   const [highlightedSellerIdx, setHighlightedSellerIdx] = useState(-1);
 
@@ -184,7 +195,16 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
         const prod = products.find(p => p.id === item.productId);
         if (prod) {
           try {
-            const available = prod.isSerialized ? await getAvailableBarcodes(item.productId, fromType, fromId || null) : [];
+            let available = prod.isSerialized ? await getAvailableBarcodes(item.productId, fromType, fromId || null) : [];
+            if (editMode && item.selectedBarcodes?.length > 0) {
+              const combined = [...(available || [])];
+              for (const code of item.selectedBarcodes) {
+                if (!combined.some(b => (b.barcode || b).toLowerCase() === code.toLowerCase())) {
+                  combined.push({ barcode: code });
+                }
+              }
+              available = combined;
+            }
             const stock = prod.isSerialized ? available.length : (fromType === 'WAREHOUSE' ? prod.warehouseStock : await getProductStockAtLocation(item.productId, fromType, fromId || null));
             let batches = [];
             if (prod.trackExpiry && !prod.isSerialized) {
@@ -586,14 +606,25 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
     }
 
     try {
-      await createBulkDamageTransactions({
-        fromEntityType: fromType,
-        fromEntityId: fromId || null,
-        transactionType: reportType,
-        items: itemsPayload
-      });
-      const label = reportType === 'LOST' ? 'Loss Report Filed' : 'Damage Report Filed';
-      setConfirmData({ title: label, message: `${items.length} product(s) have been recorded as ${reportType === 'LOST' ? 'lost' : 'damaged'}.` });
+      if (editMode && existingDn) {
+        await updateBulkDamageTransactions(existingDn, {
+          fromEntityType: fromType,
+          fromEntityId: fromId || null,
+          transactionType: reportType,
+          items: itemsPayload
+        });
+        const label = reportType === 'LOST' ? 'Loss Report Updated' : 'Damage Report Updated';
+        setConfirmData({ title: label, message: `${items.length} product(s) have been updated.` });
+      } else {
+        await createBulkDamageTransactions({
+          fromEntityType: fromType,
+          fromEntityId: fromId || null,
+          transactionType: reportType,
+          items: itemsPayload
+        });
+        const label = reportType === 'LOST' ? 'Loss Report Filed' : 'Damage Report Filed';
+        setConfirmData({ title: label, message: `${items.length} product(s) have been recorded as ${reportType === 'LOST' ? 'lost' : 'damaged'}.` });
+      }
       setConfirmOpen(true);
     } catch (err) {
       setError(err.message || 'Failed to complete transaction.');
@@ -620,11 +651,22 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
-              {lockedType === 'LOST' ? 'Report Loss / Missing' : 'Report Damage & Wastage'}
-            </h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
+                {editMode 
+                  ? (lockedType === 'LOST' ? 'Edit Loss Report' : 'Edit Damage Report')
+                  : (lockedType === 'LOST' ? 'Report Loss / Missing' : 'Report Damage & Wastage')}
+              </h1>
+              {editMode && existingDn && (
+                <span className="font-mono text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded">
+                  {existingDn}
+                </span>
+              )}
+            </div>
             <p className="text-text-secondary text-sm mt-1">
-              {lockedType === 'LOST'
+              {editMode
+                ? 'Modify damaged or lost items, quantities, reasons, and serial numbers.'
+                : lockedType === 'LOST'
                 ? 'Log items that are missing, stolen, or cannot be accounted for.'
                 : 'Log damaged items or serial numbers to discard them from Central Warehouse stock.'}
             </p>
@@ -1261,14 +1303,36 @@ function DamageFormContent({ products, brands = [], initialItems = null, lockedT
   );
 }
 
-export default function DamageClient({ products, brands = [], initialItems = null, lockedType = null, stores = [], directSellers = [] }) {
+export default function DamageClient({ 
+  products, 
+  brands = [], 
+  initialItems = null, 
+  lockedType = null, 
+  stores = [], 
+  directSellers = [],
+  editMode = false,
+  existingDn = null,
+  initialFromType = 'WAREHOUSE',
+  initialFromId = ''
+}) {
   return (
     <Suspense fallback={
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 size={36} className="animate-spin text-primary" />
       </div>
     }>
-      <DamageFormContent products={products} brands={brands} initialItems={initialItems} lockedType={lockedType} stores={stores} directSellers={directSellers} />
+      <DamageFormContent 
+        products={products} 
+        brands={brands} 
+        initialItems={initialItems} 
+        lockedType={lockedType} 
+        stores={stores} 
+        directSellers={directSellers}
+        editMode={editMode}
+        existingDn={existingDn}
+        initialFromType={initialFromType}
+        initialFromId={initialFromId}
+      />
     </Suspense>
   );
 }

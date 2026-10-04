@@ -2084,20 +2084,16 @@ export async function getTransactionsByDeliveryNote(deliveryNote) {
           brandId: true,
           category: true,
           imageUrl: true,
-          warehouseStock: true,
           brand: { select: { id: true, name: true } }
         }
       },
       serialNumbers: {
         include: {
           serialNumber: {
-            include: {
-              replaces: {
-                include: { product: true }
-              },
-              replacedBy: {
-                include: { product: true }
-              }
+            select: {
+              id: true,
+              barcode: true,
+              status: true
             }
           }
         }
@@ -2130,11 +2126,18 @@ export async function getTransactionsByDeliveryNote(deliveryNote) {
       toEntityType: tx.toEntityType,
       toEntityId: tx.toEntityId,
       transactionType: tx.transactionType,
-      deliverySupervisorId: tx.deliverySupervisorId,
-      receivedBy: tx.receivedBy,
+      deliverySupervisorId: tx.deliverySupervisorId || '',
+      receivedBy: tx.receivedBy || '',
       deliveryNote: tx.deliveryNote,
-      timestamp: tx.timestamp,
-      serialNumbers: tx.serialNumbers || [],
+      timestamp: tx.timestamp ? new Date(tx.timestamp).toISOString() : null,
+      serialNumbers: (tx.serialNumbers || []).map(s => ({
+        id: s.id,
+        serialNumber: s.serialNumber ? {
+          id: s.serialNumber.id,
+          barcode: s.serialNumber.barcode,
+          status: s.serialNumber.status
+        } : null
+      })),
       product: tx.product,
       brandId: tx.product?.brandId || '',
       category: tx.product?.category || '',

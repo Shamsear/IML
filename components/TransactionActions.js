@@ -48,37 +48,40 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
     }
   };
 
-  const isRebrand = transactionType?.startsWith('REBRAND') || 
-                    (deliveryNote && deliveryNote.startsWith('RBD-')) ||
-                    copyType === 'rebrand';
+  const resolvedModule = (() => {
+    if (copyType === 'inbound' || transactionType === 'RECEIVE') return 'inbound';
+    if (copyType === 'outbound' || transactionType === 'ISSUE') return 'outbound';
+    if (copyType === 'rebrand' || transactionType?.startsWith('REBRAND') || (deliveryNote && deliveryNote.startsWith('RBD-'))) return 'rebrand';
+    if (copyType === 'damage' || transactionType === 'DAMAGE' || (deliveryNote && (deliveryNote.startsWith('DAM-') || deliveryNote.startsWith('DMG-')))) return 'damage';
+    if (copyType === 'loss' || transactionType === 'LOST' || (deliveryNote && (deliveryNote.startsWith('LOS-') || deliveryNote.startsWith('LSS-')))) return 'loss';
+    if (copyType === 'client-returns' || transactionType === 'CLIENT_RETURN' || (deliveryNote && (deliveryNote.startsWith('CRN-') || deliveryNote.startsWith('CRR-') || deliveryNote.startsWith('RET-') || deliveryNote.startsWith('RTN-')))) return 'client-returns';
+    return copyType || 'inbound';
+  })();
 
-  const editHref = !isRebrand && deliveryNote && (copyType === 'inbound' || copyType === 'outbound')
-    ? `/dashboard/${copyType}/${encodeURIComponent(deliveryNote)}/edit`
-    : `/dashboard/transactions/${txId}/edit`;
+  const dnParam = deliveryNote ? encodeURIComponent(deliveryNote) : txId;
+  const editHref = `/dashboard/${resolvedModule}/${dnParam}/edit`;
 
-  const copyHref = isRebrand
+  const copyHref = resolvedModule === 'rebrand'
     ? `/dashboard/rebrand/new`
     : deliveryNote
-    ? `/dashboard/${copyType}/new?copyDn=${deliveryNote}`
-    : `/dashboard/${copyType}/new?copyTxId=${txId}`;
+    ? `/dashboard/${resolvedModule}/new?copyDn=${encodeURIComponent(deliveryNote)}`
+    : `/dashboard/${resolvedModule}/new?copyTxId=${txId}`;
 
   return (
     <>
       <div className="flex items-center gap-1.5">
-        {!isReturn && (
-          <div className="has-tooltip">
-            <Link
-              href={editHref}
-              className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
-              aria-label={!isRebrand && deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : 'Edit transaction'}
-            >
-              <Edit2 size={13} />
-            </Link>
-            <span className="tooltip-box tooltip-left">
-              {!isRebrand && deliveryNote && (copyType === 'inbound' || copyType === 'outbound') ? `Edit entire ${noteName}` : "Edit transaction"}
-            </span>
-          </div>
-        )}
+        <div className="has-tooltip">
+          <Link
+            href={editHref}
+            className="p-1.5 rounded-md text-text-muted hover:text-primary hover:bg-primary/10 transition-colors"
+            aria-label={deliveryNote ? `Edit ${noteName}` : 'Edit record'}
+          >
+            <Edit2 size={13} />
+          </Link>
+          <span className="tooltip-box tooltip-left">
+            {deliveryNote ? `Edit ${noteName}` : 'Edit record'}
+          </span>
+        </div>
         <div className="has-tooltip">
           <Link
             href={copyHref}

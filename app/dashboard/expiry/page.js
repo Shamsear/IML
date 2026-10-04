@@ -50,9 +50,9 @@ export default async function ExpiryPage() {
     const pid = agg.productId;
     const qty = agg._sum?.quantity || 0;
     let current = warehouseStockMap.get(pid) || 0;
-    if (agg.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN'].includes(agg.transactionType)) {
+    if (agg.toEntityType === 'WAREHOUSE' && ['RECEIVE', 'RETURN', 'REBRAND_IN', 'CLIENT_RETURN'].includes(agg.transactionType)) {
       current += qty;
-    } else if (agg.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'].includes(agg.transactionType)) {
+    } else if (agg.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT', 'CLIENT_STOCK'].includes(agg.transactionType)) {
       current -= qty;
     }
     warehouseStockMap.set(pid, Math.max(0, current));

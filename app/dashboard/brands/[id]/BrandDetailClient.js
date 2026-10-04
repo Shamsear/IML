@@ -228,20 +228,35 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
     }
   };
 
+  // Helper to compute stock with serialized status reconciliation
+  const computeProductStock = (p) => {
+    const stock = getProductStock(p.transactions);
+    if (p.isSerialized && p.serialStats) {
+      stock.warehouse = p.serialStats.warehouse;
+      stock.withClient = p.serialStats.withClient;
+      stock.damage = p.serialStats.damage;
+      stock.lost = p.serialStats.lost;
+      stock.issued = p.serialStats.issued;
+      stock.used = p.serialStats.used;
+      stock.total = stock.warehouse;
+    }
+    return stock;
+  };
+
   const productCustomGetters = useMemo(() => ({
     name: (p) => p.name || '',
     itemCode: (p) => p.itemCode || '',
     category: (p) => p.category || '',
-    purchased: (p) => getProductStock(p.transactions).purchased ?? 0,
-    warehouse: (p) => getProductStock(p.transactions).warehouseStock ?? 0,
-    issued: (p) => getProductStock(p.transactions).issued ?? 0,
-    used: (p) => getProductStock(p.transactions).used ?? 0,
-    damage: (p) => getProductStock(p.transactions).damage ?? 0,
-    lost: (p) => getProductStock(p.transactions).lost ?? 0,
-    withClient: (p) => getProductStock(p.transactions).withClient ?? 0,
-    rebrand: (p) => getProductStock(p.transactions).rebrand ?? 0,
-    total: (p) => getProductStock(p.transactions).total ?? 0,
-    stockStatus: (p) => getProductStock(p.transactions).warehouseStock ?? 0,
+    purchased: (p) => computeProductStock(p).purchased ?? 0,
+    warehouse: (p) => computeProductStock(p).warehouse ?? 0,
+    issued: (p) => computeProductStock(p).issued ?? 0,
+    used: (p) => computeProductStock(p).used ?? 0,
+    damage: (p) => computeProductStock(p).damage ?? 0,
+    lost: (p) => computeProductStock(p).lost ?? 0,
+    withClient: (p) => computeProductStock(p).withClient ?? 0,
+    rebrand: (p) => computeProductStock(p).reBrand ?? 0,
+    total: (p) => computeProductStock(p).total ?? 0,
+    stockStatus: (p) => computeProductStock(p).warehouse ?? 0,
   }), []);
 
   const {
@@ -418,7 +433,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
           {/* Mobile Card View */}
           <div className="md:hidden flex flex-col gap-3">
             {paginatedProducts.map(product => {
-              const stock = getProductStock(product.transactions);
+              const stock = computeProductStock(product);
               return (
                 <div key={product.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-3">
@@ -491,7 +506,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                 </thead>
                 <tbody className="divide-y divide-border text-text-primary">
                   {paginatedProducts.map(product => {
-                    const stock = getProductStock(product.transactions);
+                    const stock = computeProductStock(product);
                     return (
                       <tr key={product.id} className="hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/20 transition-colors group/row">
                         <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10">

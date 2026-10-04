@@ -147,6 +147,56 @@ export async function getBrandWithDetails(id) {
     }
   });
 
+  if (!brand) return null;
+
+  const serializedProdIds = brand.products.filter(p => p.isSerialized).map(p => p.id);
+  if (serializedProdIds.length > 0) {
+    const serialAggs = await prisma.productSerialNumber.groupBy({
+      by: ['productId', 'status', 'currentLocationType'],
+      where: { productId: { in: serializedProdIds } },
+      _count: { id: true }
+    });
+
+    const serialsMap = new Map();
+    serialAggs.forEach(item => {
+      if (!serialsMap.has(item.productId)) {
+        serialsMap.set(item.productId, {
+          warehouse: 0,
+          issued: 0,
+          used: 0,
+          withClient: 0,
+          damage: 0,
+          lost: 0
+        });
+      }
+      const stats = serialsMap.get(item.productId);
+      const count = item._count.id || 0;
+      const status = item.status;
+      const loc = item.currentLocationType;
+
+      if (status === 'AVAILABLE') {
+        if (loc === 'STORE') {
+          stats.issued += count;
+        } else {
+          stats.warehouse += count;
+        }
+      } else if (status === 'WITH_CLIENT' || loc === 'CLIENT' || loc === 'BRAND') {
+        stats.withClient += count;
+      } else if (status === 'DAMAGED') {
+        stats.damage += count;
+      } else if (status === 'LOST') {
+        stats.lost += count;
+      } else if (status === 'USED' || loc === 'STAFF') {
+        stats.used += count;
+      }
+    });
+
+    brand.products = brand.products.map(p => ({
+      ...p,
+      serialStats: p.isSerialized ? (serialsMap.get(p.id) || null) : null
+    }));
+  }
+
   return brand;
 }
 
@@ -297,6 +347,54 @@ export async function getBrandPortalDetails(secretKey) {
       t.toEntityName = toName;
     });
   });
+
+  const serializedProdIds = brand.products.filter(p => p.isSerialized).map(p => p.id);
+  if (serializedProdIds.length > 0) {
+    const serialAggs = await prisma.productSerialNumber.groupBy({
+      by: ['productId', 'status', 'currentLocationType'],
+      where: { productId: { in: serializedProdIds } },
+      _count: { id: true }
+    });
+
+    const serialsMap = new Map();
+    serialAggs.forEach(item => {
+      if (!serialsMap.has(item.productId)) {
+        serialsMap.set(item.productId, {
+          warehouse: 0,
+          issued: 0,
+          used: 0,
+          withClient: 0,
+          damage: 0,
+          lost: 0
+        });
+      }
+      const stats = serialsMap.get(item.productId);
+      const count = item._count.id || 0;
+      const status = item.status;
+      const loc = item.currentLocationType;
+
+      if (status === 'AVAILABLE') {
+        if (loc === 'STORE') {
+          stats.issued += count;
+        } else {
+          stats.warehouse += count;
+        }
+      } else if (status === 'WITH_CLIENT' || loc === 'CLIENT' || loc === 'BRAND') {
+        stats.withClient += count;
+      } else if (status === 'DAMAGED') {
+        stats.damage += count;
+      } else if (status === 'LOST') {
+        stats.lost += count;
+      } else if (status === 'USED' || loc === 'STAFF') {
+        stats.used += count;
+      }
+    });
+
+    brand.products = brand.products.map(p => ({
+      ...p,
+      serialStats: p.isSerialized ? (serialsMap.get(p.id) || null) : null
+    }));
+  }
 
   return brand;
 }

@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft, Edit2 } from 'lucide-react';
+import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
@@ -257,6 +258,14 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                         return <div>Approver: <strong className="text-text-primary">{isPlaceholder ? '—' : ap}</strong></div>;
                       })()}
                     </div>
+                    <Link
+                      href={`/dashboard/client-returns/${encodeURIComponent(group.deliveryNote)}/edit`}
+                      className="px-2.5 py-1.5 bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary font-bold text-xs rounded-lg transition-colors border border-border flex items-center gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0"
+                      title="Edit Gate Pass"
+                    >
+                      <Edit2 size={13} />
+                      <span>Edit</span>
+                    </Link>
                     <button
                       type="button"
                       onClick={() => handleDownloadPDF(group)}
@@ -372,11 +381,20 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                     <span className="text-text-secondary font-semibold">{tx.product?.brand?.name || '—'}</span>
                     <span className="text-text-muted">{formattedDate}</span>
                   </div>
-                  {tx.deliveryNote && (
-                    <div className="pt-2 border-t border-border/50 text-[11px]">
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                    {tx.deliveryNote ? (
                       <span className="text-primary font-mono font-bold">Gate Pass: {tx.deliveryNote}</span>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="text-text-muted">Direct Transaction</span>
+                    )}
+                    <TransactionActions
+                      transactionId={tx.id}
+                      deliveryNote={tx.deliveryNote}
+                      transactionType={tx.transactionType}
+                      barcode={tx.barcode}
+                      copyType="client-returns"
+                    />
+                  </div>
                 </div>
               );
             })
@@ -394,12 +412,13 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                 <SortableHeader field="brand" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Client Brand</SortableHeader>
                 <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-3 px-4 text-center font-semibold">Qty</SortableHeader>
                 <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-3 px-4 font-semibold">Remarks</SortableHeader>
+                <th className="py-3 pr-5 pl-4 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {sortedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-text-muted text-xs">
+                  <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
                     No matching transactions found.
                   </td>
                 </tr>
@@ -422,6 +441,15 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                       <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
                       <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
                       <td className="py-3 px-4 text-text-secondary font-medium max-w-xs truncate">{tx.notes || '—'}</td>
+                      <td className="py-3 pr-5 pl-4 text-right whitespace-nowrap">
+                        <TransactionActions
+                          transactionId={tx.id}
+                          deliveryNote={tx.deliveryNote}
+                          transactionType={tx.transactionType}
+                          barcode={tx.barcode}
+                          copyType="client-returns"
+                        />
+                      </td>
                     </tr>
                   );
                 })

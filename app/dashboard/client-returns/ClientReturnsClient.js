@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck, ArrowUpDown } from 'lucide-react';
-import { createBulkClientReturnTransactions } from '@/app/actions/transactions';
+import { createBulkClientReturnTransactions, updateBulkClientReturnTransactions } from '@/app/actions/transactions';
 import { getProductBatchesAtLocation, getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -13,15 +13,31 @@ import { useToast } from '@/components/Toast';
 import { playBeep } from '@/lib/audio';
 import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 
-export default function ClientReturnsClient({ brands, products }) {
+export default function ClientReturnsClient({ 
+  brands, 
+  products,
+  editMode = false,
+  existingDn = null,
+  initialBrandId = '',
+  initialItems = null,
+  initialGlobalNotes = '',
+  initialSupervisorName = '',
+  initialReceivedBy = '',
+  initialTransactionDate = '',
+}) {
   const router = useRouter();
   const toast = useToast();
 
   // Core Form States
-  const [brandId, setBrandId] = useState('');
-  const [receivedBy, setReceivedBy] = useState(''); // Client Rep. Name
-  const [deliverySupervisorName, setDeliverySupervisorName] = useState('');
+  const [brandId, setBrandId] = useState(initialBrandId || '');
+  const [receivedBy, setReceivedBy] = useState(initialReceivedBy || ''); // Client Rep. Name
+  const [deliverySupervisorName, setDeliverySupervisorName] = useState(initialSupervisorName || '');
   const [transactionDate, setTransactionDate] = useState(() => {
+    if (initialTransactionDate) {
+      const d = new Date(initialTransactionDate);
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -30,28 +46,47 @@ export default function ClientReturnsClient({ brands, products }) {
     const min = String(now.getMinutes()).padStart(2, '0');
     return `${y}-${m}-${d}T${h}:${min}`;
   });
-  const [globalNotes, setGlobalNotes] = useState('');
+  const [globalNotes, setGlobalNotes] = useState(initialGlobalNotes || '');
 
   // Queue of return lines
-  const [items, setItems] = useState([
-    {
-      id: `temp-${Date.now()}-0`,
-      productId: '',
-      quantity: 0,
-      barcodesInput: '',
-      availableBatches: [],
-      selectedBatches: [],
-      // Serialized barcode picker fields
-      availableBarcodes: [],
-      selectedBarcodes: [],
-      rangeMode: false,
-      rangeStart: '',
-      rangeEnd: '',
-      notes: '',
-      isExpanded: true,
-      error: ''
+  const [items, setItems] = useState(() => {
+    if (initialItems && initialItems.length > 0) {
+      return initialItems.map((it, idx) => ({
+        id: `temp-${Date.now()}-${idx}`,
+        productId: it.productId,
+        quantity: it.quantity,
+        barcodesInput: (it.barcodes || []).join('\n'),
+        availableBatches: it.availableBatches || [],
+        selectedBatches: it.selectedBatches || [],
+        availableBarcodes: it.barcodes || [],
+        selectedBarcodes: it.barcodes || [],
+        rangeMode: false,
+        rangeStart: '',
+        rangeEnd: '',
+        notes: it.notes || '',
+        isExpanded: idx === 0,
+        error: ''
+      }));
     }
-  ]);
+    return [
+      {
+        id: `temp-${Date.now()}-0`,
+        productId: '',
+        quantity: 0,
+        barcodesInput: '',
+        availableBatches: [],
+        selectedBatches: [],
+        availableBarcodes: [],
+        selectedBarcodes: [],
+        rangeMode: false,
+        rangeStart: '',
+        rangeEnd: '',
+        notes: '',
+        isExpanded: true,
+        error: ''
+      }
+    ];
+  });
 
   // Loading & Msg States
   const [loading, setLoading] = useState(false);
@@ -549,13 +584,19 @@ export default function ClientReturnsClient({ brands, products }) {
         }))
       };
 
-      const result = await createBulkClientReturnTransactions(payload);
+      let result;
+      if (editMode && existingDn) {
+        result = await updateBulkClientReturnTransactions(existingDn, payload);
+        setConfirmData({ title: 'Client Return Updated', message: `Gate pass updated for ${existingDn}. The PDF has been downloaded.` });
+      } else {
+        result = await createBulkClientReturnTransactions(payload);
+        if (result && result.length > 0) {
+          setConfirmData({ title: 'Client Return Processed', message: `Gate pass generated for ${result[0].deliveryNote}. The PDF has been downloaded.` });
+        }
+      }
       
-      if (result && result.length > 0) {
-        setConfirmData({ title: 'Client Return Processed', message: `Gate pass generated for ${result[0].deliveryNote}. The PDF has been downloaded.` });
-        
-        // Retrieve custom reference number
-        const refNo = result[0].deliveryNote;
+      const refNo = (editMode && existingDn) ? existingDn : (result && result.length > 0 ? result[0].deliveryNote : null);
+      if (refNo) {
         const dateStr = transactionDate || new Date().toISOString().split('T')[0];
 
         // Download gate pass PDF
@@ -603,11 +644,20 @@ export default function ClientReturnsClient({ brands, products }) {
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <h1 className="text-3xl font-display font-extrabold text-text-primary tracking-tight">
-              Return Stock to Client
-            </h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
+                {editMode ? 'Edit Stock Returned to Client' : 'Return Stock to Client'}
+              </h1>
+              {editMode && existingDn && (
+                <span className="font-mono text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded">
+                  {existingDn}
+                </span>
+              )}
+            </div>
             <p className="text-text-secondary text-sm mt-1">
-              Dispatch inventory items back to client brand owners.
+              {editMode
+                ? 'Modify return gate pass details, products, quantities, and serial numbers.'
+                : 'Dispatch inventory items back to client brand owners.'}
             </p>
           </div>
         </div>

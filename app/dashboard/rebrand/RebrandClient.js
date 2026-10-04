@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, RefreshCw, AlertCircle, Camera, QrCode, X, Smartphone, CheckCircle, Edit2, Info, Package, ArrowLeftRight } from 'lucide-react';
 import Link from 'next/link';
-import { createBulkRebrandTransactions } from '@/app/actions/transactions';
+import { createBulkRebrandTransactions, updateBulkRebrandTransactions } from '@/app/actions/transactions';
 import { getAvailableBarcodes } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -14,7 +14,18 @@ import { playBeep } from '@/lib/audio';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
-export default function RebrandClient({ products, brands = [], stores = [] }) {
+export default function RebrandClient({ 
+  products, 
+  brands = [], 
+  stores = [],
+  editMode = false,
+  existingDn = null,
+  initialSourceProductId = '',
+  initialTargetProductId = '',
+  initialRemarks = '',
+  initialMappings = [],
+  initialNonSerializedQty = '1',
+}) {
   const router = useRouter();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
@@ -26,9 +37,9 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   // Source product selection (allow all catalog products)
   const sourceProducts = products;
 
-  const [sourceProductId, setSourceProductId] = useState('');
-  const [targetProductId, setTargetProductId] = useState('');
-  const [remarks, setRemarks] = useState('');
+  const [sourceProductId, setSourceProductId] = useState(initialSourceProductId || '');
+  const [targetProductId, setTargetProductId] = useState(initialTargetProductId || '');
+  const [remarks, setRemarks] = useState(initialRemarks || '');
 
   // Brand filter for source product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
@@ -66,7 +77,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   useEffect(() => { availableBarcodesRef.current = availableBarcodes; }, [availableBarcodes]);
   
   // Mappings of selected source barcodes to new target barcodes
-  const [mappings, setMappings] = useState([]);
+  const [mappings, setMappings] = useState(initialMappings || []);
   useUnsavedChanges(mappings.length > 0 && !loading);
 
   // Range Mapping states (for SIM items only)
@@ -78,7 +89,7 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
   useEffect(() => { rebrandActiveScanTargetRef.current = rebrandActiveScanTarget; }, [rebrandActiveScanTarget]);
   const [companionScans, setCompanionScans] = useState([]);
   const [useRangeRebrand, setUseRangeRebrand] = useState(false);
-  const [nonSerializedQty, setNonSerializedQty] = useState('1');
+  const [nonSerializedQty, setNonSerializedQty] = useState(initialNonSerializedQty || '1');
 
   // Scanning barcode input
   const [scanInput, setScanInput] = useState('');
@@ -223,27 +234,45 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
     }
   }, []);
 
+  const isInitialMount = useRef(true);
+
   // Fetch available warehouse barcodes for the selected source product
   useEffect(() => {
     if (sourceProductId) {
-      setAvailableBarcodes([]);
-      setMappings([]);
-      setUseRangeRebrand(false);
-      setRangeSrcStart('');
-      setRangeSrcEnd('');
-      setRangeTgtStart('');
       const prod = products.find(p => p.id === sourceProductId);
-      if (prod && !prod.isSerialized) {
-        setNonSerializedQty((prod.warehouseStock || 0) > 0 ? '1' : '0');
-      } else if (prod?.isSerialized) {
+      if (!isInitialMount.current) {
+        setMappings([]);
+        setUseRangeRebrand(false);
+        setRangeSrcStart('');
+        setRangeSrcEnd('');
+        setRangeTgtStart('');
+        if (prod && !prod.isSerialized) {
+          setNonSerializedQty((prod.warehouseStock || 0) > 0 ? '1' : '0');
+        }
+      }
+      isInitialMount.current = false;
+
+      if (prod?.isSerialized) {
         getAvailableBarcodes(sourceProductId, 'WAREHOUSE', null)
           .then(res => {
-            setAvailableBarcodes(res || []);
+            const currentList = res || [];
+            if (editMode && initialMappings && initialMappings.length > 0) {
+              const existingCodes = initialMappings.map(m => m.sourceBarcode);
+              const combined = [...currentList];
+              for (const code of existingCodes) {
+                if (!combined.some(b => b.barcode?.toLowerCase() === code?.toLowerCase())) {
+                  combined.push({ barcode: code, isCurrent: true });
+                }
+              }
+              setAvailableBarcodes(combined);
+            } else {
+              setAvailableBarcodes(currentList);
+            }
           })
           .catch(err => console.error(err));
       }
     }
-  }, [sourceProductId, products]);
+  }, [sourceProductId, products, editMode, initialMappings]);
 
   // Reset target product image on product change
   useEffect(() => {
@@ -633,8 +662,13 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
         }
       }
 
-      await createBulkRebrandTransactions(formData);
-      setConfirmData({ title: 'Rebranding Complete', message: 'Product rebranding has been recorded successfully.' });
+      if (editMode && existingDn) {
+        await updateBulkRebrandTransactions(existingDn, formData);
+        setConfirmData({ title: 'Rebranding Updated', message: 'Product rebranding has been updated successfully.' });
+      } else {
+        await createBulkRebrandTransactions(formData);
+        setConfirmData({ title: 'Rebranding Complete', message: 'Product rebranding has been recorded successfully.' });
+      }
       setConfirmOpen(true);
     } catch (err) {
       setError(err.message || 'Failed to complete rebranding transaction.');
@@ -650,11 +684,20 @@ export default function RebrandClient({ products, brands = [], stores = [] }) {
             <ArrowLeft size={16} />
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
-              Rebrand Stock Items
-            </h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
+                {editMode ? 'Edit Stock Rebranding' : 'Rebrand Stock Items'}
+              </h1>
+              {editMode && existingDn && (
+                <span className="font-mono text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded">
+                  {existingDn}
+                </span>
+              )}
+            </div>
             <p className="text-text-secondary text-sm mt-1">
-              {sourceSelectedProduct?.isSerialized
+              {editMode
+                ? 'Modify source and target product definitions, quantities, and serial mappings.'
+                : sourceSelectedProduct?.isSerialized
                 ? 'Convert existing central warehouse serial numbers from one catalog item to another'
                 : 'Convert existing central warehouse inventory from one catalog item to another'}
             </p>

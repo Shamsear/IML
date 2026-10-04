@@ -1207,7 +1207,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
 
             const displayTitle = item.isNewProduct
               ? (item.prodName || `New Product Entry #${idx + 1}`)
-              : (selectedProd ? `${selectedProd.brand.name} - ${selectedProd.name}` : `Receipt Entry #${idx + 1}`);
+              : (selectedProd ? `${selectedProd.brand?.name ? `${selectedProd.brand.name} - ` : ''}${selectedProd.name}` : `Receipt Entry #${idx + 1}`);
 
             return (
               <div 

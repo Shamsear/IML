@@ -110,16 +110,28 @@ async function computeWarehouseStockMap(products) {
       const productAggs = aggsMap.get(product.id) || [];
       for (const t of productAggs) {
         const qty = t._sum.quantity || 0;
-        if (['RECEIVE', 'INITIAL', 'RETURN', 'REBRAND_IN'].includes(t.transactionType)) {
-          if (t.transactionType === 'RETURN' && t.toEntityType === 'VENDOR') {
+        const type = t.transactionType;
+        const from = t.fromEntityType;
+        const to = t.toEntityType;
+
+        // Inbound to warehouse
+        if (to === 'WAREHOUSE' || (!to && ['RECEIVE', 'INITIAL', 'REBRAND_IN', 'CLIENT_RETURN'].includes(type))) {
+          if (type === 'RETURN' && (to === 'VENDOR' || to === 'SUPPLIER')) {
             warehouseStock -= qty;
           } else {
             warehouseStock += qty;
           }
-        } else if (['ISSUE', 'USED', 'DAMAGE', 'LOST', 'REBRAND', 'REBRAND_OUT', 'CLIENT_STOCK'].includes(t.transactionType)) {
-          warehouseStock -= qty;
+        }
+        // Outbound from warehouse
+        else if (from === 'WAREHOUSE' || (!from && ['ISSUE', 'USED', 'DAMAGE', 'LOST', 'REBRAND', 'REBRAND_OUT', 'CLIENT_STOCK'].includes(type))) {
+          if (type === 'RETURN' && (to === 'VENDOR' || to === 'SUPPLIER')) {
+            warehouseStock -= qty;
+          } else if (['ISSUE', 'USED', 'DAMAGE', 'LOST', 'REBRAND', 'REBRAND_OUT', 'CLIENT_STOCK'].includes(type)) {
+            warehouseStock -= qty;
+          }
         }
       }
+      warehouseStock = Math.max(0, warehouseStock);
     }
     stockMap.set(product.id, warehouseStock);
   }
@@ -610,22 +622,33 @@ export async function getProductStockAtLocation(productId, locationType, locatio
   }
 
   if (!product.trackExpiry) {
+    const isWarehouse = locationType === 'WAREHOUSE';
+    const isBrand = locationType === 'BRAND' || locationType === 'CLIENT';
+
+    const whereTo = isWarehouse
+      ? { toEntityType: 'WAREHOUSE' }
+      : isBrand
+      ? { OR: [{ toEntityType: 'BRAND', toEntityId: locationId || null }, { toEntityType: 'CLIENT', toEntityId: locationId || null }] }
+      : { toEntityType: locationType, toEntityId: locationId || null };
+
+    const whereFrom = isWarehouse
+      ? { fromEntityType: 'WAREHOUSE' }
+      : isBrand
+      ? { OR: [{ fromEntityType: 'BRAND', fromEntityId: locationId || null }, { fromEntityType: 'CLIENT', fromEntityId: locationId || null }] }
+      : { fromEntityType: locationType, fromEntityId: locationId || null };
+
     const [inboundSum, outboundSum] = await Promise.all([
       prisma.inventoryTransaction.aggregate({
         where: {
           productId,
-          toEntityType: locationType,
-          ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
-          transactionType: { in: ['RECEIVE', 'RETURN', 'REBRAND_IN'] }
+          ...whereTo,
         },
         _sum: { quantity: true },
       }),
       prisma.inventoryTransaction.aggregate({
         where: {
           productId,
-          fromEntityType: locationType,
-          ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
-          transactionType: { in: ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'] }
+          ...whereFrom,
         },
         _sum: { quantity: true },
       })
@@ -654,23 +677,26 @@ export async function getProductStockAtLocation(productId, locationType, locatio
 export async function getProductBatchesAtLocation(productId, locationType, locationId = null) {
   await requireAuth();
 
-  // Determine which transaction types count as inbound/outbound per location
-  // For WAREHOUSE: RECEIVE/RETURN/REBRAND_IN are inbound, ISSUE/DAMAGE/LOST/REBRAND_OUT are outbound
-  // For BRAND: ISSUE/DAMAGE/LOST/REBRAND_OUT are inbound (stock arrives at brand), RECEIVE/RETURN/REBRAND_IN/CLIENT_RETURN are outbound (stock leaves brand)
-  const inboundTypes = locationType === 'BRAND'
-    ? ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT']
-    : ['RECEIVE', 'RETURN', 'REBRAND_IN'];
-  const outboundTypes = locationType === 'BRAND'
-    ? ['RECEIVE', 'RETURN', 'REBRAND_IN', 'CLIENT_RETURN']
-    : ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT'];
+  const isWarehouse = locationType === 'WAREHOUSE';
+  const isBrand = locationType === 'BRAND' || locationType === 'CLIENT';
+
+  const whereTo = isWarehouse
+    ? { toEntityType: 'WAREHOUSE' }
+    : isBrand
+    ? { OR: [{ toEntityType: 'BRAND', toEntityId: locationId || null }, { toEntityType: 'CLIENT', toEntityId: locationId || null }] }
+    : { toEntityType: locationType, toEntityId: locationId || null };
+
+  const whereFrom = isWarehouse
+    ? { fromEntityType: 'WAREHOUSE' }
+    : isBrand
+    ? { OR: [{ fromEntityType: 'BRAND', fromEntityId: locationId || null }, { fromEntityType: 'CLIENT', fromEntityId: locationId || null }] }
+    : { fromEntityType: locationType, fromEntityId: locationId || null };
 
   const [inbounds, outbounds] = await Promise.all([
     prisma.inventoryTransaction.findMany({
       where: {
         productId,
-        toEntityType: locationType,
-        ...(locationType === 'WAREHOUSE' ? {} : { toEntityId: locationId || null }),
-        transactionType: { in: inboundTypes }
+        ...whereTo,
       },
       select: {
         quantity: true,
@@ -681,9 +707,7 @@ export async function getProductBatchesAtLocation(productId, locationType, locat
     prisma.inventoryTransaction.findMany({
       where: {
         productId,
-        fromEntityType: locationType,
-        ...(locationType === 'WAREHOUSE' ? {} : { fromEntityId: locationId || null }),
-        transactionType: { in: outboundTypes }
+        ...whereFrom,
       },
       select: {
         quantity: true,
@@ -839,6 +863,51 @@ export async function getProductDetail(id) {
 
   // Compute full stock breakdown from ALL transactions
   const stock = getProductStock(allStockTxs);
+
+  if (product.isSerialized) {
+    const serialAggs = await prisma.productSerialNumber.groupBy({
+      by: ['status', 'currentLocationType'],
+      where: { productId: id },
+      _count: { id: true }
+    });
+
+    let sWarehouse = 0;
+    let sIssued = 0;
+    let sUsed = 0;
+    let sWithClient = 0;
+    let sDamage = 0;
+    let sLost = 0;
+
+    serialAggs.forEach(item => {
+      const count = item._count.id || 0;
+      const status = item.status;
+      const loc = item.currentLocationType;
+
+      if (status === 'AVAILABLE') {
+        if (loc === 'STORE') {
+          sIssued += count;
+        } else {
+          sWarehouse += count;
+        }
+      } else if (status === 'WITH_CLIENT' || loc === 'CLIENT' || loc === 'BRAND') {
+        sWithClient += count;
+      } else if (status === 'DAMAGED') {
+        sDamage += count;
+      } else if (status === 'LOST') {
+        sLost += count;
+      } else if (status === 'USED' || loc === 'STAFF') {
+        sUsed += count;
+      }
+    });
+
+    stock.warehouse = sWarehouse;
+    stock.withClient = sWithClient;
+    stock.damage = sDamage;
+    stock.lost = sLost;
+    stock.issued = sIssued;
+    stock.used = sUsed;
+    stock.total = sWarehouse;
+  }
 
   return {
     ...product,

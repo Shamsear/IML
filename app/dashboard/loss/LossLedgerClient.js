@@ -392,8 +392,11 @@ export default function LossLedgerClient({
                         <td className="py-3.5 px-3 sm:px-5 text-right">
                           <TransactionActions
                             txId={tx.id}
+                            deliveryNote={tx.deliveryNote}
                             notes={tx.notes || ''}
                             showDeliveryNote={false}
+                            copyType="loss"
+                            transactionType="LOST"
                           />
                         </td>
                       </tr>

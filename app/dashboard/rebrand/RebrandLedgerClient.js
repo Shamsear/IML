@@ -142,7 +142,6 @@ export default function RebrandLedgerClient({
     'RBD-SAD-200426-001': 'Sadia Promotional Stand (1*1) - New Look April 2026',
     'RBD-SAD-180526-001': 'Sadia Promotional Stand (1*1) - New Look April 2026',
     'RBD-SAD-170826-001': 'Sadia Promotional Stand (1*1) - Back To School "AED 40 2026"',
-    'RBD-SAD-250826-001': 'Sadia Promotional Stand (1*1) - Back To School "AED 40 2026"',
     'RBD-SAD-250826-002': 'Sadia Promotional Stand (1*1) - Back To School "AED 40 2026"',
   };
 
@@ -158,7 +157,12 @@ export default function RebrandLedgerClient({
       return rebrandPairMap[tx.deliveryNote].toProduct;
     }
 
-    // 3. Historical delivery note exact target product resolution from Excel
+    // 3. For pending rebrands without paired product or explicit note, display '—'
+    if (tx.returnStatus === 'PENDING' && !tx.notes?.match(/Rebrand output ->/i)) {
+      return '—';
+    }
+
+    // 4. Historical delivery note exact target product resolution from Excel
     if (tx.deliveryNote && HISTORICAL_REBRAND_TARGETS[tx.deliveryNote]) {
       return HISTORICAL_REBRAND_TARGETS[tx.deliveryNote];
     }
@@ -505,6 +509,13 @@ export default function RebrandLedgerClient({
             filename="IML-Rebrand-Ledger"
           />
           <Link
+            href="/dashboard/rebrand/receive"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-success/10 hover:bg-success/20 text-success border border-success/30 font-semibold text-sm rounded-lg transition-all duration-200 cursor-pointer"
+          >
+            <ArrowDownLeft size={16} />
+            <span>Receive Stock</span>
+          </Link>
+          <Link
             href="/dashboard/rebrand/new"
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
           >
@@ -758,15 +769,14 @@ export default function RebrandLedgerClient({
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {isPendingOrPartial && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenReceive(tx)}
+                          <Link
+                            href={`/dashboard/rebrand/receive?txId=${tx.id}`}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-[11px] transition-colors cursor-pointer"
                             title="Receive converted rebranded stock from vendor"
                           >
                             <ArrowDownLeft size={12} />
                             <span>Receive Stock</span>
-                          </button>
+                          </Link>
                         )}
                         {isPendingOrPartial && (
                           <button
@@ -917,15 +927,14 @@ export default function RebrandLedgerClient({
                               </span>
                             )}
                             {isPendingOrPartial && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenReceive(tx)}
+                              <Link
+                                href={`/dashboard/rebrand/receive?txId=${tx.id}`}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs transition-colors cursor-pointer shadow-2xs"
                                 title="Receive converted rebranded stock from vendor"
                               >
                                 <ArrowDownLeft size={13} />
                                 <span>Receive Stock</span>
-                              </button>
+                              </Link>
                             )}
                             {isPendingOrPartial && (
                               <button

@@ -37,6 +37,21 @@ export default function BrandPortalClient({ brand }) {
     setMounted(true);
   }, []);
 
+  // Helper to compute stock with serialized status reconciliation
+  const computeProductStock = (p) => {
+    const stock = getProductStock(p.transactions);
+    if (p.isSerialized && p.serialStats) {
+      stock.warehouse = p.serialStats.warehouse;
+      stock.withClient = p.serialStats.withClient;
+      stock.damage = p.serialStats.damage;
+      stock.lost = p.serialStats.lost;
+      stock.issued = p.serialStats.issued;
+      stock.used = p.serialStats.used;
+      stock.total = stock.warehouse;
+    }
+    return stock;
+  };
+
   // Compute aggregated totals for header overview metrics
   const getAggregatedTotals = () => {
     let warehouse = 0;
@@ -44,7 +59,7 @@ export default function BrandPortalClient({ brand }) {
     let damaged = 0;
 
     (brand?.products || []).forEach(p => {
-      const metrics = getProductStock(p.transactions);
+      const metrics = computeProductStock(p);
       warehouse += metrics.warehouse;
       dispatched += metrics.issued + metrics.used + metrics.withClient;
       damaged += metrics.damage + metrics.lost;
@@ -98,17 +113,17 @@ export default function BrandPortalClient({ brand }) {
     name: (p) => p.name || '',
     itemCode: (p) => p.itemCode || '',
     category: (p) => p.category || '',
-    purchased: (p) => getProductStock(p.transactions).purchased,
-    warehouse: (p) => getProductStock(p.transactions).warehouse,
-    issued: (p) => getProductStock(p.transactions).issued,
-    used: (p) => getProductStock(p.transactions).used,
-    damage: (p) => getProductStock(p.transactions).damage,
-    lost: (p) => getProductStock(p.transactions).lost,
-    withClient: (p) => getProductStock(p.transactions).withClient,
-    reBrand: (p) => getProductStock(p.transactions).reBrand,
-    total: (p) => getProductStock(p.transactions).total,
+    purchased: (p) => computeProductStock(p).purchased,
+    warehouse: (p) => computeProductStock(p).warehouse,
+    issued: (p) => computeProductStock(p).issued,
+    used: (p) => computeProductStock(p).used,
+    damage: (p) => computeProductStock(p).damage,
+    lost: (p) => computeProductStock(p).lost,
+    withClient: (p) => computeProductStock(p).withClient,
+    reBrand: (p) => computeProductStock(p).reBrand,
+    total: (p) => computeProductStock(p).total,
     stockStatus: (p) => {
-      const s = getProductStock(p.transactions);
+      const s = computeProductStock(p);
       return s.total > 0 ? (s.warehouse > 0 ? 2 : 1) : 0;
     },
   }), []);
@@ -362,7 +377,7 @@ export default function BrandPortalClient({ brand }) {
                 {/* Mobile Card View */}
                 <div className="md:hidden flex flex-col gap-3">
                   {paginatedProducts.map(p => {
-                    const stock = getProductStock(p.transactions);
+                    const stock = computeProductStock(p);
                     return (
                       <div key={p.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
                         <div className="flex items-start justify-between gap-3">
@@ -409,7 +424,7 @@ export default function BrandPortalClient({ brand }) {
                     </thead>
                     <tbody className="divide-y divide-border text-xs text-text-primary">
                       {paginatedProducts.map(p => {
-                        const stock = getProductStock(p.transactions);
+                        const stock = computeProductStock(p);
                         return (
                           <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
                             <td className="py-3 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">

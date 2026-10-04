@@ -1458,7 +1458,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                       )}
                       <div className="min-w-0">
                         <span className="font-semibold text-sm text-text-primary block truncate">
-                          {selectedProd ? `${selectedProd.brand.name} - ${selectedProd.name}` : <span className="text-text-muted italic">Select product...</span>}
+                          {selectedProd ? `${selectedProd.brand?.name ? `${selectedProd.brand.name} - ` : ''}${selectedProd.name}` : <span className="text-text-muted italic">Select product...</span>}
                         </span>
                         <span className="text-[10px] text-text-secondary block mt-0.5">
                           {selectedProd?.isSerialized ? 'Serialized Tracking' : 'Bulk/Normal Product'}

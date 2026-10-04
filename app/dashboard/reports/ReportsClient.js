@@ -33,6 +33,15 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
   // Compile products list with computed metrics
   const productsWithStock = (initialProducts || []).map(p => {
     const stock = getProductStock(p.transactions);
+    if (p.isSerialized && p.serialStats) {
+      stock.warehouse = p.serialStats.warehouse;
+      stock.withClient = p.serialStats.withClient;
+      stock.damage = p.serialStats.damage;
+      stock.lost = p.serialStats.lost;
+      stock.issued = p.serialStats.issued;
+      stock.used = p.serialStats.used;
+      stock.total = stock.warehouse;
+    }
     return {
       ...p,
       stock
@@ -111,24 +120,21 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
             <span>Export PDF</span>
           </button>
           <ExportToExcel
-            data={filteredProducts.map(p => {
-              const stock = getProductStock(p.transactions || []);
-              return {
-                Product: p.name,
-                SKU: p.itemCode || '',
-                Brand: p.brand?.name || '',
-                Category: p.category || '',
-                Purchased: stock.purchased,
-                Warehouse: stock.warehouse,
-                Issued: stock.issued,
-                Used: stock.used,
-                Damage: stock.damage,
-                Lost: stock.lost,
-                'With Client': stock.withClient,
-                Rebrand: stock.reBrand,
-                'Total Stock': stock.total,
-              };
-            })}
+            data={filteredProducts.map(p => ({
+              Product: p.name,
+              SKU: p.itemCode || '',
+              Brand: p.brand?.name || '',
+              Category: p.category || '',
+              Purchased: p.stock.purchased,
+              Warehouse: p.stock.warehouse,
+              Issued: p.stock.issued,
+              Used: p.stock.used,
+              Damage: p.stock.damage,
+              Lost: p.stock.lost,
+              'With Client': p.stock.withClient,
+              Rebrand: p.stock.reBrand,
+              'Total Stock': p.stock.total,
+            }))}
             columns={[
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'SKU', key: 'SKU', width: 14 },
@@ -151,10 +157,11 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
             type="button" 
             onClick={() => {
               const headers = ['Product', 'SKU', 'Brand', 'Category', 'Purchased', 'Warehouse', 'Issued', 'Used', 'Damage', 'Lost', 'With Client', 'Rebrand', 'Total Stock'];
-              const rows = filteredProducts.map(p => {
-                const stock = getProductStock(p.transactions || []);
-                return [p.name, p.itemCode || '', p.brand?.name || '', p.category || '', stock.purchased, stock.warehouse, stock.issued, stock.used, stock.damage, stock.lost, stock.withClient, stock.reBrand, stock.total];
-              });
+              const rows = filteredProducts.map(p => [
+                p.name, p.itemCode || '', p.brand?.name || '', p.category || '',
+                p.stock.purchased, p.stock.warehouse, p.stock.issued, p.stock.used,
+                p.stock.damage, p.stock.lost, p.stock.withClient, p.stock.reBrand, p.stock.total
+              ]);
               const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
               const blob = new Blob([csv], { type: 'text/csv' });
               const url = URL.createObjectURL(blob);

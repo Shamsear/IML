@@ -394,8 +394,11 @@ export default function DamageLedgerClient({
                         <td className="py-3.5 px-5 text-right">
                           <TransactionActions
                             txId={tx.id}
+                            deliveryNote={tx.deliveryNote}
                             notes={tx.notes || ''}
                             showDeliveryNote={false}
+                            copyType="damage"
+                            transactionType="DAMAGE"
                           />
                         </td>
                       </tr>

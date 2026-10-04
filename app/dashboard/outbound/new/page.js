@@ -38,8 +38,11 @@ export default async function NewOutboundPage({ searchParams }) {
         : Promise.resolve([])
   ]);
 
-  const initialDestinationType = initialItems.length > 0 ? initialItems[0].toEntityType : 'STORE';
-  const initialDestinationId = initialItems.length > 0 ? initialItems[0].toEntityId : '';
+  const initialDestinationType = initialItems.length > 0 
+    ? (initialItems[0].toEntityType === 'DIRECT' ? 'DIRECT' : 'STORE') 
+    : 'STORE';
+  const initialDestinationId = initialItems.length > 0 ? (initialItems[0].toEntityId || '') : '';
+  const initialDeliverySupervisorId = initialItems.length > 0 ? (initialItems[0].deliverySupervisorId || '') : '';
 
   return (
     <OutboundClient 
@@ -52,6 +55,7 @@ export default async function NewOutboundPage({ searchParams }) {
       initialItems={initialItems.length > 0 ? initialItems : null}
       initialDestinationType={initialDestinationType}
       initialDestinationId={initialDestinationId}
+      initialDeliverySupervisorId={initialDeliverySupervisorId}
     />
   );
 }
