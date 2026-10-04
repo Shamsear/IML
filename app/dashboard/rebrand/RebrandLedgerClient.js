@@ -3,14 +3,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { RefreshCw, Plus, Search, X, Package, FileText, Store, RotateCcw, AlertCircle, CheckCircle, Loader2, ArrowDownLeft, Clock, CheckCheck, Layers } from 'lucide-react';
+import { RefreshCw, Plus, Search, X, Package, FileText, Store, RotateCcw, AlertCircle, CheckCircle, Loader2, ArrowDownLeft, Clock, CheckCheck, Layers, Undo2, ArrowLeftRight } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import ExportToExcel from '@/components/ExportToExcel';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useToast } from '@/components/Toast';
-import { giveBackRebrandTransaction, receiveRebrandItems } from '@/app/actions/transactions';
+import { giveBackRebrandTransaction, receiveRebrandItems, revertRebrandTransaction } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
 
 export default function RebrandLedgerClient({
@@ -43,6 +43,13 @@ export default function RebrandLedgerClient({
   const [giveBackNotes, setGiveBackNotes] = useState('');
   const [giveBackLoading, setGiveBackLoading] = useState(false);
   const [giveBackError, setGiveBackError] = useState('');
+
+  // Revert Rebrand Modal state (to restore converted product back to old/original definition)
+  const [revertTx, setRevertTx] = useState(null);
+  const [revertQty, setRevertQty] = useState('');
+  const [revertNotes, setRevertNotes] = useState('');
+  const [revertLoading, setRevertLoading] = useState(false);
+  const [revertError, setRevertError] = useState('');
 
   // Search & Type Filters
   const [searchTerm, setSearchTerm] = useState(searchParams?.get('q') || searchParams?.get('search') || '');
@@ -316,6 +323,48 @@ export default function RebrandLedgerClient({
     } catch (err) {
       setGiveBackError(err.message || 'Failed to process return to source.');
       setGiveBackLoading(false);
+    }
+  };
+
+  const handleOpenRevert = (tx) => {
+    setRevertTx(tx);
+    setRevertQty(String(tx.quantity));
+    setRevertNotes('');
+    setRevertError('');
+  };
+
+  const handleCloseRevert = () => {
+    setRevertTx(null);
+    setRevertQty('');
+    setRevertNotes('');
+    setRevertError('');
+    setRevertLoading(false);
+  };
+
+  const handleConfirmRevert = async (e) => {
+    if (e) e.preventDefault();
+    if (!revertTx) return;
+
+    const qtyNum = parseFloat(revertQty);
+    if (!qtyNum || qtyNum <= 0) {
+      setRevertError('Please enter a valid quantity greater than 0');
+      return;
+    }
+
+    setRevertLoading(true);
+    setRevertError('');
+    try {
+      await revertRebrandTransaction({
+        transactionId: revertTx.id,
+        quantity: qtyNum,
+        notes: revertNotes.trim(),
+      });
+      toast.success('Rebrand Reverted', `Successfully restored ${qtyNum} items back to original product.`);
+      handleCloseRevert();
+      router.refresh();
+    } catch (err) {
+      setRevertError(err.message || 'Failed to revert rebrand.');
+      setRevertLoading(false);
     }
   };
 
@@ -789,6 +838,17 @@ export default function RebrandLedgerClient({
                             <span>Give Back</span>
                           </button>
                         )}
+                        {!isPendingOrPartial && tx.returnStatus !== 'REVERTED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRevert(tx)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-[10px] transition-colors cursor-pointer"
+                            title="Revert rebrand conversion back to original product"
+                          >
+                            <Undo2 size={11} />
+                            <span>Revert to Old</span>
+                          </button>
+                        )}
                         <TransactionActions
                           txId={tx.id}
                           deliveryNote={tx.deliveryNote}
@@ -919,11 +979,13 @@ export default function RebrandLedgerClient({
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {tx.returnStatus && (
                               <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
-                                tx.returnStatus === 'RETURNED' || tx.returnStatus === 'COMPLETED'
+                                tx.returnStatus === 'REVERTED'
+                                  ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                  : tx.returnStatus === 'RETURNED' || tx.returnStatus === 'COMPLETED'
                                   ? 'bg-success/10 text-success border border-success/20'
                                   : 'bg-warning/10 text-warning border border-warning/20'
                               }`}>
-                                {tx.returnStatus} ({tx.returnedQty || 0}/{tx.quantity})
+                                {tx.returnStatus} {tx.returnStatus !== 'REVERTED' && `(${tx.returnedQty || 0}/${tx.quantity})`}
                               </span>
                             )}
                             {isPendingOrPartial && (
@@ -945,6 +1007,17 @@ export default function RebrandLedgerClient({
                               >
                                 <RotateCcw size={12} />
                                 <span>Give Back</span>
+                              </button>
+                            )}
+                            {!isPendingOrPartial && tx.returnStatus !== 'REVERTED' && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenRevert(tx)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs transition-colors cursor-pointer shadow-2xs"
+                                title="Revert rebrand conversion back to original product"
+                              >
+                                <Undo2 size={12} />
+                                <span>Revert to Old</span>
                               </button>
                             )}
                             <TransactionActions
@@ -1314,6 +1387,143 @@ export default function RebrandLedgerClient({
                     <>
                       <RotateCcw size={13} />
                       <span>Confirm Give Back</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Revert Rebrand to Old Product Modal */}
+      {revertTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-scale-up flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-elevated/40">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                  <Undo2 size={16} />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-base text-text-primary">
+                    Revert Rebrand to Old Product
+                  </h3>
+                  <p className="text-xs text-text-muted">
+                    Restore converted product units back to original product definition
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseRevert}
+                disabled={revertLoading}
+                className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleConfirmRevert} className="p-6 flex flex-col gap-4">
+              {revertError && (
+                <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle size={15} className="shrink-0" />
+                  <span>{revertError}</span>
+                </div>
+              )}
+
+              {/* Direction Card */}
+              <div className="bg-surface-elevated/40 border border-border rounded-xl p-3.5 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                    Reversion Summary
+                  </span>
+                  {revertTx.deliveryNote && (
+                    <span className="font-mono text-primary font-semibold text-xs bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                      {revertTx.deliveryNote}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5 text-xs bg-surface p-3 rounded-lg border border-border/60">
+                  <div className="flex items-center justify-between">
+                    <span className="text-text-muted text-[11px]">Deduct from Converted:</span>
+                    <strong className="text-danger font-semibold">{getToName(revertTx)}</strong>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border/40 pt-1.5">
+                    <span className="text-text-muted text-[11px]">Restore back to Original:</span>
+                    <strong className="text-success font-semibold">{getFromName(revertTx)}</strong>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  This action will subtract {revertQty || revertTx.quantity} units from <strong>{getToName(revertTx)}</strong> in the warehouse and credit them back under <strong>{getFromName(revertTx)}</strong>.
+                </p>
+              </div>
+
+              {/* Quantity to Revert */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-text-secondary">
+                    Quantity to Revert <span className="text-danger">*</span>
+                  </label>
+                  <span className="text-xs text-text-muted">
+                    Original Qty: <strong className="text-primary">{revertTx.quantity}</strong>
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  step="any"
+                  min="0.001"
+                  max={revertTx.quantity}
+                  value={revertQty}
+                  onChange={(e) => setRevertQty(e.target.value)}
+                  placeholder="Enter quantity to revert"
+                  required
+                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono font-bold"
+                />
+              </div>
+
+              {/* Reason / Notes */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
+                  Reversion Reason / Notes (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={revertNotes}
+                  onChange={(e) => setRevertNotes(e.target.value)}
+                  placeholder="e.g. Cancelled rebranding campaign, reverting back to original stock..."
+                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={handleCloseRevert}
+                  disabled={revertLoading}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-elevated border border-border transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={revertLoading}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {revertLoading ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Reverting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Undo2 size={13} />
+                      <span>Confirm Revert to Old Product</span>
                     </>
                   )}
                 </button>

@@ -3478,6 +3478,206 @@ export async function giveBackRebrandTransaction({
   return { success: true };
 }
 
+// Revert a completed Rebrand transaction back to its original (old) product definition
+export async function revertRebrandTransaction({
+  transactionId,
+  quantity,
+  notes,
+}) {
+  await checkAuth();
+
+  if (!transactionId) throw new Error('Transaction ID is required');
+
+  const originalTx = await prisma.inventoryTransaction.findUnique({
+    where: { id: transactionId },
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          isSerialized: true,
+          brand: { select: { id: true, name: true } }
+        }
+      },
+      serialNumbers: {
+        include: {
+          serialNumber: {
+            include: {
+              replaces: { include: { product: true } },
+              replacedBy: { include: { product: true } }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (!originalTx) throw new Error('Original rebranding transaction not found');
+
+  // Identify paired transactions or source / target products
+  const dn = originalTx.deliveryNote;
+  let pairedTxs = [];
+  if (dn) {
+    pairedTxs = await prisma.inventoryTransaction.findMany({
+      where: {
+        deliveryNote: dn,
+        transactionType: { in: ['REBRAND', 'REBRAND_OUT', 'REBRAND_IN'] }
+      },
+      include: {
+        product: { select: { id: true, name: true, isSerialized: true, brand: { select: { name: true } } } },
+        serialNumbers: { include: { serialNumber: true } }
+      }
+    });
+  } else {
+    pairedTxs = [originalTx];
+  }
+
+  let sourceProduct = null; // The old product to be restored
+  let targetProduct = null; // The converted product holding the stock
+  const outTx = pairedTxs.find(t => t.transactionType === 'REBRAND_OUT' || t.transactionType === 'REBRAND');
+  const inTx = pairedTxs.find(t => t.transactionType === 'REBRAND_IN');
+
+  if (outTx && inTx) {
+    sourceProduct = outTx.product;
+    targetProduct = inTx.product;
+  } else if (originalTx.transactionType === 'REBRAND_IN') {
+    targetProduct = originalTx.product;
+    if (originalTx.serialNumbers?.length > 0) {
+      const srcProd = originalTx.serialNumbers.find(s => s.serialNumber?.replaces?.product)?.serialNumber?.replaces?.product;
+      if (srcProd) sourceProduct = srcProd;
+    }
+    if (!sourceProduct && originalTx.notes) {
+      const match = originalTx.notes.match(/Rebrand input <-\s*([^.]+)/i);
+      if (match) {
+        const found = await prisma.product.findFirst({ where: { name: match[1].trim() } });
+        if (found) sourceProduct = found;
+      }
+    }
+  } else if (originalTx.transactionType === 'REBRAND_OUT' || originalTx.transactionType === 'REBRAND') {
+    sourceProduct = originalTx.product;
+    if (originalTx.serialNumbers?.length > 0) {
+      const tgtProd = originalTx.serialNumbers.find(s => s.serialNumber?.replacedBy?.product)?.serialNumber?.replacedBy?.product;
+      if (tgtProd) targetProduct = tgtProd;
+    }
+    if (!targetProduct && originalTx.notes) {
+      const match = originalTx.notes.match(/Rebrand output ->\s*([^.]+)/i);
+      if (match) {
+        const found = await prisma.product.findFirst({ where: { name: match[1].trim() } });
+        if (found) targetProduct = found;
+      }
+    }
+  }
+
+  if (!sourceProduct) {
+    throw new Error('Could not automatically determine original source product to restore. Please use Give Back to choose the return product.');
+  }
+
+  const revertQty = parseFloat(quantity || (inTx ? inTx.quantity : originalTx.quantity));
+  if (!revertQty || revertQty <= 0) {
+    throw new Error('Revert quantity must be greater than 0');
+  }
+
+  // If targetProduct is known and not serialized, verify warehouse stock
+  if (targetProduct && !targetProduct.isSerialized) {
+    const currentTargetStock = await getStockAtLocation(targetProduct.id, 'WAREHOUSE', null);
+    if (currentTargetStock < revertQty) {
+      throw new Error(`Insufficient warehouse stock for converted product "${targetProduct.name}". Current stock is ${currentTargetStock}, requested to revert ${revertQty}.`);
+    }
+  }
+
+  const brandName = sourceProduct.brand?.name || targetProduct?.brand?.name || 'General';
+
+  await prisma.$transaction(async (tx) => {
+    const revertDn = await generateCustomRef(tx, 'REV', brandName);
+    const userNotes = notes ? ` (${notes.trim()})` : '';
+
+    // 1. If targetProduct exists, deduct from target product in Warehouse
+    if (targetProduct) {
+      await tx.inventoryTransaction.create({
+        data: {
+          productId: targetProduct.id,
+          transactionType: 'REBRAND_OUT',
+          fromEntityType: 'WAREHOUSE',
+          quantity: revertQty,
+          deliveryNote: revertDn,
+          notes: `Reverted rebrand -> Restored ${revertQty} units back to ${sourceProduct.name} from ${dn || originalTx.id}.${userNotes}`,
+          deliveryStatus: 'Delivered',
+        }
+      });
+    }
+
+    // 2. Add back to original source product in Warehouse
+    const restoreInTx = await tx.inventoryTransaction.create({
+      data: {
+        productId: sourceProduct.id,
+        transactionType: 'REBRAND_IN',
+        toEntityType: 'WAREHOUSE',
+        toEntityId: 'WH-MAIN',
+        quantity: revertQty,
+        deliveryNote: revertDn,
+        notes: `Reverted rebrand <- Restored ${revertQty} units from ${targetProduct?.name || 'converted product'} (${dn || originalTx.id}).${userNotes}`,
+        deliveryStatus: 'Delivered',
+      }
+    });
+
+    // 3. Serialized items handling
+    if (sourceProduct.isSerialized && inTx?.serialNumbers?.length > 0) {
+      const inSerialIds = inTx.serialNumbers.map(s => s.serialNumberId);
+      const inSerials = await tx.productSerialNumber.findMany({
+        where: { id: { in: inSerialIds } },
+        include: { replaces: true }
+      });
+
+      // Restore replaced original serials back to AVAILABLE at WAREHOUSE
+      const oldSerialIdsToRestore = inSerials.map(s => s.replacesId).filter(Boolean);
+      if (oldSerialIdsToRestore.length > 0) {
+        await tx.productSerialNumber.updateMany({
+          where: { id: { in: oldSerialIdsToRestore } },
+          data: {
+            status: 'AVAILABLE',
+            currentLocationType: 'WAREHOUSE',
+            currentLocationId: 'WH-MAIN',
+          }
+        });
+
+        // Link restored serials to restoreInTx
+        await tx.transactionSerialNumber.createMany({
+          data: oldSerialIdsToRestore.map(sId => ({
+            transactionId: restoreInTx.id,
+            serialNumberId: sId,
+          })),
+          skipDuplicates: true
+        });
+      }
+
+      // Mark the converted serials as REPLACED / DELETED
+      await tx.productSerialNumber.updateMany({
+        where: { id: { in: inSerialIds } },
+        data: {
+          status: 'REPLACED',
+          currentLocationType: null,
+          currentLocationId: null,
+        }
+      });
+    }
+
+    // 4. Update status on original transactions
+    await tx.inventoryTransaction.updateMany({
+      where: { id: { in: pairedTxs.map(t => t.id) } },
+      data: {
+        returnStatus: 'REVERTED',
+        returnNotes: `Reverted under ${revertDn}.${userNotes}`,
+      }
+    });
+  }, { timeout: 25000 });
+
+  revalidateTransactionPaths();
+  revalidatePath('/dashboard/rebrand');
+
+  return { success: true };
+}
+
 // ----------------------------------------------------------------------------------------
 // MULTI-ITEM REBRANDING SYSTEM (Send Multiple Source Products -> Receive Multiple Target Products)
 // ----------------------------------------------------------------------------------------

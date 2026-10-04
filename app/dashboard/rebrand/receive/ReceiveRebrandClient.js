@@ -17,11 +17,14 @@ import {
   Camera, 
   Info,
   Clock,
-  Sparkles
+  Sparkles,
+  RotateCcw,
+  Undo2,
+  ArrowLeftRight
 } from 'lucide-react';
 import CustomSelect from '@/components/CustomSelect';
 import { useToast } from '@/components/Toast';
-import { receiveRebrandItems } from '@/app/actions/transactions';
+import { receiveRebrandItems, giveBackRebrandTransaction } from '@/app/actions/transactions';
 
 export default function ReceiveRebrandClient({
   products = [],
@@ -34,6 +37,9 @@ export default function ReceiveRebrandClient({
 }) {
   const router = useRouter();
   const toast = useToast();
+
+  // Mode: 'CONVERT' (Receive into new target product) | 'GIVE_BACK' (Return/give back to original source product)
+  const [receiveMode, setReceiveMode] = useState('CONVERT');
 
   // Selected Outbound Dispatch
   const [selectedTxId, setSelectedTxId] = useState(() => {
@@ -129,19 +135,21 @@ export default function ReceiveRebrandClient({
       return;
     }
 
-    if (!targetProductId) {
-      setError('Please select a target converted product.');
+    const effectiveTargetProductId = receiveMode === 'GIVE_BACK' ? (selectedTx.product?.id || targetProductId) : targetProductId;
+
+    if (!effectiveTargetProductId) {
+      setError('Please select a target product.');
       return;
     }
 
     const qtyNum = parseFloat(quantity);
     if (isNaN(qtyNum) || qtyNum <= 0) {
-      setError('Please enter a valid received quantity greater than 0.');
+      setError('Please enter a valid quantity greater than 0.');
       return;
     }
 
     if (qtyNum > remainingPending) {
-      setError(`Received quantity (${qtyNum}) exceeds the remaining pending quantity (${remainingPending}).`);
+      setError(`Quantity (${qtyNum}) exceeds the remaining pending quantity (${remainingPending}).`);
       return;
     }
 
@@ -149,31 +157,46 @@ export default function ReceiveRebrandClient({
     setError('');
 
     try {
-      await receiveRebrandItems({
-        deliveryNote: selectedTx.deliveryNote,
-        transactionId: selectedTx.id,
-        vendorName: vendorName.trim() || 'Advamedia',
-        transactionDate: receivedDate,
-        globalNotes: notes.trim(),
-        receivedItems: [
-          {
-            targetProductId,
-            quantity: qtyNum,
-            notes: notes.trim(),
-          }
-        ]
-      });
+      if (receiveMode === 'GIVE_BACK') {
+        await giveBackRebrandTransaction({
+          transactionId: selectedTx.id,
+          quantity: qtyNum,
+          targetProductId: effectiveTargetProductId,
+          notes: notes.trim(),
+        });
 
-      toast.success(
-        'Stock Received Successfully',
-        `Received ${qtyNum} converted units into Warehouse under ${selectedTx.deliveryNote || 'Rebrand'}.`
-      );
+        toast.success(
+          'Stock Given Back Successfully',
+          `Returned ${qtyNum} units back to original product (${selectedTx.product?.name}) in Warehouse.`
+        );
+        router.push('/dashboard/rebrand');
+        router.refresh();
+      } else {
+        await receiveRebrandItems({
+          deliveryNote: selectedTx.deliveryNote,
+          transactionId: selectedTx.id,
+          vendorName: vendorName.trim() || 'Advamedia',
+          transactionDate: receivedDate,
+          globalNotes: notes.trim(),
+          receivedItems: [
+            {
+              targetProductId: effectiveTargetProductId,
+              quantity: qtyNum,
+              notes: notes.trim(),
+            }
+          ]
+        });
 
-      router.push('/dashboard/rebrand?tab=COMPLETED');
-      router.refresh();
+        toast.success(
+          'Stock Received Successfully',
+          `Received ${qtyNum} converted units into Warehouse under ${selectedTx.deliveryNote || 'Rebrand'}.`
+        );
+        router.push('/dashboard/rebrand?tab=COMPLETED');
+        router.refresh();
+      }
     } catch (err) {
-      console.error('Receive Rebrand error:', err);
-      setError(err.message || 'Failed to process received rebrand.');
+      console.error('Receive / Give Back Rebrand error:', err);
+      setError(err.message || 'Failed to process transaction.');
       setLoading(false);
     }
   };
@@ -199,7 +222,7 @@ export default function ReceiveRebrandClient({
               </h1>
             </div>
             <p className="text-xs text-text-muted mt-0.5">
-              Receive converted product definitions returned from the vendor into warehouse inventory
+              Receive converted product definitions from vendor or give back unconverted stock into warehouse
             </p>
           </div>
         </div>
@@ -333,112 +356,164 @@ export default function ReceiveRebrandClient({
       {/* 3. Inbound Converted Stock Receipt Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-6">
-          <div className="flex items-center gap-2 pb-3 border-b border-border">
-            <Sparkles size={16} className="text-success" />
-            <span className="text-xs font-bold uppercase tracking-wider text-text-primary">
-              2. Target Converted Product Details
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-success" />
+              <span className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                2. Receipt &amp; Action Details
+              </span>
+            </div>
+
+            {/* Mode Toggle Buttons */}
+            <div className="flex items-center gap-1.5 p-1 bg-surface-elevated rounded-xl border border-border">
+              <button
+                type="button"
+                onClick={() => setReceiveMode('CONVERT')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  receiveMode === 'CONVERT'
+                    ? 'bg-success text-white shadow-xs'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <Sparkles size={13} />
+                <span>Receive Converted</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setReceiveMode('GIVE_BACK');
+                  if (selectedTx?.product?.id) {
+                    setTargetProductId(selectedTx.product.id);
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  receiveMode === 'GIVE_BACK'
+                    ? 'bg-secondary text-white shadow-xs'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <RotateCcw size={13} />
+                <span>Give Back to Original</span>
+              </button>
+            </div>
           </div>
 
-          {/* Filter Pills for Target Product */}
-          <div className="flex flex-col gap-3">
-            {brands.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1 shrink-0">
-                  <Tag size={11} /> Brand:
+          {/* Mode Description Banner */}
+          {receiveMode === 'GIVE_BACK' ? (
+            <div className="p-4 bg-secondary/10 border border-secondary/20 rounded-xl flex items-start gap-3">
+              <RotateCcw size={18} className="text-secondary shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-1 text-xs">
+                <span className="font-bold text-secondary text-sm">
+                  Giving Back to Original Product (Unconverted)
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setBrandFilter('ALL')}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors ${
-                      brandFilter === 'ALL'
-                        ? 'bg-primary text-white border-primary shadow-xs'
-                        : 'bg-surface border-border text-text-secondary hover:border-primary/50'
-                    }`}
-                  >
-                    All Brands
-                  </button>
-                  {brands.map(b => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      onClick={() => setBrandFilter(b.id)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors ${
-                        brandFilter === b.id
-                          ? 'bg-primary text-white border-primary shadow-xs'
-                          : 'bg-surface border-border text-text-secondary hover:border-primary/50'
-                      }`}
-                    >
-                      {b.name}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-text-secondary leading-relaxed">
+                  Stock will be returned unconverted and credited directly back under original product: <strong>{selectedTx?.product?.name || 'Origin Product'}</strong> in the central warehouse.
+                </p>
               </div>
-            )}
+            </div>
+          ) : (
+            <>
+              {/* Filter Pills for Target Product */}
+              <div className="flex flex-col gap-3">
+                {brands.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1 shrink-0">
+                      <Tag size={11} /> Brand:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setBrandFilter('ALL')}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors ${
+                          brandFilter === 'ALL'
+                            ? 'bg-primary text-white border-primary shadow-xs'
+                            : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                        }`}
+                      >
+                        All Brands
+                      </button>
+                      {brands.map(b => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => setBrandFilter(b.id)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors ${
+                            brandFilter === b.id
+                              ? 'bg-primary text-white border-primary shadow-xs'
+                              : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                          }`}
+                        >
+                          {b.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {uniqueCategories.length > 0 && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1 shrink-0">
-                  <Layers size={11} /> Category:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setCategoryFilter('ALL')}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors ${
-                      categoryFilter === 'ALL'
-                        ? 'bg-primary text-white border-primary shadow-xs'
-                        : 'bg-surface border-border text-text-secondary hover:border-primary/50'
-                    }`}
-                  >
-                    All Categories
-                  </button>
-                  {uniqueCategories.map(cat => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategoryFilter(cat)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors ${
-                        categoryFilter === cat
-                          ? 'bg-primary text-white border-primary shadow-xs'
-                          : 'bg-surface border-border text-text-secondary hover:border-primary/50'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
+                {uniqueCategories.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1 shrink-0">
+                      <Layers size={11} /> Category:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setCategoryFilter('ALL')}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors ${
+                          categoryFilter === 'ALL'
+                            ? 'bg-primary text-white border-primary shadow-xs'
+                            : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                        }`}
+                      >
+                        All Categories
+                      </button>
+                      {uniqueCategories.map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setCategoryFilter(cat)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors ${
+                            categoryFilter === cat
+                              ? 'bg-primary text-white border-primary shadow-xs'
+                              : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Target Product CustomSelect */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-text-secondary">
-              Target Converted Product <span className="text-danger">*</span>
-            </label>
-            <CustomSelect
-              options={filteredProducts.map(p => ({
-                value: p.id,
-                label: `${p.name} (${p.brand?.name || 'General'})${p.itemCode ? ` - SKU: ${p.itemCode}` : ''}`,
-                imageUrl: p.imageUrl,
-                warehouseStock: p.warehouseStock,
-              }))}
-              value={targetProductId}
-              onChange={val => setTargetProductId(val)}
-              placeholder="-- Select Converted Product Definition --"
-              required
-            />
-            {selectedTargetProd && (
-              <div className="mt-1 flex items-center gap-2 text-[11px] text-text-muted bg-surface-elevated/40 px-3 py-1.5 rounded-lg border border-border/60">
-                <CheckCircle size={12} className="text-success shrink-0" />
-                <span>
-                  Current Warehouse Stock: <strong>{selectedTargetProd.warehouseStock ?? 0} units</strong>. Stock will increase by <strong>{quantity || 0} units</strong> after receiving.
-                </span>
+              {/* Target Product CustomSelect */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
+                  Target Converted Product <span className="text-danger">*</span>
+                </label>
+                <CustomSelect
+                  options={filteredProducts.map(p => ({
+                    value: p.id,
+                    label: `${p.name} (${p.brand?.name || 'General'})${p.itemCode ? ` - SKU: ${p.itemCode}` : ''}`,
+                    imageUrl: p.imageUrl,
+                    warehouseStock: p.warehouseStock,
+                  }))}
+                  value={targetProductId}
+                  onChange={val => setTargetProductId(val)}
+                  placeholder="-- Select Converted Product Definition --"
+                  required
+                />
+                {selectedTargetProd && (
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-text-muted bg-surface-elevated/40 px-3 py-1.5 rounded-lg border border-border/60">
+                    <CheckCircle size={12} className="text-success shrink-0" />
+                    <span>
+                      Current Warehouse Stock: <strong>{selectedTargetProd.warehouseStock ?? 0} units</strong>. Stock will increase by <strong>{quantity || 0} units</strong> after receiving.
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Quantity & Vendor Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -446,7 +521,7 @@ export default function ReceiveRebrandClient({
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-text-secondary">
-                  Quantity to Receive <span className="text-danger">*</span>
+                  {receiveMode === 'GIVE_BACK' ? 'Quantity to Give Back' : 'Quantity to Receive'} <span className="text-danger">*</span>
                 </label>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-text-muted">Pending balance:</span>
@@ -544,18 +619,27 @@ export default function ReceiveRebrandClient({
           </Link>
           <button
             type="submit"
-            disabled={loading || !selectedTx || !targetProductId || !quantity}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold bg-success hover:bg-success-hover text-white shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+            disabled={loading || !selectedTx || (receiveMode === 'CONVERT' && !targetProductId) || !quantity}
+            className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer ${
+              receiveMode === 'GIVE_BACK'
+                ? 'bg-secondary hover:bg-secondary-hover'
+                : 'bg-success hover:bg-success-hover'
+            }`}
           >
             {loading ? (
               <>
                 <Loader2 size={15} className="animate-spin" />
-                <span>Stocking Into Warehouse...</span>
+                <span>{receiveMode === 'GIVE_BACK' ? 'Returning to Source...' : 'Stocking Into Warehouse...'}</span>
+              </>
+            ) : receiveMode === 'GIVE_BACK' ? (
+              <>
+                <RotateCcw size={15} />
+                <span>Confirm Give Back &amp; Stock In</span>
               </>
             ) : (
               <>
                 <ArrowDownLeft size={15} />
-                <span>Confirm & Stock Into Warehouse</span>
+                <span>Confirm &amp; Stock Into Warehouse</span>
               </>
             )}
           </button>
