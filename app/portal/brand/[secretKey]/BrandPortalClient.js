@@ -340,17 +340,17 @@ export default function BrandPortalClient({ brand }) {
               summarySections.map(section => {
                 const isExpanded = summarySearch.trim() ? true : !!expandedSections[section.id];
                 return (
-                  <div key={section.id} className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden transition-all">
+                  <div key={section.id} className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden transition-colors">
                     {/* Section Heading Bar */}
                     <button
                       type="button"
                       onClick={() => toggleSection(section.id)}
-                      className={`w-full px-5 py-3.5 bg-surface-elevated/40 hover:bg-surface-elevated/70 flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
+                      className={`w-full px-5 py-3.5 bg-surface-elevated/40 hover:bg-surface-elevated/70 flex items-center justify-between gap-3 text-left transition-colors cursor-pointer select-none ${
                         isExpanded ? 'border-b border-border' : ''
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {isExpanded ? <ChevronDown size={16} className="text-primary shrink-0" /> : <ChevronRight size={16} className="text-text-muted shrink-0" />}
+                        {isExpanded ? <ChevronDown size={16} className="text-primary shrink-0 transition-transform duration-150" /> : <ChevronRight size={16} className="text-text-muted shrink-0 transition-transform duration-150" />}
                         <h3 className="font-display font-extrabold text-sm sm:text-base text-text-primary uppercase tracking-wide truncate">
                           {section.title}
                         </h3>
@@ -369,7 +369,7 @@ export default function BrandPortalClient({ brand }) {
 
                     {/* Section Items Table / Card Content */}
                     {isExpanded && (
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto animate-fade-in">
                         {section.items.length === 0 ? (
                           <div className="py-6 text-center text-xs text-text-muted italic">
                             No products assigned to this heading.

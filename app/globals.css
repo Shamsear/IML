@@ -127,11 +127,11 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
-/* Tactile button press feedback (Craft motion) */
-button:not(:disabled):active,
-.btn:not(:disabled):active,
-a.btn:active {
-  transform: scale(0.97);
+/* Clean tactile button press feedback without layout shift or lateral jitter */
+.btn-press:active,
+.btn-primary:active {
+  opacity: 0.92;
+  transform: translateY(0.5px);
 }
 
 /* Buttons */
