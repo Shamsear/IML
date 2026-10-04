@@ -1,41 +1,27 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Package, QrCode, Search, FileText, ArrowDownLeft, ArrowUpRight, ShieldAlert, Filter, X } from 'lucide-react';
+import { Package, QrCode, Search, X } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { getProductStock } from '@/lib/stock';
 import StockBreakdown from '@/components/StockBreakdown';
 import ImageLightbox from '@/components/ImageLightbox';
-import AnimatedCounter from '@/components/AnimatedCounter';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
 export default function BrandPortalClient({ brand }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [productTypeFilter, setProductTypeFilter] = useState('ALL');
-  const [logSearchQuery, setLogSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('ALL'); // 'ALL', 'RECEIVE', 'ISSUE', 'DAMAGE'
-  const [activeSection, setActiveSection] = useState('catalog'); // 'catalog', 'logs'
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
 
   // Pagination States
   const [productPage, setProductPage] = useState(0);
-  const [logPage, setLogPage] = useState(0);
-  const [mounted, setMounted] = useState(false);
   const itemsPerPage = 24;
 
   // Reset pages on search/filter changes
   React.useEffect(() => {
     setProductPage(0);
   }, [searchQuery, productTypeFilter]);
-
-  React.useEffect(() => {
-    setLogPage(0);
-  }, [activeTab, logSearchQuery]);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Helper to compute stock with serialized status reconciliation
   const computeProductStock = (p) => {
@@ -52,24 +38,6 @@ export default function BrandPortalClient({ brand }) {
     return stock;
   };
 
-  // Compute aggregated totals for header overview metrics
-  const getAggregatedTotals = () => {
-    let warehouse = 0;
-    let dispatched = 0;
-    let damaged = 0;
-
-    (brand?.products || []).forEach(p => {
-      const metrics = computeProductStock(p);
-      warehouse += metrics.warehouse;
-      dispatched += metrics.issued + metrics.used + metrics.withClient;
-      damaged += metrics.damage + metrics.lost;
-    });
-
-    return { warehouse, dispatched, damaged };
-  };
-
-  const totals = getAggregatedTotals();
-
   // Filter products by search query and type filter
   const filteredProducts = (brand?.products || []).filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -80,33 +48,6 @@ export default function BrandPortalClient({ brand }) {
       (productTypeFilter === 'BULK' && !p.isSerialized);
       
     return matchesSearch && matchesType;
-  });
-
-  // Collate all transactions across all products for the log list
-  const allTransactions = (brand?.products || []).flatMap(p => 
-    (p.transactions || []).map(t => ({
-      ...t,
-      productName: p.name,
-      itemCode: p.itemCode
-    }))
-  ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  // Filter logs by transactionType tab selection and search query
-  const filteredTransactions = allTransactions.filter(t => {
-    const matchesTab = activeTab === 'ALL' ||
-      (activeTab === 'RECEIVE' && (t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN')) ||
-      (activeTab === 'ISSUE' && t.transactionType === 'ISSUE') ||
-      (activeTab === 'DAMAGE' && (t.transactionType === 'DAMAGE' || t.transactionType === 'LOST'));
-      
-    const matchesSearch = logSearchQuery === '' ||
-      t.productName.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
-      (t.itemCode && t.itemCode.toLowerCase().includes(logSearchQuery.toLowerCase())) ||
-      (t.notes && t.notes.toLowerCase().includes(logSearchQuery.toLowerCase())) ||
-      t.transactionType.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
-      (t.fromEntityName && t.fromEntityName.toLowerCase().includes(logSearchQuery.toLowerCase())) ||
-      (t.toEntityName && t.toEntityName.toLowerCase().includes(logSearchQuery.toLowerCase()));
-      
-    return matchesTab && matchesSearch;
   });
 
   const customGetters = useMemo(() => ({
@@ -141,34 +82,6 @@ export default function BrandPortalClient({ brand }) {
 
   const totalProductPages = Math.ceil(sortedProducts.length / itemsPerPage);
   const paginatedProducts = sortedProducts.slice(productPage * itemsPerPage, (productPage + 1) * itemsPerPage);
-
-  const totalLogPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-  const paginatedTransactions = filteredTransactions.slice(logPage * itemsPerPage, (logPage + 1) * itemsPerPage);
-
-  // Group transactions helper for rendering
-  const getGroupedTransactions = (txs) => {
-    const groups = {};
-    txs.forEach(t => {
-      const date = new Date(t.timestamp);
-      let key = date.toISOString().split('T')[0];
-      if (mounted) {
-        key = date.toLocaleDateString('en-AE', { 
-          timeZone: 'Asia/Dubai',
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-      }
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(t);
-    });
-    return groups;
-  };
-
-  const groupedLogs = getGroupedTransactions(paginatedTransactions);
 
   return (
     <div className="min-h-[100dvh] bg-background text-text-primary py-8 px-4 sm:px-6 lg:px-8 font-sans">
@@ -206,7 +119,7 @@ export default function BrandPortalClient({ brand }) {
                 </span>
               </div>
               <p className="text-text-secondary text-sm mt-1">
-                Real-time central warehouse stock ledger and distribution overview.
+                Real-time central warehouse stock catalog and inventory levels.
               </p>
             </div>
           </div>
@@ -218,507 +131,248 @@ export default function BrandPortalClient({ brand }) {
           </div>
         </header>
 
-        {/* Aggregate Stock Metrics Grid */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-              <Package className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Catalog Items</span>
-              <span className="text-lg sm:text-2xl font-display font-black text-text-primary mt-0.5 sm:mt-1 block tabular-nums">
-                <AnimatedCounter value={brand.products.length} />
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-success/10 text-success flex items-center justify-center flex-shrink-0">
-              <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Warehouse</span>
-              <span className="text-lg sm:text-2xl font-display font-black text-success mt-0.5 sm:mt-1 block tabular-nums">
-                <AnimatedCounter value={totals.warehouse} />
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
-              <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Dispatches</span>
-              <span className="text-lg sm:text-2xl font-display font-black text-warning mt-0.5 sm:mt-1 block tabular-nums">
-                <AnimatedCounter value={totals.dispatched} />
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-surface border border-border p-3 sm:p-5 rounded-xl shadow-sm flex items-center gap-2 sm:gap-4 min-w-0">
-            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-danger/10 text-danger flex items-center justify-center flex-shrink-0">
-              <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold text-text-secondary block uppercase truncate">Damaged / Lost</span>
-              <span className="text-lg sm:text-2xl font-display font-black text-danger mt-0.5 sm:mt-1 block tabular-nums">
-                <AnimatedCounter value={totals.damaged} />
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* Tab Selector */}
-        <div className="flex border-b border-border gap-6">
-          <button 
-            onClick={() => setActiveSection('catalog')} 
-            className={`pb-3 font-display font-bold text-sm sm:text-base relative flex items-center gap-2 transition-colors ${
-              activeSection === 'catalog' ? 'text-primary' : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            <Package size={18} />
-            <span>Product Catalog</span>
-            {activeSection === 'catalog' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
-          </button>
-          <button 
-            onClick={() => setActiveSection('logs')} 
-            className={`pb-3 font-display font-bold text-sm sm:text-base relative flex items-center gap-2 transition-colors ${
-              activeSection === 'logs' ? 'text-primary' : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            <FileText size={18} />
-            <span>Warehouse Logs</span>
-            {activeSection === 'logs' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
-          </button>
-        </div>
-
         {/* Catalog Section */}
-        {activeSection === 'catalog' && (
-          <div className="bg-surface border border-border p-5 rounded-2xl shadow-sm flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <Package size={20} className="text-primary" />
-                <h3 className="font-display font-bold text-lg text-text-primary">
-                  Product Catalog &amp; Stock Levels
-                </h3>
+        <div className="bg-surface border border-border p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
+            <div className="flex items-center gap-3">
+              <Package size={20} className="text-primary" />
+              <h3 className="font-display font-bold text-lg text-text-primary">
+                Product Catalog &amp; Stock Levels
+              </h3>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Search Bar */}
+              <div className="relative w-full sm:w-60">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
+                <input
+                  type="text"
+                  placeholder="Search products by name, SKU..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-surface-elevated/45 text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:border-primary transition-colors"
+                />
               </div>
               
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                {/* Search Bar */}
-                <div className="relative w-full sm:w-60">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
-                  <input
-                    type="text"
-                    placeholder="Search products by name, SKU..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-surface-elevated/45 text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:border-primary transition-colors"
-                  />
-                </div>
-                
-                {/* Product Type Filter */}
-                <div className="flex bg-surface-elevated p-1 rounded-lg border border-border">
-                  {['ALL', 'SERIALIZED', 'BULK'].map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setProductTypeFilter(type)}
-                      className={`px-3 py-1 text-[10px] font-bold rounded transition-colors uppercase
-                        ${productTypeFilter === type 
-                          ? 'bg-surface text-primary shadow-sm border border-border/60' 
-                          : 'text-text-secondary hover:text-text-primary'
-                        }
-                      `}
-                    >
-                      {type === 'ALL' ? 'All' : type.toLowerCase()}
-                    </button>
-                  ))}
-                </div>
+              {/* Product Type Filter */}
+              <div className="flex bg-surface-elevated p-1 rounded-lg border border-border">
+                {['ALL', 'SERIALIZED', 'BULK'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setProductTypeFilter(type)}
+                    className={`px-3 py-1 text-[10px] font-bold rounded transition-colors uppercase
+                      ${productTypeFilter === type 
+                        ? 'bg-surface text-primary shadow-sm border border-border/60' 
+                        : 'text-text-secondary hover:text-text-primary'
+                      }
+                    `}
+                  >
+                    {type === 'ALL' ? 'All' : type.toLowerCase()}
+                  </button>
+                ))}
               </div>
             </div>
-
-            {filteredProducts.length === 0 ? (
-              <div className="py-12 text-center text-xs text-text-muted italic bg-surface-elevated/10 rounded-xl border border-dashed border-border">
-                No catalog items found matching your filter criteria.
-              </div>
-            ) : (
-              <>
-                {/* Top Product Pagination */}
-                {totalProductPages > 1 && (
-                  <div className="flex items-center justify-between px-3 py-2 border border-border bg-surface-elevated/20 text-[10px] mb-2 rounded-lg print:hidden">
-                    <span className="text-text-muted">
-                      Showing <strong className="text-text-primary">{productPage * itemsPerPage + 1}</strong> to{" "}
-                      <strong className="text-text-primary">
-                        {Math.min((productPage + 1) * itemsPerPage, filteredProducts.length)}
-                      </strong> of{" "}
-                      <strong className="text-text-primary">{filteredProducts.length}</strong> items
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={productPage === 0}
-                        onClick={() => setProductPage(prev => Math.max(0, prev - 1))}
-                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
-                      >
-                        Prev
-                      </button>
-                      <button
-                        type="button"
-                        disabled={productPage === totalProductPages - 1}
-                        onClick={() => setProductPage(prev => Math.min(totalProductPages - 1, prev + 1))}
-                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Mobile Card View */}
-                <div className="md:hidden flex flex-col gap-3">
-                  {paginatedProducts.map(p => {
-                    const stock = computeProductStock(p);
-                    return (
-                      <div key={p.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            {p.imageUrl ? (
-                              <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })} />
-                            ) : (
-                              <div className="w-10 h-10 rounded-sm bg-primary/5 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold border border-primary/10">{p.name.substring(0, 2).toUpperCase()}</div>
-                            )}
-                            <div className="min-w-0">
-                              <span className="font-semibold text-sm text-text-primary block truncate">{p.name}</span>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] text-text-muted font-mono">{p.itemCode || '---'}</span>
-                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${p.isSerialized ? 'bg-primary/10 text-primary' : 'bg-surface-elevated text-text-secondary'}`}>{p.category || 'Bulk'}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{stock.total}</span>
-                        </div>                         <StockBreakdown stock={stock} compact />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border">
-                    <thead>
-                      <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider">
-                        <SortableHeader field="name" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Item Description</SortableHeader>
-                        <SortableHeader field="itemCode" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap">Item Code</SortableHeader>
-                        <SortableHeader field="category" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap">Item Category</SortableHeader>
-                        <SortableHeader field="purchased" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Purchased / Received</SortableHeader>
-                        <SortableHeader field="warehouse" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Available In Warehouse</SortableHeader>
-                        <SortableHeader field="issued" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Issued</SortableHeader>
-                        <SortableHeader field="used" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Used</SortableHeader>
-                        <SortableHeader field="damage" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-danger">Damage</SortableHeader>
-                        <SortableHeader field="lost" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-danger">Lost / Not Found</SortableHeader>
-                        <SortableHeader field="withClient" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-primary">With Client</SortableHeader>
-                        <SortableHeader field="reBrand" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-secondary">Re Brand</SortableHeader>
-                        <SortableHeader field="total" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap font-bold">Total</SortableHeader>
-                        <SortableHeader field="stockStatus" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Stock Status</SortableHeader>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border text-xs text-text-primary">
-                      {paginatedProducts.map(p => {
-                        const stock = computeProductStock(p);
-                        return (
-                          <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
-                            <td className="py-3 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">
-                              <div className="flex items-center gap-3">
-                                {p.imageUrl ? (
-                                  <img 
-                                    src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
-                                    alt={p.name} 
-                                    className="w-8 h-8 rounded-sm object-cover border border-border cursor-pointer hover:border-primary transition-all flex-shrink-0"
-                                    onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
-                                    onError={(e) => {
-                                      if (e.target.src !== p.imageUrl) {
-                                        e.target.src = p.imageUrl;
-                                      }
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-sm bg-primary/5 text-primary flex items-center justify-center font-display font-extrabold text-[10px] border border-primary/10 flex-shrink-0">
-                                    {p.name.substring(0, 2).toUpperCase()}
-                                  </div>
-                                )}
-                                <div className="flex flex-col min-w-0">
-                                  <span className="font-semibold text-text-primary truncate">{p.name}</span>
-                                  {p.isSerialized && (
-                                    <span className="text-[10px] font-semibold text-primary mt-0.5">
-                                      <QrCode size={10} className="inline mr-1"/>
-                                      {p.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({p._count?.serialNumbers || 0})
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <code className="text-[10px] bg-surface-elevated px-1.5 py-0.5 rounded border border-border">{p.itemCode || '---'}</code>
-                            </td>
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase
-                                ${p.isSerialized ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface-elevated text-text-secondary border border-border'}
-                              `}>
-                                {p.category || 'Bulk'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.purchased}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.warehouse}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.issued}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.used}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.damage}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.lost}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-primary">{stock.withClient}</td>
-                            <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-secondary">{stock.reBrand}</td>
-                            <td className="py-3 px-3 text-center font-mono font-bold whitespace-nowrap">{stock.total}</td>
-                            <td className="py-3 px-3 text-center whitespace-nowrap">
-                              {p.stockCap ? (
-                                stock.warehouse <= 0 ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
-                                    Out
-                                  </span>
-                                ) : stock.warehouse < p.stockCap ? (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
-                                    Low
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
-                                    Ok
-                                  </span>
-                                )
-                              ) : (
-                                <span className="text-text-muted text-[10px]">---</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Product Pagination Controls */}
-                {totalProductPages > 1 && (
-                  <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-surface-elevated/20 text-[10px] mt-2 rounded-lg">
-                    <span className="text-text-muted">
-                      Showing <strong className="text-text-primary">{productPage * itemsPerPage + 1}</strong> to{" "}
-                      <strong className="text-text-primary">
-                        {Math.min((productPage + 1) * itemsPerPage, filteredProducts.length)}
-                      </strong> of{" "}
-                      <strong className="text-text-primary">{filteredProducts.length}</strong> items
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        disabled={productPage === 0}
-                        onClick={() => setProductPage(prev => Math.max(0, prev - 1))}
-                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
-                      >
-                        Prev
-                      </button>
-                      <button
-                        type="button"
-                        disabled={productPage === totalProductPages - 1}
-                        onClick={() => setProductPage(prev => Math.min(totalProductPages - 1, prev + 1))}
-                        className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
           </div>
-        )}
 
-        {/* Logs Section */}
-        {activeSection === 'logs' && (
-          <div className="bg-surface border border-border p-5 rounded-2xl shadow-sm flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <FileText size={20} className="text-secondary" />
-                <h3 className="font-display font-bold text-lg text-text-primary">
-                  Warehouse Stock Movement Logs
-                </h3>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                {/* Search Bar */}
-                <div className="relative w-full sm:w-60">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
-                  <input
-                    type="text"
-                    placeholder="Search logs by product, SKU, notes..."
-                    value={logSearchQuery}
-                    onChange={(e) => setLogSearchQuery(e.target.value)}
-                    className="w-full bg-surface-elevated/45 text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:border-primary transition-colors"
-                  />
-                </div>
-                
-                {/* Category tabs */}
-                <div className="flex bg-surface-elevated p-1 rounded-lg border border-border">
-                  {['ALL', 'RECEIVE', 'ISSUE', 'DAMAGE'].map(tab => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`px-3 py-1 text-[10px] font-bold rounded transition-colors uppercase
-                        ${activeTab === tab 
-                          ? 'bg-surface text-primary shadow-sm border border-border/60' 
-                          : 'text-text-secondary hover:text-text-primary'
-                        }
-                      `}
-                    >
-                      {tab === 'RECEIVE' ? 'Inbound' : tab === 'ISSUE' ? 'Outbound' : tab === 'ALL' ? 'All' : 'Damage'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {filteredProducts.length === 0 ? (
+            <div className="py-12 text-center text-xs text-text-muted italic bg-surface-elevated/10 rounded-xl border border-dashed border-border">
+              No catalog items found matching your filter criteria.
             </div>
-
-            {/* Top Logs Pagination */}
-            {totalLogPages > 1 && (
-              <div className="flex items-center justify-between px-3 py-2 border border-border bg-surface-elevated/20 text-[10px] flex-shrink-0 mb-1 rounded-lg print:hidden">
-                <span className="text-text-muted">
-                  Showing <strong className="text-text-primary">{logPage * itemsPerPage + 1}</strong> to{" "}
-                  <strong className="text-text-primary">
-                    {Math.min((logPage + 1) * itemsPerPage, filteredTransactions.length)}
-                  </strong> of{" "}
-                  <strong className="text-text-primary">{filteredTransactions.length}</strong> logs
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    disabled={logPage === 0}
-                    onClick={() => setLogPage(prev => Math.max(0, prev - 1))}
-                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
-                  >
-                    Prev
-                  </button>
-                  <button
-                    type="button"
-                    disabled={logPage === totalLogPages - 1}
-                    onClick={() => setLogPage(prev => Math.min(totalLogPages - 1, prev + 1))}
-                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-6">
-              {filteredTransactions.length === 0 ? (
-                <div className="py-12 text-center text-xs text-text-muted italic bg-surface-elevated/10 rounded-xl border border-dashed border-border">
-                  No stock logs found matching your filters.
-                </div>
-              ) : (
-                Object.keys(groupedLogs).map(dateGroup => (
-                  <div key={dateGroup} className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 border-b border-border/40 pb-1.5 mt-2">
-                      <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">{dateGroup}</span>
-                      <span className="text-[10px] font-mono text-text-muted font-bold">({groupedLogs[dateGroup].length} logs)</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
-                      {groupedLogs[dateGroup].map(t => {
-                        const isReceive = t.transactionType === 'RECEIVE' || t.transactionType === 'RETURN' || t.transactionType === 'REBRAND_IN';
-                        const isDamage = t.transactionType === 'DAMAGE' || t.transactionType === 'LOST';
-                        
-                        return (
-                          <div 
-                            key={t.id} 
-                            className="p-4 bg-surface-elevated/35 border border-border rounded-xl flex flex-col gap-2 transition-all hover:bg-surface-elevated hover:shadow-sm"
-                          >
-                            <div className="flex justify-between items-start gap-2">
-                              <span className="font-bold text-xs text-text-primary truncate">{t.productName}</span>
-                              <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold font-mono px-1.5 py-0.5 rounded uppercase
-                                ${isReceive ? 'bg-success/10 text-success' : isDamage ? 'bg-danger/10 text-danger' : 'bg-warning/10 text-warning'}
-                              `}>
-                                {isReceive ? '+' : '-'}{t.quantity}
-                              </span>
-                            </div>
-                            
-                            <div className="flex justify-between items-center text-[10px] text-text-secondary">
-                              <span className="capitalize">{t.transactionType.toLowerCase()}</span>
-                              <span>{mounted ? new Date(t.timestamp).toLocaleTimeString('en-AE', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                            </div>
-
-                            {/* Source/Destination Meta */}
-                            <div className="text-[10px] text-text-secondary mt-0.5 pt-1.5 border-t border-border/30 flex flex-wrap justify-between items-center gap-1">
-                              {t.transactionType === 'RECEIVE' || t.transactionType === 'REBRAND_IN' ? (
-                                <>
-                                  <span>Source</span>
-                                  <span className="text-text-primary font-semibold truncate max-w-[180px]">{t.fromEntityName || 'Supplier'}</span>
-                                </>
-                              ) : t.transactionType === 'ISSUE' ? (
-                                <>
-                                  <span>Destination</span>
-                                  <span className="text-text-primary font-semibold truncate max-w-[180px]">{t.toEntityName || 'Store'}</span>
-                                </>
-                              ) : t.transactionType === 'RETURN' ? (
-                                <>
-                                  <span>Returned From</span>
-                                  <span className="text-text-primary font-semibold truncate max-w-[180px]">{t.fromEntityName || 'Store'}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span>Location</span>
-                                  <span className="text-text-primary font-semibold truncate max-w-[180px]">{t.fromEntityName || 'Warehouse'}</span>
-                                </>
-                              )}
-                            </div>
-
-                            {t.notes && (
-                              <p className="text-[10px] text-text-muted italic border-t border-border/20 pt-1.5 mt-0.5">
-                                {t.notes}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+          ) : (
+            <>
+              {/* Top Product Pagination */}
+              {totalProductPages > 1 && (
+                <div className="flex items-center justify-between px-3 py-2 border border-border bg-surface-elevated/20 text-[10px] mb-2 rounded-lg print:hidden">
+                  <span className="text-text-muted">
+                    Showing <strong className="text-text-primary">{productPage * itemsPerPage + 1}</strong> to{" "}
+                    <strong className="text-text-primary">
+                      {Math.min((productPage + 1) * itemsPerPage, filteredProducts.length)}
+                    </strong> of{" "}
+                    <strong className="text-text-primary">{filteredProducts.length}</strong> items
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={productPage === 0}
+                      onClick={() => setProductPage(prev => Math.max(0, prev - 1))}
+                      className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
+                    >
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      disabled={productPage === totalProductPages - 1}
+                      onClick={() => setProductPage(prev => Math.min(totalProductPages - 1, prev + 1))}
+                      className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
+                    >
+                      Next
+                    </button>
                   </div>
-                ))
+                </div>
               )}
-            </div>
 
-            {/* Logs Pagination Controls */}
-            {totalLogPages > 1 && (
-              <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-surface-elevated/20 text-[10px] flex-shrink-0 mt-4 rounded-lg">
-                <span className="text-text-muted">
-                  Showing <strong className="text-text-primary">{logPage * itemsPerPage + 1}</strong> to{" "}
-                  <strong className="text-text-primary">
-                    {Math.min((logPage + 1) * itemsPerPage, filteredTransactions.length)}
-                  </strong> of{" "}
-                  <strong className="text-text-primary">{filteredTransactions.length}</strong> logs
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    disabled={logPage === 0}
-                    onClick={() => setLogPage(prev => Math.max(0, prev - 1))}
-                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
-                  >
-                    Prev
-                  </button>
-                  <button
-                    type="button"
-                    disabled={logPage === totalLogPages - 1}
-                    onClick={() => setLogPage(prev => Math.min(totalLogPages - 1, prev + 1))}
-                    className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
-                  >
-                    Next
-                  </button>
-                </div>
+              {/* Mobile Card View */}
+              <div className="md:hidden flex flex-col gap-3">
+                {paginatedProducts.map(p => {
+                  const stock = computeProductStock(p);
+                  return (
+                    <div key={p.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {p.imageUrl ? (
+                            <img src={getOptimizedImageUrl(p.imageUrl, 80, 80)} alt={p.name} className="w-10 h-10 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })} />
+                          ) : (
+                            <div className="w-10 h-10 rounded-sm bg-primary/5 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold border border-primary/10">{p.name.substring(0, 2).toUpperCase()}</div>
+                          )}
+                          <div className="min-w-0">
+                            <span className="font-semibold text-sm text-text-primary block truncate">{p.name}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] text-text-muted font-mono">{p.itemCode || '---'}</span>
+                              <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${p.isSerialized ? 'bg-primary/10 text-primary' : 'bg-surface-elevated text-text-secondary'}`}>{p.category || 'Bulk'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{stock.total}</span>
+                      </div>
+                      <StockBreakdown stock={stock} compact />
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-border">
+                  <thead>
+                    <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+                      <SortableHeader field="name" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">Item Description</SortableHeader>
+                      <SortableHeader field="itemCode" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap">Item Code</SortableHeader>
+                      <SortableHeader field="category" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="pb-2.5 px-3 whitespace-nowrap">Item Category</SortableHeader>
+                      <SortableHeader field="purchased" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Purchased / Received</SortableHeader>
+                      <SortableHeader field="warehouse" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Available In Warehouse</SortableHeader>
+                      <SortableHeader field="issued" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Issued</SortableHeader>
+                      <SortableHeader field="used" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Used</SortableHeader>
+                      <SortableHeader field="damage" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-danger">Damage</SortableHeader>
+                      <SortableHeader field="lost" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-danger">Lost / Not Found</SortableHeader>
+                      <SortableHeader field="withClient" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-primary">With Client</SortableHeader>
+                      <SortableHeader field="reBrand" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap text-secondary">Re Brand</SortableHeader>
+                      <SortableHeader field="total" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap font-bold">Total</SortableHeader>
+                      <SortableHeader field="stockStatus" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="pb-2.5 px-3 whitespace-nowrap">Stock Status</SortableHeader>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border text-xs text-text-primary">
+                    {paginatedProducts.map(p => {
+                      const stock = computeProductStock(p);
+                      return (
+                        <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
+                          <td className="py-3 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">
+                            <div className="flex items-center gap-3">
+                              {p.imageUrl ? (
+                                <img 
+                                  src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
+                                  alt={p.name} 
+                                  className="w-8 h-8 rounded-sm object-cover border border-border cursor-pointer hover:border-primary transition-all flex-shrink-0"
+                                  onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
+                                  onError={(e) => {
+                                    if (e.target.src !== p.imageUrl) {
+                                      e.target.src = p.imageUrl;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-sm bg-primary/5 text-primary flex items-center justify-center font-display font-extrabold text-[10px] border border-primary/10 flex-shrink-0">
+                                  {p.name.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold text-text-primary truncate">{p.name}</span>
+                                {p.isSerialized && (
+                                  <span className="text-[10px] font-semibold text-primary mt-0.5">
+                                    <QrCode size={10} className="inline mr-1"/>
+                                    {p.category?.toUpperCase().includes('ROUTER') ? 'Router' : 'SIM'} ({p._count?.serialNumbers || 0})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <code className="text-[10px] bg-surface-elevated px-1.5 py-0.5 rounded border border-border">{p.itemCode || '---'}</code>
+                          </td>
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase
+                              ${p.isSerialized ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface-elevated text-text-secondary border border-border'}
+                            `}>
+                              {p.category || 'Bulk'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.purchased}</td>
+                          <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.warehouse}</td>
+                          <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.issued}</td>
+                          <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap">{stock.used}</td>
+                          <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.damage}</td>
+                          <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-danger">{stock.lost}</td>
+                          <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-primary">{stock.withClient}</td>
+                          <td className="py-3 px-3 text-center font-mono font-semibold whitespace-nowrap text-secondary">{stock.reBrand}</td>
+                          <td className="py-3 px-3 text-center font-mono font-bold whitespace-nowrap">{stock.total}</td>
+                          <td className="py-3 px-3 text-center whitespace-nowrap">
+                            {p.stockCap ? (
+                              stock.warehouse <= 0 ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-danger/10 text-danger border border-danger/20 rounded-full font-mono">
+                                  Out
+                                </span>
+                              ) : stock.warehouse < p.stockCap ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-warning/10 text-warning border border-warning/20 rounded-full font-mono animate-pulse">
+                                  Low
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold bg-success/10 text-success border border-success/20 rounded-full font-mono">
+                                  Ok
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-text-muted text-[10px]">---</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Product Pagination Controls */}
+              {totalProductPages > 1 && (
+                <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-surface-elevated/20 text-[10px] mt-2 rounded-lg">
+                  <span className="text-text-muted">
+                    Showing <strong className="text-text-primary">{productPage * itemsPerPage + 1}</strong> to{" "}
+                    <strong className="text-text-primary">
+                      {Math.min((productPage + 1) * itemsPerPage, filteredProducts.length)}
+                    </strong> of{" "}
+                    <strong className="text-text-primary">{filteredProducts.length}</strong> items
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={productPage === 0}
+                      onClick={() => setProductPage(prev => Math.max(0, prev - 1))}
+                      className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
+                    >
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      disabled={productPage === totalProductPages - 1}
+                      onClick={() => setProductPage(prev => Math.min(totalProductPages - 1, prev + 1))}
+                      className="px-2 py-1 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-md font-semibold transition-colors duration-150"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
       </div>
 

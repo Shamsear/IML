@@ -56,7 +56,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
     const dispatched = [];
     const returned = [];
     (transactions || []).forEach(tx => {
-      const isFromClient = ((tx.fromEntityType === 'BRAND' || tx.fromEntityType === 'CLIENT') && tx.toEntityType === 'WAREHOUSE') || tx.transactionType === 'RETURN';
+      const isFromClient = ((tx.fromEntityType === 'BRAND' || tx.fromEntityType === 'CLIENT') && tx.toEntityType === 'WAREHOUSE') || tx.transactionType === 'RETURN' || tx.transactionType === 'CLIENT_RETURN';
       if (isFromClient) {
         returned.push(tx);
       } else {
@@ -71,7 +71,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
     const groups = {};
     txs.forEach(tx => {
       if (tx.deliveryNote) {
-        const isFromClient = ((tx.fromEntityType === 'BRAND' || tx.fromEntityType === 'CLIENT') && tx.toEntityType === 'WAREHOUSE') || tx.transactionType === 'RETURN';
+        const isFromClient = ((tx.fromEntityType === 'BRAND' || tx.fromEntityType === 'CLIENT') && tx.toEntityType === 'WAREHOUSE') || tx.transactionType === 'RETURN' || tx.transactionType === 'CLIENT_RETURN';
         const direction = isFromClient ? 'fromClient' : 'toClient';
         const brandId = isFromClient ? tx.fromEntityId : tx.toEntityId;
         const key = `${tx.deliveryNote}_${brandId || 'unknown'}_${direction}`;
@@ -320,6 +320,9 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
 
   // Shared flat transaction table component
   function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilter, selectedBrandId, setSelectedBrandId }) {
+    const [flatPage, setFlatPage] = useState(1);
+    const itemsPerPage = 25;
+
     const customGetters = useMemo(() => ({
       product: (tx) => tx.product?.name || '',
       date: (tx) => tx.timestamp,
@@ -336,6 +339,23 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
       handleSort,
     } = useTableSort(txs, 'date', 'desc', customGetters);
 
+    const totalFlatPages = Math.ceil(sortedItems.length / itemsPerPage);
+    const paginatedFlatItems = useMemo(() => {
+      const start = (flatPage - 1) * itemsPerPage;
+      return sortedItems.slice(start, start + itemsPerPage);
+    }, [sortedItems, flatPage, itemsPerPage]);
+
+    const getGatePassEndpoint = (tx) => {
+      const isReturn = ['CLIENT_RETURN', 'RETURN'].includes(tx.transactionType) ||
+                       (tx.deliveryNote && (
+                         tx.deliveryNote.startsWith('RET-') ||
+                         tx.deliveryNote.startsWith('RTN-') ||
+                         tx.deliveryNote.startsWith('CRN-') ||
+                         tx.deliveryNote.startsWith('CRR-')
+                       ));
+      return isReturn ? 'return-gate-pass' : 'gate-pass';
+    };
+
     return (
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface border border-border p-4 rounded-xl shadow-sm">
@@ -346,26 +366,43 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
               placeholder="Search product name, SKU code..."
               className="w-full bg-surface-elevated text-text-primary placeholder:text-text-muted border border-border rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary font-medium"
               value={productFilter}
-              onChange={(e) => setProductFilter(e.target.value)}
+              onChange={(e) => {
+                setProductFilter(e.target.value);
+                setFlatPage(1);
+              }}
             />
           </div>
           <div className="col-span-1">
             <CustomSelect
               options={brandOptions}
               value={selectedBrandId}
-              onChange={setSelectedBrandId}
+              onChange={(val) => {
+                setSelectedBrandId(val);
+                setFlatPage(1);
+              }}
             />
           </div>
         </div>
 
+        {totalFlatPages > 1 && (
+          <Pagination
+            currentPage={flatPage}
+            totalPages={totalFlatPages}
+            totalItems={sortedItems.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setFlatPage}
+            itemLabel="transactions"
+          />
+        )}
+
         {/* Mobile Card View */}
         <div className="md:hidden flex flex-col gap-3">
-          {sortedItems.length === 0 ? (
+          {paginatedFlatItems.length === 0 ? (
             <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-muted text-xs shadow-sm">
               No matching transactions found.
             </div>
           ) : (
-            sortedItems.map((tx) => {
+            paginatedFlatItems.map((tx) => {
               const dateObj = new Date(tx.timestamp);
               const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
               return (
@@ -383,7 +420,16 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
                     {tx.deliveryNote ? (
-                      <span className="text-primary font-mono font-bold">Gate Pass: {tx.deliveryNote}</span>
+                      <a
+                        href={`/api/dashboard/client-returns/${getGatePassEndpoint(tx)}?dn=${encodeURIComponent(tx.deliveryNote)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-mono font-bold inline-flex items-center gap-1"
+                        title="View / Download Gate Pass PDF"
+                      >
+                        <span>Gate Pass: {tx.deliveryNote}</span>
+                        <ExternalLink size={10} className="inline opacity-70" />
+                      </a>
                     ) : (
                       <span className="text-text-muted">Direct Transaction</span>
                     )}
@@ -416,14 +462,14 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {sortedItems.length === 0 ? (
+              {paginatedFlatItems.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
                     No matching transactions found.
                   </td>
                 </tr>
               ) : (
-                sortedItems.map((tx) => {
+                paginatedFlatItems.map((tx) => {
                   const dateObj = new Date(tx.timestamp);
                   const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
                   const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -437,7 +483,22 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                       <td className="py-3 px-4 font-semibold whitespace-nowrap text-text-secondary">
                         {formattedDate} <span className="text-[10px] font-normal block mt-0.5">{formattedTime}</span>
                       </td>
-                      <td className="py-3 px-4 font-mono font-bold uppercase text-[11px] whitespace-nowrap">{tx.deliveryNote || '—'}</td>
+                      <td className="py-3 px-4 font-mono font-bold uppercase text-[11px] whitespace-nowrap">
+                        {tx.deliveryNote ? (
+                          <a
+                            href={`/api/dashboard/client-returns/${getGatePassEndpoint(tx)}?dn=${encodeURIComponent(tx.deliveryNote)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-1"
+                            title="View / Download Gate Pass PDF"
+                          >
+                            <span>{tx.deliveryNote}</span>
+                            <ExternalLink size={10} className="inline opacity-70" />
+                          </a>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
                       <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
                       <td className="py-3 px-4 text-text-secondary font-medium max-w-xs truncate">{tx.notes || '—'}</td>
@@ -457,6 +518,17 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
             </tbody>
           </table>
         </div>
+
+        {totalFlatPages > 1 && (
+          <Pagination
+            currentPage={flatPage}
+            totalPages={totalFlatPages}
+            totalItems={sortedItems.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setFlatPage}
+            itemLabel="transactions"
+          />
+        )}
       </div>
     );
   }
