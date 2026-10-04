@@ -36,7 +36,7 @@ export async function GET(request) {
           ...(cleanBrandId ? { product: { brandId: cleanBrandId } } : {})
         },
         include: {
-          product: { include: { supplier: true, brand: true } },
+          product: { include: { brand: true } },
           serialNumbers: { include: { serialNumber: true } },
           deliverySupervisor: true
         },
@@ -57,7 +57,7 @@ export async function GET(request) {
           ...(cleanBrandId ? { product: { brandId: cleanBrandId } } : {})
         },
         include: {
-          product: { include: { supplier: true, brand: true } },
+          product: { include: { brand: true } },
           serialNumbers: { include: { serialNumber: true } },
           deliverySupervisor: true
         },
@@ -105,7 +105,7 @@ export async function GET(request) {
     }
 
     const receiverName = txs.find(t => t.receivedBy)?.receivedBy || (storeName ? `${storeName} In-charge` : '');
-    const supplierName = txs[0]?.product?.supplier?.name || '';
+    const supplierName = txs.find(t => t.fromEntityType === 'SUPPLIER')?.fromEntityId || '';
     const notes = txs[0]?.notes?.split(' | ')[0] || '';
 
     // Group items by product

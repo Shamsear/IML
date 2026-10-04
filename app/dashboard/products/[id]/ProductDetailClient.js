@@ -487,7 +487,7 @@ export default function ProductDetailClient({ product }) {
                       <td className="py-2 pr-4 font-mono text-text-secondary text-[10px]">{s.secondaryBarcode || '---'}</td>
                     )}
                     <td className="py-2 pr-4">{serialStatusBadge(s.status)}</td>
-                    <td className="py-2 pr-4 text-text-secondary">{s.currentLocationType || '---'}</td>
+                    <td className="py-2 pr-4 text-text-secondary">{formatEntity(s.currentLocationType, s.currentLocationId)}</td>
                     <td className="py-2 pr-4 text-text-secondary text-[10px]">
                       {s.manufactureDate ? new Date(s.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
                     </td>
@@ -563,8 +563,8 @@ export default function ProductDetailClient({ product }) {
                       {new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="py-2 pr-4">{txTypeBadge(tx.transactionType)}</td>
-                    <td className="py-2 pr-4 text-text-secondary">{tx.fromEntityType || '---'}</td>
-                    <td className="py-2 pr-4 text-text-secondary">{tx.toEntityType || '---'}</td>
+                    <td className="py-2 pr-4 text-text-secondary font-medium">{formatEntity(tx.fromEntityType, tx.fromEntityId)}</td>
+                    <td className="py-2 pr-4 text-text-secondary font-medium">{formatEntity(tx.toEntityType, tx.toEntityId)}</td>
                     <td className="py-2 pr-4 font-mono font-bold">{tx.quantity}</td>
                     {product.trackExpiry && (
                       <td className="py-2 pr-4 text-text-secondary text-[10px]">
