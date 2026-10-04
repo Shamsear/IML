@@ -919,7 +919,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                   options={[
                     { value: 'STANDS', label: 'STANDS' },
                     { value: 'SIMS', label: 'SIMS' },
-                    { value: 'UNIFORMS', label: 'UNIFORMS' },
+                    { value: 'UNIFORM', label: 'UNIFORM' },
                     { value: 'GIFTS', label: 'GIFTS' },
                   ]}
                   onChange={(val) => { if (val) handleBulkUpdate({ category: val }); }}

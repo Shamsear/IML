@@ -194,7 +194,9 @@ export async function createProduct(formData) {
   const name = formData.get('name');
   const brandId = formData.get('brandId');
   const itemCode = formData.get('itemCode') || null;
-  const category = formData.get('category') || null;
+  const rawCategory = formData.get('category') || null;
+  const isUniformCat = rawCategory && (rawCategory.toUpperCase() === 'UNIFORM' || rawCategory.toUpperCase() === 'UNIFORMS');
+  const category = isUniformCat ? 'UNIFORM' : rawCategory;
   const imageFile = formData.get('imageFile');
   let imageUrl = formData.get('imageUrl') || null;
 
@@ -203,8 +205,8 @@ export async function createProduct(formData) {
     if (savedPath) imageUrl = savedPath;
   }
 
-  const isReturnable = formData.get('isReturnable') === 'true';
-  const isDisposable = formData.get('isDisposable') === 'true';
+  const isReturnable = isUniformCat ? true : (formData.get('isReturnable') === 'true');
+  const isDisposable = isUniformCat ? false : (formData.get('isDisposable') === 'true');
   const trackExpiry = formData.get('trackExpiry') === 'true';
   const isPublic = formData.get('isPublic') === 'true';
   const isSerialized = formData.get('isSerialized') === 'true';
@@ -377,7 +379,9 @@ export async function updateProduct(id, formData) {
   const name = formData.get('name');
   const brandId = formData.get('brandId');
   const itemCode = formData.get('itemCode') || null;
-  const category = formData.get('category') || null;
+  const rawCategory = formData.get('category') || null;
+  const isUniformCat = rawCategory && (rawCategory.toUpperCase() === 'UNIFORM' || rawCategory.toUpperCase() === 'UNIFORMS');
+  const category = isUniformCat ? 'UNIFORM' : rawCategory;
   const size = formData.get('size') || null;
   const imageFile = formData.get('imageFile');
   let imageUrl = formData.get('imageUrl') || null;
@@ -387,8 +391,8 @@ export async function updateProduct(id, formData) {
     if (savedPath) imageUrl = savedPath;
   }
 
-  const isReturnable = formData.get('isReturnable') === 'true';
-  const isDisposable = formData.get('isDisposable') === 'true';
+  const isReturnable = isUniformCat ? true : (formData.get('isReturnable') === 'true');
+  const isDisposable = isUniformCat ? false : (formData.get('isDisposable') === 'true');
   const trackExpiry = formData.get('trackExpiry') === 'true';
   const isPublic = formData.get('isPublic') === 'true';
   const isSerialized = formData.get('isSerialized') === 'true';
@@ -1079,6 +1083,7 @@ export async function createBulkProducts(formData) {
       }
 
       // 1. Create Product
+      const isUniformCat = item.category && (item.category.toUpperCase() === 'UNIFORM' || item.category.toUpperCase() === 'UNIFORMS');
       const isSerialized = item.productType !== 'NORMAL' && item.productType !== 'UNIFORM';
       const prod = await tx.product.create({
         data: {
@@ -1086,12 +1091,13 @@ export async function createBulkProducts(formData) {
           name: formattedName,
           brandId: item.brandId,
           itemCode: itemCodeToSave,
-          category: item.category || 'Stands',
+          category: isUniformCat ? 'UNIFORM' : (item.category || 'Stands'),
           size: item.size || null,
           imageUrl: item.imageUrl || null,
           rack: item.rack || null,
           shelf: item.shelf || null,
-          isReturnable: !!item.isReturnable,
+          isReturnable: isUniformCat ? true : !!item.isReturnable,
+          isDisposable: isUniformCat ? false : !!item.isDisposable,
           trackExpiry: !!item.trackExpiry,
           isPublic: item.isPublic !== false,
           isSerialized,

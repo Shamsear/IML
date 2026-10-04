@@ -209,7 +209,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
 
   // Filtering helpers for custom suggestions dropdowns
   const getFilteredCategories = (query) => {
-    const list = ['Stands', 'Uniforms', 'Gifts', 'Disposables', ...existingCategories];
+    const list = ['Stands', 'UNIFORM', 'Gifts', 'Disposables', ...existingCategories];
     const unique = Array.from(new Set(list));
     if (!query) return unique;
     return unique.filter(c => c.toLowerCase().includes(query.toLowerCase()));
@@ -281,6 +281,15 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
       if (i !== idx) return item;
       const updated = { ...item, [field]: value };
       
+      if (field === 'category') {
+        const catUpper = String(value || '').toUpperCase();
+        if (catUpper === 'UNIFORM' || catUpper === 'UNIFORMS') {
+          updated.category = 'UNIFORM';
+          updated.isReturnable = true;
+          updated.isDisposable = false;
+        }
+      }
+
       // Auto-category helpers
       if (field === 'productType') {
         if (value === 'SIM') {

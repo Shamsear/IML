@@ -908,6 +908,7 @@ export async function createBulkReceiveTransactions(formData) {
             itemCodeToSave = await generateSkuCode(tx, bName, prodCategory || 'General');
           }
 
+          const isUniformCat = prodCategory && (prodCategory.toUpperCase() === 'UNIFORM' || prodCategory.toUpperCase() === 'UNIFORMS');
           const isSerialized = (prodType === 'SIM' || prodType === 'ROUTER' || item.isSerialized === true);
           product = await tx.product.create({
             data: {
@@ -915,14 +916,14 @@ export async function createBulkReceiveTransactions(formData) {
               name: formattedName,
               isSerialized,
               brandId: prodBrandId,
-              category: prodCategory || 'General',
+              category: isUniformCat ? 'UNIFORM' : (prodCategory || 'General'),
               size: prodSize || null,
               itemCode: itemCodeToSave,
               rack: prodRack || null,
               shelf: prodShelf || null,
               stockCap: prodLowStockAlert ? parseInt(prodLowStockAlert, 10) : null,
-              isReturnable: !!prodIsReturnable,
-              isDisposable: !!prodIsDisposable,
+              isReturnable: isUniformCat ? true : !!prodIsReturnable,
+              isDisposable: isUniformCat ? false : !!prodIsDisposable,
               trackExpiry: !!prodTrackExpiry,
               imageUrl,
             }

@@ -1,0 +1,125 @@
+=== SHEET: SUMMARY (133 rows) ===
+Row 1: Item category | Available Qty | Stock Cap | Stock Level | Remarks
+Row 2: PROMOTIONAL STAND | 97 |  |  | 
+Row 4: Sadia Promotional Stand (1*1) - Mortadella | 17 | 19 | LOW | 3 Full Damage (Skirt Broken)
+Row 5: Sadia Promotional Stand (DCC) - Generic - Wooden | 1 | 0 | AVAILABLE | 
+Row 6: Sadia Promotional Stand (DCC) - Generic | 0 | 0 | NOT AVAILABLE | Stand Rebranded For Genric on 20-5-25 + 1 Full Damage (Skirt Broken)
+Row 7: Sadia Promotional Stand (1*1) - Generic | 3 | 0 | AVAILABLE | 7 Full Damage (Skirt Broken)
+Row 8: Sadia Promotional Stand (1*1) - Ramadan Like a pro | 0 |  | NOT AVAILABLE | 7 Stand Damage
+Row 9: Sadia Promotional Stand  - Ramadan Like a pro DCC Stand | 0 |  | NOT AVAILABLE | 8 Full Damage (Skirt Broken)
+Row 10: Sadia Promotional Stand (1*1) - For Union Coop | 0 | 0 | NOT AVAILABLE | Stand Rebranded For Genric on 5-2-28 + 4 Stand Full Damage (Skirt Broken)
+Row 11: Sadia Promotional Stand (1*1) - For LULU New Dec 2024 | 0 | 0 | NOT AVAILABLE | Stand Rebranded For Genric on 5-2-28 + 1 Stand Damage
+Row 12: Sadia Promotional Stand (1*1) - For Nesto | 0 | 0 | NOT AVAILABLE | 4 Damage (Trays Damage) + Stand Rebranded for Union Coop) + + 4 Stand Damage
+Row 13: Sadia Promotional DCC Stand  New 2025 | 0 |  | NOT AVAILABLE | Rebranded
+Row 14: Sadia Promotional DCC Stand | 0 | 0 | NOT AVAILABLE | 1 Damage
+Row 15: Sadia Promotional Stand (1*1)  Carrefour | 0 | 0 | NOT AVAILABLE | Stand Rebranded (For Mortadella)
+Row 16: Sadia Wooden Chef Stand | 0 | 0 | NOT AVAILABLE | Send For Rebrand
+Row 17: Sadia Promotional Stand (1*1) "Back to School" English | 0 | 0 | NOT AVAILABLE | Stands rebranded For carrefour&For Generic) + 6 Full Damage (Skirt Broken)
+Row 18: Sadia Promotional Stand (1*1) "Back to School" Arabic | 0 | 0 | NOT AVAILABLE | Stands rebranded For LULU Nov-Dec, Union Coop &Mortadella)
+Row 19: Sadia Promotional Stand (1*1) "Back to School" Carrefour 2025 | 0 |  | NOT AVAILABLE | 1 Full Damage (Skirt Broken)
+Row 20: Sadia Promotional Stand (1*1) "Back to School" (Coop) Arabic  2025 | 0 |  | NOT AVAILABLE | 1 Full Damage (Skirt Broken)
+Row 21: Sadia Promotional Stand (1*1) "Back to School" English 2025 | 0 |  | NOT AVAILABLE | 2 Full Damage (Skirt Broken)
+Row 22: Sadia Promotional Stand (1*1) "Back to School" Carrefour 2025 (DCC) | 0 |  | NOT AVAILABLE | 1 Stand Damage
+Row 23: Sadia Promotional Stand (1*1) - Generic New 2025 | 13 |  | AVAILABLE | 1 Full Damage (Skirt Broken)
+Row 24: Sadia Promotional Stand (1*1) - Generic New 2025 (Buy Scan & Win) | 0 |  | NOT AVAILABLE | 10 Full Damage (Skirt Broken)
+Row 25: Sadia Promotional Stand (1*1) "1000 Carrefour Voucher" 2025 (DCC) | 0 |  | NOT AVAILABLE | 
+Row 26: Sadia Promotional Stand (1*1) "1000 Carrefour Voucher" 2025 | 0 |  | NOT AVAILABLE | 1 Full Damage (Skirt Broken)
+Row 27: Sadia Promotional Stand (1*1) "Win Big With Sadia" 2025 | 0 |  | NOT AVAILABLE | 
+Row 28: Sadia Promotional Stand (1*1) "Buy Scan & Win (Lulu)" 2025 | 0 |  | NOT AVAILABLE | 2 Full Damage (Skirt Broken)
+Row 29: Sadia Promotional Stand (1*1) "30 Days, 30Winner, 30 Iphones (Union Coops)" 2025 | 0 |  | NOT AVAILABLE | 1 Full Damage (Skirt Broken/Header Missing)
+Row 30: 2x2m chef stand | 0 |  | NOT AVAILABLE | 
+Row 31: Sadia Promotional Stand (1*1) " Savor Every Day With Sadia 2025 | 0 |  | NOT AVAILABLE | 
+Row 32: Sadia Promotional Stand (1*1) - Ramadan 2026 | 0 |  | NOT AVAILABLE | 14 Full Damage (Skirt Broken)
+Row 33: Sadia Promotional Stand (1*1) - Ramadan 2026 DCC Size | 0 |  | NOT AVAILABLE | 
+Row 34: Sadia Promotional Stand (1*1) - New Look April 2026 | 60 |  | AVAILABLE | 5 Full Damage (Skirt Broken)
+Row 35: Sadia Promotional Stand (1*1) - New Look April 2026 DCC Size | 1 |  | AVAILABLE | 
+Row 36: Sadia Display Stand | 1 |  | AVAILABLE | 
+Row 37: Mixed Stand For Rebranding | 0 |  | NOT AVAILABLE | 
+Row 38: Mixed Stand For Rebranding DCC Size | 1 |  | AVAILABLE | 
+Row 39: Sadia Rollup Banner | 1 |  | AVAILABLE | 
+Row 40: Sadia Promotional Stand (1*1) - Back To School "AED 40 2026" | 46 |  | AVAILABLE | 
+Row 41: Sadia Promotional Stand (1*1) - Back To School "C4 AED 35 2026" | 9 |  | AVAILABLE | 
+Row 42: Sadia Promotional Stand (1*1) - Back To School "C4 AED 35 DCC Size 2026" | 1 |  | AVAILABLE | 
+Row 43: PROMOTIONAL STAND HEADERS | 44 |  |  | 
+Row 45: Sadia logo Broast Headers  - (For Generic stand) | 6 | 0 | AVAILABLE | 1 Damage
+Row 46: Sadia logo Shawarama Headers - (For Generic stand) | 35 | 0 | AVAILABLE | 1 Damage
+Row 47: Sadia logo Broast Headers  - (DCC) | 2 |  | AVAILABLE | 
+Row 48: Sadia logo Shawarma Headers  - (DCC) | 1 |  | AVAILABLE | 
+Row 49: Sadia logo Broast Headers  - (New 2025) | 0 |  | NOT AVAILABLE | 1 Damage
+Row 50: OTHERS | 2490 |  |  | 
+Row 52: Sadia Acrylic A4 size | 60 | 16 | AVAILABLE | 
+Row 53: Giveaway Bags | 0 |  | NOT AVAILABLE | 
+Row 54: Magnetic board | 40 |  | AVAILABLE | 
+Row 55: Giveaway Bags New Design 2025 | 0 |  | NOT AVAILABLE | 
+Row 56: Giveaway Bags (Yellow) 2026 | 2211 |  | AVAILABLE | 
+Row 57: Sadia Branded Freezer | 0 |  | NOT AVAILABLE | 
+Row 58: Table | 1 |  | AVAILABLE | 
+Row 59: Stand Trays | 113 |  | AVAILABLE | 
+Row 60: Stand Bags | 65 |  | AVAILABLE | 
+Row 61: UNIFORM HEADWEAR | 365 |  |  | 
+Row 63: Sadia Logo Cap "Print 1" | 239 | 51 | AVAILABLE | 
+Row 64: Sadia Logo Cap "Yellow" | 109 |  | AVAILABLE | 
+Row 65: Abaya Shela | 10 | 2 | AVAILABLE | 
+Row 66: Chef Hats | 7 | 2 | AVAILABLE | 
+Row 67: UNIFORM CLOTHING/APPAREL | 503 |  |  | 
+Row 69: Sadia Logo Apron | 16 | 4 | AVAILABLE | 
+Row 70: Sadia Logo T Shirts "Extra Small" | 7 | 16 | LOW | 12 Damage ( damaged / stained / worn out)
+Row 71: Sadia Logo T Shirts "Small" | 35 | 11 | AVAILABLE | 11  Damage ( damaged / stained / worn out)
+Row 72: Sadia Logo T Shirts "Medium" | 58 | 31 | AVAILABLE | 46  Damage ( damaged / stained / worn out)
+Row 73: Sadia Logo T Shirts "Large" | 62 | 33 | AVAILABLE | 33  Damage ( damaged / stained / worn out)
+Row 74: Sadia Logo T Shirts "Extra Large" | 45 | 24 | AVAILABLE | 31  Damage ( damaged / stained / worn out)
+Row 75: Sadia Logo T Shirts "XXL" | 36 | 13 | AVAILABLE | 5  Damage ( damaged / stained / worn out)
+Row 76: Chef Coat | 4 | 2 | AVAILABLE | 
+Row 77: Abaya black plain "52 Size" | 4 | 1 | AVAILABLE | 
+Row 78: Abaya black plain "54 Size" | 4 | 1 | AVAILABLE | 
+Row 79: Abaya black plain "56 Size" | 2 | 1 | AVAILABLE | 
+Row 80: Sadia Logo T Shirts "Small" (Yellow) | 31 |  | AVAILABLE | 
+Row 81: Sadia Logo T Shirts "Medium" (Yellow) | 72 |  | AVAILABLE | 
+Row 82: Sadia Logo T Shirts "Large" (Yellow) | 75 |  | AVAILABLE | 
+Row 83: Sadia Logo T Shirts "Extra Large" (Yellow) | 36 |  | AVAILABLE | 
+Row 84: Sadia Logo T Shirts "XXL" (Yellow) | 16 |  | AVAILABLE | 1  Damage ( damaged / stained / worn out)
+Row 85: ELECTRONIC COOKING APPLIANCES | 276 |  |  | 
+Row 87: Geepas Deep Fryer | 29 | 39 | LOW | 4 fully damaged items (cannot be claimed under warranty). 7 Damage
+Row 88: Sanford Deep Fryer | 2 | 1 | AVAILABLE | 
+Row 89: Saachi Deep Fryer | 1 |  | AVAILABLE | 1 Damage
+Row 90: Rebune Deep Fryer | 0 |  | NOT AVAILABLE | All 4 damages can't be claimed under warranty
+Row 91: Geepas Silver Deep Fryer | 46 |  | AVAILABLE | 5 Damage
+Row 92: Clickon Deep Fryer | 0 | 1 | NOT AVAILABLE | 1 Damage
+Row 93: Moulinex Deep Fryer | 1 | 1 | AVAILABLE | 1 Damage  (can't be claimed under warranty)
+Row 94: Nutricook Air Fryer | 4 | 1 | AVAILABLE | 
+Row 95: Geepas Induction | 69 | 41 | AVAILABLE | 2 Broken Damage (Cant claim for warranty)
+Row 96: Geepas Griller | 73 | 41 | AVAILABLE | 4 Broken Damage (Cant claim for warranty)
+Row 97: Electric Extension (Mix designs) | 51 | 22 | AVAILABLE | 12 Damage
+Row 98: KITCHEN APPLIANCES | 464 |  |  | 
+Row 100: Fry Pans | 64 | 39 | AVAILABLE | 
+Row 101: Cooking Spoon (Mix designs) | 65 | 34 | AVAILABLE | 
+Row 102: Knife (Mix designs) | 56 | 8 | AVAILABLE | 
+Row 103: Hot Pot (Mix designs) | 81 | 27 | AVAILABLE | 
+Row 104: Wooden Cutting Board (Mix designs) | 62 | 9 | AVAILABLE | 
+Row 105: Tongs (Mix designs) | 79 | 16 | AVAILABLE | 
+Row 106: Dustbin with cover (Mix designs) | 57 | 4 | AVAILABLE | 
+Row 107: OTHER UTENSILS | 67670.25 |  |  | 
+Row 109: Napkin size 30*30 (40 Packs each case) | 111 | 300 | LOW | 
+Row 110: Kitchen Tissue (24 Rolls each case) | 79 | 250 | LOW | 
+Row 111: PE Gloves (100 Packs each case) | 125 | 250 | LOW | 
+Row 112: Vinyl Gloves  (Large Size) | 20 | 10 | AVAILABLE | 
+Row 113: Tooth Picks (Each Cs 144 Packs) | 278 | 150 | AVAILABLE | 
+Row 114: Bin Liner Bags (20 KG each case) 1kg around 40 bags | 40.25 | 20 | AVAILABLE | 
+Row 115: Aluminium container (1850 cc) | 444 | 200 | AVAILABLE | 
+Row 116: Cup cakes (9.5 cm) each roll 1000 Pcs | 66000 | 20000 | AVAILABLE | 
+Row 117: Superson Cooking & frying Oil (1.5 L*6) | 186 | 400 | LOW | 
+Row 118: Carrrefour Sun Flower Oil (1.5 L*6) | 0 |  | NOT AVAILABLE | 
+Row 119: Mumtaz Vegetable Oil (1.5 L*6) | 276 |  | AVAILABLE | 
+Row 120: Sadia Trays | 0 |  | NOT AVAILABLE | 
+Row 121: Sadia Flags | 0 |  | NOT AVAILABLE | 
+Row 122: Dishwashing Liquid 5ltr | 0 |  | NOT AVAILABLE | 
+Row 123: Sponge Scourer | 56 |  | AVAILABLE | 
+Row 124: Dishwashing Liquid | 55 | 20 | AVAILABLE | 
+Row 125: EXTRAS | 122 |  |  | 
+Row 127: Napkin Holder | 67 | 0 | AVAILABLE | 
+Row 128: Acrylic (Cooking/On Break) | 54 |  | AVAILABLE | 
+Row 129: Sadia Mascot | 0 |  | NOT AVAILABLE | Damage
+Row 130: Key chain | 0 |  | NOT AVAILABLE | 
+Row 131: Phone holder | 0 |  | NOT AVAILABLE | 
+Row 132: Plastic Bag Clip | 0 |  | NOT AVAILABLE | 
+Row 133: Sadia Mascot Set New | 1 | 0 | AVAILABLE | 

@@ -350,6 +350,15 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
       if (i !== idx) return item;
       const updated = { ...item, [field]: value };
       
+      if (field === 'prodCategory') {
+        const catUpper = String(value || '').toUpperCase();
+        if (catUpper === 'UNIFORM' || catUpper === 'UNIFORMS') {
+          updated.prodCategory = 'UNIFORM';
+          updated.prodIsReturnable = true;
+          updated.prodIsDisposable = false;
+        }
+      }
+
       // If product changes, reset quantity based on tracking type
       if (field === 'productId') {
         const prod = products.find(p => p.id === value);
@@ -934,7 +943,7 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   );
 
   const getFilteredCategories = (query) => {
-    const list = ['Stands', 'Uniforms', 'Gifts', 'Disposables', ...uniqueCategories];
+    const list = ['Stands', 'UNIFORM', 'Gifts', 'Disposables', ...uniqueCategories];
     const unique = Array.from(new Set(list));
     if (!query) return unique;
     return unique.filter(c => c.toLowerCase().includes(query.toLowerCase()));
