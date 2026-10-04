@@ -207,9 +207,18 @@ export default function RebrandLedgerClient({
 
   const getFromName = (tx) => getFromProductName(tx);
   const getToName = (tx) => getToProductName(tx);
-  const getDestinationName = (tx) => getToProductName(tx);
+  const isRevertedTx = (tx) => {
+    return tx.returnStatus === 'REVERTED' ||
+      (tx.deliveryNote && tx.deliveryNote.startsWith('REV-')) ||
+      (tx.notes && tx.notes.toLowerCase().includes('reverted rebrand'));
+  };
 
   const getTypeName = (tx) => {
+    if (isRevertedTx(tx)) {
+      if (tx.transactionType === 'REBRAND_IN') return 'REVERT IN (Gain)';
+      if (tx.transactionType === 'REBRAND_OUT') return 'REVERT OUT (Loss)';
+      return 'REVERTED';
+    }
     if (tx.transactionType === 'REBRAND_IN') return 'REBRAND IN (Gain)';
     if (tx.transactionType === 'REBRAND_OUT') return 'REBRAND OUT (Loss)';
     return 'REBRAND (Outbound)';
@@ -351,6 +360,11 @@ export default function RebrandLedgerClient({
     let pending = 0;
     let completed = 0;
     (transactions || []).forEach(tx => {
+      const isRev = isRevertedTx(tx);
+      if (isRev) {
+        completed++;
+        return;
+      }
       const isOut = tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND';
       const isIn = tx.transactionType === 'REBRAND_IN';
       const isDone = tx.returnStatus === 'COMPLETED' || tx.returnStatus === 'RETURNED' || isIn;
@@ -372,12 +386,16 @@ export default function RebrandLedgerClient({
   const filteredTransactions = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
     return transactions.filter((tx) => {
+      const isRev = isRevertedTx(tx);
+
       // Tab filter
       if (activeTab === 'PENDING') {
+        if (isRev) return false;
         const isOut = tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND';
         const isPending = !tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL';
         if (!isOut || !isPending) return false;
       } else if (activeTab === 'COMPLETED') {
+        if (isRev) return true;
         const isIn = tx.transactionType === 'REBRAND_IN';
         const isDone = tx.returnStatus === 'COMPLETED' || tx.returnStatus === 'RETURNED';
         if (!isIn && !isDone) return false;
@@ -700,7 +718,9 @@ export default function RebrandLedgerClient({
                 });
                 const isGain = tx.transactionType === 'REBRAND_IN';
                 const isOutbound = tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND';
-                const isPendingOrPartial = isOutbound && (!tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL');
+                const isReverted = isRevertedTx(tx);
+                const isPendingOrPartial = !isReverted && isOutbound && (!tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL');
+                const canRevert = !isReverted && !isPendingOrPartial && !tx.deliveryNote?.startsWith('REV-') && tx.returnStatus !== 'REVERTED';
 
                 return (
                   <div key={tx.id} className="p-4 flex flex-col gap-2.5 hover:bg-surface-elevated/20 transition-colors">
@@ -733,7 +753,9 @@ export default function RebrandLedgerClient({
                       )}
                       <span
                         className={`badge text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                          isGain
+                          isReverted
+                            ? 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+                            : isGain
                             ? 'bg-success/10 border-success/20 text-success'
                             : tx.transactionType === 'REBRAND_OUT'
                             ? 'bg-danger/10 border-danger/20 text-danger'
@@ -759,13 +781,15 @@ export default function RebrandLedgerClient({
                     <div className="flex items-center justify-between text-[11px] text-text-muted pt-1 border-t border-border/40 gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{dateStr}</span>
-                        {tx.returnStatus && (
+                        {(tx.returnStatus || isReverted) && (
                           <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
-                            tx.returnStatus === 'RETURNED' || tx.returnStatus === 'COMPLETED'
+                            tx.returnStatus === 'REVERTED' || isReverted
+                              ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                              : tx.returnStatus === 'RETURNED' || tx.returnStatus === 'COMPLETED'
                               ? 'bg-success/10 text-success border border-success/20'
                               : 'bg-warning/10 text-warning border border-warning/20'
                           }`}>
-                            {tx.returnStatus} ({tx.returnedQty || 0}/{tx.quantity})
+                            {tx.returnStatus === 'REVERTED' || isReverted ? 'REVERTED' : `${tx.returnStatus} (${tx.returnedQty || 0}/${tx.quantity})`}
                           </span>
                         )}
                       </div>
@@ -790,7 +814,7 @@ export default function RebrandLedgerClient({
                             <span>Give Back</span>
                           </Link>
                         )}
-                        {!isPendingOrPartial && tx.returnStatus !== 'REVERTED' && (
+                        {canRevert && (
                           <button
                             type="button"
                             onClick={() => handleOpenRevert(tx)}
@@ -847,7 +871,9 @@ export default function RebrandLedgerClient({
                     });
                     const isGain = tx.transactionType === 'REBRAND_IN';
                     const isOutbound = tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND';
-                    const isPendingOrPartial = isOutbound && (!tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL');
+                    const isReverted = isRevertedTx(tx);
+                    const isPendingOrPartial = !isReverted && isOutbound && (!tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL');
+                    const canRevert = !isReverted && !isPendingOrPartial && !tx.deliveryNote?.startsWith('REV-') && tx.returnStatus !== 'REVERTED';
 
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
@@ -888,7 +914,9 @@ export default function RebrandLedgerClient({
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span
                             className={`badge text-[10px] px-2 py-0.5 rounded font-bold ${
-                              isGain
+                              isReverted
+                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+                                : isGain
                                 ? 'bg-success/10 border-success/20 text-success'
                                 : tx.transactionType === 'REBRAND_OUT'
                                 ? 'bg-danger/10 border-danger/20 text-danger'
@@ -929,15 +957,15 @@ export default function RebrandLedgerClient({
                         </td>
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           <div className="inline-flex items-center justify-end gap-1.5">
-                            {tx.returnStatus && (
+                            {(tx.returnStatus || isReverted) && (
                               <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
-                                tx.returnStatus === 'REVERTED'
+                                tx.returnStatus === 'REVERTED' || isReverted
                                   ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
                                   : tx.returnStatus === 'RETURNED' || tx.returnStatus === 'COMPLETED'
                                   ? 'bg-success/10 text-success border border-success/20'
                                   : 'bg-warning/10 text-warning border border-warning/20'
                               }`}>
-                                {tx.returnStatus} {tx.returnStatus !== 'REVERTED' && `(${tx.returnedQty || 0}/${tx.quantity})`}
+                                {tx.returnStatus === 'REVERTED' || isReverted ? 'REVERTED' : `${tx.returnStatus} (${tx.returnedQty || 0}/${tx.quantity})`}
                               </span>
                             )}
                             {isPendingOrPartial && (
@@ -960,7 +988,7 @@ export default function RebrandLedgerClient({
                                 <span>Give Back</span>
                               </Link>
                             )}
-                            {!isPendingOrPartial && tx.returnStatus !== 'REVERTED' && (
+                            {canRevert && (
                               <button
                                 type="button"
                                 onClick={() => handleOpenRevert(tx)}

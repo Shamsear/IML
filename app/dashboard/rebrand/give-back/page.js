@@ -24,6 +24,7 @@ export default async function GiveBackPage({ searchParams }) {
     prisma.inventoryTransaction.findMany({
       where: {
         transactionType: { in: ['REBRAND', 'REBRAND_OUT'] },
+        deliveryNote: { not: { startsWith: 'REV-' } },
         OR: [
           { returnStatus: null },
           { returnStatus: 'PENDING' },

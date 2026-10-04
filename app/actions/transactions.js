@@ -194,7 +194,7 @@ export async function createTransaction(data) {
     deliveryNote: transaction.deliveryNote,
     destinationOrSource: toEntityId || fromEntityId,
     brandName: product.brand?.name,
-  }).catch(() => {});
+  });
 
   return transaction;
 }
@@ -751,14 +751,15 @@ export async function createBulkIssueTransactions(payload) {
 
   revalidateTransactionPaths();
 
+  const firstDn = transactions?.[0]?.deliveryNote || '';
   const totalQty = (items || []).reduce((acc, curr) => acc + parseFloat(curr.quantity || 0), 0);
   safeNotifyTransaction({
     type: 'ISSUE',
     productName: `${items?.length || 1} product item${(items?.length || 1) > 1 ? 's' : ''}`,
     quantity: totalQty,
-    deliveryNote: deliveryNote,
+    deliveryNote: firstDn,
     destinationOrSource: toEntityType === 'STORE' ? 'Store Location' : toEntityType || 'Client',
-  }).catch(() => {});
+  });
 
   return transactions;
 }
@@ -1004,14 +1005,15 @@ export async function createBulkReceiveTransactions(formData) {
 
   revalidateTransactionPaths();
 
+  const firstDn = transactions?.[0]?.deliveryNote || '';
   const totalQty = items.reduce((acc, curr) => acc + parseFloat(curr.quantity || 0), 0);
   safeNotifyTransaction({
     type: 'RECEIVE',
     productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
     quantity: totalQty,
-    deliveryNote: finalDeliveryNote,
+    deliveryNote: firstDn,
     destinationOrSource: fromEntityType === 'STORE' ? 'Store Return' : fromEntityId || 'Supplier',
-  }).catch(() => {});
+  });
 
   return transactions;
 }
@@ -1170,7 +1172,7 @@ export async function createBulkDamageTransactions(payload) {
     quantity: totalQty,
     destinationOrSource: fromEntityType === 'WAREHOUSE' ? 'Warehouse' : fromEntityId || fromEntityType,
     brandName,
-  }).catch(() => {});
+  });
 
   return transactions;
 }
@@ -2301,7 +2303,7 @@ export async function processOutboundReturns(returnsPayload) {
     productName: `${returnsPayload.length} product item${returnsPayload.length > 1 ? 's' : ''}`,
     quantity: returnsPayload.reduce((acc, curr) => acc + parseInt(curr.qty || 0, 10), 0),
     destinationOrSource: 'Store Location',
-  }).catch(() => {});
+  });
 
   return { success: true };
 }
@@ -3339,7 +3341,7 @@ export async function returnClientItemsToWarehouse(payload) {
     productName: `${items.length} product item${items.length > 1 ? 's' : ''}`,
     quantity: totalQty,
     brandName: brand?.name,
-  }).catch(() => {});
+  });
 
   return transactions;
 }
@@ -3603,6 +3605,8 @@ export async function revertRebrandTransaction({
           deliveryNote: revertDn,
           notes: `Reverted rebrand -> Restored ${revertQty} units back to ${sourceProduct.name} from ${dn || originalTx.id}.${userNotes}`,
           deliveryStatus: 'Delivered',
+          returnStatus: 'REVERTED',
+          returnedQty: revertQty,
         }
       });
     }
@@ -3618,6 +3622,8 @@ export async function revertRebrandTransaction({
         deliveryNote: revertDn,
         notes: `Reverted rebrand <- Restored ${revertQty} units from ${targetProduct?.name || 'converted product'} (${dn || originalTx.id}).${userNotes}`,
         deliveryStatus: 'Delivered',
+        returnStatus: 'REVERTED',
+        returnedQty: revertQty,
       }
     });
 
