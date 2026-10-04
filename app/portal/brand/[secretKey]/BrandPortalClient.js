@@ -15,7 +15,7 @@ export default function BrandPortalClient({ brand }) {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [summarySearch, setSummarySearch] = useState('');
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
-  const [collapsedSections, setCollapsedSections] = useState({});
+  const [expandedSections, setExpandedSections] = useState({}); // Default all collapsed
 
   // Pagination States for Catalog
   const [productPage, setProductPage] = useState(0);
@@ -143,18 +143,18 @@ export default function BrandPortalClient({ brand }) {
   }, [brand?.portalConfig, brand?.products, productMap, summarySearch]);
 
   const toggleSection = (sectionId) => {
-    setCollapsedSections(prev => ({
+    setExpandedSections(prev => ({
       ...prev,
       [sectionId]: !prev[sectionId]
     }));
   };
 
-  const toggleAllSections = (collapse) => {
+  const toggleAllSections = (expand) => {
     const next = {};
     summarySections.forEach(s => {
-      next[s.id] = collapse;
+      next[s.id] = expand;
     });
-    setCollapsedSections(next);
+    setExpandedSections(next);
   };
 
   // Extract unique categories for this brand
@@ -316,15 +316,15 @@ export default function BrandPortalClient({ brand }) {
               <div className="flex items-center gap-2 self-end sm:self-auto text-xs">
                 <button
                   type="button"
-                  onClick={() => toggleAllSections(false)}
-                  className="px-2.5 py-1.5 bg-surface-elevated/60 hover:bg-surface-elevated border border-border rounded-lg text-text-secondary font-semibold transition-colors"
+                  onClick={() => toggleAllSections(true)}
+                  className="px-2.5 py-1.5 bg-surface-elevated/60 hover:bg-surface-elevated border border-border rounded-lg text-text-secondary font-semibold transition-colors cursor-pointer"
                 >
                   Expand All
                 </button>
                 <button
                   type="button"
-                  onClick={() => toggleAllSections(true)}
-                  className="px-2.5 py-1.5 bg-surface-elevated/60 hover:bg-surface-elevated border border-border rounded-lg text-text-secondary font-semibold transition-colors"
+                  onClick={() => toggleAllSections(false)}
+                  className="px-2.5 py-1.5 bg-surface-elevated/60 hover:bg-surface-elevated border border-border rounded-lg text-text-secondary font-semibold transition-colors cursor-pointer"
                 >
                   Collapse All
                 </button>
@@ -338,17 +338,19 @@ export default function BrandPortalClient({ brand }) {
               </div>
             ) : (
               summarySections.map(section => {
-                const isCollapsed = !!collapsedSections[section.id];
+                const isExpanded = summarySearch.trim() ? true : !!expandedSections[section.id];
                 return (
                   <div key={section.id} className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden transition-all">
                     {/* Section Heading Bar */}
                     <button
                       type="button"
                       onClick={() => toggleSection(section.id)}
-                      className="w-full px-5 py-3.5 bg-surface-elevated/40 hover:bg-surface-elevated/70 border-b border-border flex items-center justify-between gap-3 text-left transition-colors cursor-pointer"
+                      className={`w-full px-5 py-3.5 bg-surface-elevated/40 hover:bg-surface-elevated/70 flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
+                        isExpanded ? 'border-b border-border' : ''
+                      }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {isCollapsed ? <ChevronRight size={16} className="text-text-muted shrink-0" /> : <ChevronDown size={16} className="text-primary shrink-0" />}
+                        {isExpanded ? <ChevronDown size={16} className="text-primary shrink-0" /> : <ChevronRight size={16} className="text-text-muted shrink-0" />}
                         <h3 className="font-display font-extrabold text-sm sm:text-base text-text-primary uppercase tracking-wide truncate">
                           {section.title}
                         </h3>
@@ -366,7 +368,7 @@ export default function BrandPortalClient({ brand }) {
                     </button>
 
                     {/* Section Items Table / Card Content */}
-                    {!isCollapsed && (
+                    {isExpanded && (
                       <div className="overflow-x-auto">
                         {section.items.length === 0 ? (
                           <div className="py-6 text-center text-xs text-text-muted italic">

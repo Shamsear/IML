@@ -11,6 +11,7 @@ import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useToast } from '@/components/Toast';
 import CustomSelect from '@/components/CustomSelect';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 
 export default function RebrandLedgerClient({
   transactions = [],
@@ -631,9 +632,7 @@ export default function RebrandLedgerClient({
 
                     <div className="flex items-center gap-2 flex-wrap text-xs text-text-secondary">
                       {tx.deliveryNote && (
-                        <span className="font-mono text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">
-                          {tx.deliveryNote}
-                        </span>
+                        <DeliveryNoteLink tx={tx} variant="badge" />
                       )}
                       <span
                         className={`badge text-[10px] px-1.5 py-0.5 rounded font-bold ${
@@ -764,13 +763,7 @@ export default function RebrandLedgerClient({
                           {dateStr}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs">
-                          {tx.deliveryNote ? (
-                            <span className="font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                              {tx.deliveryNote}
-                            </span>
-                          ) : (
-                            <span className="text-text-muted">---</span>
-                          )}
+                          <DeliveryNoteLink tx={tx} variant="badge" />
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap max-w-xs truncate">
                           <div className="flex flex-col">

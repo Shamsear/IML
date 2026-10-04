@@ -11,6 +11,7 @@ import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
 import SortableHeader from '@/components/SortableHeader';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import { useTableSort } from '@/hooks/useTableSort';
 
 export default function TransactionsClient({ 
@@ -307,7 +308,7 @@ export default function TransactionsClient({
                     {new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                   {tx.deliveryNote && (
-                    <span className="text-primary font-semibold font-mono">{tx.deliveryNote}</span>
+                    <DeliveryNoteLink tx={tx} />
                   )}
                 </div>
               </div>

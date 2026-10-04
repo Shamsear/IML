@@ -13,6 +13,7 @@ import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import CustomSelect from '@/components/CustomSelect';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 
 export default function UsedClient({ transactions = [], stores = [], pastUsed = [] }) {
   const router = useRouter();
