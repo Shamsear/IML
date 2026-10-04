@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft, Edit2 } from 'lucide-react';
+import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft, Edit2, ExternalLink } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
