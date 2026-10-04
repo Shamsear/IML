@@ -3,14 +3,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { RefreshCw, Plus, Search, X, Package, FileText, Store, RotateCcw, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { RefreshCw, Plus, Search, X, Package, FileText, Store, RotateCcw, AlertCircle, CheckCircle, Loader2, ArrowDownLeft, Clock, CheckCheck, Layers } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import ExportToExcel from '@/components/ExportToExcel';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useToast } from '@/components/Toast';
-import { giveBackRebrandTransaction } from '@/app/actions/transactions';
+import { giveBackRebrandTransaction, receiveRebrandItems } from '@/app/actions/transactions';
 import CustomSelect from '@/components/CustomSelect';
 
 export default function RebrandLedgerClient({
@@ -23,6 +23,18 @@ export default function RebrandLedgerClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const toast = useToast();
+
+  // Active status tab: 'ALL' | 'PENDING' | 'COMPLETED'
+  const [activeTab, setActiveTab] = useState(searchParams?.get('tab') || 'ALL');
+
+  // Receive Rebrand Modal state (for receiving converted products back from vendor)
+  const [receiveTx, setReceiveTx] = useState(null);
+  const [receiveVendor, setReceiveVendor] = useState('Advamedia');
+  const [receiveTargetProductId, setReceiveTargetProductId] = useState('');
+  const [receiveQty, setReceiveQty] = useState('');
+  const [receiveNotes, setReceiveNotes] = useState('');
+  const [receiveLoading, setReceiveLoading] = useState(false);
+  const [receiveError, setReceiveError] = useState('');
 
   // Give Back Modal state
   const [giveBackTx, setGiveBackTx] = useState(null);
@@ -46,7 +58,7 @@ export default function RebrandLedgerClient({
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, typeFilter, brandFilter, categoryFilter]);
+  }, [searchTerm, typeFilter, brandFilter, categoryFilter, activeTab]);
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
@@ -200,6 +212,63 @@ export default function RebrandLedgerClient({
     return 'REBRAND (Outbound)';
   };
 
+  const handleOpenReceive = (tx) => {
+    setReceiveTx(tx);
+    const remaining = Math.max(0, tx.quantity - (tx.returnedQty || 0));
+    setReceiveQty(remaining > 0 ? String(remaining) : String(tx.quantity));
+    setReceiveVendor(tx.toEntityId || 'Advamedia');
+    setReceiveTargetProductId(tx.product?.id || '');
+    setReceiveNotes('');
+    setReceiveError('');
+  };
+
+  const handleCloseReceive = () => {
+    setReceiveTx(null);
+    setReceiveQty('');
+    setReceiveTargetProductId('');
+    setReceiveNotes('');
+    setReceiveError('');
+    setReceiveLoading(false);
+  };
+
+  const handleConfirmReceive = async (e) => {
+    if (e) e.preventDefault();
+    if (!receiveTx) return;
+
+    const qtyNum = parseFloat(receiveQty);
+    if (!qtyNum || qtyNum <= 0) {
+      setReceiveError('Please enter a valid quantity greater than 0');
+      return;
+    }
+    if (!receiveTargetProductId) {
+      setReceiveError('Please select the converted Target Product');
+      return;
+    }
+
+    setReceiveLoading(true);
+    setReceiveError('');
+    try {
+      await receiveRebrandItems({
+        deliveryNote: receiveTx.deliveryNote,
+        transactionId: receiveTx.id,
+        vendorName: receiveVendor.trim() || 'Advamedia',
+        receivedItems: [
+          {
+            targetProductId: receiveTargetProductId,
+            quantity: qtyNum,
+            notes: receiveNotes.trim(),
+          }
+        ]
+      });
+      toast.success('Rebrand Received', `Successfully stocked ${qtyNum} converted items into Warehouse.`);
+      handleCloseReceive();
+      router.refresh();
+    } catch (err) {
+      setReceiveError(err.message || 'Failed to process received rebrand.');
+      setReceiveLoading(false);
+    }
+  };
+
   const handleOpenGiveBack = (tx) => {
     setGiveBackTx(tx);
     const remaining = Math.max(0, tx.quantity - (tx.returnedQty || 0));
@@ -279,10 +348,42 @@ export default function RebrandLedgerClient({
     ];
   }, [transactions]);
 
+  const tabCounts = useMemo(() => {
+    let pending = 0;
+    let completed = 0;
+    (transactions || []).forEach(tx => {
+      const isOut = tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND';
+      const isIn = tx.transactionType === 'REBRAND_IN';
+      const isDone = tx.returnStatus === 'COMPLETED' || tx.returnStatus === 'RETURNED' || isIn;
+      if (isOut && (!tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL')) {
+        pending++;
+      }
+      if (isDone) {
+        completed++;
+      }
+    });
+    return {
+      all: transactions.length,
+      pending,
+      completed,
+    };
+  }, [transactions]);
+
   // Filter items
   const filteredTransactions = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
     return transactions.filter((tx) => {
+      // Tab filter
+      if (activeTab === 'PENDING') {
+        const isOut = tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND';
+        const isPending = !tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL';
+        if (!isOut || !isPending) return false;
+      } else if (activeTab === 'COMPLETED') {
+        const isIn = tx.transactionType === 'REBRAND_IN';
+        const isDone = tx.returnStatus === 'COMPLETED' || tx.returnStatus === 'RETURNED';
+        if (!isIn && !isDone) return false;
+      }
+
       // Type match
       if (typeFilter !== 'ALL' && tx.transactionType !== typeFilter) {
         return false;
@@ -321,7 +422,7 @@ export default function RebrandLedgerClient({
         serials.includes(q)
       );
     });
-  }, [transactions, searchTerm, typeFilter, brandFilter, categoryFilter, entityNames]);
+  }, [transactions, searchTerm, typeFilter, brandFilter, categoryFilter, activeTab, entityNames]);
 
   const customGetters = useMemo(() => ({
     date: (tx) => (tx.timestamp ? new Date(tx.timestamp).getTime() : 0),
@@ -413,6 +514,63 @@ export default function RebrandLedgerClient({
         </div>
       </header>
 
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab('ALL')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'ALL'
+              ? 'bg-primary text-white shadow-sm'
+              : 'bg-surface hover:bg-surface-elevated text-text-secondary border border-border'
+          }`}
+        >
+          <Layers size={14} />
+          <span>All Rebrands</span>
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+            activeTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-surface-elevated text-text-muted'
+          }`}>
+            {tabCounts.all}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('PENDING')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'PENDING'
+              ? 'bg-warning text-black shadow-sm'
+              : 'bg-surface hover:bg-surface-elevated text-text-secondary border border-border'
+          }`}
+        >
+          <Clock size={14} />
+          <span>Pending at Vendor</span>
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+            activeTab === 'PENDING' ? 'bg-black/20 text-black' : 'bg-warning/10 text-warning border border-warning/20'
+          }`}>
+            {tabCounts.pending}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('COMPLETED')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'COMPLETED'
+              ? 'bg-success text-white shadow-sm'
+              : 'bg-surface hover:bg-surface-elevated text-text-secondary border border-border'
+          }`}
+        >
+          <CheckCheck size={14} />
+          <span>Completed</span>
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+            activeTab === 'COMPLETED' ? 'bg-white/20 text-white' : 'bg-success/10 text-success border border-success/20'
+          }`}>
+            {tabCounts.completed}
+          </span>
+        </button>
+      </div>
+
       {/* Filter Bar */}
       <div className="bg-surface border border-border rounded-xl p-4 shadow-sm flex flex-col gap-3">
         {/* Top Search Bar */}
@@ -462,10 +620,10 @@ export default function RebrandLedgerClient({
                 placeholder="All Categories"
               />
             </div>
-            {(searchTerm || typeFilter !== 'ALL' || brandFilter !== 'ALL' || categoryFilter !== 'ALL') && (
+            {(searchTerm || typeFilter !== 'ALL' || brandFilter !== 'ALL' || categoryFilter !== 'ALL' || activeTab !== 'ALL') && (
               <button
                 type="button"
-                onClick={() => { setSearchTerm(''); setTypeFilter('ALL'); setBrandFilter('ALL'); setCategoryFilter('ALL'); }}
+                onClick={() => { setSearchTerm(''); setTypeFilter('ALL'); setBrandFilter('ALL'); setCategoryFilter('ALL'); setActiveTab('ALL'); }}
                 className="px-3 py-2.5 text-xs font-semibold text-text-muted hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all flex items-center justify-center gap-1.5 shrink-0"
                 title="Reset all filters"
               >
@@ -486,15 +644,16 @@ export default function RebrandLedgerClient({
               No rebranding logs found
             </h3>
             <p className="text-sm max-w-xs">
-              {searchTerm || typeFilter !== 'ALL'
+              {searchTerm || typeFilter !== 'ALL' || activeTab !== 'ALL'
                 ? 'Try adjusting your search or filters.'
                 : 'Click "New Rebranding Map" to execute rebranding transfers.'}
             </p>
-            {(searchTerm || typeFilter !== 'ALL') && (
+            {(searchTerm || typeFilter !== 'ALL' || activeTab !== 'ALL') && (
               <button
                 onClick={() => {
                   setSearchTerm('');
                   setTypeFilter('ALL');
+                  setActiveTab('ALL');
                 }}
                 className="mt-2 text-xs font-semibold text-primary hover:underline"
               >
@@ -527,6 +686,8 @@ export default function RebrandLedgerClient({
                   minute: '2-digit',
                 });
                 const isGain = tx.transactionType === 'REBRAND_IN';
+                const isOutbound = tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND';
+                const isPendingOrPartial = isOutbound && (!tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL');
 
                 return (
                   <div key={tx.id} className="p-4 flex flex-col gap-2.5 hover:bg-surface-elevated/20 transition-colors">
@@ -582,12 +743,12 @@ export default function RebrandLedgerClient({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-text-muted pt-1 border-t border-border/40 gap-2">
+                    <div className="flex items-center justify-between text-[11px] text-text-muted pt-1 border-t border-border/40 gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{dateStr}</span>
                         {tx.returnStatus && (
-                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${
-                            tx.returnStatus === 'RETURNED'
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                            tx.returnStatus === 'RETURNED' || tx.returnStatus === 'COMPLETED'
                               ? 'bg-success/10 text-success border border-success/20'
                               : 'bg-warning/10 text-warning border border-warning/20'
                           }`}>
@@ -595,8 +756,19 @@ export default function RebrandLedgerClient({
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        {tx.transactionType !== 'REBRAND_IN' && (!tx.returnStatus || tx.returnStatus === 'PARTIAL') && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {isPendingOrPartial && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenReceive(tx)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-[11px] transition-colors cursor-pointer"
+                            title="Receive converted rebranded stock from vendor"
+                          >
+                            <ArrowDownLeft size={12} />
+                            <span>Receive Stock</span>
+                          </button>
+                        )}
+                        {isPendingOrPartial && (
                           <button
                             type="button"
                             onClick={() => handleOpenGiveBack(tx)}
@@ -652,6 +824,8 @@ export default function RebrandLedgerClient({
                       minute: '2-digit',
                     });
                     const isGain = tx.transactionType === 'REBRAND_IN';
+                    const isOutbound = tx.transactionType === 'REBRAND_OUT' || tx.transactionType === 'REBRAND';
+                    const isPendingOrPartial = isOutbound && (!tx.returnStatus || tx.returnStatus === 'PENDING' || tx.returnStatus === 'PARTIAL');
 
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors">
@@ -735,14 +909,25 @@ export default function RebrandLedgerClient({
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {tx.returnStatus && (
                               <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
-                                tx.returnStatus === 'RETURNED'
+                                tx.returnStatus === 'RETURNED' || tx.returnStatus === 'COMPLETED'
                                   ? 'bg-success/10 text-success border border-success/20'
                                   : 'bg-warning/10 text-warning border border-warning/20'
                               }`}>
                                 {tx.returnStatus} ({tx.returnedQty || 0}/{tx.quantity})
                               </span>
                             )}
-                            {tx.transactionType !== 'REBRAND_IN' && (!tx.returnStatus || tx.returnStatus === 'PARTIAL') && (
+                            {isPendingOrPartial && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenReceive(tx)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs transition-colors cursor-pointer shadow-2xs"
+                                title="Receive converted rebranded stock from vendor"
+                              >
+                                <ArrowDownLeft size={13} />
+                                <span>Receive Stock</span>
+                              </button>
+                            )}
+                            {isPendingOrPartial && (
                               <button
                                 type="button"
                                 onClick={() => handleOpenGiveBack(tx)}
@@ -782,6 +967,177 @@ export default function RebrandLedgerClient({
           </>
         )}
       </div>
+
+      {/* Receive Converted Stock from Vendor Modal */}
+      {receiveTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-surface border border-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-scale-up flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-elevated/40">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-success/10 border border-success/20 flex items-center justify-center text-success">
+                  <ArrowDownLeft size={16} />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-base text-text-primary">
+                    Receive Rebranded Stock
+                  </h3>
+                  <p className="text-xs text-text-muted">
+                    Stock in converted products returned from vendor
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseReceive}
+                disabled={receiveLoading}
+                className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleConfirmReceive} className="p-6 flex flex-col gap-4">
+              {receiveError && (
+                <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-3 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle size={15} className="shrink-0" />
+                  <span>{receiveError}</span>
+                </div>
+              )}
+
+              {/* Transaction Summary Card */}
+              <div className="bg-surface-elevated/40 border border-border rounded-xl p-3.5 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                    Outbound Dispatch
+                  </span>
+                  {receiveTx.deliveryNote && (
+                    <span className="font-mono text-primary font-semibold text-xs bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                      {receiveTx.deliveryNote}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm font-bold text-text-primary">
+                  {receiveTx.product?.name}
+                </div>
+                <div className="flex items-center justify-between text-xs text-text-muted pt-1 border-t border-border/50">
+                  <span>
+                    Dispatched Qty: <strong>{receiveTx.quantity}</strong>
+                  </span>
+                  <span>
+                    Pending to Receive:{' '}
+                    <strong className="text-warning">
+                      {Math.max(0, receiveTx.quantity - (receiveTx.returnedQty || 0))}
+                    </strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Target / Destination Product */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
+                  Target Converted Product <span className="text-danger">*</span>
+                </label>
+                <CustomSelect
+                  options={products.map((p) => ({
+                    value: p.id,
+                    label: `${p.name} (${p.brand?.name || 'General'})${p.itemCode ? ` - SKU: ${p.itemCode}` : ''}`,
+                  }))}
+                  value={receiveTargetProductId}
+                  onChange={(val) => setReceiveTargetProductId(val)}
+                  placeholder="Select converted target product..."
+                />
+                <span className="text-[10px] text-text-muted">
+                  Warehouse stock will increase for this product definition.
+                </span>
+              </div>
+
+              {/* Quantity to Receive */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-text-secondary">
+                    Quantity Received <span className="text-danger">*</span>
+                  </label>
+                  <span className="text-xs text-text-muted">
+                    Pending:{' '}
+                    <strong className="text-primary">
+                      {Math.max(0, receiveTx.quantity - (receiveTx.returnedQty || 0))}
+                    </strong>
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  step="any"
+                  min="0.001"
+                  value={receiveQty}
+                  onChange={(e) => setReceiveQty(e.target.value)}
+                  placeholder="Enter received quantity"
+                  required
+                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-mono font-bold"
+                />
+              </div>
+
+              {/* Vendor */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
+                  Vendor Name
+                </label>
+                <input
+                  type="text"
+                  value={receiveVendor}
+                  onChange={(e) => setReceiveVendor(e.target.value)}
+                  placeholder="e.g. Advamedia"
+                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 font-medium"
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-text-secondary">
+                  Receipt Notes (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={receiveNotes}
+                  onChange={(e) => setReceiveNotes(e.target.value)}
+                  placeholder="e.g. Received completed rebranded stands from Advamedia..."
+                  className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={handleCloseReceive}
+                  disabled={receiveLoading}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-elevated border border-border transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={receiveLoading}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-success hover:bg-success-hover text-white shadow-sm hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {receiveLoading ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownLeft size={13} />
+                      <span>Confirm & Stock In</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Give Back to Source Modal */}
       {giveBackTx && (
