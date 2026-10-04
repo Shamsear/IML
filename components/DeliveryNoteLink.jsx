@@ -31,11 +31,19 @@ export function getDeliveryNotePdfUrl(tx) {
   if (txType === 'LOST' || dn.startsWith('LOS-') || dn.startsWith('LSS-')) {
     return `/api/dashboard/loss/delivery-note?${qs}`;
   }
-  if (dn.startsWith('CGP-') || dn.startsWith('GP-') || txType === 'CLIENT_STOCK') {
-    return `/api/dashboard/client-returns/gate-pass?${qs}`;
-  }
-  if (dn.startsWith('CRP-') || dn.startsWith('CRN-') || dn.startsWith('CRR-') || dn.startsWith('CLT-') || txType === 'CLIENT_RETURN') {
+  if (
+    (typeof tx === 'object' && tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE') ||
+    dn.startsWith('CRP-') || dn.startsWith('CRN-') || dn.startsWith('CRR-') || dn.startsWith('CLT-') ||
+    txType === 'CLIENT_RETURN'
+  ) {
     return `/api/dashboard/client-returns/return-gate-pass?${qs}`;
+  }
+  if (
+    (typeof tx === 'object' && (tx.toEntityType === 'BRAND' || tx.fromEntityType === 'BRAND')) ||
+    dn.startsWith('CGP-') || dn.startsWith('GP-') ||
+    txType === 'CLIENT_STOCK'
+  ) {
+    return `/api/dashboard/client-returns/gate-pass?${qs}`;
   }
   if (txType === 'RECEIVE' || dn.startsWith('REC-') || dn.startsWith('IN-')) {
     return `/api/dashboard/inbound/delivery-note?${qs}`;

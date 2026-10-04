@@ -291,11 +291,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                     <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
                       <span className="text-text-secondary truncate max-w-[60%]">{sourceName}</span>
                       <div className="flex items-center gap-2">
-                        {tx.deliveryNote && (
-                          <Link href={`/api/dashboard/inbound/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product.brandId}&dn=${tx.deliveryNote}`} target="_blank" className="text-primary font-semibold hover:underline">
-                            {tx.deliveryNote}
-                          </Link>
-                        )}
+                        <DeliveryNoteLink tx={tx} />
                         <TransactionActions txId={tx.id} notes={tx.notes || ''} deliveryNote={tx.deliveryNote || ''} showDeliveryNote={true} copyDnUrl={tx.deliveryNote ? `/dashboard/inbound/new?copyDn=${tx.deliveryNote}` : null} transactionType={tx.transactionType} />
                       </div>
                     </div>

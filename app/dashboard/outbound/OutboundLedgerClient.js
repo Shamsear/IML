@@ -421,11 +421,7 @@ export default function OutboundLedgerClient({
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {tx.deliveryNote && (
-                          <Link href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&dn=${encodeURIComponent(tx.deliveryNote)}`} target="_blank" className="text-primary font-semibold hover:underline">
-                            {tx.deliveryNote}
-                          </Link>
-                        )}
+                        <DeliveryNoteLink tx={tx} />
                         <TransactionActions txId={tx.id} notes={tx.notes || ''} deliveryNote={tx.deliveryNote || ''} showDeliveryNote={true} />
                       </div>
                     </div>

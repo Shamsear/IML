@@ -19,6 +19,7 @@ import Pagination from '@/components/Pagination';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 
 export default function ProductDetailClient({ product }) {
   const router = useRouter();
@@ -552,7 +553,7 @@ export default function ProductDetailClient({ product }) {
                   <SortableHeader field="quantity" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Qty</SortableHeader>
                   {product.trackExpiry && <SortableHeader field="mfgDate" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Mfg Date</SortableHeader>}
                   {product.trackExpiry && <SortableHeader field="expDate" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Exp Date</SortableHeader>}
-                  <SortableHeader field="deliveryNote" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Note</SortableHeader>
+                  <SortableHeader field="deliveryNote" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2 pr-4">Delivery Note</SortableHeader>
                   <SortableHeader field="status" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="pb-2">Status</SortableHeader>
                 </tr>
               </thead>
@@ -567,26 +568,17 @@ export default function ProductDetailClient({ product }) {
                     <td className="py-2 pr-4 text-text-secondary font-medium">{formatEntity(tx.toEntityType, tx.toEntityId)}</td>
                     <td className="py-2 pr-4 font-mono font-bold">{tx.quantity}</td>
                     {product.trackExpiry && (
-                      <td className="py-2 pr-4 text-text-secondary text-[10px]">
-                        {tx.manufactureDate ? new Date(tx.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
-                      </td>
-                    )}
-                    {product.trackExpiry && (
-                      <td className="py-2 pr-4 text-text-secondary text-[10px]">
-                        {tx.expiryDate ? new Date(tx.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
-                      </td>
-                    )}
-                    <td className="py-2 pr-4 text-text-secondary max-w-[120px] truncate" title={tx.deliveryNote || tx.notes || ''}>
-                      {tx.deliveryNote ? (
-                        <a
-                          href={`/api/dashboard/inbound/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${brand?.id}&dn=${encodeURIComponent(tx.deliveryNote)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline font-semibold"
-                        >
-                          {tx.deliveryNote}
-                        </a>
-                      ) : tx.notes || '---'}
+                       <td className="py-2 pr-4 text-text-secondary text-[10px]">
+                         {tx.manufactureDate ? new Date(tx.manufactureDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                       </td>
+                     )}
+                     {product.trackExpiry && (
+                       <td className="py-2 pr-4 text-text-secondary text-[10px]">
+                         {tx.expiryDate ? new Date(tx.expiryDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }) : '---'}
+                       </td>
+                     )}
+                    <td className="py-2 pr-4 text-text-secondary whitespace-nowrap" title={tx.deliveryNote || tx.notes || ''}>
+                      <DeliveryNoteLink tx={tx} />
                     </td>
                     <td className="py-2">
                       {tx.returnStatus && (

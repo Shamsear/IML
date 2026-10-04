@@ -11,6 +11,7 @@ import TabNav from '@/components/TabNav';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 
 export default function ClientReturnsBalancesClient({ balances, recentTransactions = [] }) {
   const toast = useToast();
@@ -550,7 +551,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
                       <span className="text-text-muted">{formattedDate}</span>
-                      {tx.deliveryNote && <span className="text-primary font-mono font-semibold">{tx.deliveryNote}</span>}
+                      <DeliveryNoteLink tx={tx} />
                     </div>
                   </div>
                 );
@@ -565,17 +566,16 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                 <tr className="border-b border-border bg-surface-elevated/40 text-[10px] font-bold text-text-muted uppercase tracking-wider">
                   <SortableHeader field="direction" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 pl-5 pr-4 font-semibold">Direction</SortableHeader>
                   <SortableHeader field="product" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Product</SortableHeader>
-                  <SortableHeader field="gatePass" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Gate Pass</SortableHeader>
+                  <SortableHeader field="gatePass" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Delivery Note</SortableHeader>
                   <SortableHeader field="brand" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Brand</SortableHeader>
                   <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-3 px-4 text-center font-semibold">Qty</SortableHeader>
                   <SortableHeader field="date" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-3 px-4 font-semibold">Date</SortableHeader>
-                  <th className="py-3 px-4 text-right font-semibold">PDF</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {sortedHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
+                    <td colSpan={6} className="py-8 text-center text-text-muted text-xs">
                       No transactions found.
                     </td>
                   </tr>
@@ -606,27 +606,14 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                           <span className="font-semibold block">{tx.product?.name}</span>
                           <span className="text-[10px] font-mono text-text-muted block mt-0.5">{tx.product?.itemCode || 'No SKU'}</span>
                         </td>
-                        <td className="py-3 px-4 font-mono font-bold text-[11px] whitespace-nowrap">{tx.deliveryNote || '—'}</td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <DeliveryNoteLink tx={tx} />
+                        </td>
                         <td className="py-3 px-4 font-bold text-primary">{tx.product?.brand?.name || '—'}</td>
                         <td className="py-3 px-4 text-center font-bold">{tx.quantity}</td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           <span className="font-semibold text-text-secondary">{formattedDate}</span>
                           <span className="text-[10px] text-text-muted block mt-0.5">{formattedTime}</span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleHistoryDownloadPDF(tx)}
-                            disabled={historyPdfLoading === (tx.deliveryNote || tx.id)}
-                            className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary-hover font-bold text-[10px] rounded-lg transition-colors border border-primary/20 flex items-center gap-1 cursor-pointer disabled:opacity-50 ml-auto"
-                          >
-                            {historyPdfLoading === (tx.deliveryNote || tx.id) ? (
-                              <Loader2 size={11} className="animate-spin" />
-                            ) : (
-                              <FileText size={11} />
-                            )}
-                            <span>Gate Pass</span>
-                          </button>
                         </td>
                       </tr>
                     );
