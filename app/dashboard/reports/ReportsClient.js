@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Package, Printer, Download, ArrowDownLeft, Store, Shirt, Undo2, ShieldAlert } from 'lucide-react';
+import { Package, FileText, Download, ArrowDownLeft, Store, Shirt, Undo2, ShieldAlert } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import ExportToExcel from '@/components/ExportToExcel';
 import { getProductStock } from '@/lib/stock';
@@ -100,8 +100,15 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
   const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
   const paginatedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
-  const handlePrint = () => {
-    window.print();
+  const handleExportPdf = () => {
+    const params = new URLSearchParams();
+    if (selectedBrand) params.set('brandId', selectedBrand);
+    if (selectedCategory) params.set('category', selectedCategory);
+    if (searchQuery) params.set('search', searchQuery);
+
+    const pdfApiUrl = `/api/dashboard/reports/pdf?${params.toString()}`;
+    const previewUrl = `/pdf-preview?url=${encodeURIComponent(pdfApiUrl)}&title=${encodeURIComponent('Global Stock Summary Report')}`;
+    window.open(previewUrl, '_blank');
   };
 
   return (
@@ -113,10 +120,10 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
         actions={<>
           <button 
             type="button" 
-            onClick={handlePrint}
+            onClick={handleExportPdf}
             className="inline-flex items-center gap-2 px-3.5 py-2 bg-primary hover:bg-primary-hover active:scale-[0.98] text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow transition-all duration-150 cursor-pointer"
           >
-            <Printer size={15} />
+            <FileText size={15} />
             <span>Export PDF</span>
           </button>
           <ExportToExcel
