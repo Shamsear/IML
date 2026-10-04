@@ -105,6 +105,70 @@ function InboundFormContent({ products, brands = [], stores = [], recentReceiver
   const [highlightedReceiverIdx, setHighlightedReceiverIdx] = useState(-1);
   const [highlightedCategoryIdx, setHighlightedCategoryIdx] = useState(-1);
 
+  // Image Cropping Modal states
+  const [croppingIdx, setCroppingIdx] = useState(null);
+  const [cropSrc, setCropSrc] = useState('');
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropX, setCropX] = useState(0);
+  const [cropY, setCropY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [cropDimensions, setCropDimensions] = useState({ width: 320, height: 320 });
+  const [originalFile, setOriginalFile] = useState(null);
+  const cropImageRef = useRef(null);
+
+  const handleDrag = (dx, dy) => {
+    setCropX(prev => {
+      const next = prev + dx;
+      const maxOffset = Math.max(0, (cropDimensions.width * cropZoom - 320) / 2);
+      return Math.min(maxOffset, Math.max(-maxOffset, next));
+    });
+    setCropY(prev => {
+      const next = prev + dy;
+      const maxOffset = Math.max(0, (cropDimensions.height * cropZoom - 320) / 2);
+      return Math.min(maxOffset, Math.max(-maxOffset, next));
+    });
+  };
+
+  const handleSaveCrop = () => {
+    if (croppingIdx === null || !originalFile || !cropImageRef.current) return;
+
+    const img = cropImageRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = 500;
+    canvas.height = 500;
+    const ctx = canvas.getContext('2d');
+
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+
+    const centerX = (320 - cropDimensions.width * cropZoom) / 2;
+    const centerY = (320 - cropDimensions.height * cropZoom) / 2;
+
+    const sx = - (centerX + cropX) / (cropDimensions.width * cropZoom) * imgWidth;
+    const sy = - (centerY + cropY) / (cropDimensions.height * cropZoom) * imgHeight;
+    const sw = (320 / (cropDimensions.width * cropZoom)) * imgWidth;
+    const sh = (320 / (cropDimensions.height * cropZoom)) * imgHeight;
+
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 500, 500);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const croppedFile = new File([blob], originalFile.name, {
+          type: originalFile.type,
+          lastModified: Date.now()
+        });
+
+        updateItemField(croppingIdx, 'prodImageFile', croppedFile);
+        updateItemField(croppingIdx, 'prodImagePreview', URL.createObjectURL(croppedFile));
+
+        setCroppingIdx(null);
+        setCropSrc('');
+        setOriginalFile(null);
+      }
+    }, originalFile.type || 'image/jpeg', 0.95);
+  };
+
   // Sync isBulkScan to Ref
   const isBulkScanRef = useRef(isBulkScan);
   useEffect(() => {

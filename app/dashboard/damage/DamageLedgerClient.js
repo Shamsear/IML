@@ -11,6 +11,7 @@ import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import CustomSelect from '@/components/CustomSelect';
 import { useTableSort } from '@/hooks/useTableSort';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 
 export default function DamageLedgerClient({
   transactions = [],
@@ -371,19 +372,7 @@ export default function DamageLedgerClient({
                           -{tx.quantity}
                         </td>
                         <td className="py-3.5 px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
-                          {tx.deliveryNote ? (
-                            <a
-                              href={`/api/dashboard/damage/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product?.brandId}&dn=${tx.deliveryNote}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold has-tooltip"
-                            >
-                              {tx.deliveryNote}
-                              <span className="tooltip-box">Download Damage Note PDF</span>
-                            </a>
-                          ) : (
-                            <span className="text-text-muted">---</span>
-                          )}
+                          <DeliveryNoteLink tx={tx} />
                         </td>
                         <td
                           className="py-3.5 px-5 max-w-xs truncate text-xs text-text-secondary"

@@ -319,7 +319,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                       </div>
                       <span className="font-mono font-bold text-sm flex-shrink-0">{remainingQty}</span>
                     </div>
-                    {tx.deliveryNote && <div className="text-[11px] text-text-muted font-mono">DN: {tx.deliveryNote}</div>}
+                    {tx.deliveryNote && <div className="mt-1"><DeliveryNoteLink tx={tx} /></div>}
                     {isSelected && (
                       <div className="pt-2 border-t border-border/50 flex flex-col gap-2">
                         <div className="flex items-center justify-between gap-2">
@@ -375,7 +375,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                          <div className="font-mono text-xs text-text-muted mt-0.5">{tx.deliveryNote || 'No DN'}</div>
+                          <div className="mt-0.5"><DeliveryNoteLink tx={tx} /></div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary whitespace-nowrap">

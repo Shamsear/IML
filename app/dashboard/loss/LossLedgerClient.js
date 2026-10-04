@@ -10,6 +10,7 @@ import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import CustomSelect from '@/components/CustomSelect';
 import { useTableSort } from '@/hooks/useTableSort';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 
 export default function LossLedgerClient({
   transactions = [],
@@ -369,19 +370,7 @@ export default function LossLedgerClient({
                           -{tx.quantity}
                         </td>
                         <td className="py-3.5 px-3 sm:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
-                          {tx.deliveryNote ? (
-                            <a
-                              href={`/api/dashboard/loss/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}&brandId=${tx.product?.brandId}&dn=${tx.deliveryNote}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold has-tooltip"
-                            >
-                              {tx.deliveryNote}
-                              <span className="tooltip-box">Download Loss Note PDF</span>
-                            </a>
-                          ) : (
-                            <span className="text-text-muted">---</span>
-                          )}
+                          <DeliveryNoteLink tx={tx} />
                         </td>
                         <td
                           className="py-3.5 px-3 sm:px-5 max-w-xs truncate text-xs text-text-secondary"

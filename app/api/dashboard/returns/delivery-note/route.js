@@ -7,6 +7,19 @@ import { DeliveryNoteDocument, formatDate } from '@/lib/pdf/deliveryNote';
 
 const isValidUuid = (str) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
 
+function cleanNotes(noteStr) {
+  if (!noteStr) return '';
+  let cleaned = noteStr
+    .replace(/Auto-generated Return from Outbound [a-zA-Z0-9-_.]+/gi, '')
+    .replace(/Auto-generated Return from [a-zA-Z0-9-_.]+/gi, '')
+    .replace(/Auto-generated [a-zA-Z0-9-_.]+/gi, '')
+    .replace(/Reverted rebrand [^\n|]+/gi, '')
+    .replace(/Restored \d+ units [^\n|]+/gi, '')
+    .trim();
+  cleaned = cleaned.replace(/^[\s|.,;:-]+|[\s|.,;:-]+$/g, '').trim();
+  return cleaned;
+}
+
 export async function GET(request) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -161,13 +174,15 @@ export async function GET(request) {
       receiverName = txs.find(t => t.receivedBy)?.receivedBy || (storeName ? `${storeName} In-charge` : 'Store Representative');
     }
 
-    const notes = txs[0]?.notes?.split(' | ')[0] || '';
+    const rawNotes = txs[0]?.notes?.split(' | ')[0] || '';
+    const notes = cleanNotes(rawNotes);
 
     // Group items by product & append promoter info to uniform items or allocations
     const productGroups = {};
     for (const tx of txs) {
       const prod = tx.product;
-      const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
+      const rawItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
+      const parsedItemNotes = cleanNotes(rawItemNotes);
       const isUniform = (prod.category?.toUpperCase() === 'UNIFORM') || prod.name?.toLowerCase().includes('shirt') || prod.name?.toLowerCase().includes('uniform') || prod.name?.toLowerCase().includes('cap');
 
       let itemRemarks = parsedItemNotes;
@@ -216,7 +231,7 @@ export async function GET(request) {
       ...(supervisorName ? [{ label: isReturn ? 'Returned By / Supervisor' : 'Supervisor', value: supervisorName }] : []),
       ...(!isSupplierReceive && receiverName ? [{ label: 'Receiver Name', value: receiverName }] : []),
       ...(isSupplierReceive ? [{ label: 'Received By', value: receiverName }] : []),
-      { label: 'Notes', value: notes },
+      ...(notes ? [{ label: 'Notes', value: notes }] : []),
     ];
 
     const rightMeta = [

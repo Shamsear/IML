@@ -13,6 +13,7 @@ import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import CustomSelect from '@/components/CustomSelect';
+import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 
 export default function ReturnsClient({
   transactions = [],
@@ -507,7 +508,7 @@ export default function ReturnsClient({
                       </div>
                       <span className="font-mono font-bold text-sm flex-shrink-0">{remainingQty}</span>
                     </div>
-                    {tx.deliveryNote && <div className="text-[11px] text-primary font-mono font-semibold">DN: {tx.deliveryNote}</div>}
+                    {tx.deliveryNote && <div className="mt-1"><DeliveryNoteLink tx={tx} /></div>}
                     {isSelected && (
                       <div className="flex gap-2 pt-2 border-t border-border/50">
                         <input type="number" min="1" max={remainingQty} placeholder="Qty" value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))} className="w-20 bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono" />
@@ -587,19 +588,7 @@ export default function ReturnsClient({
                             className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-mono text-xs text-text-secondary whitespace-nowrap">
-                          {tx.deliveryNote ? (
-                            <a
-                              href={`/api/dashboard/returns/delivery-note?date=${new Date(tx.timestamp).toISOString().split('T')[0]}${(tx.product?.brandId || tx.product?.brand?.id) ? `&brandId=${tx.product?.brandId || tx.product?.brand?.id}` : ''}&dn=${encodeURIComponent(tx.deliveryNote)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:text-primary-hover hover:underline transition-colors font-semibold has-tooltip"
-                            >
-                              {tx.deliveryNote}
-                              <span className="tooltip-box">Download Delivery Note PDF</span>
-                            </a>
-                          ) : (
-                            <span className="text-text-muted">---</span>
-                          )}
+                          <DeliveryNoteLink tx={tx} />
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
                           <input type="text" placeholder="Optional notes..." disabled={!isSelected}
