@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Package, Edit2, Trash2, ArrowDownLeft, ArrowUpRight,
   RefreshCw, ShieldAlert, AlertCircle, Tag, QrCode, Calendar,
-  MapPin, CheckCircle, XCircle, Clock, ExternalLink, Loader2, Copy
+  MapPin, CheckCircle, XCircle, Clock, ExternalLink, Loader2, Copy,
+  Shirt, Users, User, Search, Plus, CheckCircle2, UserCheck
 } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { deleteProduct } from '@/app/actions/products';
@@ -27,10 +28,15 @@ export default function ProductDetailClient({ product }) {
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [serialPage, setSerialPage] = useState(1);
   const [txPage, setTxPage] = useState(1);
+  const [allocPage, setAllocPage] = useState(1);
+  const [allocSearch, setAllocSearch] = useState('');
+  const [allocFilter, setAllocFilter] = useState('all'); // 'all', 'active', 'returned', 'overdue'
   const itemsPerPage = 20;
 
   const serialNumbers = product?.serialNumbers || [];
   const transactions = product?.transactions || [];
+  const uniformAllocations = product?.uniformAllocations || [];
+  const isUniformProduct = product?.isUniform || (product?.category && product.category.toUpperCase().includes('UNIFORM')) || uniformAllocations.length > 0;
   const entityNames = product?.entityNames || {};
   const brand = product?.brand;
   const stock = product?.stock || {};
@@ -87,6 +93,100 @@ export default function ProductDetailClient({ product }) {
 
   const totalTxPages = Math.ceil(sortedTxs.length / itemsPerPage);
   const paginatedTxs = sortedTxs.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
+
+  // Custom getters for allocations
+  const allocCustomGetters = useMemo(() => ({
+    promoter: (a) => a.staffName || '',
+    store: (a) => a.storeName || '',
+    supervisor: (a) => a.supervisorName || '',
+    workingPeriod: (a) => a.workingPeriod || '',
+    quantity: (a) => a.allocatedQty || 0,
+    givenDate: (a) => a.givenDate,
+    status: (a) => a.status || '',
+  }), []);
+
+  // Filter allocations
+  const filteredAllocations = useMemo(() => {
+    return uniformAllocations.filter(alloc => {
+      const matchesFilter = 
+        allocFilter === 'all' ? true :
+        allocFilter === 'active' ? (alloc.status === 'ACTIVE') :
+        allocFilter === 'returned' ? (alloc.status === 'RETURNED') :
+        allocFilter === 'overdue' ? (alloc.status === 'OVERDUE') : true;
+
+      if (!matchesFilter) return false;
+
+      if (!allocSearch.trim()) return true;
+      const q = allocSearch.toLowerCase();
+      return (
+        alloc.staffName?.toLowerCase().includes(q) ||
+        alloc.staffPhone?.toLowerCase().includes(q) ||
+        alloc.storeName?.toLowerCase().includes(q) ||
+        alloc.supervisorName?.toLowerCase().includes(q) ||
+        alloc.workingPeriod?.toLowerCase().includes(q) ||
+        alloc.ref?.toLowerCase().includes(q) ||
+        alloc.notes?.toLowerCase().includes(q)
+      );
+    });
+  }, [uniformAllocations, allocFilter, allocSearch]);
+
+  const {
+    sortedItems: sortedAllocations,
+    sortField: allocSortField,
+    sortDirection: allocSortDirection,
+    handleSort: handleAllocSort,
+  } = useTableSort(filteredAllocations, 'givenDate', 'desc', allocCustomGetters);
+
+  const totalAllocPages = Math.ceil(sortedAllocations.length / itemsPerPage);
+  const paginatedAllocations = sortedAllocations.slice((allocPage - 1) * itemsPerPage, allocPage * itemsPerPage);
+
+  // Compute allocation stats
+  const allocStats = useMemo(() => {
+    let totalQty = 0;
+    let returnedQty = 0;
+    let activeQty = 0;
+    let overdueCount = 0;
+
+    uniformAllocations.forEach(a => {
+      totalQty += a.allocatedQty || 0;
+      returnedQty += a.returnedQty || 0;
+      activeQty += Math.max(0, (a.allocatedQty || 0) - (a.returnedQty || 0));
+      if (a.isOverdue) overdueCount++;
+    });
+
+    return {
+      totalQty,
+      returnedQty,
+      activeQty,
+      overdueCount,
+      totalPromoters: uniformAllocations.length,
+    };
+  }, [uniformAllocations]);
+
+  const allocStatusBadge = (alloc) => {
+    if (alloc.status === 'RETURNED') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">
+          <CheckCircle2 size={11} />
+          Returned {alloc.returnDate ? `(${new Date(alloc.returnDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' })})` : ''}
+        </span>
+      );
+    }
+    if (alloc.status === 'OVERDUE') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20">
+          <AlertCircle size={11} />
+          Overdue Return
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+        <Clock size={11} />
+        With Promoter
+      </span>
+    );
+  };
 
   const handleDelete = async () => {
     await deleteProduct(product.id);
@@ -438,6 +538,366 @@ export default function ProductDetailClient({ product }) {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Promoter / Staff Uniform Allocations (For Uniform products or products with promoter allocations) */}
+      {isUniformProduct && (
+        <div className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <Shirt size={18} />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2">
+                  Promoter Uniform Allocations
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                    {uniformAllocations.length} records
+                  </span>
+                </h3>
+                <p className="text-[11px] text-text-secondary">
+                  Complete promoter allocation details, sizes, store locations, and warehouse return status.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/dashboard/staff/assign`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white hover:bg-primary-hover text-xs font-bold rounded-lg shadow-sm transition-all"
+              >
+                <Plus size={13} />
+                Assign to Promoter
+              </Link>
+              <Link
+                href={`/dashboard/staff`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-elevated hover:bg-border text-text-secondary text-xs font-semibold rounded-lg border border-border transition-all"
+              >
+                <Users size={13} />
+                Staff Ledger
+              </Link>
+            </div>
+          </div>
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-surface-elevated/40 border border-border rounded-xl p-3.5 flex flex-col">
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Total Allocated</span>
+              <span className="text-xl font-display font-black text-text-primary mt-1 tabular-nums">
+                <AnimatedCounter value={allocStats.totalQty} /> <span className="text-xs font-medium text-text-muted">pcs</span>
+              </span>
+              <span className="text-[10px] text-text-muted mt-0.5">{allocStats.totalPromoters} promoter assignments</span>
+            </div>
+
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-3.5 flex flex-col">
+              <span className="text-[10px] font-bold text-primary uppercase tracking-wider">With Promoters</span>
+              <span className="text-xl font-display font-black text-primary mt-1 tabular-nums">
+                <AnimatedCounter value={allocStats.activeQty} /> <span className="text-xs font-medium text-primary/70">pcs</span>
+              </span>
+              <span className="text-[10px] text-primary/80 mt-0.5">Currently active in field</span>
+            </div>
+
+            <div className="bg-success/5 border border-success/20 rounded-xl p-3.5 flex flex-col">
+              <span className="text-[10px] font-bold text-success uppercase tracking-wider">Returned to Warehouse</span>
+              <span className="text-xl font-display font-black text-success mt-1 tabular-nums">
+                <AnimatedCounter value={allocStats.returnedQty} /> <span className="text-xs font-medium text-success/70">pcs</span>
+              </span>
+              <span className="text-[10px] text-success/80 mt-0.5">Returned & restocked</span>
+            </div>
+
+            <div className={`border rounded-xl p-3.5 flex flex-col ${allocStats.overdueCount > 0 ? 'bg-danger/5 border-danger/20' : 'bg-surface-elevated/40 border-border'}`}>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${allocStats.overdueCount > 0 ? 'text-danger' : 'text-text-muted'}`}>
+                Overdue Returns
+              </span>
+              <span className={`text-xl font-display font-black mt-1 tabular-nums ${allocStats.overdueCount > 0 ? 'text-danger' : 'text-text-primary'}`}>
+                <AnimatedCounter value={allocStats.overdueCount} />
+              </span>
+              <span className="text-[10px] text-text-muted mt-0.5">
+                {allocStats.overdueCount > 0 ? 'Exceeded working period' : 'All returns on schedule'}
+              </span>
+            </div>
+          </div>
+
+          {/* Search & Filter Toolbar */}
+          {uniformAllocations.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+              <div className="relative flex-1 max-w-sm">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                <input
+                  type="text"
+                  placeholder="Search promoter, phone, store, supervisor, DN..."
+                  value={allocSearch}
+                  onChange={(e) => {
+                    setAllocSearch(e.target.value);
+                    setAllocPage(1);
+                  }}
+                  className="w-full pl-9 pr-3 py-1.5 bg-background border border-border rounded-lg text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary transition-all"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {[
+                  { id: 'all', label: `All (${uniformAllocations.length})` },
+                  { id: 'active', label: `Active (${uniformAllocations.filter(a => a.status === 'ACTIVE').length})` },
+                  { id: 'returned', label: `Returned (${uniformAllocations.filter(a => a.status === 'RETURNED').length})` },
+                  { id: 'overdue', label: `Overdue (${uniformAllocations.filter(a => a.status === 'OVERDUE').length})` },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setAllocFilter(tab.id);
+                      setAllocPage(1);
+                    }}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg whitespace-nowrap transition-all ${
+                      allocFilter === tab.id
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'bg-surface-elevated text-text-secondary hover:text-text-primary border border-border'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Allocations Content */}
+          {uniformAllocations.length === 0 ? (
+            <div className="bg-background border border-dashed border-border rounded-xl p-8 text-center flex flex-col items-center justify-center gap-2">
+              <Shirt size={32} className="text-text-muted opacity-40" />
+              <p className="text-xs font-semibold text-text-secondary">No promoter uniform allocations recorded yet for this product.</p>
+              <p className="text-[11px] text-text-muted max-w-md">
+                Allocate this uniform to store promoters to track who has received it, their sizes, working periods, and return status.
+              </p>
+              <Link
+                href="/dashboard/staff/assign"
+                className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-lg shadow hover:bg-primary-hover transition-colors"
+              >
+                <Plus size={13} />
+                Create Uniform Allocation
+              </Link>
+            </div>
+          ) : filteredAllocations.length === 0 ? (
+            <div className="bg-background border border-border rounded-xl p-6 text-center text-text-muted text-xs">
+              No uniform allocations match your search or filter.
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto border border-border rounded-xl">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-surface-elevated/60">
+                    <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
+                      <SortableHeader field="promoter" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                        Promoter
+                      </SortableHeader>
+                      <SortableHeader field="store" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                        Assigned Store
+                      </SortableHeader>
+                      <SortableHeader field="supervisor" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                        Supervisor
+                      </SortableHeader>
+                      <SortableHeader field="workingPeriod" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                        Working Period
+                      </SortableHeader>
+                      <SortableHeader field="quantity" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3 text-center">
+                        Allocated Qty
+                      </SortableHeader>
+                      <SortableHeader field="givenDate" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                        Date Given / Ref
+                      </SortableHeader>
+                      <SortableHeader field="status" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                        Return Status
+                      </SortableHeader>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50 bg-surface">
+                    {paginatedAllocations.map((alloc) => (
+                      <tr key={alloc.id} className="hover:bg-surface-elevated/30 transition-colors">
+                        {/* Promoter */}
+                        <td className="py-3 px-3">
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-text-primary">{alloc.staffName}</span>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-text-muted">
+                              {alloc.staffPhone && (
+                                <span className="flex items-center gap-0.5">
+                                  <Phone size={10} />
+                                  {alloc.staffPhone}
+                                </span>
+                              )}
+                              {alloc.staffShirtSize && (
+                                <span className="px-1.5 py-0.2 rounded bg-surface-elevated text-text-secondary text-[10px] font-mono border border-border">
+                                  Size: {alloc.staffShirtSize}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Store */}
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-1.5 text-text-secondary">
+                            <MapPin size={12} className="text-primary shrink-0" />
+                            <span className="font-medium text-text-primary">{alloc.storeName}</span>
+                          </div>
+                        </td>
+
+                        {/* Supervisor */}
+                        <td className="py-3 px-3 text-text-secondary">
+                          {alloc.supervisorName ? (
+                            <span className="flex items-center gap-1 text-text-secondary">
+                              <User size={11} className="text-text-muted" />
+                              {alloc.supervisorName}
+                            </span>
+                          ) : (
+                            <span className="text-text-muted">---</span>
+                          )}
+                        </td>
+
+                        {/* Working Period */}
+                        <td className="py-3 px-3">
+                          {alloc.workingPeriod ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-elevated text-text-secondary border border-border">
+                              <Calendar size={10} />
+                              {alloc.workingPeriod}
+                            </span>
+                          ) : (
+                            <span className="text-text-muted">---</span>
+                          )}
+                        </td>
+
+                        {/* Allocated Qty & Items */}
+                        <td className="py-3 px-3 text-center">
+                          <div className="flex flex-col items-center">
+                            <span className="font-mono font-bold text-sm text-text-primary">
+                              {alloc.allocatedQty} <span className="text-[10px] font-normal text-text-muted">pcs</span>
+                            </span>
+                            {alloc.items?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1 justify-center max-w-[140px]">
+                                {alloc.items.map((it, idx) => (
+                                  <span key={idx} className="text-[9px] px-1 py-0.5 rounded bg-surface-elevated text-text-secondary border border-border">
+                                    {it.size ? `${it.size}` : it.type}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Date Given & Ref */}
+                        <td className="py-3 px-3">
+                          <div className="flex flex-col">
+                            <span className="text-[11px] text-text-secondary">
+                              {new Date(alloc.givenDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                            {alloc.ref && (
+                              <div className="mt-0.5">
+                                <DeliveryNoteLink tx={{ deliveryNote: alloc.ref, timestamp: alloc.givenDate }} />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Return Status */}
+                        <td className="py-3 px-3">
+                          <div className="flex flex-col gap-1 items-start">
+                            {allocStatusBadge(alloc)}
+                            {alloc.notes && (
+                              <span className="text-[10px] text-text-muted italic max-w-xs truncate" title={alloc.notes}>
+                                Note: {alloc.notes}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden flex flex-col divide-y divide-border border border-border rounded-xl bg-surface p-2">
+                {paginatedAllocations.map((alloc) => (
+                  <div key={alloc.id} className="py-3 px-2 flex flex-col gap-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-sm text-text-primary">{alloc.staffName}</span>
+                        <div className="flex items-center gap-1.5 text-xs text-text-secondary mt-0.5">
+                          {alloc.staffPhone && (
+                            <span className="flex items-center gap-1">
+                              <Phone size={10} /> {alloc.staffPhone}
+                            </span>
+                          )}
+                          {alloc.staffShirtSize && (
+                            <span className="px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary text-[10px] font-mono border border-border">
+                              Size: {alloc.staffShirtSize}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="font-mono font-bold text-sm text-text-primary px-2 py-0.5 rounded-lg bg-surface-elevated border border-border">
+                        {alloc.allocatedQty} pcs
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-text-secondary">
+                      <span className="flex items-center gap-1">
+                        <MapPin size={11} className="text-primary" /> {alloc.storeName}
+                      </span>
+                      {alloc.supervisorName && (
+                        <span className="flex items-center gap-1 text-[11px] text-text-muted">
+                          <User size={10} /> {alloc.supervisorName}
+                        </span>
+                      )}
+                    </div>
+
+                    {alloc.workingPeriod && (
+                      <div className="text-[11px] text-text-secondary flex items-center gap-1">
+                        <Calendar size={11} className="text-text-muted" />
+                        <span>Period: {alloc.workingPeriod}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                      <div className="flex flex-col">
+                        <span className="text-text-muted">
+                          Given: {new Date(alloc.givenDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' })}
+                        </span>
+                        {alloc.ref && (
+                          <div className="mt-0.5">
+                            <DeliveryNoteLink tx={{ deliveryNote: alloc.ref, timestamp: alloc.givenDate }} />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        {allocStatusBadge(alloc)}
+                      </div>
+                    </div>
+
+                    {alloc.notes && (
+                      <div className="text-[10px] text-text-muted italic bg-surface-elevated/50 p-1.5 rounded">
+                        Note: {alloc.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination for Allocations */}
+              {totalAllocPages > 1 && (
+                <Pagination
+                  currentPage={allocPage}
+                  totalPages={totalAllocPages}
+                  totalItems={filteredAllocations.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setAllocPage}
+                  itemLabel="promoter allocations"
+                />
+              )}
+            </>
+          )}
         </div>
       )}
 

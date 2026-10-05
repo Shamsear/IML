@@ -925,11 +925,154 @@ export async function getProductDetail(id) {
   (supervisors || []).forEach(s => { if (s?.id && s?.name) entityNames[s.id] = s.name; });
   (brands || []).forEach(b => { if (b?.id && b?.name) entityNames[b.id] = b.name; });
 
+  // Fetch uniform allocations if product is in UNIFORM category or could have promoter uniform allocations
+  const isUniformCategory = product.category && (
+    product.category.toUpperCase() === 'UNIFORM' || 
+    product.category.toUpperCase() === 'UNIFORMS' ||
+    product.category.toUpperCase().includes('UNIFORM')
+  );
+
+  const txDeliveryNotes = new Set(
+    (product.transactions || []).map(t => t.deliveryNote).filter(Boolean)
+  );
+
+  // Fetch all allocations with relations to check matching items / refs
+  const allAllocations = await prisma.staffUniformAllocation.findMany({
+    orderBy: { givenDate: 'desc' },
+    include: {
+      staff: { select: { id: true, name: true, phone: true, shirtSize: true } },
+      store: { select: { id: true, name: true } },
+      supervisor: { select: { id: true, name: true } },
+    }
+  });
+
+  const uniformAllocations = [];
+
+  for (const alloc of allAllocations) {
+    let items = [];
+    if (alloc.allocatedItems) {
+      if (typeof alloc.allocatedItems === 'string') {
+        try { items = JSON.parse(alloc.allocatedItems); } catch(e) { items = []; }
+      } else if (Array.isArray(alloc.allocatedItems)) {
+        items = alloc.allocatedItems;
+      }
+    }
+
+    // Match 1: Dynamic items matching productId
+    const directProductItems = items.filter(it => it.productId === id);
+    
+    // Match 2: Dynamic items matching product name / category
+    const nameMatchItems = items.filter(it => 
+      !it.productId && (
+        (it.type && (
+          product.name.toLowerCase().includes(it.type.toLowerCase()) || 
+          it.type.toLowerCase().includes(product.name.toLowerCase()) ||
+          (isUniformCategory && it.type.toLowerCase().includes('uniform'))
+        ))
+      )
+    );
+
+    const matchedItems = directProductItems.length > 0 ? directProductItems : nameMatchItems;
+
+    // Match 3: Ref matches transaction deliveryNote
+    const refMatch = alloc.ref && txDeliveryNotes.has(alloc.ref);
+
+    // Match 4: Legacy uniform allocation (uniformQty > 0) when this product is a UNIFORM
+    const isLegacyUniformMatch = isUniformCategory && alloc.uniformQty > 0 && matchedItems.length === 0;
+
+    if (matchedItems.length > 0 || refMatch || isLegacyUniformMatch) {
+      let allocatedQty = 0;
+      let returnedQty = 0;
+      let isFullyReturned = false;
+      let itemDetails = [];
+
+      if (matchedItems.length > 0) {
+        matchedItems.forEach(it => {
+          const q = parseInt(it.qty || 1, 10);
+          allocatedQty += q;
+          if (it.returned) returnedQty += q;
+          itemDetails.push({
+            id: it.id,
+            type: it.type || product.name,
+            size: it.size || alloc.staff?.shirtSize || product.size || '---',
+            qty: q,
+            returned: !!it.returned,
+            returnedAt: it.returnedAt || alloc.returnDate || null,
+          });
+        });
+        isFullyReturned = allocatedQty > 0 && allocatedQty === returnedQty;
+      } else if (isLegacyUniformMatch) {
+        allocatedQty = alloc.uniformQty;
+        returnedQty = alloc.uniformReturned ? alloc.uniformQty : 0;
+        isFullyReturned = alloc.uniformReturned;
+        itemDetails.push({
+          id: `legacy-${alloc.id}`,
+          type: product.name || 'Uniform',
+          size: alloc.staff?.shirtSize || product.size || '---',
+          qty: alloc.uniformQty,
+          returned: alloc.uniformReturned,
+          returnedAt: alloc.returnDate || null,
+        });
+      } else if (refMatch) {
+        const relatedTx = (product.transactions || []).find(t => t.deliveryNote === alloc.ref);
+        const q = relatedTx?.quantity || alloc.uniformQty || 1;
+        allocatedQty = q;
+        isFullyReturned = (alloc.uniformQty === 0 || alloc.uniformReturned) && (!items.length || items.every(i => i.returned));
+        returnedQty = isFullyReturned ? q : 0;
+        itemDetails.push({
+          id: `ref-${alloc.id}`,
+          type: product.name,
+          size: alloc.staff?.shirtSize || product.size || '---',
+          qty: q,
+          returned: isFullyReturned,
+          returnedAt: alloc.returnDate || null,
+        });
+      }
+
+      // Determine overdue status
+      let isOverdue = false;
+      if (!isFullyReturned && alloc.workingPeriod && alloc.workingPeriod.includes(' to ')) {
+        const parts = alloc.workingPeriod.split(' to ');
+        const endDateStr = parts[1]?.trim();
+        if (endDateStr) {
+          const endDate = new Date(endDateStr);
+          endDate.setHours(23, 59, 59, 999);
+          isOverdue = new Date() > endDate;
+        }
+      }
+
+      uniformAllocations.push({
+        id: alloc.id,
+        staffId: alloc.staffId,
+        staffName: alloc.staff?.name || 'Promoter',
+        staffPhone: alloc.staff?.phone || '',
+        staffShirtSize: alloc.staff?.shirtSize || '',
+        storeId: alloc.storeId,
+        storeName: alloc.store?.name || 'Store',
+        supervisorId: alloc.supervisorId,
+        supervisorName: alloc.supervisor?.name || null,
+        workingPeriod: alloc.workingPeriod || '',
+        givenDate: alloc.givenDate,
+        returnDate: alloc.returnDate,
+        notes: alloc.notes,
+        ref: alloc.ref,
+        allocatedQty,
+        returnedQty,
+        isReturned: isFullyReturned,
+        isOverdue,
+        status: isFullyReturned ? 'RETURNED' : (isOverdue ? 'OVERDUE' : 'ACTIVE'),
+        items: itemDetails,
+      });
+    }
+  }
+
   return {
     ...product,
     warehouseStock,
     stock,
     entityNames,
+    uniformAllocations,
+    isUniform: isUniformCategory || uniformAllocations.length > 0,
   };
 }
 
