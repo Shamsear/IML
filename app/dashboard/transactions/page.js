@@ -17,7 +17,8 @@ export default async function TransactionsPage({ searchParams }) {
     products,
     stores,
     supervisors,
-    staff
+    staff,
+    brands
   ] = await Promise.all([
     getTransactions({ search, type, productId, page }),
     prisma.product.findMany({
@@ -27,6 +28,7 @@ export default async function TransactionsPage({ searchParams }) {
     prisma.store.findMany({ select: { id: true, name: true } }),
     prisma.supervisor.findMany({ select: { id: true, name: true } }),
     prisma.staff.findMany({ select: { id: true, name: true } }),
+    prisma.brand.findMany({ select: { id: true, name: true } }),
   ]);
 
   const { transactions, totalCount } = result;
@@ -36,6 +38,7 @@ export default async function TransactionsPage({ searchParams }) {
   stores.forEach(s => { entityNames[s.id] = s.name; });
   supervisors.forEach(s => { entityNames[s.id] = s.name; });
   staff.forEach(s => { entityNames[s.id] = s.name; });
+  brands.forEach(b => { entityNames[b.id] = b.name; });
 
   return (
     <TransactionsClient

@@ -30,7 +30,7 @@ export default async function RebrandPage({ searchParams }) {
   let products = [];
 
   try {
-    const [txs, count, storeList, prodList] = await Promise.all([
+    const [txs, count, storeList, prodList, supervisorList, staffList, brandList] = await Promise.all([
       prisma.inventoryTransaction.findMany({
         where: {
           transactionType: { in: ['REBRAND', 'REBRAND_OUT', 'REBRAND_IN'] },
@@ -103,34 +103,51 @@ export default async function RebrandPage({ searchParams }) {
           brand: { select: { name: true } }
         },
         orderBy: { name: 'asc' }
-      })
+      }),
+      prisma.supervisor.findMany({ select: { id: true, name: true } }),
+      prisma.staff.findMany({ select: { id: true, name: true } }),
+      prisma.brand.findMany({ select: { id: true, name: true } }),
     ]);
 
     transactions = txs;
     totalCount = count;
     stores = storeList;
     products = prodList;
+
+    const entityNames = {};
+    stores.forEach(s => { entityNames[s.id] = s.name; });
+    supervisorList.forEach(s => { entityNames[s.id] = s.name; });
+    staffList.forEach(s => { entityNames[s.id] = s.name; });
+    brandList.forEach(b => { entityNames[b.id] = b.name; });
+
+    const formattedTransactions = transactions.map(tx => ({
+      ...tx,
+      timestamp: tx.timestamp ? tx.timestamp.toISOString() : new Date().toISOString(),
+    }));
+
+    return (
+      <Suspense fallback={<RebrandLoading />}>
+        <RebrandLedgerClient
+          transactions={formattedTransactions}
+          entityNames={entityNames}
+          products={products}
+          totalCount={totalCount}
+          initialPage={initialPage}
+        />
+      </Suspense>
+    );
   } catch (err) {
     console.error('Error fetching rebrand transactions:', err);
+    return (
+      <Suspense fallback={<RebrandLoading />}>
+        <RebrandLedgerClient
+          transactions={[]}
+          entityNames={{}}
+          products={[]}
+          totalCount={0}
+          initialPage={1}
+        />
+      </Suspense>
+    );
   }
-
-  const entityNames = {};
-  stores.forEach(s => { entityNames[s.id] = s.name; });
-
-  const formattedTransactions = transactions.map(tx => ({
-    ...tx,
-    timestamp: tx.timestamp ? tx.timestamp.toISOString() : new Date().toISOString(),
-  }));
-
-  return (
-    <Suspense fallback={<RebrandLoading />}>
-      <RebrandLedgerClient
-        transactions={formattedTransactions}
-        entityNames={entityNames}
-        products={products}
-        totalCount={totalCount}
-        initialPage={initialPage}
-      />
-    </Suspense>
-  );
 }

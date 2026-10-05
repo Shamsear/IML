@@ -860,10 +860,11 @@ export async function getProductDetail(id) {
     if (s.currentLocationType === 'STAFF' && s.currentLocationId) relevantStaffIds.add(s.currentLocationId);
   });
 
-  const [stores, staff, supervisors] = await Promise.all([
-    relevantStoreIds.size > 0 ? prisma.store.findMany({ where: { id: { in: Array.from(relevantStoreIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
-    relevantStaffIds.size > 0 ? prisma.staff.findMany({ where: { id: { in: Array.from(relevantStaffIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
-    relevantSupervisorIds.size > 0 ? prisma.supervisor.findMany({ where: { id: { in: Array.from(relevantSupervisorIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
+  const [stores, staff, supervisors, brands] = await Promise.all([
+    prisma.store.findMany({ select: { id: true, name: true } }),
+    prisma.staff.findMany({ select: { id: true, name: true } }),
+    prisma.supervisor.findMany({ select: { id: true, name: true } }),
+    prisma.brand.findMany({ select: { id: true, name: true } }),
   ]);
 
   // Compute warehouse stock using the same logic as computeWarehouseStockMap
@@ -922,6 +923,7 @@ export async function getProductDetail(id) {
   (stores || []).forEach(s => { if (s?.id && s?.name) entityNames[s.id] = s.name; });
   (staff || []).forEach(s => { if (s?.id && s?.name) entityNames[s.id] = s.name; });
   (supervisors || []).forEach(s => { if (s?.id && s?.name) entityNames[s.id] = s.name; });
+  (brands || []).forEach(b => { if (b?.id && b?.name) entityNames[b.id] = b.name; });
 
   return {
     ...product,

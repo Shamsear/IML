@@ -39,11 +39,11 @@ export default function ProductDetailClient({ product }) {
   const formatEntity = (type, id) => {
     if (!type && !id) return '---';
     if (id && entityNames[id]) return entityNames[id];
-    if (type === 'WAREHOUSE') return 'WAREHOUSE';
-    if (type === 'SUPPLIER' || type === 'VENDOR') return id || 'SUPPLIER';
-    if (type === 'CLIENT' || type === 'DIRECT') return id || 'Client Possession';
-    if (id) return id;
-    return type || '---';
+    if (id === 'WH-MAIN' || id === 'MAIN' || type === 'WAREHOUSE') return 'Warehouse';
+    if (type === 'SUPPLIER' || type === 'VENDOR') return (id && entityNames[id]) || id || 'Supplier';
+    if (type === 'CLIENT' || type === 'DIRECT' || type === 'BRAND') return (id && entityNames[id]) || (id && id !== 'MAIN' ? id : 'Client Possession');
+    if (id) return entityNames[id] || id;
+    return type === 'WAREHOUSE' ? 'Warehouse' : (type || '---');
   };
 
   const serialCustomGetters = useMemo(() => ({
