@@ -310,15 +310,70 @@ export default function DamageLedgerClient({
           </div>
         ) : (
           <>
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={sortedTransactions.length}
-              itemsPerPage={pageSize}
-              onPageChange={handlePageChange}
-              itemLabel="damage reports"
-            />
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="md:hidden flex flex-col divide-y divide-border">
+              {paginatedTransactions.map((tx) => {
+                const dateObj = new Date(tx.timestamp);
+                const dateStr = dateObj.toLocaleDateString('en-AE', {
+                  timeZone: 'Asia/Dubai',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                });
+                const sourceName = getSourceName(tx);
+                return (
+                  <div key={tx.id} className="p-4 flex flex-col gap-2.5 hover:bg-surface-elevated/20 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <Link
+                          href={`/dashboard/products/${tx.product?.id}`}
+                          className="font-bold text-sm text-text-primary hover:text-primary transition-colors truncate"
+                        >
+                          {tx.product?.name}
+                        </Link>
+                        <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
+                          <span>{tx.product?.brand?.name || 'General'}</span>
+                          {tx.product?.itemCode && <span>· SKU: {tx.product.itemCode}</span>}
+                        </div>
+                      </div>
+                      <span className="font-mono font-bold text-sm text-danger whitespace-nowrap">
+                        -{tx.quantity}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-text-secondary">
+                      <span className="font-medium text-[11px] text-text-secondary truncate max-w-[60%]">
+                        From: <strong className="text-text-primary">{sourceName}</strong>
+                      </span>
+                      <span className="text-[11px] text-text-muted">{dateStr}</span>
+                    </div>
+
+                    {tx.notes && (
+                      <p className="text-xs text-text-muted bg-surface-elevated/40 px-2.5 py-1.5 rounded-lg border border-border/40 truncate" title={tx.notes}>
+                        {tx.notes}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                      <DeliveryNoteLink tx={tx} />
+                      <TransactionActions
+                        txId={tx.id}
+                        deliveryNote={tx.deliveryNote}
+                        notes={tx.notes || ''}
+                        showDeliveryNote={false}
+                        copyType="damage"
+                        transactionType="DAMAGE"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-border text-xs">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">

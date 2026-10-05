@@ -407,7 +407,49 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                     <span>{brandGroup.brandName}</span>
                   </h3>
 
-                  <div className="overflow-x-auto">
+                  {/* Mobile Cards for Brand Items */}
+                  <div className="md:hidden flex flex-col divide-y divide-border">
+                    {brandGroup.items.map((bal, idx) => (
+                      <div key={idx} className="py-3 flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="font-bold text-sm text-text-primary truncate">{bal.productName}</span>
+                            <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
+                              <span>{bal.category || 'General'}</span>
+                              {bal.itemCode && <span>· SKU: {bal.itemCode}</span>}
+                            </div>
+                          </div>
+                          <span className="font-mono font-bold text-sm text-primary whitespace-nowrap">
+                            {bal.quantity} pcs
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-1.5 border-t border-border/40">
+                          {bal.isSerialized && (
+                            <button
+                              type="button"
+                              onClick={() => setActiveSerialList({ productName: bal.productName, serials: bal.serialNumbers })}
+                              className="px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated hover:text-primary font-bold text-[10px] rounded transition-all cursor-pointer"
+                            >
+                              View Serials
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const bg = balancesByBrand.find(b => b.brandId === bal.brandId);
+                              if (bg) handleOpenReturnModal(bg);
+                            }}
+                            className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] rounded transition-all cursor-pointer"
+                          >
+                            Return to WH
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-border text-xs">
                       <thead>
                         <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">

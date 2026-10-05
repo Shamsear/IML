@@ -708,62 +708,111 @@ export default function ReturnsClient({
 
                     {/* Expanded Items */}
                     {isExpanded && (
-                      <div className="border-t border-border bg-surface/50 overflow-x-auto">
-                        <table className="min-w-full divide-y divide-border text-xs">
-                          <thead>
-                            <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                              <th className="py-2.5 pl-5 pr-3 w-10"></th>
-                              <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</th>
-                              <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supervisor</th>
-                              <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">Available</th>
-                              <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 w-28 whitespace-nowrap">Return Qty</th>
-                              <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border text-text-primary">
-                            {group.items.map(tx => {
-                              const isSelected = !!processingItems[tx.id];
-                              const remainingQty = tx.quantity - (tx.returnedQty || 0);
-                              const itemState = processingItems[tx.id];
-                              return (
-                                <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/40'}`}>
-                                  <td className="py-2.5 pl-5 pr-3">
-                                    <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
-                                  </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-primary">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span>{tx.product?.name}</span>
-                                      {tx.product?.isReturnable && tx.product?.isDisposable && (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
-                                      )}
+                      <div className="border-t border-border bg-surface/50">
+                        {/* Mobile Card View for Group Items */}
+                        <div className="md:hidden flex flex-col divide-y divide-border p-3 gap-3">
+                          {group.items.map(tx => {
+                            const isSelected = !!processingItems[tx.id];
+                            const remainingQty = tx.quantity - (tx.returnedQty || 0);
+                            const itemState = processingItems[tx.id];
+                            return (
+                              <div key={tx.id} className={`p-3 rounded-lg border flex flex-col gap-2 ${isSelected ? 'bg-primary/5 border-primary/30' : 'bg-surface border-border'}`}>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer shrink-0" />
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-semibold text-xs text-text-primary truncate">{tx.product?.name}</span>
+                                      {tx.product?.itemCode && <span className="text-[10px] text-text-muted font-mono">SKU: {tx.product.itemCode}</span>}
                                     </div>
-                                  </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs">
-                                    {getSupervisorName(tx) ? (
-                                      <span className="inline-flex items-center gap-1 text-primary font-semibold">
-                                        <UserCheck size={11} />
-                                        {getSupervisorName(tx)}
-                                      </span>
-                                    ) : (
-                                      <span className="text-text-muted">—</span>
-                                    )}
-                                  </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">{remainingQty}</td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
-                                    <input type="number" min="1" max={remainingQty} disabled={!isSelected}
-                                      value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
-                                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
-                                  </td>
-                                  <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
-                                    <input type="text" placeholder="Notes..." disabled={!isSelected}
-                                      value={itemState?.notes || ''} onChange={(e) => handleChange(tx.id, 'notes', e.target.value)}
-                                      className="w-full min-w-[120px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                                  </div>
+                                  <span className="font-mono font-bold text-xs shrink-0">{remainingQty} avail</span>
+                                </div>
+                                {isSelected && (
+                                  <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-text-secondary font-semibold">Return Qty:</span>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        max={remainingQty}
+                                        value={itemState?.qty || ''}
+                                        onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
+                                        placeholder="Qty"
+                                        className="w-16 bg-surface text-text-primary font-mono font-bold text-center border border-primary rounded px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                                      />
+                                    </div>
+                                    <input
+                                      type="text"
+                                      placeholder="Remarks..."
+                                      value={itemState?.notes || ''}
+                                      onChange={(e) => handleChange(tx.id, 'notes', e.target.value)}
+                                      className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1 text-xs"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Desktop Table View for Group Items */}
+                        <div className="hidden md:block overflow-x-auto">
+                          <table className="min-w-full divide-y divide-border text-xs">
+                            <thead>
+                              <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
+                                <th className="py-2.5 pl-5 pr-3 w-10"></th>
+                                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</th>
+                                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Supervisor</th>
+                                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">Available</th>
+                                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 w-28 whitespace-nowrap">Return Qty</th>
+                                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border text-text-primary">
+                              {group.items.map(tx => {
+                                const isSelected = !!processingItems[tx.id];
+                                const remainingQty = tx.quantity - (tx.returnedQty || 0);
+                                const itemState = processingItems[tx.id];
+                                return (
+                                  <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/40'}`}>
+                                    <td className="py-2.5 pl-5 pr-3">
+                                      <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
+                                    </td>
+                                    <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-primary">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span>{tx.product?.name}</span>
+                                        {tx.product?.isReturnable && tx.product?.isDisposable && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs">
+                                      {getSupervisorName(tx) ? (
+                                        <span className="inline-flex items-center gap-1 text-primary font-semibold">
+                                          <UserCheck size={11} />
+                                          {getSupervisorName(tx)}
+                                        </span>
+                                      ) : (
+                                        <span className="text-text-muted">—</span>
+                                      )}
+                                    </td>
+                                    <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">{remainingQty}</td>
+                                    <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
+                                      <input type="number" min={1} max={remainingQty} disabled={!isSelected}
+                                        value={itemState?.qty || ''} onChange={(e) => handleChange(tx.id, 'qty', parseInt(e.target.value || '0', 10))}
+                                        className="w-full bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs font-mono disabled:opacity-50 disabled:bg-surface-elevated" />
+                                    </td>
+                                    <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
+                                      <input type="text" placeholder="Notes..." disabled={!isSelected}
+                                        value={itemState?.notes || ''} onChange={(e) => handleChange(tx.id, 'notes', e.target.value)}
+                                        className="w-full min-w-[120px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -788,7 +837,74 @@ export default function ReturnsClient({
           {/* ── TAB: RETURNS HISTORY ── */}
           {activeTab === 'history' && (
             <>
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="md:hidden flex flex-col divide-y divide-border">
+              {sortedHistory.length === 0 ? (
+                <div className="py-12 text-center text-text-muted flex flex-col items-center gap-2">
+                  <Package size={32} className="opacity-20" />
+                  <span>No returns logs found.</span>
+                </div>
+              ) : (
+                paginatedHistory.map(tx => {
+                  const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
+                  const dateStr = new Date(tx.timestamp).toLocaleString('en-AE', {
+                    timeZone: 'Asia/Dubai',
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                  return (
+                    <div key={tx.id} className="p-4 flex flex-col gap-2.5 hover:bg-surface-elevated/20 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-bold text-sm text-text-primary hover:text-primary transition-colors truncate">
+                            {tx.product?.name}
+                          </Link>
+                          <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
+                            <span>{tx.product?.brand?.name || 'General'}</span>
+                            {tx.product?.itemCode && <span>· SKU: {tx.product.itemCode}</span>}
+                          </div>
+                        </div>
+                        <span className="font-mono font-bold text-sm text-success whitespace-nowrap">
+                          +{tx.quantity}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-text-secondary">
+                        <span className="font-medium text-[11px] text-text-secondary truncate max-w-[60%]">
+                          Store: <strong className="text-text-primary">{fromStore}</strong>
+                          {getSupervisorName(tx) && ` (${getSupervisorName(tx)})`}
+                        </span>
+                        <span className="text-[11px] text-text-muted">{dateStr}</span>
+                      </div>
+
+                      {tx.notes && (
+                        <p className="text-xs text-text-muted bg-surface-elevated/40 px-2.5 py-1.5 rounded-lg border border-border/40 truncate" title={tx.notes}>
+                          {tx.notes}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
+                        <DeliveryNoteLink tx={tx} deliveryNote={tx.deliveryNote} />
+                        <TransactionActions 
+                          txId={tx.id} 
+                          deliveryNote={tx.deliveryNote}
+                          transactionType="RETURN"
+                          notes={tx.notes || ''} 
+                          copyType="returns"
+                          showDeliveryNote={false} 
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-border text-xs">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">

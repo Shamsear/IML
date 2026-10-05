@@ -467,7 +467,27 @@ export default function ProductDetailClient({ product }) {
             itemLabel="serial numbers"
           />
 
-          <div className="overflow-x-auto">
+          {/* Mobile Card View for Serials */}
+          <div className="md:hidden flex flex-col divide-y divide-border">
+            {paginatedSerials.map((s) => (
+              <div key={s.id} className="py-2.5 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-xs text-text-primary">{s.barcode}</span>
+                  {serialStatusBadge(s.status)}
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-text-secondary">
+                  <span>Location: {formatEntity(s.currentLocationType, s.currentLocationId)}</span>
+                  <span>{new Date(s.createdAt).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' })}</span>
+                </div>
+                {s.secondaryBarcode && (
+                  <span className="text-[10px] font-mono text-text-muted">Sec: {s.secondaryBarcode}</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View for Serials */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
@@ -542,7 +562,38 @@ export default function ProductDetailClient({ product }) {
             itemLabel="transactions"
           />
 
-          <div className="overflow-x-auto">
+          {/* Mobile Card View for Transactions */}
+          <div className="md:hidden flex flex-col divide-y divide-border">
+            {paginatedTxs.map((tx) => (
+              <div key={tx.id} className="py-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  {txTypeBadge(tx.transactionType)}
+                  <span className="font-mono font-bold text-sm text-text-primary">
+                    {tx.quantity} pcs
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-text-secondary">
+                  <span>{formatEntity(tx.fromEntityType, tx.fromEntityId)} → {formatEntity(tx.toEntityType, tx.toEntityId)}</span>
+                  <span className="text-[11px] text-text-muted">
+                    {new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' })}
+                  </span>
+                </div>
+                {tx.deliveryNote && (
+                  <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px]">
+                    <DeliveryNoteLink tx={tx} />
+                    {tx.returnStatus && (
+                      <span className={`text-[10px] font-bold ${tx.returnStatus === 'RETURNED' ? 'text-success' : 'text-warning'}`}>
+                        {tx.returnStatus}{tx.returnedQty ? ` (${tx.returnedQty})` : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View for Transactions */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
