@@ -394,8 +394,8 @@ export default function BrandPortalClient({ brand }) {
                                           {p.name.substring(0, 2).toUpperCase()}
                                         </div>
                                       )}
-                                      <div className="min-w-0">
-                                        <span className="font-bold text-xs text-text-primary block truncate">{p.name}</span>
+                                      <div className="min-w-0 flex-1">
+                                        <span className="font-bold text-xs text-text-primary block break-words leading-snug">{p.name}</span>
                                         <span className="text-[10px] font-mono text-text-muted">{p.itemCode || '---'}</span>
                                       </div>
                                     </div>
@@ -436,7 +436,7 @@ export default function BrandPortalClient({ brand }) {
                               <tbody className="divide-y divide-border text-xs">
                                 {section.items.map(({ product: p, availableQty, stockLevel, remark }) => (
                                   <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
-                                    <td className="py-2.5 px-4">
+                                    <td className="py-2.5 px-4 min-w-[200px]">
                                       <div className="flex items-center gap-3 min-w-0">
                                         {p.imageUrl ? (
                                           <img 
@@ -451,8 +451,8 @@ export default function BrandPortalClient({ brand }) {
                                             {p.name.substring(0, 2).toUpperCase()}
                                           </div>
                                         )}
-                                        <div className="min-w-0">
-                                          <span className="font-semibold text-text-primary block truncate">{p.name}</span>
+                                        <div className="min-w-0 flex-1">
+                                          <span className="font-semibold text-text-primary block break-words leading-snug">{p.name}</span>
                                           <span className="text-[10px] font-mono text-text-muted">{p.itemCode || '---'}</span>
                                         </div>
                                       </div>
@@ -617,8 +617,8 @@ export default function BrandPortalClient({ brand }) {
                             ) : (
                               <div className="w-10 h-10 rounded-sm bg-primary/5 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold border border-primary/10">{p.name.substring(0, 2).toUpperCase()}</div>
                             )}
-                            <div className="min-w-0">
-                              <span className="font-semibold text-sm text-text-primary block truncate">{p.name}</span>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-semibold text-sm text-text-primary block break-words leading-snug">{p.name}</span>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-[10px] text-text-muted font-mono">{p.itemCode || '---'}</span>
                                 <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${p.isSerialized ? 'bg-primary/10 text-primary' : 'bg-surface-elevated text-text-secondary'}`}>{p.category || 'Bulk'}</span>
@@ -658,7 +658,7 @@ export default function BrandPortalClient({ brand }) {
                         const stock = computeProductStock(p);
                         return (
                           <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
-                            <td className="py-3 px-3 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border shadow-sm">
+                            <td className="py-3 px-3 min-w-[220px] sticky left-0 bg-surface z-10 border-r border-border shadow-sm">
                               <div className="flex items-center gap-3">
                                 {p.imageUrl ? (
                                   <img 
@@ -678,7 +678,7 @@ export default function BrandPortalClient({ brand }) {
                                   </div>
                                 )}
                                 <div className="flex flex-col min-w-0">
-                                  <span className="font-semibold text-text-primary truncate">{p.name}</span>
+                                  <span className="font-semibold text-text-primary break-words leading-snug">{p.name}</span>
                                   {p.isSerialized && (
                                     <span className="text-[10px] font-semibold text-primary mt-0.5">
                                       <QrCode size={10} className="inline mr-1"/>

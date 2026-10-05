@@ -329,7 +329,7 @@ export default function DamageLedgerClient({
                       <div className="flex flex-col min-w-0 flex-1">
                         <Link
                           href={`/dashboard/products/${tx.product?.id}`}
-                          className="font-bold text-sm text-text-primary hover:text-primary transition-colors truncate"
+                          className="font-bold text-sm text-text-primary hover:text-primary transition-colors break-words leading-snug"
                         >
                           {tx.product?.name}
                         </Link>
@@ -401,11 +401,11 @@ export default function DamageLedgerClient({
                     const sourceName = getSourceName(tx);
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[200px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex flex-col">
                             <Link
                               href={`/dashboard/products/${tx.product?.id}`}
-                              className="font-semibold text-text-primary hover:text-primary transition-colors"
+                              className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug"
                             >
                               {tx.product?.name}
                             </Link>

@@ -413,7 +413,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                       <div key={idx} className="py-3 flex flex-col gap-2">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex flex-col min-w-0 flex-1">
-                            <span className="font-bold text-sm text-text-primary truncate">{bal.productName}</span>
+                            <span className="font-bold text-sm text-text-primary break-words leading-snug">{bal.productName}</span>
                             <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
                               <span>{bal.category || 'General'}</span>
                               {bal.itemCode && <span>· SKU: {bal.itemCode}</span>}
@@ -464,7 +464,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                         {brandGroup.items.map((bal, idx) => (
                           <tr key={idx} className="hover:bg-surface-elevated/20 transition-colors group/row">
                             <td className="py-3 pl-4 pr-4 font-mono font-bold text-[11px] text-primary">{bal.itemCode || '—'}</td>
-                            <td className="py-3 pr-4 font-bold text-text-primary">{bal.productName}</td>
+                            <td className="py-3 pr-4 font-bold text-text-primary break-words leading-snug min-w-[200px]">{bal.productName}</td>
                             <td className="py-3 pr-4 text-text-secondary font-semibold">{bal.category || 'General'}</td>
                             <td className="py-3 pr-4 text-center font-extrabold">{bal.quantity}</td>
                             <td className="py-3 text-right">
@@ -583,7 +583,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                       <span className="font-mono font-bold text-sm">{tx.quantity}</span>
                     </div>
                     <div className="min-w-0">
-                      <span className="font-semibold text-sm text-text-primary block truncate">{tx.product?.name}</span>
+                      <span className="font-semibold text-sm text-text-primary block break-words leading-snug">{tx.product?.name}</span>
                       <span className="text-[11px] text-text-muted">{tx.product?.brand?.name || '—'}</span>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
@@ -626,9 +626,9 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
 
                       return (
                         <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                             <div className="flex flex-col">
-                              <span className="font-semibold text-text-primary">{tx.product?.name}</span>
+                              <span className="font-semibold text-text-primary break-words leading-snug">{tx.product?.name}</span>
                               <span className="text-[11px] text-text-muted mt-0.5 font-mono">{tx.product?.itemCode || 'No SKU'}</span>
                             </div>
                           </td>

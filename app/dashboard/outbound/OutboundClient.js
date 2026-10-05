@@ -1613,7 +1613,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
                                   onClick={() => setLightboxImage({ url: selectedProd.imageUrl, name: selectedProd.name })}
                                 />
                                 <div className="flex flex-col min-w-0">
-                                  <span className="text-xs font-bold text-text-primary truncate max-w-[200px]">{selectedProd.name}</span>
+                                  <span className="text-xs font-bold text-text-primary break-words leading-snug">{selectedProd.name}</span>
                                   <span className="text-[10px] text-text-secondary mt-0.5 font-mono">SKU: {selectedProd.itemCode || '---'}</span>
                                 </div>
                               </div>

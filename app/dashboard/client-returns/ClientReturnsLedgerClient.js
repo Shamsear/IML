@@ -295,7 +295,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                         <tbody className="divide-y divide-border/60">
                           {group.items.map((tx, idx) => (
                             <tr key={idx} className="text-xs text-text-primary hover:bg-surface-elevated/30 transition-colors">
-                              <td className="py-2.5 pr-4 font-semibold">{tx.product?.name}</td>
+                              <td className="py-2.5 pr-4 font-semibold break-words leading-snug min-w-[200px]">{tx.product?.name}</td>
                               <td className="py-2.5 pr-4 font-mono font-bold text-[11px] text-primary whitespace-nowrap">{tx.product?.itemCode || '—'}</td>
                               <td className="py-2.5 pr-4 text-center font-bold whitespace-nowrap">{tx.quantity}</td>
                               <td className="py-2.5 text-text-secondary font-medium leading-relaxed">
@@ -625,7 +625,7 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
               <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <span className="font-semibold text-sm text-text-primary block truncate">{tx.product?.name}</span>
+                    <span className="font-semibold text-sm text-text-primary block break-words leading-snug">{tx.product?.name}</span>
                     <span className="text-[11px] text-text-muted font-mono">{tx.product?.itemCode || 'No SKU'}</span>
                   </div>
                   <span className="font-mono font-bold text-sm flex-shrink-0">{tx.quantity}</span>
@@ -680,9 +680,9 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
 
                   return (
                     <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                      <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                      <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-text-primary">{tx.product?.name}</span>
+                          <span className="font-semibold text-text-primary break-words leading-snug">{tx.product?.name}</span>
                           <span className="text-[11px] text-text-muted mt-0.5 font-mono">{tx.product?.itemCode || 'No SKU'}</span>
                         </div>
                       </td>

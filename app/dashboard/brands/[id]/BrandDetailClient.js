@@ -578,8 +578,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                       ) : (
                         <div className="w-10 h-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center flex-shrink-0"><Package size={18} /></div>
                       )}
-                      <div className="min-w-0">
-                        <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{product.name}</Link>
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm text-text-primary block break-words leading-snug hover:text-primary transition-colors">{product.name}</Link>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[10px] text-text-muted font-mono">{product.itemCode || '---'}</span>
                           <span className="badge bg-surface-elevated text-text-secondary border border-border text-[9px]">{product.category || '---'}</span>
@@ -657,7 +657,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                             }}
                           />
                         </td>
-                        <td className="py-3.5 px-5 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                        <td className="py-3.5 px-5 min-w-[220px] sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex items-center gap-3">
                             {product.imageUrl ? (
                               <img 
@@ -680,7 +680,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                               </div>
                             )}
                             <div className="flex flex-col min-w-0">
-                              <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-text-primary truncate hover:text-primary transition-colors">{product.name}</Link>
+                              <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-text-primary break-words leading-snug hover:text-primary transition-colors">{product.name}</Link>
                               {((product.rack || product.shelf) || (brand.rack || brand.shelf)) && (
                                 <span className="text-[10px] text-text-muted mt-0.5 font-medium">
                                   Loc: {product.rack || brand.rack ? `Rack ${product.rack || brand.rack}` : ''}{(product.rack || brand.rack) && (product.shelf || brand.shelf) ? ', ' : ''}{product.shelf || brand.shelf ? `Shelf ${product.shelf || brand.shelf}` : ''}

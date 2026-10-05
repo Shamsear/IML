@@ -304,7 +304,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
-                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-warning truncate hover:text-warning transition-colors">{tx.product?.name}</Link>
+                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-warning hover:text-warning transition-colors break-words leading-snug">{tx.product?.name}</Link>
                           {tx.product?.isReturnable && tx.product?.isDisposable ? (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
                           ) : (
@@ -365,13 +365,22 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/30'}`}>
                         <td className="py-2.5 sm:py-3 pl-4 sm:pl-5 pr-2 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
-                        <td className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 max-w-[200px] truncate sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
-                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-warning hover:text-warning transition-colors">{tx.product?.name}</Link>
-                          {tx.product?.isReturnable && tx.product?.isDisposable ? (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
-                          ) : (
-                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
-                          )}
+                        <td className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 min-w-[220px] sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
+                          <div className="flex flex-col">
+                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-warning hover:text-warning transition-colors break-words leading-snug">{tx.product?.name}</Link>
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                              {tx.product?.itemCode && (
+                                <span className="font-mono text-[10px] text-text-muted">
+                                  {tx.product.itemCode}
+                                </span>
+                              )}
+                              {tx.product?.isReturnable && tx.product?.isDisposable ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-warning/15 text-warning tracking-wider">DISPOSABLE</span>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
                           <div className="font-semibold text-text-primary text-[11px]">{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</div>
@@ -482,7 +491,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                   <div className="flex items-center gap-2 flex-1 min-w-0">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer shrink-0" />
                                     <div className="flex flex-col min-w-0">
-                                      <span className="font-semibold text-xs text-text-primary truncate">{tx.product?.name}</span>
+                                      <span className="font-semibold text-xs text-text-primary break-words leading-snug">{tx.product?.name}</span>
                                       {tx.product?.itemCode && <span className="text-[10px] text-text-muted font-mono">SKU: {tx.product.itemCode}</span>}
                                     </div>
                                   </div>
@@ -614,7 +623,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                     <div key={tx.id} className="p-4 flex flex-col gap-2.5 hover:bg-surface-elevated/20 transition-colors">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex flex-col min-w-0 flex-1">
-                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-bold text-sm text-text-primary hover:text-primary transition-colors truncate">
+                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-bold text-sm text-text-primary hover:text-primary transition-colors break-words leading-snug">
                             {tx.product?.name}
                           </Link>
                           <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
@@ -671,9 +680,9 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                     const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                           <div className="flex flex-col">
-                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors">
+                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug">
                               {tx.product?.name}
                             </Link>
                             <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>

@@ -1015,7 +1015,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm text-text-primary truncate block hover:text-primary transition-colors">{product.name}</Link>
+                        <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm text-text-primary break-words leading-snug block hover:text-primary transition-colors">{product.name}</Link>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                           <span className="badge bg-secondary/15 text-secondary border border-secondary/10 text-[10px]">
                             {product.brand.name}
@@ -1142,7 +1142,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                             <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
                               onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
                           </td>
-                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                             <div className="flex items-center gap-2.5">
                               {product.imageUrl ? (
                                 <img 
@@ -1165,7 +1165,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                                 </div>
                               )}
                               <div className="flex flex-col min-w-0">
-                                <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-text-primary truncate hover:text-primary transition-colors">{product.name}</Link>
+                                <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-text-primary break-words leading-snug hover:text-primary transition-colors">{product.name}</Link>
                                 {((product.rack || product.shelf) || (product.brand?.rack || product.brand?.shelf)) && (
                                   <span className="text-[10px] text-text-muted mt-0.5 font-medium">
                                     Loc: {product.rack || product.brand?.rack ? `Rack ${product.rack || product.brand?.rack}` : ''}{(product.rack || product.brand?.rack) && (product.shelf || product.brand?.shelf) ? ', ' : ''}{product.shelf || product.brand?.shelf ? `Shelf ${product.shelf || product.brand?.shelf}` : ''}

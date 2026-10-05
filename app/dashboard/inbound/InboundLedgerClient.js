@@ -277,7 +277,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                   <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{tx.product.name}</Link>
+                        <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block break-words leading-snug hover:text-primary transition-colors">{tx.product.name}</Link>
                         <span className="text-[11px] text-text-muted">{tx.product.brand.name}</span>
                       </div>
                       <span className={`badge text-[10px] flex-shrink-0 ${tx.transactionType === 'RECEIVE' ? 'bg-success/10 border-success/20 text-success' : 'bg-info/10 border-info/20 text-info'}`}>
@@ -338,9 +338,9 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
 
                         return (
                           <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                            <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 whitespace-nowrap sticky left-0 bg-surface group-hover/row:bg-surface-elevated/100 z-10 border-r border-border shadow-sm">
+                            <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated/100 z-10 border-r border-border shadow-sm">
                               <div className="flex flex-col">
-                                <span className="font-semibold">{tx.product.name}</span>
+                                <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold hover:text-primary transition-colors break-words leading-snug">{tx.product.name}</Link>
                                 <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
                               </div>
                             </td>
@@ -497,7 +497,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                           <tbody className="divide-y divide-border text-text-primary">
                             {group.items.map(tx => (
                               <tr key={tx.id} className="hover:bg-surface-elevated/40 transition-colors">
-                                <td className="py-2.5 pl-5 pr-4 font-medium text-xs">{tx.product.name}</td>
+                                <td className="py-2.5 pl-5 pr-4 font-medium text-xs break-words leading-snug min-w-[200px]">{tx.product.name}</td>
                                 <td className="py-2.5 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">{tx.product.itemCode || '---'}</td>
                                 <td className="py-2.5 px-4 text-xs text-text-secondary whitespace-nowrap">{tx.product.brand.name}</td>
                                 <td className="py-2.5 px-4 text-center font-mono text-xs font-bold text-success whitespace-nowrap">+{tx.quantity}</td>

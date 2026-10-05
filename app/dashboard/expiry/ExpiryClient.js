@@ -262,7 +262,7 @@ export default function ExpiryClient({ initialBatches = [] }) {
                         <img src={batch.productImage} alt={batch.productName} className="w-8 h-8 object-cover rounded-sm border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" />
                       )}
                       <div className="min-w-0 flex-1">
-                        <Link href={`/dashboard/products/${batch.productId}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{batch.productName || 'Unknown'}</Link>
+                        <Link href={`/dashboard/products/${batch.productId}`} className="font-semibold text-sm text-text-primary block break-words leading-snug hover:text-primary transition-colors">{batch.productName || 'Unknown'}</Link>
                         <span className="text-[11px] text-text-muted">{batch.productBrand || '---'} · {batch.productCategory || ''}</span>
                       </div>
                     </div>
@@ -335,7 +335,7 @@ export default function ExpiryClient({ initialBatches = [] }) {
 
                   return (
                     <tr key={batch.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                      <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                      <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
                         <div className="flex items-center gap-3">
                           {batch.productImage ? (
                             <img src={batch.productImage} alt={batch.productName} className="w-10 h-10 object-cover rounded-sm border border-border cursor-zoom-in hover:brightness-95 transition-all duration-200" />
@@ -345,7 +345,7 @@ export default function ExpiryClient({ initialBatches = [] }) {
                             </div>
                           )}
                           <div className="min-w-0">
-                            <Link href={`/dashboard/products/${batch.productId}`} className="font-semibold text-sm block truncate hover:text-primary transition-colors">{batch.productName}</Link>
+                            <Link href={`/dashboard/products/${batch.productId}`} className="font-semibold text-sm block break-words leading-snug hover:text-primary transition-colors">{batch.productName}</Link>
                             <span className="text-[11px] text-text-muted mt-0.5 block whitespace-nowrap">Brand: {batch.productBrand} • {batch.productCategory}</span>
                           </div>
                         </div>

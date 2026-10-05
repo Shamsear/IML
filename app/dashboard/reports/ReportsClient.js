@@ -342,8 +342,8 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
                   ) : (
                     <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 border border-primary/20"><Package size={18} /></div>
                   )}
-                  <div className="min-w-0">
-                    <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-sm text-text-primary block truncate hover:text-primary transition-colors">{p.name}</Link>
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-sm text-text-primary block break-words leading-snug hover:text-primary transition-colors">{p.name}</Link>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] text-text-muted">{p.brand?.name}</span>
                       <span className="badge bg-surface-elevated text-text-secondary border border-border text-[9px]">{p.category || '---'}</span>
@@ -417,7 +417,7 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
               <tbody className="divide-y divide-border/70 text-xs text-text-primary print:divide-y print:divide-gray-400 print:text-[9px]">
                 {paginatedProducts.map(p => (
                   <tr key={p.id} className="hover:bg-surface-elevated/30 transition-colors print:hover:bg-transparent">
-                    <td className="py-3 pl-5 pr-4 whitespace-nowrap sticky left-0 bg-surface z-10 border-r border-border/80 shadow-xs print:relative print:bg-transparent print:border-r-0 print:shadow-none">
+                    <td className="py-3 pl-5 pr-4 min-w-[220px] sticky left-0 bg-surface z-10 border-r border-border/80 shadow-xs print:relative print:bg-transparent print:border-r-0 print:shadow-none">
                       <div className="flex items-center gap-3">
                         {p.imageUrl ? (
                           <img 
@@ -436,8 +436,8 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
                             <Package size={15} />
                           </div>
                         )}
-                        <div className="flex flex-col min-w-0 max-w-[220px]">
-                          <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-text-primary print:font-bold truncate hover:text-primary transition-colors">{p.name}</Link>
+                        <div className="flex flex-col min-w-0">
+                          <Link href={`/dashboard/products/${p.id}`} className="font-semibold text-text-primary print:font-bold break-words leading-snug hover:text-primary transition-colors">{p.name}</Link>
                           <span className="text-[10px] text-text-muted mt-0.5 font-mono print:text-[8px] truncate">
                             SKU: {p.itemCode || '---'}
                           </span>
