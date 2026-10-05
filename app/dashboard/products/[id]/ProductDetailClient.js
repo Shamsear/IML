@@ -7,7 +7,7 @@ import {
   ArrowLeft, Package, Edit2, Trash2, ArrowDownLeft, ArrowUpRight,
   RefreshCw, ShieldAlert, AlertCircle, Tag, QrCode, Calendar,
   MapPin, CheckCircle, XCircle, Clock, ExternalLink, Loader2, Copy,
-  Shirt, Users, User, Search, Plus, CheckCircle2, UserCheck
+  Shirt, Users, User, Search, Plus, CheckCircle2, UserCheck, Phone
 } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { deleteProduct } from '@/app/actions/products';
