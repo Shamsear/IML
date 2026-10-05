@@ -163,26 +163,42 @@ export default function ProductDetailClient({ product }) {
     };
   }, [uniformAllocations]);
 
+  const formatWorkingPeriod = (period) => {
+    if (!period) return '---';
+    const separator = period.includes(' to ') ? ' to ' : period.includes(' - ') ? ' - ' : null;
+    if (separator) {
+      const [start, end] = period.split(separator).map(s => s.trim());
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+        const startFormatted = startDate.toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' });
+        const endFormatted = endDate.toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' });
+        return `${startFormatted} – ${endFormatted}`;
+      }
+    }
+    return period;
+  };
+
   const allocStatusBadge = (alloc) => {
     if (alloc.status === 'RETURNED') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">
-          <CheckCircle2 size={11} />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20 whitespace-nowrap">
+          <CheckCircle2 size={11} className="shrink-0" />
           Returned {alloc.returnDate ? `(${new Date(alloc.returnDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' })})` : ''}
         </span>
       );
     }
     if (alloc.status === 'OVERDUE') {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20">
-          <AlertCircle size={11} />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20 whitespace-nowrap">
+          <AlertCircle size={11} className="shrink-0" />
           Overdue Return
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-        <Clock size={11} />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 whitespace-nowrap">
+        <Clock size={11} className="shrink-0" />
         With Promoter
       </span>
     );
@@ -689,26 +705,26 @@ export default function ProductDetailClient({ product }) {
               <div className="hidden md:block overflow-x-auto border border-border rounded-xl">
                 <table className="min-w-full text-xs">
                   <thead className="bg-surface-elevated/60">
-                    <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase">
-                      <SortableHeader field="promoter" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                    <tr className="border-b border-border text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+                      <SortableHeader field="promoter" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-4">
                         Promoter
                       </SortableHeader>
-                      <SortableHeader field="store" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                      <SortableHeader field="store" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-4">
                         Assigned Store
                       </SortableHeader>
-                      <SortableHeader field="supervisor" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                      <SortableHeader field="supervisor" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-4">
                         Supervisor
                       </SortableHeader>
-                      <SortableHeader field="workingPeriod" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                      <SortableHeader field="workingPeriod" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-4">
                         Working Period
                       </SortableHeader>
-                      <SortableHeader field="quantity" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3 text-center">
+                      <SortableHeader field="quantity" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-4 text-center">
                         Allocated Qty
                       </SortableHeader>
-                      <SortableHeader field="givenDate" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                      <SortableHeader field="givenDate" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-4">
                         Date Given / Ref
                       </SortableHeader>
-                      <SortableHeader field="status" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-2.5 px-3">
+                      <SortableHeader field="status" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-4">
                         Return Status
                       </SortableHeader>
                     </tr>
@@ -717,18 +733,18 @@ export default function ProductDetailClient({ product }) {
                     {paginatedAllocations.map((alloc) => (
                       <tr key={alloc.id} className="hover:bg-surface-elevated/30 transition-colors">
                         {/* Promoter */}
-                        <td className="py-3 px-3">
+                        <td className="py-3.5 px-4 align-middle">
                           <div className="flex flex-col">
-                            <span className="font-semibold text-text-primary">{alloc.staffName}</span>
-                            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-text-muted">
+                            <span className="font-bold text-xs text-text-primary whitespace-nowrap">{alloc.staffName}</span>
+                            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-text-muted whitespace-nowrap">
                               {alloc.staffPhone && (
-                                <span className="flex items-center gap-0.5">
-                                  <Phone size={10} />
+                                <span className="flex items-center gap-1 font-mono text-text-secondary">
+                                  <Phone size={10} className="text-primary/70 shrink-0" />
                                   {alloc.staffPhone}
                                 </span>
                               )}
                               {alloc.staffShirtSize && (
-                                <span className="px-1.5 py-0.2 rounded bg-surface-elevated text-text-secondary text-[10px] font-mono border border-border">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary text-[10px] font-semibold border border-border whitespace-nowrap">
                                   Size: {alloc.staffShirtSize}
                                 </span>
                               )}
@@ -737,59 +753,55 @@ export default function ProductDetailClient({ product }) {
                         </td>
 
                         {/* Store */}
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-1.5 text-text-secondary">
+                        <td className="py-3.5 px-4 align-middle">
+                          <div className="flex items-center gap-1.5 text-text-primary font-medium text-xs whitespace-nowrap">
                             <MapPin size={12} className="text-primary shrink-0" />
-                            <span className="font-medium text-text-primary">{alloc.storeName}</span>
+                            <span>{alloc.storeName}</span>
                           </div>
                         </td>
 
                         {/* Supervisor */}
-                        <td className="py-3 px-3 text-text-secondary">
+                        <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                           {alloc.supervisorName ? (
-                            <span className="flex items-center gap-1 text-text-secondary">
-                              <User size={11} className="text-text-muted" />
+                            <span className="flex items-center gap-1.5 text-xs text-text-secondary">
+                              <User size={12} className="text-text-muted shrink-0" />
                               {alloc.supervisorName}
                             </span>
                           ) : (
-                            <span className="text-text-muted">---</span>
+                            <span className="text-xs text-text-muted">---</span>
                           )}
                         </td>
 
                         {/* Working Period */}
-                        <td className="py-3 px-3">
+                        <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                           {alloc.workingPeriod ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-elevated text-text-secondary border border-border">
-                              <Calendar size={10} />
-                              {alloc.workingPeriod}
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-surface-elevated text-text-secondary border border-border whitespace-nowrap">
+                              <Calendar size={11} className="text-text-muted shrink-0" />
+                              {formatWorkingPeriod(alloc.workingPeriod)}
                             </span>
                           ) : (
-                            <span className="text-text-muted">---</span>
+                            <span className="text-xs text-text-muted">---</span>
                           )}
                         </td>
 
                         {/* Allocated Qty & Items */}
-                        <td className="py-3 px-3 text-center">
-                          <div className="flex flex-col items-center">
-                            <span className="font-mono font-bold text-sm text-text-primary">
+                        <td className="py-3.5 px-4 align-middle text-center whitespace-nowrap">
+                          <div className="flex flex-col items-center justify-center gap-1">
+                            <span className="font-mono font-bold text-xs text-text-primary">
                               {alloc.allocatedQty} <span className="text-[10px] font-normal text-text-muted">pcs</span>
                             </span>
-                            {alloc.items?.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1 justify-center max-w-[140px]">
-                                {alloc.items.map((it, idx) => (
-                                  <span key={idx} className="text-[9px] px-1 py-0.5 rounded bg-surface-elevated text-text-secondary border border-border">
-                                    {it.size ? `${it.size}` : it.type}
-                                  </span>
-                                ))}
-                              </div>
+                            {alloc.staffShirtSize && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary text-[9px] font-mono border border-border font-bold">
+                                {alloc.staffShirtSize}
+                              </span>
                             )}
                           </div>
                         </td>
 
                         {/* Date Given & Ref */}
-                        <td className="py-3 px-3">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] text-text-secondary">
+                        <td className="py-3.5 px-4 align-middle whitespace-nowrap">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs text-text-secondary">
                               {new Date(alloc.givenDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
                             {alloc.ref && (
@@ -801,12 +813,12 @@ export default function ProductDetailClient({ product }) {
                         </td>
 
                         {/* Return Status */}
-                        <td className="py-3 px-3">
+                        <td className="py-3.5 px-4 align-middle whitespace-nowrap">
                           <div className="flex flex-col gap-1 items-start">
                             {allocStatusBadge(alloc)}
                             {alloc.notes && (
-                              <span className="text-[10px] text-text-muted italic max-w-xs truncate" title={alloc.notes}>
-                                Note: {alloc.notes}
+                              <span className="text-[10px] text-text-muted italic max-w-[180px] truncate" title={alloc.notes}>
+                                {alloc.notes}
                               </span>
                             )}
                           </div>
@@ -820,49 +832,49 @@ export default function ProductDetailClient({ product }) {
               {/* Mobile Card View */}
               <div className="md:hidden flex flex-col divide-y divide-border border border-border rounded-xl bg-surface p-2">
                 {paginatedAllocations.map((alloc) => (
-                  <div key={alloc.id} className="py-3 px-2 flex flex-col gap-2.5">
+                  <div key={alloc.id} className="py-3.5 px-3 flex flex-col gap-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex flex-col">
                         <span className="font-bold text-sm text-text-primary">{alloc.staffName}</span>
-                        <div className="flex items-center gap-1.5 text-xs text-text-secondary mt-0.5">
+                        <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
                           {alloc.staffPhone && (
-                            <span className="flex items-center gap-1">
-                              <Phone size={10} /> {alloc.staffPhone}
+                            <span className="flex items-center gap-1 font-mono text-text-muted">
+                              <Phone size={10} className="text-primary/70 shrink-0" /> {alloc.staffPhone}
                             </span>
                           )}
                           {alloc.staffShirtSize && (
-                            <span className="px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary text-[10px] font-mono border border-border">
+                            <span className="px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary text-[10px] font-semibold border border-border whitespace-nowrap">
                               Size: {alloc.staffShirtSize}
                             </span>
                           )}
                         </div>
                       </div>
-                      <span className="font-mono font-bold text-sm text-text-primary px-2 py-0.5 rounded-lg bg-surface-elevated border border-border">
+                      <span className="font-mono font-bold text-xs text-text-primary px-2.5 py-1 rounded-lg bg-surface-elevated border border-border">
                         {alloc.allocatedQty} pcs
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-text-secondary">
-                      <span className="flex items-center gap-1">
-                        <MapPin size={11} className="text-primary" /> {alloc.storeName}
+                      <span className="flex items-center gap-1.5 font-medium text-text-primary">
+                        <MapPin size={12} className="text-primary shrink-0" /> {alloc.storeName}
                       </span>
                       {alloc.supervisorName && (
                         <span className="flex items-center gap-1 text-[11px] text-text-muted">
-                          <User size={10} /> {alloc.supervisorName}
+                          <User size={11} className="shrink-0" /> {alloc.supervisorName}
                         </span>
                       )}
                     </div>
 
                     {alloc.workingPeriod && (
-                      <div className="text-[11px] text-text-secondary flex items-center gap-1">
-                        <Calendar size={11} className="text-text-muted" />
-                        <span>Period: {alloc.workingPeriod}</span>
+                      <div className="text-[11px] text-text-secondary flex items-center gap-1.5 bg-surface-elevated/60 px-2.5 py-1 rounded-md border border-border/60 w-fit">
+                        <Calendar size={11} className="text-text-muted shrink-0" />
+                        <span>Period: {formatWorkingPeriod(alloc.workingPeriod)}</span>
                       </div>
                     )}
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
                       <div className="flex flex-col">
-                        <span className="text-text-muted">
+                        <span className="text-text-muted text-[10px]">
                           Given: {new Date(alloc.givenDate).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' })}
                         </span>
                         {alloc.ref && (
@@ -877,7 +889,7 @@ export default function ProductDetailClient({ product }) {
                     </div>
 
                     {alloc.notes && (
-                      <div className="text-[10px] text-text-muted italic bg-surface-elevated/50 p-1.5 rounded">
+                      <div className="text-[10px] text-text-muted italic bg-surface-elevated/50 p-2 rounded-lg border border-border/40">
                         Note: {alloc.notes}
                       </div>
                     )}
