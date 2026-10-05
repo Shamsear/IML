@@ -6,6 +6,9 @@ export const metadata = {
   title: 'Product Detail - Inventory System',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ProductDetailPage({ params }) {
   const { id } = await params;
   const product = await getProductDetail(id);

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { EventEmitter } from 'events';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 // Create a globally accessible event emitter in Next.js to broadcast scan events
 if (!global.scanEmitter) {
   global.scanEmitter = new EventEmitter();

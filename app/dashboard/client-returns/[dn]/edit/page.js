@@ -4,6 +4,10 @@ import { getTransactionsByDeliveryNote } from '@/app/actions/transactions';
 import ClientReturnsClient from '../../ClientReturnsClient';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Edit Stock Returned to Client - Inventory System',
   description: 'Edit existing client return gate pass and items',

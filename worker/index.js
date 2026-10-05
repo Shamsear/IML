@@ -2,11 +2,8 @@
 // Handles: install, activate, push notifications, notification clicks,
 //          static asset caching, and offline navigation fallback.
 
-const CACHE_NAME = 'iml-inventory-v1';
+const CACHE_NAME = 'iml-inventory-v2';
 const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
-  '/login',
   '/icon-192.png',
   '/icon-512.png',
   '/IML LOGO V-C.png',
@@ -30,12 +27,16 @@ self.addEventListener('install', (event) => {
 // ─── Activate ─────────────────────────────────────────────────────────────────
 
 self.addEventListener('activate', (event) => {
+  const allowedCaches = [CACHE_NAME, 'google-fonts-webfonts', 'static-font-assets', 'static-image-assets'];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+          .filter((name) => !allowedCaches.includes(name))
+          .map((name) => {
+            console.log('[SW] Deleting obsolete cache:', name);
+            return caches.delete(name);
+          })
       );
     })
   );
@@ -51,42 +52,57 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip API calls, server actions, and Next.js data requests — always go to network
   const url = new URL(request.url);
-  if (
+
+  // Strictly bypass SW caching for all dynamic Next.js data, RSC, API, actions, and dashboard/portal routes
+  const isRscRequest =
+    url.searchParams.has('_rsc') ||
+    request.headers.get('RSC') === '1' ||
+    Boolean(request.headers.get('Next-Router-State-Tree')) ||
+    request.headers.get('accept')?.includes('text/x-component');
+
+  const isDynamicRoute =
+    url.pathname.startsWith('/dashboard') ||
+    url.pathname.startsWith('/portal') ||
+    url.pathname.startsWith('/scan-companion') ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/_next/') ||
-    url.pathname.includes('/actions/')
-  ) {
+    url.pathname.includes('/actions/');
+
+  if (isRscRequest || isDynamicRoute) {
+    // Let browser handle dynamic/RSC network requests directly with zero caching
     return;
   }
 
-  // Network-first for navigation requests (HTML pages)
+  // Network-first for top-level HTML navigation requests (e.g. login, public pages)
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request).then((cached) => {
-            return cached || caches.match('/dashboard') || new Response('Offline', { status: 503 });
-          });
-        })
+      fetch(request).catch(() => {
+        return caches.match(request).then((cached) => {
+          return cached || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+        });
+      })
     );
     return;
   }
 
-  // Cache-first for static assets (images, fonts, CSS, JS)
+  // Cache-first strictly for static assets (images, icons, fonts)
+  const isStaticAsset =
+    /\.(png|jpg|jpeg|svg|webp|ico|woff2|woff|ttf|css|js)$/i.test(url.pathname) ||
+    request.destination === 'image' ||
+    request.destination === 'font';
+
+  if (!isStaticAsset) {
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
 
       return fetch(request)
         .then((response) => {
-          // Only cache successful responses for same-origin requests
+          // Only cache successful responses for same-origin static assets
           if (!response.ok || response.status !== 200 || url.origin !== self.location.origin) {
             return response;
           }

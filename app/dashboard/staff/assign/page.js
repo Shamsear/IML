@@ -2,6 +2,10 @@ import { getStaff, getAllocationDetails } from '@/app/actions/staff';
 import { getStores } from '@/app/actions/stores';
 import AssignClient from './AssignClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export default async function AssignPage({ searchParams }) {
   const params = await searchParams;
   const allocationId = params?.id || null;

@@ -3,6 +3,10 @@ import os from 'os';
 import { prisma } from '@/lib/prisma';
 import { EventEmitter } from 'events';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 if (!global.scanEmitter) {
   global.scanEmitter = new EventEmitter();
   global.scanEmitter.setMaxListeners(100);

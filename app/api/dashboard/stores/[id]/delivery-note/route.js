@@ -6,7 +6,11 @@ import { getStoreInventory } from '@/app/actions/transactions';
 import { renderToStream } from '@react-pdf/renderer';
 import { DeliveryNoteDocument, formatDate } from '@/lib/pdf/deliveryNote';
 
-export async function GET(request) {
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
+export async function GET(request, context) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return new NextResponse('Unauthorized', { status: 401 });
@@ -17,7 +21,15 @@ export async function GET(request) {
     const dateQuery = searchParams.get('date');
     const brandIdQuery = searchParams.get('brandId');
     const dnQuery = searchParams.get('dn');
-    const { id } = { id: request.url.split('/stores/')[1]?.split('/')[0] };
+    
+    let id;
+    if (context?.params) {
+      const resolvedParams = await context.params;
+      id = resolvedParams.id;
+    }
+    if (!id) {
+      id = request.url.split('/stores/')[1]?.split('/')[0];
+    }
 
     const store = await prisma.store.findUnique({ where: { id } });
     if (!store) {

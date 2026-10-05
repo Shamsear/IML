@@ -2,9 +2,13 @@ import { getProductsSlim } from '@/app/actions/products';
 import { getStores } from '@/app/actions/stores';
 import { getBrands } from '@/app/actions/brands';
 import { getSupervisors } from '@/app/actions/supervisors';
-import { getStaff } from '@/app/actions/staff';
+import { getStaffSlim } from '@/app/actions/staff';
 import { getTransactionsByDeliveryNote, getTransactionById, getRecentDirectSellers } from '@/app/actions/transactions';
 import OutboundClient from '../OutboundClient';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 
 export const metadata = {
   title: 'New Outbound Dispatch - Inventory System',
@@ -30,7 +34,7 @@ export default async function NewOutboundPage({ searchParams }) {
     getBrands(),
     getSupervisors(),
     getRecentDirectSellers(),
-    getStaff(),
+    getStaffSlim(),
     copyDn
       ? getTransactionsByDeliveryNote(copyDn)
       : copyTxId

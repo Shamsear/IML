@@ -4,6 +4,10 @@ import { getProductsSlim } from '@/app/actions/products';
 import { getStores } from '@/app/actions/stores';
 import EditTransactionClient from './EditTransactionClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Edit Transaction - Inventory System',
   description: 'Modify an existing inventory transaction',

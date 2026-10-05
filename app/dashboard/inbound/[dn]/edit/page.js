@@ -5,6 +5,10 @@ import { getTransactionsByDeliveryNote } from '@/app/actions/transactions';
 import InboundClient from '../../InboundClient';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Edit Inbound Receipt - Inventory System',
   description: 'Edit existing inbound receipt',

@@ -5,6 +5,10 @@ import { getTransactionsByDeliveryNote } from '@/app/actions/transactions';
 import RebrandClient from '../../RebrandClient';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Edit Stock Rebranding - Inventory System',
   description: 'Edit existing stock rebranding and conversion details',

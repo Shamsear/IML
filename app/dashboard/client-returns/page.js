@@ -6,6 +6,9 @@ export const metadata = {
   description: 'Review stock items returned to client brand owners',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ClientReturnsPage({ searchParams }) {
   const params = await searchParams;
   const page = parseInt(params?.page || '1', 10);

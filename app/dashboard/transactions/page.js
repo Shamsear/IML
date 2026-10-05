@@ -2,6 +2,9 @@ import { getTransactions } from '@/app/actions/transactions';
 import { prisma } from '@/lib/prisma';
 import TransactionsClient from './TransactionsClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function TransactionsPage({ searchParams }) {
   const params = await searchParams;
   const page = parseInt(params?.page || '1', 10);

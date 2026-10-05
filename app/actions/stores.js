@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
+import { revalidateStores } from '@/lib/revalidation';
 
 import { requireAuth } from '@/lib/auth-guard';
 import { generateId, generateBatchIds } from '@/lib/idGenerator';
@@ -35,8 +35,7 @@ export async function createStore(formData) {
     },
   });
 
-  revalidatePath('/dashboard/stores');
-  revalidatePath('/');
+  revalidateStores(id);
 }
 
 export async function updateStore(id, formData) {
@@ -59,8 +58,7 @@ export async function updateStore(id, formData) {
     },
   });
 
-  revalidatePath('/dashboard/stores');
-  revalidatePath('/');
+  revalidateStores(id);
 }
 
 export async function deleteStore(id) {
@@ -70,8 +68,7 @@ export async function deleteStore(id) {
     where: { id },
   });
 
-  revalidatePath('/dashboard/stores');
-  revalidatePath('/');
+  revalidateStores(id);
 }
 
 export async function createBulkStores(formData) {
@@ -100,8 +97,7 @@ export async function createBulkStores(formData) {
     data: storesList
   });
 
-  revalidatePath('/dashboard/stores');
-  revalidatePath('/');
+  revalidateStores();
   return { success: true, count: storesList.length };
 }
 

@@ -4,6 +4,10 @@ import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import EditSupervisorClient from './EditSupervisorClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Edit Supervisor - IML Inventory',
   description: 'Modify supervisor details',

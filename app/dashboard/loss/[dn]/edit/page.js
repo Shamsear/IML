@@ -5,6 +5,10 @@ import { getTransactionsByDeliveryNote, getRecentDirectSellers } from '@/app/act
 import DamageClient from '@/app/dashboard/damage/DamageClient';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Edit Loss Report - Inventory System',
   description: 'Edit existing loss report and serial records',

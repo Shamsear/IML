@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 // GET /api/users/[id] - Get single user
 export async function GET(request, { params }) {
   try {
@@ -13,7 +17,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -49,7 +53,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { name, email, password, role, isActive } = body;
 
@@ -101,7 +105,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Prevent self-deletion
     if (id === session.user.id) {

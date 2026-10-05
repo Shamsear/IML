@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { hashPassword } from '@/lib/password';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 // GET /api/users - List all users (admin only)
 export async function GET(request) {
   try {

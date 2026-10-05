@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
+import { revalidateSupervisors } from '@/lib/revalidation';
 
 import { requireAuth } from '@/lib/auth-guard';
 import { generateId, generateBatchIds } from '@/lib/idGenerator';
@@ -33,7 +33,7 @@ export async function createSupervisor(formData) {
     },
   });
 
-  revalidatePath('/dashboard/supervisors');
+  revalidateSupervisors();
   return supervisor;
 }
 
@@ -56,21 +56,19 @@ export async function createBulkSupervisors(formData) {
   }
 
   const ids = await generateBatchIds('supervisor', 'SUPR', validItems.length, 3);
-  const created = await Promise.all(
-    validItems.map((item, idx) =>
-      prisma.supervisor.create({
-        data: {
-          id: ids[idx],
-          name: item.name.trim(),
-          email: item.email?.trim() || '',
-          phone: item.phone?.trim() || '',
-        },
-      })
-    )
-  );
+  const data = validItems.map((item, idx) => ({
+    id: ids[idx],
+    name: item.name.trim(),
+    email: item.email?.trim() || '',
+    phone: item.phone?.trim() || '',
+  }));
 
-  revalidatePath('/dashboard/supervisors');
-  return created;
+  await prisma.supervisor.createMany({
+    data,
+  });
+
+  revalidateSupervisors();
+  return data;
 }
 
 export async function updateSupervisor(id, formData) {
@@ -91,7 +89,7 @@ export async function updateSupervisor(id, formData) {
     },
   });
 
-  revalidatePath('/dashboard/supervisors');
+  revalidateSupervisors();
 }
 
 export async function deleteSupervisor(id) {
@@ -101,5 +99,5 @@ export async function deleteSupervisor(id) {
     where: { id },
   });
 
-  revalidatePath('/dashboard/supervisors');
+  revalidateSupervisors();
 }

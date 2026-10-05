@@ -2,6 +2,10 @@ import { prisma } from '@/lib/prisma';
 import { getProductsSlim } from '@/app/actions/products';
 import ClientReturnsClient from '../ClientReturnsClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Log Client Return - Inventory System',
   description: 'Log stock items returned back to client brand owners',

@@ -4,6 +4,10 @@ import { getStores } from '@/app/actions/stores';
 import { getTransactionsByDeliveryNote, getRecentDirectSellers } from '@/app/actions/transactions';
 import DamageClient from '../DamageClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'New Damage Report - Inventory System',
   description: 'Log and report damaged/lost warehouse inventory items',

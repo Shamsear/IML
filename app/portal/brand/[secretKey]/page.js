@@ -2,6 +2,9 @@ import { getBrandPortalDetails } from '@/app/actions/brands';
 import { AlertCircle } from 'lucide-react';
 import BrandPortalClient from './BrandPortalClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function generateMetadata({ params }) {
   const { secretKey } = await params;
   const brand = await getBrandPortalDetails(secretKey);

@@ -7,6 +7,9 @@ export const metadata = {
   description: 'Log and review inbound inventory receipts',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function InboundPage({ searchParams }) {
   const params = await searchParams;
   const page = parseInt(params?.page || '1', 10);

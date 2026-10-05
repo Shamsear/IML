@@ -2,6 +2,9 @@ import { getBrandWithDetails } from '@/app/actions/brands';
 import { notFound } from 'next/navigation';
 import BrandHeadingsClient from './BrandHeadingsClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function BrandHeadingsPage({ params }) {
   const { id } = await params;
   const brand = await getBrandWithDetails(id);

@@ -3,6 +3,10 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import NewStoreClient from './NewStoreClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Add Store - IML Inventory',
   description: 'Register a new retail outlet in the inventory system',

@@ -6,6 +6,10 @@ import { renderToStream } from '@react-pdf/renderer';
 import { InventoryReportDocument } from '@/lib/pdf/inventoryReport';
 import { getProductStock } from '@/lib/stock';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export async function GET(request) {
   const session = await getServerSession(authOptions);
   if (!session) {

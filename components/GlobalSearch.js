@@ -109,7 +109,7 @@ export default function GlobalSearch() {
     setIsOpen(false);
     if (item.type === 'product') router.push(`/dashboard/products#${item.id}`);
     else if (item.type === 'store') router.push(`/dashboard/stores/${item.id}`);
-    else if (item.type === 'staff') router.push(`/dashboard/staff/${item.id}`);
+    else if (item.type === 'staff') router.push(`/dashboard/staff`);
     else if (item.type === 'serial') router.push(`/dashboard/products/serials/${item.name}`);
   };
 

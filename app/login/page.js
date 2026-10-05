@@ -3,6 +3,9 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import LoginForm from './LoginForm';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'Login - IML Group Inventory Management Portal',
   description: 'Sign in to access your administrative dashboard.',

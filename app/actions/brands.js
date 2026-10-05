@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { revalidateBrands } from '@/lib/revalidation';
 
 import { requireAuth } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
@@ -58,8 +59,7 @@ export async function createBrand(formData) {
     },
   });
 
-  revalidatePath('/dashboard/brands');
-  revalidatePath('/'); // Revalidate public showcase page too
+  revalidateBrands(id);
 }
 
 export async function updateBrand(id, formData) {
@@ -93,8 +93,7 @@ export async function updateBrand(id, formData) {
     },
   });
 
-  revalidatePath('/dashboard/brands');
-  revalidatePath('/');
+  revalidateBrands(id);
 }
 
 export async function deleteBrand(id) {
@@ -105,8 +104,7 @@ export async function deleteBrand(id) {
     where: { id },
   });
 
-  revalidatePath('/dashboard/brands');
-  revalidatePath('/');
+  revalidateBrands(id);
 }
 
 export async function getBrandWithDetails(id) {
@@ -212,8 +210,7 @@ export async function connectStoreToBrand(brandId, storeId) {
     }
   });
 
-  revalidatePath(`/dashboard/brands/${brandId}`);
-  revalidatePath('/dashboard/brands');
+  revalidateBrands(brandId);
 }
 
 export async function disconnectStoreFromBrand(brandId, storeId) {
@@ -228,8 +225,7 @@ export async function disconnectStoreFromBrand(brandId, storeId) {
     }
   });
 
-  revalidatePath(`/dashboard/brands/${brandId}`);
-  revalidatePath('/dashboard/brands');
+  revalidateBrands(brandId);
 }
 
 export async function createStoreAndLinkToBrand(brandId, formData) {
@@ -254,8 +250,7 @@ export async function createStoreAndLinkToBrand(brandId, formData) {
     }
   });
 
-  revalidatePath(`/dashboard/brands/${brandId}`);
-  revalidatePath('/dashboard/brands');
+  revalidateBrands(brandId);
   revalidatePath('/dashboard/stores');
 }
 
@@ -270,9 +265,7 @@ export async function updateBrandPortalConfig(brandId, portalConfig) {
     data: { portalConfig: configStr }
   });
 
-  revalidatePath(`/dashboard/brands/${brandId}`);
-  revalidatePath('/dashboard/brands');
-  revalidatePath('/portal/brand/[secretKey]');
+  revalidateBrands(brandId);
   return { success: true };
 }
 
@@ -496,8 +489,7 @@ export async function createBulkBrands(formData) {
     return createdBrands;
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard/brands');
-  revalidatePath('/');
+  revalidateBrands();
   return results;
 }
 

@@ -1,8 +1,9 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { generateId } from '@/lib/idGenerator';
+import { generateId, generateBatchIds } from '@/lib/idGenerator';
 import { revalidatePath } from 'next/cache';
+import { revalidateInventory } from '@/lib/revalidation';
 
 import { requireAuth } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
@@ -13,10 +14,8 @@ async function saveFile(file) {
   return uploadToImageKit(file);
 }
 
-function revalidateProductPaths() {
-  revalidatePath('/dashboard/products');
-  revalidatePath('/dashboard/transactions');
-  revalidatePath('/dashboard');
+function revalidateProductPaths(options = {}) {
+  revalidateInventory(options);
 }
 
 // ─── Shared warehouse stock calculation ──────────────────────────────────────
@@ -508,25 +507,10 @@ export async function getActiveSerialsAtLocation(productId, locationType, locati
 export async function bulkCreateProducts(productsList) {
   await requireAuth();
 
-  if (!productsList || productsList.length === 0) {
-    throw new Error('No products list provided');
-  }
-
-  const lastRecord = await prisma.product.findFirst({
-    where: { id: { startsWith: 'PROD' } },
-    orderBy: { id: 'desc' },
-    select: { id: true }
-  });
-  let nextNum = 1;
-  if (lastRecord) {
-    const parts = lastRecord.id.split('-');
-    const numPart = parts[parts.length - 1];
-    const parsed = parseInt(numPart, 10);
-    if (!isNaN(parsed)) nextNum = parsed + 1;
-  }
+  const ids = await generateBatchIds('product', 'PROD', productsList.length, 3);
 
   const data = productsList.map((p, idx) => ({
-    id: `PROD-${String(nextNum + idx).padStart(3, '0')}`,
+    id: ids[idx],
     name: p.name,
     brandId: p.brandId,
     itemCode: p.itemCode || null,
@@ -804,7 +788,7 @@ export async function getProductDetail(id) {
   await requireAuth();
   if (!id) return null;
 
-  const [product, allStockTxs, stores, staff, supervisors] = await Promise.all([
+  const [product, allStockTxs] = await Promise.all([
     prisma.product.findUnique({
       where: { id },
       include: {
@@ -857,12 +841,30 @@ export async function getProductDetail(id) {
         returnStatus: true,
       }
     }),
-    prisma.store.findMany({ select: { id: true, name: true } }),
-    prisma.staff.findMany({ select: { id: true, name: true } }),
-    prisma.supervisor.findMany({ select: { id: true, name: true } }),
   ]);
 
   if (!product) return null;
+
+  const relevantStoreIds = new Set();
+  const relevantStaffIds = new Set();
+  const relevantSupervisorIds = new Set();
+
+  product.transactions?.forEach(t => {
+    if (t.fromEntityType === 'STORE' && t.fromEntityId) relevantStoreIds.add(t.fromEntityId);
+    if (t.toEntityType === 'STORE' && t.toEntityId) relevantStoreIds.add(t.toEntityId);
+    if (t.fromEntityType === 'STAFF' && t.fromEntityId) relevantStaffIds.add(t.fromEntityId);
+    if (t.toEntityType === 'STAFF' && t.toEntityId) relevantStaffIds.add(t.toEntityId);
+  });
+  product.serialNumbers?.forEach(s => {
+    if (s.currentLocationType === 'STORE' && s.currentLocationId) relevantStoreIds.add(s.currentLocationId);
+    if (s.currentLocationType === 'STAFF' && s.currentLocationId) relevantStaffIds.add(s.currentLocationId);
+  });
+
+  const [stores, staff, supervisors] = await Promise.all([
+    relevantStoreIds.size > 0 ? prisma.store.findMany({ where: { id: { in: Array.from(relevantStoreIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
+    relevantStaffIds.size > 0 ? prisma.staff.findMany({ where: { id: { in: Array.from(relevantStaffIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
+    relevantSupervisorIds.size > 0 ? prisma.supervisor.findMany({ where: { id: { in: Array.from(relevantSupervisorIds) } }, select: { id: true, name: true } }) : Promise.resolve([]),
+  ]);
 
   // Compute warehouse stock using the same logic as computeWarehouseStockMap
   const stockMap = await computeWarehouseStockMap([product]);

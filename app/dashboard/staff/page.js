@@ -4,6 +4,9 @@ import { getStores } from '@/app/actions/stores';
 import { getSupervisors } from '@/app/actions/supervisors';
 import StaffClient from './StaffClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function StaffPage() {
   const [staff, stores, supervisors] = await Promise.all([
     getStaff(),

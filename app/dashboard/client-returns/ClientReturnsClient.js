@@ -616,6 +616,7 @@ export default function ClientReturnsClient({
 
         setTimeout(() => {
           router.push('/dashboard/client-returns');
+          router.refresh();
         }, 1500);
       }
     } catch (err) {

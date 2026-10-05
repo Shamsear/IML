@@ -7,6 +7,10 @@ import { getTransactionsByDeliveryNote, getRecentDirectSellers } from '@/app/act
 import OutboundClient from '../../OutboundClient';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Edit Outbound Dispatch - Inventory System',
   description: 'Edit existing outbound dispatch',

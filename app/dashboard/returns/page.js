@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma';
 import ReturnsClient from './ReturnsClient';
 import { Suspense } from 'react';
 
+export const revalidate = 0;
+
+
 export const dynamic = 'force-dynamic';
 
 export const metadata = {

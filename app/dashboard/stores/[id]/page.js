@@ -8,6 +8,9 @@ import Link from 'next/link';
 import StoreInventoryTable from './StoreInventoryTable';
 import StoreDispatchesList from './StoreDispatchesList';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function StoreDetailPage({ params }) {
   const { id } = await params;
   const pageSize = 15;
@@ -42,7 +45,8 @@ export default async function StoreDetailPage({ params }) {
       },
       orderBy: {
         timestamp: 'desc'
-      }
+      },
+      take: 200,
     })
   ]);
 

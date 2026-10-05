@@ -4,6 +4,7 @@ import { getBrands } from '@/app/actions/brands';
 import GiveBackClient from './GiveBackClient';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const metadata = {
   title: 'Give Back Rebranded Stock - Inventory System',

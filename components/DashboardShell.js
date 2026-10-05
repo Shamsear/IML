@@ -67,6 +67,7 @@ export default function DashboardShell({ user, children }) {
         <div className="flex items-center justify-between px-4 h-14 sm:h-16 border-b border-border flex-shrink-0">
           <Link 
             href="/dashboard" 
+            prefetch={false}
             onClick={() => setMobileOpen(false)}
             className="flex items-center w-full min-w-0 hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
           >
@@ -175,7 +176,7 @@ export default function DashboardShell({ user, children }) {
 
         {/* Page children wrapped in standard container */}
         <main className="flex-1 overflow-x-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <div className="max-w-[1920px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             {children}
           </div>
         </main>

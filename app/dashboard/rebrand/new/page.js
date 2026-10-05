@@ -3,6 +3,10 @@ import { getBrands } from '@/app/actions/brands';
 import { getStores } from '@/app/actions/stores';
 import RebrandClient from '../RebrandClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'New Stock Rebranding - Inventory System',
   description: 'Rebrand existing stock items into another product catalog entry',

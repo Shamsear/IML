@@ -1,8 +1,11 @@
 import { getBrandWithDetails } from '@/app/actions/brands';
 import { getStores } from '@/app/actions/stores';
 import { getSupervisors } from '@/app/actions/supervisors';
-import { getStaff } from '@/app/actions/staff';
+import { getStaffSlim } from '@/app/actions/staff';
 import BrandDetailClient from './BrandDetailClient';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function BrandDetailPage({ params }) {
   const { id } = await params;
@@ -16,7 +19,7 @@ export default async function BrandDetailPage({ params }) {
     getBrandWithDetails(id),
     getStores(),
     getSupervisors(),
-    getStaff()
+    getStaffSlim()
   ]);
 
   if (!brand) {

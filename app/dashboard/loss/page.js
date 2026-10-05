@@ -6,6 +6,9 @@ export const metadata = {
   description: 'Review and log stock losses and missing items',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function LossPage({ searchParams }) {
   const params = await searchParams;
   const page = parseInt(params?.page || '1', 10);
@@ -37,7 +40,8 @@ export default async function LossPage({ searchParams }) {
         }
       },
       orderBy: { timestamp: 'desc' },
-      take: 1000,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     }),
     prisma.inventoryTransaction.count({ where: whereClause })
   ]);

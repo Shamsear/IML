@@ -3,6 +3,10 @@ import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import NewSupervisorClient from './NewSupervisorClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'Add Supervisor - IML Inventory',
   description: 'Register a new delivery supervisor',

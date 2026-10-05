@@ -4,6 +4,7 @@ import { getBrands } from '@/app/actions/brands';
 import RevertRebrandClient from './RevertRebrandClient';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const metadata = {
   title: 'Revert Rebrand to Old Product - Inventory System',

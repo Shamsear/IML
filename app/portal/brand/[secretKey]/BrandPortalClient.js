@@ -217,7 +217,7 @@ export default function BrandPortalClient({ brand }) {
 
   return (
     <div className="min-h-[100dvh] bg-background text-text-primary py-8 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+      <div className="max-w-[1920px] w-full mx-auto flex flex-col gap-6">
         
         {/* Portal Branding Header */}
         <header className="bg-surface border border-border p-6 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">

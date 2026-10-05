@@ -4,6 +4,10 @@ import { getBrands } from '@/app/actions/brands';
 import { getStores } from '@/app/actions/stores';
 import InboundClient from '../InboundClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export const metadata = {
   title: 'New Inbound Receipt - Inventory System',
   description: 'Log inbound supplier inventory receipts',

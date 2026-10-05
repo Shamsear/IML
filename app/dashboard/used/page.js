@@ -6,6 +6,9 @@ export const metadata = {
   title: 'Mark as Used / Consumed',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function UsedPage() {
   const [rawTransactions, stores, pastUsed] = await Promise.all([
     prisma.inventoryTransaction.findMany({
@@ -21,6 +24,7 @@ export default async function UsedPage() {
         product: { select: { id: true, name: true, isReturnable: true, isDisposable: true, isSerialized: true } }
       },
       orderBy: { timestamp: 'desc' },
+      take: 200,
     }),
     prisma.store.findMany({ select: { id: true, name: true } }),
     prisma.inventoryTransaction.findMany({

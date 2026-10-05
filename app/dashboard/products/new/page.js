@@ -5,6 +5,10 @@ import { getStaff } from '@/app/actions/staff';
 import { getRecentReceivers, getRecentSuppliers } from '@/app/actions/transactions';
 import NewProductClient from './NewProductClient';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+
 export async function generateMetadata({ searchParams }) {
   const params = await searchParams;
   const isEdit = !!params.editId;

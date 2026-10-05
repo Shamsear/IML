@@ -9,6 +9,9 @@ export const metadata = {
   description: 'Modify store details and settings',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function EditStorePage({ params }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');

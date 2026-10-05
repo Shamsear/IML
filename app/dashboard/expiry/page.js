@@ -7,6 +7,9 @@ export const metadata = {
   description: 'Track manufacture and expiry dates of inventory batches',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ExpiryPage() {
   // Fetch all RECEIVE transactions for products that track expiry in parallel with stock aggregates
   const [transactions, stockAggs] = await Promise.all([

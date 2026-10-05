@@ -2,10 +2,11 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { revalidateStaff, revalidateInventory } from '@/lib/revalidation';
 
 import { requireAuth } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
-import { generateCustomRef, generateTxId } from '@/lib/ledger';
+import { generateCustomRef, generateTxId, generateBatchTxIds } from '@/lib/ledger';
 
 function safeSendPushBroadcast(payload) {
   import('@/lib/push')
@@ -26,6 +27,21 @@ export async function getStaff() {
           supervisor: { select: { id: true, name: true } },
         }
       }
+    }
+  });
+}
+
+export async function getStaffSlim() {
+  await requireAuth();
+  return prisma.staff.findMany({
+    orderBy: { name: 'asc' },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      shirtSize: true,
+      storeId: true,
+      store: { select: { id: true, name: true } }
     }
   });
 }
@@ -52,7 +68,7 @@ export async function createStaff(formData) {
     },
   });
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
 }
 
 export async function updateStaff(id, formData) {
@@ -75,7 +91,7 @@ export async function updateStaff(id, formData) {
     },
   });
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
 }
 
 export async function deleteStaff(id) {
@@ -85,7 +101,7 @@ export async function deleteStaff(id) {
     where: { id },
   });
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
 }
 
 export async function allocateUniform(formData) {
@@ -118,7 +134,7 @@ export async function allocateUniform(formData) {
     }
   });
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
 }
 
 export async function deleteAllocation(allocationId) {
@@ -128,7 +144,7 @@ export async function deleteAllocation(allocationId) {
     where: { id: allocationId }
   });
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
 }
 
 export async function returnUniformItem(allocationId, payload, notes = '') {
@@ -239,7 +255,8 @@ export async function returnUniformItem(allocationId, payload, notes = '') {
     });
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
+  revalidateInventory();
 
   safeSendPushBroadcast({
     title: '✅ Uniform Returned',
@@ -364,7 +381,7 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
     });
   }
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
 
   safeSendPushBroadcast({
     title: '👔 Uniform Allocated',
@@ -457,7 +474,8 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
     }
   }, { timeout: 30000 });
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
+  revalidateInventory({ module: 'returns' });
 
   safeSendPushBroadcast({
     title: '✅ Uniforms Returned',
@@ -473,10 +491,23 @@ export async function saveBulkCombinedAllocations(payload) {
   const { items = [] } = payload;
   if (items.length === 0) throw new Error('At least one promoter assignment is required');
 
+  const newPromoterCount = items.filter(i => i.isNewPromoter).length;
+  const allocationCount = items.length;
+
   const allocations = await prisma.$transaction(async (tx) => {
     const createdAllocations = [];
 
-    for (const item of items) {
+    const staffIds = newPromoterCount > 0
+      ? await generateBatchTxIds(tx, 'staff', 'STAF', newPromoterCount, 3)
+      : [];
+    let staffIdx = 0;
+
+    const allocIds = await generateBatchTxIds(tx, 'staffUniformAllocation', 'ALOC', allocationCount, 5);
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const allocId = allocIds[i];
+
       const {
         isNewPromoter,
         promoterName,
@@ -499,7 +530,7 @@ export async function saveBulkCombinedAllocations(payload) {
 
       if (isNewPromoter) {
         if (!promoterName) throw new Error('Promoter name is required for registration');
-        const staffIdVal = await generateTxId(tx, 'staff', 'STAF', 3);
+        const staffIdVal = staffIds[staffIdx++];
         const newStaff = await tx.staff.create({
           data: {
             id: staffIdVal,
@@ -519,11 +550,9 @@ export async function saveBulkCombinedAllocations(payload) {
         });
       }
 
-      const id = await generateTxId(tx, 'staffUniformAllocation', 'ALOC', 5);
-
       const allocation = await tx.staffUniformAllocation.create({
         data: {
-          id,
+          id: allocId,
           staffId: finalStaffId,
           storeId,
           uniformQty,
@@ -542,7 +571,7 @@ export async function saveBulkCombinedAllocations(payload) {
     return createdAllocations;
   }, { timeout: 20000 });
 
-  revalidatePath('/dashboard/staff');
+  revalidateStaff();
 
   safeSendPushBroadcast({
     title: '👔 Bulk Uniforms Allocated',

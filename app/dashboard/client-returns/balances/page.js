@@ -7,6 +7,9 @@ export const metadata = {
   description: 'Review quantity summaries and serial lists of stock held by clients',
 };
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ClientReturnsBalancesPage() {
   const [balances, recentTransactions] = await Promise.all([
     getClientReturnsBalances(),
