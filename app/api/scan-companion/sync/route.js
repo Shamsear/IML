@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { EventEmitter } from 'events';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,11 +16,25 @@ if (!global.scanEmitter) {
 const scanEmitter = global.scanEmitter;
 
 export async function GET(request) {
+  // Only authenticated staff/admin can stream scan events
+  const authSession = await getServerSession(authOptions);
+  if (!authSession) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('sessionId')?.toUpperCase();
 
   if (!sessionId) {
     return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+  }
+
+  const session = await prisma.scanSession.findUnique({
+    where: { id: sessionId }
+  });
+
+  if (!session) {
+    return NextResponse.json({ error: 'Session not found or expired' }, { status: 404 });
   }
 
   const stream = new ReadableStream({

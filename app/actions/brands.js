@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { revalidateBrands } from '@/lib/revalidation';
 
-import { requireAuth } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
 import { generateId } from '@/lib/idGenerator';
 import { generateBatchTxIds } from '@/lib/ledger';
@@ -97,7 +97,7 @@ export async function updateBrand(id, formData) {
 }
 
 export async function deleteBrand(id) {
-  await requireAuth();
+  await requireAdmin();
 
   // Cascade delete handles cascade to Products and Projects
   await prisma.brand.delete({
@@ -324,14 +324,6 @@ export async function getBrandPortalDetails(secretKey) {
         include: brandInclude
       });
     }
-  }
-
-  // 3. Fallback: Check if secretKey is directly a brand id
-  if (!brand) {
-    brand = await prisma.brand.findUnique({
-      where: { id: secretKey },
-      include: brandInclude
-    });
   }
 
   if (!brand) return null;

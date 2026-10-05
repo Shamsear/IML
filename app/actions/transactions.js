@@ -11,7 +11,7 @@ function safeNotifyTransaction(payload) {
     .catch(() => {});
 }
 
-import { requireAuth } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
 import {
   generateTxId,
@@ -474,8 +474,12 @@ export async function createBulkIssueTransactions(payload) {
   });
   const productsMap = new Map(dbProducts.map(p => [p.id, p]));
 
-  // Validate all product existences
+  // Validate all product existences and quantities
   for (const item of items) {
+    if (!item.productId) throw new Error('Product ID is required for all items');
+    const qty = parseInt(item.quantity, 10);
+    if (!qty || qty <= 0) throw new Error('Quantity must be a positive integer greater than 0');
+    item.quantity = qty;
     const product = productsMap.get(item.productId);
     if (!product) throw new Error(`Product not found for ID: ${item.productId}`);
   }
@@ -819,6 +823,12 @@ export async function createBulkReceiveTransactions(formData) {
   const items = JSON.parse(itemsJson || '[]');
 
   if (items.length === 0) throw new Error('At least one product item is required for bulk receive');
+
+  for (const item of items) {
+    const qty = parseInt(item.quantity, 10);
+    if (!qty || qty <= 0) throw new Error('Quantity must be a positive integer greater than 0');
+    item.quantity = qty;
+  }
 
   // 1. Eagerly upload images outside database transaction lock
   const uploadedUrls = await Promise.all(
@@ -1748,7 +1758,7 @@ export async function updateTransactionNotes(id, { notes, deliveryNote }) {
 
 // Hard-delete a transaction — stock recalculates automatically from remaining rows
 export async function deleteTransaction(id) {
-  await checkAuth();
+  await requireAdmin();
 
   if (!id) throw new Error('Transaction ID is required');
 
@@ -1945,6 +1955,9 @@ export async function createSingleTransaction(payload) {
 
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) throw new Error('Product not found');
+
+  const parsedQty = parseInt(quantity, 10);
+  if (!parsedQty || parsedQty <= 0) throw new Error('Quantity must be a positive integer greater than 0');
 
   await prisma.$transaction(async (tx) => {
     // 1. Create transaction record

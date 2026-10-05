@@ -15,8 +15,21 @@ function PDFPreviewContent() {
   const [blobUrl, setBlobUrl] = useState(null);
   const [error, setError] = useState(null);
 
+  const isValidPdfUrl = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim();
+    // Only allow internal API endpoints generating PDFs
+    return trimmed.startsWith('/api/dashboard/') && !trimmed.startsWith('//');
+  };
+
   const fetchPDF = async () => {
     if (!pdfUrl) return;
+    if (!isValidPdfUrl(pdfUrl)) {
+      setError('Invalid or untrusted PDF document URL.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -32,6 +45,12 @@ function PDFPreviewContent() {
         }
         throw new Error(errMessage);
       }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/pdf') && !contentType.includes('octet-stream')) {
+        throw new Error('The returned document is not a valid PDF.');
+      }
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setBlobUrl(url);

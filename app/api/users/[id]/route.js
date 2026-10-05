@@ -19,6 +19,11 @@ export async function GET(request, { params }) {
 
     const { id } = await params;
 
+    // Only allow admin or the user themselves to view account profile
+    if (session.user.role !== 'ADMIN' && session.user.id !== id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id },
       select: {

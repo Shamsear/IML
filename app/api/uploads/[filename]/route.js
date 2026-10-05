@@ -32,10 +32,17 @@ export async function GET(request, { params }) {
     contentType = 'image/svg+xml';
   }
 
-  return new Response(fileBuffer, {
-    headers: {
-      'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  });
+  const headers = {
+    'Content-Type': contentType,
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'",
+    'Cache-Control': 'public, max-age=31536000, immutable',
+  };
+
+  // If serving SVG, force download attachment to eliminate stored XSS risk
+  if (contentType === 'image/svg+xml') {
+    headers['Content-Disposition'] = `attachment; filename="${safeFilename}"`;
+  }
+
+  return new Response(fileBuffer, { headers });
 }

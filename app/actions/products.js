@@ -5,7 +5,7 @@ import { generateId, generateBatchIds } from '@/lib/idGenerator';
 import { revalidatePath } from 'next/cache';
 import { revalidateInventory } from '@/lib/revalidation';
 
-import { requireAuth } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
 import { generateCustomRef, generateSkuCode } from '@/lib/ledger';
 import { getProductStock } from '@/lib/stock';
@@ -426,7 +426,7 @@ export async function updateProduct(id, formData) {
 }
 
 export async function deleteProduct(id) {
-  await requireAuth();
+  await requireAdmin();
 
   await prisma.product.delete({
     where: { id },
@@ -440,7 +440,12 @@ export async function importBarcodes(productId, barcodes = [], secondaryBarcodes
   await requireAuth();
 
   if (!productId) throw new Error('Product ID is required');
-  if (barcodes.length === 0) throw new Error('No barcodes provided');
+  
+  const cleanBarcodes = (Array.isArray(barcodes) ? barcodes : [])
+    .filter(b => typeof b === 'string' && b.trim().length > 0 && b.trim().length <= 100)
+    .map(b => b.trim());
+
+  if (cleanBarcodes.length === 0) throw new Error('No valid barcodes provided (max 100 chars per barcode)');
 
   const lastSerial = await prisma.productSerialNumber.findFirst({
     where: { id: { startsWith: 'SERL' } },
@@ -455,11 +460,13 @@ export async function importBarcodes(productId, barcodes = [], secondaryBarcodes
     if (!isNaN(parsed)) nextSerNum = parsed + 1;
   }
 
-  const data = barcodes.map((barcode, idx) => ({
+  const data = cleanBarcodes.map((barcode, idx) => ({
     id: `SERL-${String(nextSerNum + idx).padStart(5, '0')}`,
     productId,
-    barcode: barcode.trim(),
-    secondaryBarcode: secondaryBarcodes[idx] ? secondaryBarcodes[idx].trim() : null,
+    barcode,
+    secondaryBarcode: secondaryBarcodes[idx] && typeof secondaryBarcodes[idx] === 'string' 
+      ? secondaryBarcodes[idx].trim().substring(0, 100) 
+      : null,
     currentLocationType: 'WAREHOUSE', // Fresh barcodes start in the main Warehouse
     status: 'AVAILABLE',
   }));
@@ -554,7 +561,7 @@ export async function bulkUpdateProducts(ids = [], updateData = {}) {
 
 // Bulk delete multiple products
 export async function bulkDeleteProducts(ids = []) {
-  await requireAuth();
+  await requireAdmin();
 
   if (ids.length === 0) throw new Error('No product IDs specified');
 

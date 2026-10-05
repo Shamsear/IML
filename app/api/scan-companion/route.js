@@ -1,19 +1,24 @@
 import { NextResponse } from 'next/server';
 import os from 'os';
+import crypto from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { EventEmitter } from 'events';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
 if (!global.scanEmitter) {
   global.scanEmitter = new EventEmitter();
   global.scanEmitter.setMaxListeners(100);
 }
 
-// Helper to get local IP address of the server host PC
+// Helper to get local IP address of the server host PC (dev only)
 function getLocalIpAddress() {
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_LOCAL_IP_DISCLOSURE) {
+    return null;
+  }
   const interfaces = os.networkInterfaces();
   for (const devName in interfaces) {
     const iface = interfaces[devName];
@@ -28,6 +33,12 @@ function getLocalIpAddress() {
 }
 
 export async function POST() {
+  // Only authenticated staff/admin can generate new scanning sessions
+  const authSession = await getServerSession(authOptions);
+  if (!authSession) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // Clear old sessions older than 2 hours to avoid db clutter
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
@@ -40,7 +51,8 @@ export async function POST() {
     console.error("Cleanup scan sessions failed:", e);
   }
 
-  const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase(); // e.g. "K7A9X2"
+  // Cryptographically secure 12-character hex ID (e.g. "A7F93C4E12B8")
+  const sessionId = crypto.randomBytes(6).toString('hex').toUpperCase();
   
   await prisma.scanSession.create({
     data: {
@@ -51,7 +63,7 @@ export async function POST() {
 
   const localIp = getLocalIpAddress();
   
-  // Return session details including local IP and port (default to 3000)
+  // Return session details
   return NextResponse.json({
     sessionId,
     localIp,
@@ -66,6 +78,14 @@ export async function GET(request) {
 
   if (!sessionId) {
     return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+  }
+
+  // Reading barcodes requires an authenticated session (desktop dashboard)
+  if (!checkOnly) {
+    const authSession = await getServerSession(authOptions);
+    if (!authSession) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
   }
 
   try {
@@ -134,7 +154,8 @@ export async function PUT(request) {
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('Submit barcode error:', e);
+    return NextResponse.json({ error: 'Failed to submit barcode' }, { status: 500 });
   }
 }
 
@@ -147,12 +168,13 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
     }
 
-    await prisma.scanSession.delete({
+    await prisma.scanSession.deleteMany({
       where: { id: sessionId }
     });
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('Delete scan session error:', e);
+    return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 });
   }
 }

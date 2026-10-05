@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidateStores } from '@/lib/revalidation';
 
-import { requireAuth } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin } from '@/lib/auth-guard';
 import { generateId, generateBatchIds } from '@/lib/idGenerator';
 
 export async function getStores() {
@@ -62,7 +62,7 @@ export async function updateStore(id, formData) {
 }
 
 export async function deleteStore(id) {
-  await requireAuth();
+  await requireAdmin();
 
   await prisma.store.delete({
     where: { id },
@@ -75,8 +75,8 @@ export async function createBulkStores(formData) {
   await requireAuth();
 
   const count = parseInt(formData.get('count'), 10) || 0;
-  if (count === 0) {
-    throw new Error('No stores provided for creation');
+  if (count <= 0 || count > 500) {
+    throw new Error('Store count must be between 1 and 500');
   }
 
   const ids = await generateBatchIds('store', 'STOR', count, 3);

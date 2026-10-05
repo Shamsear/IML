@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidateSupervisors } from '@/lib/revalidation';
 
-import { requireAuth } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin } from '@/lib/auth-guard';
 import { generateId, generateBatchIds } from '@/lib/idGenerator';
 
 export async function getSupervisors() {
@@ -93,7 +93,7 @@ export async function updateSupervisor(id, formData) {
 }
 
 export async function deleteSupervisor(id) {
-  await requireAuth();
+  await requireAdmin();
 
   await prisma.supervisor.delete({
     where: { id },

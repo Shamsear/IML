@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { revalidateStaff, revalidateInventory } from '@/lib/revalidation';
 
-import { requireAuth } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
 import { generateCustomRef, generateTxId, generateBatchTxIds } from '@/lib/ledger';
 
@@ -95,7 +95,7 @@ export async function updateStaff(id, formData) {
 }
 
 export async function deleteStaff(id) {
-  await requireAuth();
+  await requireAdmin();
 
   await prisma.staff.delete({
     where: { id },
@@ -119,6 +119,10 @@ export async function allocateUniform(formData) {
     throw new Error('Staff and Store are required for allocation');
   }
 
+  if (isNaN(uniformQty) || isNaN(capQty) || uniformQty < 0 || capQty < 0) {
+    throw new Error('Quantities cannot be negative');
+  }
+
   const id = await generateId('staffUniformAllocation', 'ALOC', 5);
 
   await prisma.staffUniformAllocation.create({
@@ -138,7 +142,7 @@ export async function allocateUniform(formData) {
 }
 
 export async function deleteAllocation(allocationId) {
-  await requireAuth();
+  await requireAdmin();
 
   await prisma.staffUniformAllocation.delete({
     where: { id: allocationId }
@@ -524,6 +528,10 @@ export async function saveBulkCombinedAllocations(payload) {
 
       if (!storeId) {
         throw new Error('Store placement is required for all allocations');
+      }
+
+      if (uniformQty < 0 || capQty < 0) {
+        throw new Error('Quantities cannot be negative');
       }
 
       let finalStaffId = existingStaffId;
