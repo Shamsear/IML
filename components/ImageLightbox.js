@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 /**
@@ -11,9 +13,25 @@ import { X } from 'lucide-react';
  * @param {Function} props.onClose - Called when user clicks close, backdrop, or presses Escape
  */
 export default function ImageLightbox({ image, onClose }) {
-  if (!image) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (image) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [image]);
+
+  if (!image || !mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-fade-in cursor-pointer select-none print:hidden"
       onClick={onClose}
@@ -51,6 +69,7 @@ export default function ImageLightbox({ image, onClose }) {
           </span>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

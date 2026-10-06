@@ -56,8 +56,12 @@ export async function GET(request) {
       const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
       if (!productGroups[prod.id]) {
         productGroups[prod.id] = {
-          name: prod.name, isSerialized: prod.isSerialized,
-          quantity: 0, serials: [], notes: parsedItemNotes
+          name: prod.name,
+          imageUrl: prod.imageUrl,
+          isSerialized: prod.isSerialized,
+          quantity: 0,
+          serials: [],
+          notes: parsedItemNotes
         };
       }
       productGroups[prod.id].quantity += tx.quantity;
@@ -71,6 +75,7 @@ export async function GET(request) {
     const inventory = Object.values(productGroups);
     const docNo = dnQuery === 'UNASSIGNED' ? `IML-LOS-${dateQuery.replace(/-/g, '')}` : dnQuery;
     const dateStr = formatDate(dateQuery);
+    const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
     const pdfStream = await renderToStream(
       <DeliveryNoteDocument
@@ -80,6 +85,7 @@ export async function GET(request) {
         dateStr={dateStr}
         docNo={docNo}
         notes={notes}
+        showImages={showImages}
         signatureLabels={[
           { label: 'REPORTED BY' },
           { label: 'VERIFIED BY' },

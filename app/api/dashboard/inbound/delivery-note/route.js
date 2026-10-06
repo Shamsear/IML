@@ -193,6 +193,7 @@ export async function GET(request) {
       if (!productGroups[prod.id]) {
         productGroups[prod.id] = {
           name: prod.name,
+          imageUrl: prod.imageUrl,
           subtext: itemSubtext,
           isSerialized: prod.isSerialized,
           quantity: 0,
@@ -242,6 +243,8 @@ export async function GET(request) {
       { label: 'RECEIVED BY' },
     ]);
 
+    const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
+
     const pdfStream = await renderToStream(
       <DeliveryNoteDocument
         title={docTitle}
@@ -257,6 +260,7 @@ export async function GET(request) {
           left: leftMeta,
           right: rightMeta
         }}
+        showImages={showImages}
         signatureLabels={signatureLabels}
       />
     );

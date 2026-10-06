@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
@@ -33,6 +34,11 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
   const [activePanel, setActivePanel] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [error, setError] = useState('');
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -817,8 +823,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               </div>
             </div>
 
-            {isCameraModalOpen && (
-              <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+            {mounted && isCameraModalOpen && createPortal(
+              <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
                 <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[450px] shadow-lg flex flex-col gap-4 animate-slide-down max-h-[90vh] overflow-y-auto my-auto">
                   <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
                     <h3 className="font-display font-bold text-sm text-text-primary">Scan Barcode</h3>
@@ -829,7 +835,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                   <div id="camera-reader" className="w-full rounded-lg overflow-hidden border border-border flex-shrink-0"></div>
                   <p className="text-[10px] text-text-secondary text-center flex-shrink-0">Align the barcode inside the camera viewfinder.</p>
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         )}
@@ -1297,8 +1304,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
             itemLabel="products"
           />
 
-        {addQtyProduct && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+        {mounted && addQtyProduct && createPortal(
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
             <form onSubmit={handleAddQtySubmit} className="bg-surface border border-border rounded-xl p-6 w-full max-w-[420px] shadow-lg flex flex-col gap-4 animate-slide-down max-h-[90vh] overflow-y-auto my-auto">
               <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
                 <h3 className="font-display font-bold text-lg text-text-primary">Add Warehouse Stock</h3>
@@ -1371,7 +1378,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 </button>
               </div>
             </form>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 

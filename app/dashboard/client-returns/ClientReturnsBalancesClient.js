@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, BarChart3, Tag, ClipboardList, Info, X, RotateCcw, Loader2, CheckCircle, AlertCircle, History, ArrowUpRight, ArrowDownLeft, FileText, Package } from 'lucide-react';
@@ -21,6 +22,11 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
   const [lightboxImage, setLightboxImage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSerialList, setActiveSerialList] = useState(null); // { productName, serials: [...] }
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Tab state
   const [activeTab, setActiveTab] = useState('stock'); // 'stock' or 'history'
@@ -773,8 +779,8 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
       )}
 
       {/* Serial numbers list overlay modal */}
-      {activeSerialList && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      {mounted && activeSerialList && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[480px] shadow-2xl flex flex-col gap-4 animate-slide-down max-h-[90vh] my-auto">
             <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
               <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5 min-w-0">
@@ -829,12 +835,13 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Return to Warehouse Modal */}
-      {returnModal && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      {mounted && returnModal && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-surface border border-border rounded-xl p-5 w-full max-w-[700px] shadow-2xl flex flex-col gap-4 animate-slide-down max-h-[90vh] my-auto">
             <div className="flex items-center justify-between pb-2 border-b border-border flex-shrink-0">
               <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-1.5 min-w-0">
@@ -1130,7 +1137,8 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />

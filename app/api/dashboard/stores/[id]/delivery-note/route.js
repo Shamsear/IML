@@ -164,6 +164,7 @@ export async function GET(request, context) {
         if (!productGroups[prod.id]) {
           productGroups[prod.id] = {
             name: prod.name,
+            imageUrl: prod.imageUrl,
             subtext: itemSubtext,
             isSerialized: prod.isSerialized,
             quantity: 0,
@@ -202,6 +203,7 @@ export async function GET(request, context) {
     }
 
     const effectiveReceiver = supervisorName || '';
+    const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
     const pdfStream = await renderToStream(
       <DeliveryNoteDocument
@@ -226,6 +228,7 @@ export async function GET(request, context) {
             { label: 'Document No', value: docNo },
           ],
         }}
+        showImages={showImages}
       />
     );
 

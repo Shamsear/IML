@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { createProduct, importBarcodes, getProductSerials } from '@/app/actions/products';
@@ -23,6 +24,11 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   const router = useRouter();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [lightboxImage, setLightboxImage] = useState(null); // { url, name }
@@ -677,8 +683,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
 
       {/* MODALS */}
       {/* Create Product Modal */}
-      {activeModal === 'createProduct' && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+      {mounted && activeModal === 'createProduct' && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[500px] shadow-lg flex flex-col gap-4 animate-slide-down">
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="font-display font-bold text-lg text-text-primary">Add Brand Product</h3>
@@ -828,12 +834,13 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 4. Manage Serials Modal */}
-      {activeModal === 'serials' && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+      {mounted && activeModal === 'serials' && selectedProduct && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[850px] shadow-lg flex flex-col gap-4 animate-slide-down">
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <div>
@@ -953,7 +960,8 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
 

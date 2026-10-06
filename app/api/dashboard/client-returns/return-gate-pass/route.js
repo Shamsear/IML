@@ -118,6 +118,7 @@ export async function GET(request) {
         productGroups[prod.id] = {
           productId: prod.id,
           name: prod.name,
+          imageUrl: prod.imageUrl,
           itemCode: prod.itemCode,
           category: prod.category,
           isSerialized: prod.isSerialized,
@@ -142,6 +143,7 @@ export async function GET(request) {
     }
 
     const inventory = Object.values(productGroups);
+    const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
     // Render react-pdf document to a stream
     const pdfStream = await renderToStream(
@@ -168,6 +170,7 @@ export async function GET(request) {
             ...(notes ? [{ label: 'Remarks', value: notes }] : []),
           ]
         }}
+        showImages={showImages}
         signatureLabels={[
           { label: 'RETURNED BY (CLIENT)' },
           { label: `CHECKED BY (${supervisorName || 'SUPERVISOR'})` },
