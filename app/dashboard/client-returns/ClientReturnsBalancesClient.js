@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, BarChart3, Tag, ClipboardList, Info, X, RotateCcw, Loader2, CheckCircle, AlertCircle, History, ArrowUpRight, ArrowDownLeft, FileText } from 'lucide-react';
+import { ArrowLeft, Search, BarChart3, Tag, ClipboardList, Info, X, RotateCcw, Loader2, CheckCircle, AlertCircle, History, ArrowUpRight, ArrowDownLeft, FileText, Package } from 'lucide-react';
 import { returnClientItemsToWarehouse } from '@/app/actions/transactions';
 import ExportToExcel from '@/components/ExportToExcel';
 import { useToast } from '@/components/Toast';
@@ -12,10 +12,13 @@ import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
+import ImageLightbox from '@/components/ImageLightbox';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function ClientReturnsBalancesClient({ balances, recentTransactions = [] }) {
   const toast = useToast();
   const router = useRouter();
+  const [lightboxImage, setLightboxImage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSerialList, setActiveSerialList] = useState(null); // { productName, serials: [...] }
   
@@ -412,11 +415,33 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                     {brandGroup.items.map((bal, idx) => (
                       <div key={idx} className="py-3 flex flex-col gap-2">
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <span className="font-bold text-sm text-text-primary break-words leading-snug">{bal.productName}</span>
-                            <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
-                              <span>{bal.category || 'General'}</span>
-                              {bal.itemCode && <span>· SKU: {bal.itemCode}</span>}
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            {bal.imageUrl ? (
+                              <img
+                                src={getOptimizedImageUrl(bal.imageUrl, 80, 80)}
+                                alt={bal.productName || 'Product'}
+                                className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLightboxImage({ url: bal.imageUrl, name: bal.productName });
+                                }}
+                                onError={(e) => {
+                                  if (e.target.src !== bal.imageUrl) {
+                                    e.target.src = bal.imageUrl;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                                <Package size={18} />
+                              </div>
+                            )}
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="font-bold text-sm text-text-primary break-words leading-snug">{bal.productName}</span>
+                              <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
+                                <span>{bal.category || 'General'}</span>
+                                {bal.itemCode && <span>· SKU: {bal.itemCode}</span>}
+                              </div>
                             </div>
                           </div>
                           <span className="font-mono font-bold text-sm text-primary whitespace-nowrap">
@@ -464,7 +489,31 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                         {brandGroup.items.map((bal, idx) => (
                           <tr key={idx} className="hover:bg-surface-elevated/20 transition-colors group/row">
                             <td className="py-3 pl-4 pr-4 font-mono font-bold text-[11px] text-primary">{bal.itemCode || '—'}</td>
-                            <td className="py-3 pr-4 font-bold text-text-primary break-words leading-snug min-w-[200px]">{bal.productName}</td>
+                            <td className="py-3 pr-4 font-bold text-text-primary break-words leading-snug min-w-[240px]">
+                              <div className="flex items-center gap-2.5">
+                                {bal.imageUrl ? (
+                                  <img
+                                    src={getOptimizedImageUrl(bal.imageUrl, 80, 80)}
+                                    alt={bal.productName || 'Product'}
+                                    className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLightboxImage({ url: bal.imageUrl, name: bal.productName });
+                                    }}
+                                    onError={(e) => {
+                                      if (e.target.src !== bal.imageUrl) {
+                                        e.target.src = bal.imageUrl;
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-9 h-9 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                                    <Package size={16} />
+                                  </div>
+                                )}
+                                <span className="font-semibold text-text-primary break-words leading-snug">{bal.productName}</span>
+                              </div>
+                            </td>
                             <td className="py-3 pr-4 text-text-secondary font-semibold">{bal.category || 'General'}</td>
                             <td className="py-3 pr-4 text-center font-extrabold">{bal.quantity}</td>
                             <td className="py-3 text-right">
@@ -582,9 +631,31 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                       <span className={`badge text-[10px] ${isFromClient ? 'badge-success' : 'badge-info'}`}>{isFromClient ? 'From Client' : 'To Client'}</span>
                       <span className="font-mono font-bold text-sm">{tx.quantity}</span>
                     </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-sm text-text-primary block break-words leading-snug">{tx.product?.name}</span>
-                      <span className="text-[11px] text-text-muted">{tx.product?.brand?.name || '—'}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {tx.product?.imageUrl ? (
+                        <img
+                          src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                          alt={tx.product.name || 'Product'}
+                          className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                          }}
+                          onError={(e) => {
+                            if (e.target.src !== tx.product.imageUrl) {
+                              e.target.src = tx.product.imageUrl;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                          <Package size={18} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-sm text-text-primary block break-words leading-snug">{tx.product?.name}</span>
+                        <span className="text-[11px] text-text-muted">{tx.product?.brand?.name || '—'}</span>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
                       <span className="text-text-muted">{formattedDate}</span>
@@ -626,10 +697,32 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
 
                       return (
                         <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-text-primary break-words leading-snug">{tx.product?.name}</span>
-                              <span className="text-[11px] text-text-muted mt-0.5 font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[240px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                            <div className="flex items-center gap-2.5">
+                              {tx.product?.imageUrl ? (
+                                <img
+                                  src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                  alt={tx.product.name || 'Product'}
+                                  className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                  }}
+                                  onError={(e) => {
+                                    if (e.target.src !== tx.product.imageUrl) {
+                                      e.target.src = tx.product.imageUrl;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-9 h-9 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                                  <Package size={16} />
+                                </div>
+                              )}
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold text-text-primary break-words leading-snug">{tx.product?.name}</span>
+                                <span className="text-[11px] text-text-muted mt-0.5 font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap">
@@ -1039,6 +1132,8 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
           </div>
         </div>
       )}
+
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

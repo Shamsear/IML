@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Package, QrCode } from 'lucide-react';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import ImageLightbox from '@/components/ImageLightbox';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function StoreInventoryTable({
   inventory,
@@ -12,6 +14,7 @@ export default function StoreInventoryTable({
   pageSize = 15,
 }) {
   const [page, setPage] = useState(1);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   const customGetters = useMemo(() => ({
     name: (item) => item.name || '',
@@ -97,7 +100,33 @@ export default function StoreInventoryTable({
                   <tbody className="divide-y divide-border text-text-primary">
                     {paginatedInventory.map((item) => (
                       <tr key={item.productId} className="hover:bg-surface-elevated/20 transition-colors">
-                        <td className="py-3 pl-5 pr-4 font-semibold">{item.name}</td>
+                        <td className="py-3 pl-5 pr-4 font-semibold">
+                          <div className="flex items-center gap-2.5">
+                            {item.imageUrl ? (
+                              <img
+                                src={getOptimizedImageUrl(item.imageUrl, 80, 80)}
+                                alt={item.name || 'Product'}
+                                className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLightboxImage({ url: item.imageUrl, name: item.name });
+                                }}
+                                onError={(e) => {
+                                  if (e.target.src !== item.imageUrl) {
+                                    e.target.src = item.imageUrl;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                                <Package size={16} />
+                              </div>
+                            )}
+                            <Link href={`/dashboard/products/${item.productId}`} className="font-semibold text-text-primary hover:text-primary transition-colors">
+                              {item.name}
+                            </Link>
+                          </div>
+                        </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           <span className="badge badge-info">{item.brandName}</span>
                         </td>
@@ -134,11 +163,33 @@ export default function StoreInventoryTable({
                   className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <span className="font-bold text-sm text-text-primary block leading-tight">
-                        {item.name}
-                      </span>
-                      <span className="badge badge-info mt-1.5 text-[9px]">{item.brandName}</span>
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {item.imageUrl ? (
+                        <img
+                          src={getOptimizedImageUrl(item.imageUrl, 80, 80)}
+                          alt={item.name || 'Product'}
+                          className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightboxImage({ url: item.imageUrl, name: item.name });
+                          }}
+                          onError={(e) => {
+                            if (e.target.src !== item.imageUrl) {
+                              e.target.src = item.imageUrl;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                          <Package size={18} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/dashboard/products/${item.productId}`} className="font-bold text-sm text-text-primary hover:text-primary transition-colors block leading-tight">
+                          {item.name}
+                        </Link>
+                        <span className="badge badge-info mt-1 text-[9px]">{item.brandName}</span>
+                      </div>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <span className="text-[10px] text-text-secondary block font-semibold">Qty</span>
@@ -205,6 +256,8 @@ export default function StoreInventoryTable({
           </>
         )}
       </div>
+
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

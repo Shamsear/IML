@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft, Edit2, ExternalLink } from 'lucide-react';
+import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft, Edit2, ExternalLink, Package } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
@@ -13,6 +13,8 @@ import { useToast } from '@/components/Toast';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
+import ImageLightbox from '@/components/ImageLightbox';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function ClientReturnsLedgerClient({ transactions, totalCount, totalPages, page, brands }) {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const [lightboxImage, setLightboxImage] = useState(null);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dispatched');
   const [pdfLoadingKey, setPdfLoadingKey] = useState(null);
 
@@ -295,7 +298,31 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                         <tbody className="divide-y divide-border/60">
                           {group.items.map((tx, idx) => (
                             <tr key={idx} className="text-xs text-text-primary hover:bg-surface-elevated/30 transition-colors">
-                              <td className="py-2.5 pr-4 font-semibold break-words leading-snug min-w-[200px]">{tx.product?.name}</td>
+                              <td className="py-2.5 pr-4 min-w-[220px]">
+                                <div className="flex items-center gap-2.5">
+                                  {tx.product?.imageUrl ? (
+                                    <img
+                                      src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                      alt={tx.product.name || 'Product'}
+                                      className="w-8 h-8 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                      }}
+                                      onError={(e) => {
+                                        if (e.target.src !== tx.product.imageUrl) {
+                                          e.target.src = tx.product.imageUrl;
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                                      <Package size={14} />
+                                    </div>
+                                  )}
+                                  <span className="font-semibold break-words leading-snug">{tx.product?.name}</span>
+                                </div>
+                              </td>
                               <td className="py-2.5 pr-4 font-mono font-bold text-[11px] text-primary whitespace-nowrap">{tx.product?.itemCode || '—'}</td>
                               <td className="py-2.5 pr-4 text-center font-bold whitespace-nowrap">{tx.quantity}</td>
                               <td className="py-2.5 text-text-secondary font-medium leading-relaxed">
@@ -326,6 +353,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
       setProductFilter={setProductFilter}
       selectedBrandId={selectedBrandId}
       setSelectedBrandId={setSelectedBrandId}
+      setLightboxImage={setLightboxImage}
     />
   );
 
@@ -530,12 +558,14 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
           </div>
         )
       )}
+
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }
 
 // Shared flat transaction table component
-function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilter, selectedBrandId, setSelectedBrandId }) {
+function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilter, selectedBrandId, setSelectedBrandId, setLightboxImage }) {
   const [flatPage, setFlatPage] = useState(1);
   const itemsPerPage = 25;
 
@@ -624,9 +654,33 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
             return (
               <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <span className="font-semibold text-sm text-text-primary block break-words leading-snug">{tx.product?.name}</span>
-                    <span className="text-[11px] text-text-muted font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    {tx.product?.imageUrl ? (
+                      <img
+                        src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                        alt={tx.product.name || 'Product'}
+                        className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                        }}
+                        onError={(e) => {
+                          if (e.target.src !== tx.product.imageUrl) {
+                            e.target.src = tx.product.imageUrl;
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                        <Package size={18} />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-text-primary hover:text-primary transition-colors block break-words leading-snug">
+                        {tx.product?.name}
+                      </Link>
+                      <span className="text-[11px] text-text-muted font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                    </div>
                   </div>
                   <span className="font-mono font-bold text-sm flex-shrink-0">{tx.quantity}</span>
                 </div>
@@ -680,10 +734,34 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
 
                   return (
                     <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                      <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-text-primary break-words leading-snug">{tx.product?.name}</span>
-                          <span className="text-[11px] text-text-muted mt-0.5 font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                      <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[240px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                        <div className="flex items-center gap-2.5">
+                          {tx.product?.imageUrl ? (
+                            <img
+                              src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                              alt={tx.product.name || 'Product'}
+                              className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                              }}
+                              onError={(e) => {
+                                if (e.target.src !== tx.product.imageUrl) {
+                                  e.target.src = tx.product.imageUrl;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-lg bg-surface-elevated text-text-muted flex items-center justify-center border border-border shrink-0">
+                              <Package size={16} />
+                            </div>
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug">
+                              {tx.product?.name}
+                            </Link>
+                            <span className="text-[11px] text-text-muted mt-0.5 font-mono">{tx.product?.itemCode || 'No SKU'}</span>
+                          </div>
                         </div>
                       </td>
                       <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">

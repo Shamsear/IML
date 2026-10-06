@@ -48,6 +48,7 @@ export default async function ClientReturnsPage({ searchParams }) {
             id: true,
             name: true,
             itemCode: true,
+            imageUrl: true,
             isSerialized: true,
             brand: {
               select: {
