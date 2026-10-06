@@ -108,7 +108,9 @@ export default function EditTransactionClient({ transaction, products, stores })
       if (transaction.transactionType === 'RECEIVE') router.push('/dashboard/inbound');
       else if (transaction.transactionType === 'ISSUE') router.push('/dashboard/outbound');
       else if (transaction.transactionType === 'DAMAGE' || transaction.transactionType === 'LOST') router.push('/dashboard/damage');
-      else if (transaction.transactionType.startsWith('REBRAND')) router.push('/dashboard/rebrand');
+      else if (transaction.transactionType?.startsWith('REBRAND')) router.push('/dashboard/rebrand');
+      else if (transaction.transactionType === 'RETURN') router.push('/dashboard/returns');
+      else if (transaction.transactionType === 'CLIENT_RETURN') router.push('/dashboard/client-returns');
       else router.push('/dashboard/transactions');
       router.refresh();
       

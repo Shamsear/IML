@@ -31,14 +31,17 @@ import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 
 const PDF_AVAILABLE_COLUMNS = [
-  { key: 'purchased', label: 'Purchased (Initial Inbound)' },
-  { key: 'warehouse', label: 'Warehouse Stock (Available Central)' },
-  { key: 'issued', label: 'Issued (Store Outlets)' },
-  { key: 'used', label: 'Staff / Used (Promoters)' },
-  { key: 'withClient', label: 'With Client (Brand Custody)' },
-  { key: 'reBrand', label: 'Rebrand (Pending/Converted)' },
-  { key: 'damage', label: 'Damaged / Lost (Write-offs)' },
-  { key: 'total', label: 'Total Available Stock' },
+  { key: 'brand', label: 'Brand' },
+  { key: 'category', label: 'Category' },
+  { key: 'purchased', label: 'Purchased' },
+  { key: 'warehouse', label: 'Warehouse' },
+  { key: 'issued', label: 'Issued' },
+  { key: 'used', label: 'Used' },
+  { key: 'damage', label: 'Damage' },
+  { key: 'lost', label: 'Lost' },
+  { key: 'withClient', label: 'With Client' },
+  { key: 'reBrand', label: 'Rebrand' },
+  { key: 'total', label: 'Total Stock' },
 ];
 
 export default function ReportsClient({ initialProducts = [], brands = [] }) {
@@ -638,7 +641,7 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-3 bg-surface-elevated/40 border border-border rounded-xl">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-3 bg-surface-elevated/40 border border-border rounded-xl">
                   {PDF_AVAILABLE_COLUMNS.map((col) => {
                     const isSelected = pdfSelectedCols.includes(col.key);
                     return (
@@ -646,16 +649,16 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
                         key={col.key}
                         type="button"
                         onClick={() => togglePdfColumn(col.key)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left cursor-pointer border ${
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left cursor-pointer border ${
                           isSelected
                             ? 'bg-primary/10 border-primary/30 text-primary font-semibold'
                             : 'bg-surface border-border text-text-muted hover:text-text-primary'
                         }`}
                       >
                         {isSelected ? (
-                          <CheckSquare size={14} className="text-primary shrink-0" />
+                          <CheckSquare size={13} className="text-primary shrink-0" />
                         ) : (
-                          <Square size={14} className="text-text-muted shrink-0" />
+                          <Square size={13} className="text-text-muted shrink-0" />
                         )}
                         <span className="truncate">{col.label}</span>
                       </button>
@@ -663,7 +666,7 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
                   })}
                 </div>
                 <span className="text-[10px] text-text-muted italic px-1">
-                  * Core columns (Product Details, SKU, Brand, Category) are always automatically included.
+                  * Product Details (Name, Photo, SKU) is always included as the primary descriptor column.
                 </span>
               </div>
 

@@ -42,6 +42,11 @@ export default async function EditClientReturnPage({ params }) {
 
   const clientReturnItems = initialItems.filter(t => t.transactionType === 'CLIENT_RETURN');
   if (clientReturnItems.length === 0) {
+    // Gracefully route store returns or generic transactions to the transaction editor
+    const targetTx = initialItems.find(t => t.transactionType === 'RETURN') || initialItems[0];
+    if (targetTx) {
+      redirect(`/dashboard/transactions/${encodeURIComponent(targetTx.rawTxId || decodedDn)}/edit`);
+    }
     notFound();
   }
 

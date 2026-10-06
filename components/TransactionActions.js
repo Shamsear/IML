@@ -9,9 +9,11 @@ import Link from 'next/link';
 import { getTransactionNoteName } from '@/lib/transactionHelpers';
 import { usePermissions } from '@/hooks/usePermissions';
 
-export default function TransactionActions({ txId, deliveryNote, notes, showDeliveryNote, copyType = 'inbound', transactionType = null }) {
+export default function TransactionActions({ txId, transactionId, deliveryNote, notes, showDeliveryNote, copyType = 'inbound', transactionType = null }) {
   const router = useRouter();
   const { isReadOnly } = usePermissions();
+
+  const activeId = txId || transactionId;
 
   // Delete state
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -42,15 +44,6 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
     ? getTransactionNoteName(transactionType, deliveryNote)
     : (copyType === 'inbound' ? 'Receive Note' : copyType === 'outbound' ? 'Delivery Note' : 'Note');
 
-  const isReturn = transactionType === 'RETURN' || 
-                   transactionType === 'CLIENT_RETURN' ||
-                   (deliveryNote && (
-                     deliveryNote.startsWith('RET-') || 
-                     deliveryNote.startsWith('RTN-') || 
-                     deliveryNote.startsWith('CRN-') || 
-                     deliveryNote.startsWith('CRR-')
-                   ));
-
   const handleOpenDelete = (e) => {
     e.stopPropagation();
     setDeleteError('');
@@ -61,7 +54,7 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
     setDeleting(true);
     setDeleteError('');
     try {
-      await deleteTransaction(txId);
+      await deleteTransaction(activeId);
       setDeleteOpen(false);
       router.refresh();
     } catch (err) {
@@ -76,18 +69,26 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
     if (copyType === 'rebrand' || transactionType?.startsWith('REBRAND') || (deliveryNote && deliveryNote.startsWith('RBD-'))) return 'rebrand';
     if (copyType === 'damage' || transactionType === 'DAMAGE' || (deliveryNote && (deliveryNote.startsWith('DAM-') || deliveryNote.startsWith('DMG-')))) return 'damage';
     if (copyType === 'loss' || transactionType === 'LOST' || (deliveryNote && (deliveryNote.startsWith('LOS-') || deliveryNote.startsWith('LSS-')))) return 'loss';
-    if (copyType === 'client-returns' || transactionType === 'CLIENT_RETURN' || (deliveryNote && (deliveryNote.startsWith('CRN-') || deliveryNote.startsWith('CRR-') || deliveryNote.startsWith('RET-') || deliveryNote.startsWith('RTN-')))) return 'client-returns';
+    if (copyType === 'returns' || transactionType === 'RETURN' || (deliveryNote && (deliveryNote.startsWith('RET-') || deliveryNote.startsWith('RTN-')))) return 'transactions';
+    if (copyType === 'client-returns' || transactionType === 'CLIENT_RETURN' || (deliveryNote && (deliveryNote.startsWith('CRN-') || deliveryNote.startsWith('CRR-') || deliveryNote.startsWith('CGP-') || deliveryNote.startsWith('CRP-') || deliveryNote.startsWith('CLT-')))) return 'client-returns';
     return copyType || 'inbound';
   })();
 
-  const dnParam = deliveryNote ? encodeURIComponent(deliveryNote) : txId;
-  const editHref = `/dashboard/${resolvedModule}/${dnParam}/edit`;
+  const dnParam = (resolvedModule === 'transactions' && activeId)
+    ? encodeURIComponent(activeId)
+    : (deliveryNote ? encodeURIComponent(deliveryNote) : encodeURIComponent(activeId || ''));
+
+  const editHref = resolvedModule === 'transactions'
+    ? `/dashboard/transactions/${encodeURIComponent(activeId || dnParam)}/edit`
+    : `/dashboard/${resolvedModule}/${dnParam}/edit`;
 
   const copyHref = resolvedModule === 'rebrand'
     ? `/dashboard/rebrand/new`
+    : resolvedModule === 'transactions'
+    ? `/dashboard/transactions/${encodeURIComponent(activeId || dnParam)}/edit?mode=copy`
     : deliveryNote
     ? `/dashboard/${resolvedModule}/new?copyDn=${encodeURIComponent(deliveryNote)}`
-    : `/dashboard/${resolvedModule}/new?copyTxId=${txId}`;
+    : `/dashboard/${resolvedModule}/new?copyTxId=${encodeURIComponent(activeId || '')}`;
 
   return (
     <>

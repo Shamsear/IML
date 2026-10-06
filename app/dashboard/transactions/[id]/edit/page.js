@@ -25,10 +25,16 @@ export default async function EditTransactionPage({ params }) {
   }
 
   const { id } = await params;
+  const decodedId = decodeURIComponent(id);
 
-  // 1. Fetch transaction with serials
-  const transaction = await prisma.inventoryTransaction.findUnique({
-    where: { id },
+  // 1. Fetch transaction with serials (matches either UUID or deliveryNote)
+  const transaction = await prisma.inventoryTransaction.findFirst({
+    where: {
+      OR: [
+        { id: decodedId },
+        { deliveryNote: decodedId }
+      ]
+    },
     include: {
       serialNumbers: {
         include: {
