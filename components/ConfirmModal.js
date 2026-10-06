@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle, AlertCircle, X, Loader2 } from 'lucide-react';
 import { Rise } from 'cube-motion/react';
 
@@ -27,8 +28,23 @@ export default function ConfirmModal({
   danger = false,
 }) {
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (!open) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [open]);
+
+  if (!open || !mounted) return null;
 
   const isConfirm = type === 'confirm';
   const isSuccess = type === 'success';
@@ -52,10 +68,10 @@ export default function ConfirmModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
-      onClick={onClose}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 overflow-y-auto"
+      onClick={() => !loading && onClose()}
     >
       <Rise
         as="div"
@@ -124,6 +140,7 @@ export default function ConfirmModal({
           </button>
         </div>
       </Rise>
-    </div>
+    </div>,
+    document.body
   );
 }

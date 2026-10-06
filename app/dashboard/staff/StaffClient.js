@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { deleteStaff, returnUniformItem, bulkReturnUniformItems, deleteAllocation } from '@/app/actions/staff';
 import { 
@@ -21,6 +22,11 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
   const toast = useToast();
   const [staffList, setStaffList] = useState(initialStaff || []);
   const [activeTab, setActiveTab] = useState('ledger'); // 'ledger' or 'promoters'
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setStaffList(initialStaff || []);
@@ -926,8 +932,8 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
       </div>
 
       {/* Return Remarks Modal Dialog */}
-      {isReturnModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      {mounted && isReturnModalOpen && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-surface border border-border w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-scale-up my-auto">
             {/* Modal Header */}
             <div className="p-5 border-b border-border flex items-center justify-between bg-surface-elevated/20 flex-shrink-0">
@@ -1040,12 +1046,13 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Promoter Detail Modal */}
-      {selectedPromoter && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      {mounted && selectedPromoter && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-surface border border-border w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-scale-up my-auto">
             {/* Header */}
             <div className="p-5 border-b border-border flex items-center justify-between bg-surface-elevated/20 flex-shrink-0">
@@ -1222,7 +1229,8 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <ConfirmModal

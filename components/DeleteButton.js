@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2, Loader2 } from 'lucide-react';
 
 /**
@@ -17,6 +18,21 @@ export default function DeleteButton({ onDelete, itemName = 'this item', classNa
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (confirmOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [confirmOpen]);
 
   const handleConfirm = async () => {
     setDeleting(true);
@@ -43,9 +59,9 @@ export default function DeleteButton({ onDelete, itemName = 'this item', classNa
         <Trash2 size={size === 'sm' ? 14 : 16} />
       </button>
 
-      {confirmOpen && (
+      {mounted && confirmOpen && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 overflow-y-auto"
           onClick={() => !deleting && setConfirmOpen(false)}
         >
           <div
@@ -85,7 +101,8 @@ export default function DeleteButton({ onDelete, itemName = 'this item', classNa
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

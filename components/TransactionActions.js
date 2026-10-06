@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Edit2, Trash2, Loader2, X, CopyPlus } from 'lucide-react';
 import { deleteTransaction } from '@/app/actions/transactions';
 import { useRouter } from 'next/navigation';
@@ -14,6 +15,21 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (deleteOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [deleteOpen]);
 
   // Determine note name based on type
   const noteName = transactionType 
@@ -107,10 +123,10 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
         </div>
       </div>
 
-      {deleteOpen && (
+      {mounted && deleteOpen && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
-          onClick={() => setDeleteOpen(false)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 overflow-y-auto"
+          onClick={() => !deleting && setDeleteOpen(false)}
         >
           <div
             className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col gap-0 max-h-[90vh] overflow-hidden my-auto"
@@ -158,7 +174,8 @@ export default function TransactionActions({ txId, deliveryNote, notes, showDeli
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

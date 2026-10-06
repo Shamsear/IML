@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -14,8 +15,23 @@ export default function DashboardShell({ user, children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const sidebarNavRef = useRef(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (showLogoutModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showLogoutModal]);
 
   // Restore sidebar scroll position on mount
   useEffect(() => {
@@ -203,8 +219,8 @@ export default function DashboardShell({ user, children }) {
       </div>
 
       {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in overflow-y-auto">
+      {mounted && showLogoutModal && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-fade-in overflow-y-auto">
           <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-[380px] shadow-2xl flex flex-col gap-4 animate-slide-down max-h-[90vh] overflow-y-auto my-auto">
             <div className="flex flex-col gap-1.5 text-center sm:text-left">
               <h3 className="font-display font-extrabold text-base text-text-primary">
@@ -212,8 +228,8 @@ export default function DashboardShell({ user, children }) {
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
                 {isSigningOut 
-                  ? 'Please wait while we securely sign you out...' 
-                  : 'Are you sure you want to sign out? You will need to enter your admin credentials again to access the portal.'
+                ? 'Please wait while we securely sign you out...' 
+                : 'Are you sure you want to sign out? You will need to enter your admin credentials again to access the portal.'
                 }
               </p>
             </div>
@@ -245,7 +261,8 @@ export default function DashboardShell({ user, children }) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

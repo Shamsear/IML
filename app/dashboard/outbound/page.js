@@ -53,6 +53,7 @@ export default async function OutboundPage({ searchParams }) {
               id: true,
               name: true,
               itemCode: true,
+              imageUrl: true,
               brandId: true,
               isReturnable: true,
               isDisposable: true,

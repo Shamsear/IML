@@ -69,6 +69,7 @@ export default async function ReturnsPage({ searchParams }) {
               id: true,
               name: true,
               itemCode: true,
+              imageUrl: true,
               isReturnable: true,
               isDisposable: true,
               isSerialized: true,
@@ -105,6 +106,7 @@ export default async function ReturnsPage({ searchParams }) {
               id: true,
               name: true,
               itemCode: true,
+              imageUrl: true,
               brandId: true,
               brand: { select: { id: true, name: true } }
             }

@@ -34,6 +34,9 @@ export default async function InboundPage({ searchParams }) {
           select: {
             id: true,
             name: true,
+            itemCode: true,
+            category: true,
+            imageUrl: true,
             brandId: true,
             brand: {
               select: {
