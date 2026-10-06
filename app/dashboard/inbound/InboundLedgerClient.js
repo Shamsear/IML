@@ -17,9 +17,11 @@ import SortableHeader from '@/components/SortableHeader';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useTableSort } from '@/hooks/useTableSort';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function InboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {} }) {
   const router = useRouter();
+  const { isReadOnly } = usePermissions();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'transactions');
@@ -173,14 +175,16 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
             ]}
             filename="IML-Inbound-Ledger"
           />
-          <Link 
-            href="/dashboard/inbound/new" 
-            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
-          >
-            <Plus size={16} />
-            <span className="hidden sm:inline">New Inbound Receipt</span>
-            <span className="sm:hidden">New</span>
-          </Link>
+          {!isReadOnly && (
+            <Link 
+              href="/dashboard/inbound/new" 
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">New Inbound Receipt</span>
+              <span className="sm:hidden">New</span>
+            </Link>
+          )}
         </>
       }
       />
@@ -349,7 +353,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                         <SortableHeader field="quantity" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Quantity</SortableHeader>
                         <SortableHeader field="deliveryNote" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Receive Note</SortableHeader>
                         <SortableHeader field="notes" currentField={inboundSortField} direction={inboundSortDirection} onSort={handleInboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
+                        {!isReadOnly && <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -406,16 +410,18 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                               <DeliveryNoteLink tx={tx} />
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
-                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
-                              <TransactionActions
-                                txId={tx.id}
-                                notes={tx.notes || ''}
-                                deliveryNote={tx.deliveryNote || ''}
-                                showDeliveryNote={true}
-                                copyDnUrl={tx.deliveryNote ? `/dashboard/inbound/new?copyDn=${tx.deliveryNote}` : null}
-                                transactionType={tx.transactionType}
-                              />
-                            </td>
+                            {!isReadOnly && (
+                              <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
+                                <TransactionActions
+                                  txId={tx.id}
+                                  notes={tx.notes || ''}
+                                  deliveryNote={tx.deliveryNote || ''}
+                                  showDeliveryNote={true}
+                                  copyDnUrl={tx.deliveryNote ? `/dashboard/inbound/new?copyDn=${tx.deliveryNote}` : null}
+                                  transactionType={tx.transactionType}
+                                />
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
@@ -500,24 +506,28 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                         className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0"
                         onClick={e => e.stopPropagation()}
                       >
-                        {!isGroupReturn && (
-                          <button
-                            onClick={() => router.push(`/dashboard/inbound/${encodeURIComponent(group.deliveryNote)}/edit`)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
-                            title="Edit Inbound"
-                          >
-                            <Edit2 size={13} />
-                            <span className="hidden sm:inline">Edit</span>
-                          </button>
+                        {!isReadOnly && (
+                          <>
+                            {!isGroupReturn && (
+                              <button
+                                onClick={() => router.push(`/dashboard/inbound/${encodeURIComponent(group.deliveryNote)}/edit`)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                                title="Edit Inbound"
+                              >
+                                <Edit2 size={13} />
+                                <span className="hidden sm:inline">Edit</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => router.push(`/dashboard/inbound/new?copyDn=${group.deliveryNote}`)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                              title="Duplicate"
+                            >
+                              <CopyPlus size={13} />
+                              <span className="hidden sm:inline">Duplicate</span>
+                            </button>
+                          </>
                         )}
-                        <button
-                          onClick={() => router.push(`/dashboard/inbound/new?copyDn=${group.deliveryNote}`)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
-                          title="Duplicate"
-                        >
-                          <CopyPlus size={13} />
-                          <span className="hidden sm:inline">Duplicate</span>
-                        </button>
                         <a
                           href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/inbound/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId || ''}&dn=${encodeURIComponent(group.deliveryNote)}`)}&title=${encodeURIComponent(group.deliveryNote)}`}
                           target="_blank"
@@ -540,7 +550,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                               <th className="py-2.5 px-4">SKU</th>
                               <th className="py-2.5 px-4">Brand</th>
                               <th className="py-2.5 px-4 text-center">Qty</th>
-                              <th className="py-2.5 px-4 text-right">Actions</th>
+                              {!isReadOnly && <th className="py-2.5 px-4 text-right">Actions</th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border text-text-primary">
@@ -574,15 +584,17 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                                 <td className="py-2.5 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">{tx.product.itemCode || '---'}</td>
                                 <td className="py-2.5 px-4 text-xs text-text-secondary whitespace-nowrap">{tx.product.brand.name}</td>
                                 <td className="py-2.5 px-4 text-center font-mono text-xs font-bold text-success whitespace-nowrap">+{tx.quantity}</td>
-                                <td className="py-2.5 px-4 text-right">
-                                  <TransactionActions
-                                    txId={tx.id}
-                                    notes={tx.notes || ''}
-                                    deliveryNote={tx.deliveryNote || ''}
-                                    showDeliveryNote={true}
-                                    transactionType={tx.transactionType}
-                                  />
-                                </td>
+                                {!isReadOnly && (
+                                  <td className="py-2.5 px-4 text-right">
+                                    <TransactionActions
+                                      txId={tx.id}
+                                      notes={tx.notes || ''}
+                                      deliveryNote={tx.deliveryNote || ''}
+                                      showDeliveryNote={true}
+                                      transactionType={tx.transactionType}
+                                    />
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>

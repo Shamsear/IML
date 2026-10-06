@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getStoreInventory } from '@/app/actions/transactions';
-import { renderToStream } from '@react-pdf/renderer';
+import { renderToBuffer } from '@react-pdf/renderer';
 import { DeliveryNoteDocument, formatDate } from '@/lib/pdf/deliveryNote';
 
 export const dynamic = 'force-dynamic';
@@ -205,7 +205,7 @@ export async function GET(request, context) {
     const effectiveReceiver = supervisorName || '';
     const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
-    const pdfStream = await renderToStream(
+    const pdfBuffer = await renderToBuffer(
       <DeliveryNoteDocument
         title="DELIVERY NOTE"
         brandName={brandName}
@@ -232,10 +232,11 @@ export async function GET(request, context) {
       />
     );
 
-    return new NextResponse(pdfStream, {
+    return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="IML-DeliveryNote-${store.name.replace(/\s+/g, '_')}.pdf"`,
+        'Content-Length': String(pdfBuffer.length),
       },
     });
 

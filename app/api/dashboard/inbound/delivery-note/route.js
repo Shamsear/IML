@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { renderToStream } from '@react-pdf/renderer';
+import { renderToBuffer } from '@react-pdf/renderer';
 import { DeliveryNoteDocument, formatDate } from '@/lib/pdf/deliveryNote';
 
 export const dynamic = 'force-dynamic';
@@ -245,7 +245,7 @@ export async function GET(request) {
 
     const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
-    const pdfStream = await renderToStream(
+    const pdfBuffer = await renderToBuffer(
       <DeliveryNoteDocument
         title={docTitle}
         supplierName={supplierName}
@@ -267,10 +267,11 @@ export async function GET(request) {
 
     const docPrefix = isReturn ? 'ReturnNote' : (isSupplierReceive ? 'ReceiveNote' : 'DeliveryNote');
 
-    return new NextResponse(pdfStream, {
+    return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="IML-${docPrefix}-${dateStr}.pdf"`,
+        'Content-Length': String(pdfBuffer.length),
       },
     });
 

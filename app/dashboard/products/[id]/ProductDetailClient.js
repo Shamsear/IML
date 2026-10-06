@@ -21,9 +21,11 @@ import AnimatedCounter from '@/components/AnimatedCounter';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ProductDetailClient({ product }) {
   const router = useRouter();
+  const { isReadOnly } = usePermissions();
   const [lightboxImage, setLightboxImage] = useState(null);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [serialPage, setSerialPage] = useState(1);
@@ -309,30 +311,32 @@ export default function ProductDetailClient({ product }) {
         title={product.name}
         description={`Product detail — ${brand?.name || 'No Brand'}`}
         actions={
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/dashboard/inbound/new?productIds=${product.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-success/10 hover:bg-success/20 text-success text-xs font-bold rounded-lg border border-success/20 transition-colors"
-            >
-              <ArrowDownLeft size={13} />
-              Receive
-            </Link>
-            <Link
-              href={`/dashboard/outbound/new?productIds=${product.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-lg border border-primary/20 transition-colors"
-            >
-              <ArrowUpRight size={13} />
-              Issue
-            </Link>
-            <Link
-              href={`/dashboard/products/new?editId=${product.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary text-xs font-bold rounded-lg transition-colors"
-            >
-              <Edit2 size={13} />
-              Edit
-            </Link>
-            <DeleteButton onDelete={handleDelete} itemName={product.name} />
-          </div>
+          !isReadOnly && (
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/dashboard/inbound/new?productIds=${product.id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-success/10 hover:bg-success/20 text-success text-xs font-bold rounded-lg border border-success/20 transition-colors"
+              >
+                <ArrowDownLeft size={13} />
+                Receive
+              </Link>
+              <Link
+                href={`/dashboard/outbound/new?productIds=${product.id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold rounded-lg border border-primary/20 transition-colors"
+              >
+                <ArrowUpRight size={13} />
+                Issue
+              </Link>
+              <Link
+                href={`/dashboard/products/new?editId=${product.id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary text-xs font-bold rounded-lg transition-colors"
+              >
+                <Edit2 size={13} />
+                Edit
+              </Link>
+              <DeleteButton onDelete={handleDelete} itemName={product.name} />
+            </div>
+          )
         }
       />
 
@@ -579,13 +583,15 @@ export default function ProductDetailClient({ product }) {
             </div>
 
             <div className="flex items-center gap-2">
-              <Link
-                href={`/dashboard/staff/assign`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white hover:bg-primary-hover text-xs font-bold rounded-lg shadow-sm transition-all"
-              >
-                <Plus size={13} />
-                Assign to Promoter
-              </Link>
+              {!isReadOnly && (
+                <Link
+                  href={`/dashboard/staff/assign`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white hover:bg-primary-hover text-xs font-bold rounded-lg shadow-sm transition-all"
+                >
+                  <Plus size={13} />
+                  Assign to Promoter
+                </Link>
+              )}
               <Link
                 href={`/dashboard/staff`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-elevated hover:bg-border text-text-secondary text-xs font-semibold rounded-lg border border-border transition-all"
@@ -687,13 +693,15 @@ export default function ProductDetailClient({ product }) {
               <p className="text-[11px] text-text-muted max-w-md">
                 Allocate this uniform to store promoters to track who has received it, their sizes, working periods, and return status.
               </p>
-              <Link
-                href="/dashboard/staff/assign"
-                className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-lg shadow hover:bg-primary-hover transition-colors"
-              >
-                <Plus size={13} />
-                Create Uniform Allocation
-              </Link>
+              {!isReadOnly && (
+                <Link
+                  href="/dashboard/staff/assign"
+                  className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-lg shadow hover:bg-primary-hover transition-colors"
+                >
+                  <Plus size={13} />
+                  Create Uniform Allocation
+                </Link>
+              )}
             </div>
           ) : filteredAllocations.length === 0 ? (
             <div className="bg-background border border-border rounded-xl p-6 text-center text-text-muted text-xs">
@@ -921,12 +929,14 @@ export default function ProductDetailClient({ product }) {
               <QrCode size={16} className="text-primary" />
               Serial Numbers ({serialNumbers.length})
             </h3>
-            <Link
-              href={`/dashboard/products/new?editId=${product.id}`}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              Manage Serials →
-            </Link>
+            {!isReadOnly && (
+              <Link
+                href={`/dashboard/products/new?editId=${product.id}`}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Manage Serials →
+              </Link>
+            )}
           </div>
 
           {/* Top Pagination for Serials */}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { renderToStream } from '@react-pdf/renderer';
+import { renderToBuffer } from '@react-pdf/renderer';
 import { DeliveryNoteDocument, formatDate } from '@/lib/pdf/deliveryNote';
 
 export const dynamic = 'force-dynamic';
@@ -77,7 +77,7 @@ export async function GET(request) {
     const dateStr = formatDate(dateQuery);
     const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
-    const pdfStream = await renderToStream(
+    const pdfBuffer = await renderToBuffer(
       <DeliveryNoteDocument
         title="DAMAGE NOTE"
         brandName={brandName}
@@ -94,15 +94,17 @@ export async function GET(request) {
       />
     );
 
-    return new NextResponse(pdfStream, {
+    const safeBrand = (brandName || 'DamageNote').replace(/[^a-zA-Z0-9_-]/g, '_');
+    return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="IML-DamageNote-${brandName.replace(/\s+/g, '_')}.pdf"`,
+        'Content-Disposition': `inline; filename="IML-DamageNote-${safeBrand}.pdf"`,
+        'Content-Length': String(pdfBuffer.length),
       },
     });
 
   } catch (error) {
     console.error('[Damage PDF Generation Error]:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return new NextResponse(`Error generating PDF: ${error.message || 'Internal Server Error'}`, { status: 500 });
   }
 }

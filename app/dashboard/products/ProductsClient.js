@@ -701,8 +701,8 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
           <div className="bg-surface border border-border rounded-xl p-6 shadow-sm flex flex-col gap-5 animate-slide-down">
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h2 className="font-display font-bold text-lg text-text-primary">Manage Barcodes: {serialProduct.name}</h2>
-                <p className="text-xs text-text-secondary mt-0.5">Register, upload and lookup barcodes for this device.</p>
+                <h2 className="font-display font-bold text-lg text-text-primary">{isReadOnly ? 'Barcodes:' : 'Manage Barcodes:'} {serialProduct.name}</h2>
+                <p className="text-xs text-text-secondary mt-0.5">{isReadOnly ? 'Registered barcodes and locations for this device.' : 'Register, upload and lookup barcodes for this device.'}</p>
               </div>
               <button className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors" onClick={() => setActivePanel(null)}>
                 <X size={18} />
@@ -719,9 +719,10 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-              <div className="flex flex-col gap-3">
-                <h4 className="font-bold text-sm text-text-primary">Register Barcodes</h4>
+            <div className={`grid grid-cols-1 ${isReadOnly ? '' : 'md:grid-cols-2'} gap-6 mt-2`}>
+              {!isReadOnly && (
+                <div className="flex flex-col gap-3">
+                  <h4 className="font-bold text-sm text-text-primary">Register Barcodes</h4>
                 {serialProduct.category?.toUpperCase().includes('SIM') && (
                   <div className="flex bg-surface-elevated border border-border p-1 rounded-lg">
                     {['SINGLES', 'RANGE', 'COUNT'].map(m => (
@@ -790,6 +791,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                   </button>
                 </form>
               </div>
+              )}
 
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-4">
@@ -917,7 +919,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
           </div>
 
           {/* Bulk Update / Duplicate Bar */}
-          {selectedProductIds.length > 0 && (
+          {!isReadOnly && selectedProductIds.length > 0 && (
             <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-3 flex flex-wrap items-center justify-between gap-4 animate-slide-down">
               <span className="text-xs font-semibold text-text-primary">
                 <strong>{selectedProductIds.length}</strong> items selected
@@ -1001,9 +1003,9 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               <EmptyState
                 icon={Package}
                 title="No products yet"
-                description="Products are the items you track in inventory. Add your first product to get started."
-                actionLabel="Add Product"
-                actionHref="/dashboard/products/new"
+                description="Products are the items you track in inventory."
+                actionLabel={isReadOnly ? undefined : "Add Product"}
+                actionHref={isReadOnly ? undefined : "/dashboard/products/new"}
               />
             </div>
           ) : (
@@ -1088,27 +1090,29 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                         </button>
                       )}
                     </div>
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      {!product.isSerialized && (
-                        <button 
-                          className="p-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-md transition-colors"
-                          onClick={() => {
-                            setAddQtyProduct(product);
-                            setAddQtyValue('');
-                            setAddQtyDN('');
-                            setAddQtyDeliveryFrom('');
-                            setAddQtyNotes('');
-                            setAddQtyError('');
-                          }}
-                          type="button"
-                        >
-                          <Plus size={13} />
+                    {!isReadOnly && (
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        {!product.isSerialized && (
+                          <button 
+                            className="p-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-md transition-colors"
+                            onClick={() => {
+                              setAddQtyProduct(product);
+                              setAddQtyValue('');
+                              setAddQtyDN('');
+                              setAddQtyDeliveryFrom('');
+                              setAddQtyNotes('');
+                              setAddQtyError('');
+                            }}
+                            type="button"
+                          >
+                            <Plus size={13} />
+                          </button>
+                        )}
+                        <button type="button" className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
+                          <Edit2 size={13} />
                         </button>
-                      )}
-                      <button type="button" className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
-                        <Edit2 size={13} />
-                      </button>
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1121,20 +1125,22 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               <EmptyState
                 icon={Package}
                 title="No products yet"
-                description="Products are the items you track in inventory. Add your first product to get started."
-                actionLabel="Add Product"
-                actionHref="/dashboard/products/new"
+                description="Products are the items you track in inventory."
+                actionLabel={isReadOnly ? undefined : "Add Product"}
+                actionHref={isReadOnly ? undefined : "/dashboard/products/new"}
               />
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">
-                          <input type="checkbox" className="custom-checkbox" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
-                            onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
-                        </th>
-                        <SortableHeader field="name" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Product Details</SortableHeader>
+                        {!isReadOnly && (
+                          <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">
+                            <input type="checkbox" className="custom-checkbox" checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
+                              onChange={(e) => { e.target.checked ? setSelectedProductIds(filteredProducts.map(p => p.id)) : setSelectedProductIds([]); }} />
+                          </th>
+                        )}
+                        <SortableHeader field="name" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className={`py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 sticky ${isReadOnly ? 'left-0' : 'left-8'} bg-surface-sticky z-20 border-r border-border shadow-sm`}>Product Details</SortableHeader>
                         <SortableHeader field="itemCode" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Code (SKU)</SortableHeader>
                         <SortableHeader field="brand" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Brand</SortableHeader>
                         <SortableHeader field="stock" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Stock</SortableHeader>
@@ -1143,7 +1149,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                         <SortableHeader field="isReturnable" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Returnable</SortableHeader>
                         <SortableHeader field="isDisposable" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Disposable</SortableHeader>
                         <SortableHeader field="trackExpiry" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Track Expiry</SortableHeader>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
+                        {!isReadOnly && <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -1153,11 +1159,13 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                           className="hover:bg-surface-elevated/30 transition-all duration-150 cursor-pointer group/row"
                           onClick={() => router.push(`/dashboard/products/${product.id}`)}
                         >
-                          <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10" onClick={(e) => e.stopPropagation()}>
-                            <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
-                              onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
-                          </td>
-                          <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          {!isReadOnly && (
+                            <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10" onClick={(e) => e.stopPropagation()}>
+                              <input type="checkbox" className="custom-checkbox" checked={selectedProductIds.includes(product.id)}
+                                onChange={(e) => { e.target.checked ? setSelectedProductIds(prev => [...prev, product.id]) : setSelectedProductIds(prev => prev.filter(id => id !== product.id)); }} />
+                            </td>
+                          )}
+                          <td className={`py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky ${isReadOnly ? 'left-0' : 'left-8'} bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm`}>
                             <div className="flex items-center gap-2.5">
                               {product.imageUrl ? (
                                 <img 
@@ -1220,7 +1228,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                             {product.isSerialized ? (
                               <button 
                                 className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${
-                                  product.category?.toUpperCase().includes('ROUTER') ? 'text-secondary' : 'text-primary'
+                                   product.category?.toUpperCase().includes('ROUTER') ? 'text-secondary' : 'text-primary'
                                 }`} 
                                 onClick={(e) => { e.stopPropagation(); openSerialModal(product); }}
                                 type="button"
@@ -1258,42 +1266,44 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                               <span className="badge bg-surface-elevated text-text-muted border border-border text-[10px]">No</span>
                             )}
                           </td>
-                           <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-2">
-                              {!product.isSerialized && (
+                          {!isReadOnly && (
+                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-2">
+                                {!product.isSerialized && (
+                                  <div className="has-tooltip">
+                                    <button 
+                                      className="inline-flex items-center gap-0.5 px-2 py-1 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded text-xs font-semibold transition-colors"
+                                      onClick={() => {
+                                        setAddQtyProduct(product);
+                                        setAddQtyValue('');
+                                        setAddQtyDN('');
+                                        setAddQtyDeliveryFrom('');
+                                        setAddQtyNotes('');
+                                        setAddQtyError('');
+                                      }}
+                                      type="button"
+                                    >
+                                      <Plus size={11} /> 
+                                      <span>Stock</span>
+                                    </button>
+                                    <span className="tooltip-box tooltip-left">Quick receive warehouse stock</span>
+                                  </div>
+                                )}
                                 <div className="has-tooltip">
-                                  <button 
-                                    className="inline-flex items-center gap-0.5 px-2 py-1 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded text-xs font-semibold transition-colors"
-                                    onClick={() => {
-                                      setAddQtyProduct(product);
-                                      setAddQtyValue('');
-                                      setAddQtyDN('');
-                                      setAddQtyDeliveryFrom('');
-                                      setAddQtyNotes('');
-                                      setAddQtyError('');
-                                    }}
-                                    type="button"
-                                  >
-                                    <Plus size={11} /> 
-                                    <span>Stock</span>
+                                  <button type="button" className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
+                                    <Edit2 size={13} />
                                   </button>
-                                  <span className="tooltip-box tooltip-left">Quick receive warehouse stock</span>
+                                  <span className="tooltip-box tooltip-left">Edit product settings</span>
                                 </div>
-                              )}
-                              <div className="has-tooltip">
-                                <button type="button" className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" onClick={() => openEditModal(product)}>
-                                  <Edit2 size={13} />
-                                </button>
-                                <span className="tooltip-box tooltip-left">Edit product settings</span>
+                                <div className="has-tooltip">
+                                  <button type="button" className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" onClick={() => handleDelete(product.id)}>
+                                    <Trash2 size={13} />
+                                  </button>
+                                  <span className="tooltip-box tooltip-left">Delete product and stock ledger</span>
+                                </div>
                               </div>
-                              <div className="has-tooltip">
-                                <button type="button" className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" onClick={() => handleDelete(product.id)}>
-                                  <Trash2 size={13} />
-                                </button>
-                                <span className="tooltip-box tooltip-left">Delete product and stock ledger</span>
-                              </div>
-                            </div>
-                          </td>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

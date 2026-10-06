@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { renderToStream } from '@react-pdf/renderer';
+import { renderToBuffer } from '@react-pdf/renderer';
 import { DeliveryNoteDocument, formatDate } from '@/lib/pdf/deliveryNote';
 
 export const dynamic = 'force-dynamic';
@@ -145,8 +145,7 @@ export async function GET(request) {
     const inventory = Object.values(productGroups);
     const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
-    // Render react-pdf document to a stream
-    const pdfStream = await renderToStream(
+    const pdfBuffer = await renderToBuffer(
       <DeliveryNoteDocument
         title="CLIENT RETURN TO WAREHOUSE"
         brandName={brandName}
@@ -179,15 +178,17 @@ export async function GET(request) {
       />
     );
 
-    return new NextResponse(pdfStream, {
+    const safeDocNo = (docNo || 'ReturnNote').replace(/[^a-zA-Z0-9_-]/g, '_');
+    return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="IML-ReturnToWarehouse-${docNo}.pdf"`,
+        'Content-Disposition': `inline; filename="IML-ReturnToWarehouse-${safeDocNo}.pdf"`,
+        'Content-Length': String(pdfBuffer.length),
       },
     });
 
   } catch (error) {
     console.error('[Return-to-Warehouse Gate Pass PDF Error]:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return new NextResponse(`Error generating PDF: ${error.message || 'Internal Server Error'}`, { status: 500 });
   }
 }

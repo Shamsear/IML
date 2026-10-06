@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { renderToStream } from '@react-pdf/renderer';
+import { renderToBuffer } from '@react-pdf/renderer';
 import { InventoryReportDocument } from '@/lib/pdf/inventoryReport';
 import { getProductStock } from '@/lib/stock';
 
@@ -161,7 +161,7 @@ export async function GET(request) {
 
     const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
-    const pdfStream = await renderToStream(
+    const pdfBuffer = await renderToBuffer(
       <InventoryReportDocument
         title="GLOBAL STOCK SUMMARY REPORT"
         brandName={brandName}
@@ -176,15 +176,16 @@ export async function GET(request) {
     const safeBrand = brandName.replace(/[^a-zA-Z0-9_-]/g, '_');
     const dateStr = new Date().toISOString().split('T')[0];
 
-    return new NextResponse(pdfStream, {
+    return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="IML-Stock-Report-${safeBrand}-${dateStr}.pdf"`,
+        'Content-Length': String(pdfBuffer.length),
       },
     });
 
   } catch (error) {
     console.error('[PDF Report Generation Error]:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return new NextResponse(`Error generating PDF: ${error.message || 'Internal Server Error'}`, { status: 500 });
   }
 }

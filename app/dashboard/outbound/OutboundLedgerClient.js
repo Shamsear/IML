@@ -31,6 +31,7 @@ import SortableHeader from '@/components/SortableHeader';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useTableSort } from '@/hooks/useTableSort';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function OutboundLedgerClient({
   transactions = [],
@@ -41,6 +42,7 @@ export default function OutboundLedgerClient({
   initialTab = 'transactions',
 }) {
   const router = useRouter();
+  const { isReadOnly } = usePermissions();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
