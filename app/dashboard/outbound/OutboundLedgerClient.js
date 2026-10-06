@@ -259,6 +259,7 @@ export default function OutboundLedgerClient({
           <CopyDeliveryNoteButton type="outbound" noteType="Delivery" />
           <ExportToExcel
             data={filteredTransactions.map(tx => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',

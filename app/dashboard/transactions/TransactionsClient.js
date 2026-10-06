@@ -118,6 +118,7 @@ export default function TransactionsClient({
           <div className="flex-shrink-0">
             <ExportToExcel
               data={initialTransactions.map(tx => ({
+                _rawTimestamp: tx.timestamp,
                 Image: tx.product?.imageUrl || '',
                 Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
                 Type: tx.transactionType,

@@ -146,6 +146,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
           <CopyDeliveryNoteButton type="inbound" noteType="Receive" />
           <ExportToExcel
             data={filteredTransactions.map(tx => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',

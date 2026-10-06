@@ -376,6 +376,7 @@ export default function RebrandLedgerClient({
         <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
           <ExportToExcel
             data={filteredTransactions.map((tx) => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', {
                 timeZone: 'Asia/Dubai',

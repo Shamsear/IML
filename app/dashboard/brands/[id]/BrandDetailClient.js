@@ -19,10 +19,12 @@ import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function BrandDetailClient({ brand, allStores, supervisors, staff }) {
   const router = useRouter();
   const toast = useToast();
+  const { isReadOnly } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -326,14 +328,16 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
         </div>
         
         <div className="flex flex-wrap lg:justify-end items-start gap-1.5 sm:gap-2">
-          <Link 
-            href={`/dashboard/brands/${brand.id}/headings`}
-            className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer"
-          >
-            <ListTree size={12} className="text-secondary" />
-            <span className="hidden xs:inline">Portal Summary Headings</span>
-            <span className="xs:hidden">Headings</span>
-          </Link>
+          {!isReadOnly && (
+            <Link 
+              href={`/dashboard/brands/${brand.id}/headings`}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 border border-border bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer"
+            >
+              <ListTree size={12} className="text-secondary" />
+              <span className="hidden xs:inline">Portal Summary Headings</span>
+              <span className="xs:hidden">Headings</span>
+            </Link>
+          )}
           <button 
             type="button" 
             className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 border rounded-lg text-[10px] sm:text-xs font-semibold transition-all duration-200 ${
@@ -347,11 +351,13 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
             <span className="hidden xs:inline">Portal Access</span>
             <span className="xs:hidden">Portal</span>
           </button>
-          <Link href={`/dashboard/products/new?brandId=${brand.id}`} className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10px] sm:text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-200">
-            <Plus size={12} />
-            <span className="hidden xs:inline">Add Product</span>
-            <span className="xs:hidden">Add</span>
-          </Link>
+          {!isReadOnly && (
+            <Link href={`/dashboard/products/new?brandId=${brand.id}`} className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10px] sm:text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+              <Plus size={12} />
+              <span className="hidden xs:inline">Add Product</span>
+              <span className="xs:hidden">Add</span>
+            </Link>
+          )}
         </div>
       </header>
 
@@ -453,7 +459,9 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                 <div key={product.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <input type="checkbox" className="custom-checkbox mt-0.5" checked={checkedProductIds.includes(product.id)} onChange={(e) => { if (e.target.checked) setCheckedProductIds(prev => [...prev, product.id]); else setCheckedProductIds(prev => prev.filter(id => id !== product.id)); }} />
+                      {!isReadOnly && (
+                        <input type="checkbox" className="custom-checkbox mt-0.5" checked={checkedProductIds.includes(product.id)} onChange={(e) => { if (e.target.checked) setCheckedProductIds(prev => [...prev, product.id]); else setCheckedProductIds(prev => prev.filter(id => id !== product.id)); }} />
+                      )}
                       {product.imageUrl ? (
                         <img src={getOptimizedImageUrl(product.imageUrl, 80, 80)} alt={product.name} className="w-10 h-10 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" onClick={() => setLightboxImage({ url: product.imageUrl, name: product.name })} />
                       ) : (
@@ -469,15 +477,19 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     </div>
                     <span className="font-mono font-extrabold text-lg text-primary flex-shrink-0">{stock.total}</span>
                   </div>                   <StockBreakdown stock={stock} compact />
-                  <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-success font-semibold hover:underline inline-flex items-center gap-0.5"><ArrowDownLeft size={11} /> Recv</Link>
-                      <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5"><ArrowUpRight size={11} /> Issue</Link>
+                  {(!isReadOnly || product.isSerialized) && (
+                    <div className={`flex items-center ${isReadOnly ? 'justify-end' : 'justify-between'} pt-2 border-t border-border/50 text-[11px]`}>
+                      {!isReadOnly && (
+                        <div className="flex items-center gap-2">
+                          <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-success font-semibold hover:underline inline-flex items-center gap-0.5"><ArrowDownLeft size={11} /> Recv</Link>
+                          <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5"><ArrowUpRight size={11} /> Issue</Link>
+                        </div>
+                      )}
+                      {product.isSerialized && (
+                        <button className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5" onClick={() => openSerialsModal(product)} type="button"><QrCode size={11} /> SIM ({product._count?.serialNumbers || 0})</button>
+                      )}
                     </div>
-                    {product.isSerialized && (
-                      <button className="text-primary font-semibold hover:underline inline-flex items-center gap-0.5" onClick={() => openSerialsModal(product)} type="button"><QrCode size={11} /> SIM ({product._count?.serialNumbers || 0})</button>
-                    )}
-                  </div>
+                  )}
                 </div>
               );
             })}
@@ -489,21 +501,23 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
               <table className="min-w-full divide-y divide-border text-sm">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                    <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">
-                      <input 
-                        type="checkbox" 
-                        className="custom-checkbox"
-                        checked={checkedProductIds.length === brand.products.length && brand.products.length > 0}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCheckedProductIds(brand.products.map(p => p.id));
-                          } else {
-                            setCheckedProductIds([]);
-                          }
-                        }}
-                      />
-                    </th>
-                    <SortableHeader field="name" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-3 px-5 whitespace-nowrap sticky left-8 bg-surface-sticky z-20 border-r border-border shadow-sm">Item Description</SortableHeader>
+                    {!isReadOnly && (
+                      <th className="py-3 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface-sticky z-20">
+                        <input 
+                          type="checkbox" 
+                          className="custom-checkbox"
+                          checked={checkedProductIds.length === brand.products.length && brand.products.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCheckedProductIds(brand.products.map(p => p.id));
+                            } else {
+                              setCheckedProductIds([]);
+                            }
+                          }}
+                        />
+                      </th>
+                    )}
+                    <SortableHeader field="name" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className={`py-3 px-5 whitespace-nowrap sticky ${isReadOnly ? 'left-0' : 'left-8'} bg-surface-sticky z-20 border-r border-border shadow-sm`}>Item Description</SortableHeader>
                     <SortableHeader field="itemCode" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-3 px-5 whitespace-nowrap">Item Code</SortableHeader>
                     <SortableHeader field="category" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} className="py-3 px-5 whitespace-nowrap">Item category</SortableHeader>
                     <SortableHeader field="purchased" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap">Purchased / Received</SortableHeader>
@@ -516,7 +530,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     <SortableHeader field="rebrand" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap text-secondary">Re Brand</SortableHeader>
                     <SortableHeader field="total" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap font-bold">Total</SortableHeader>
                     <SortableHeader field="stockStatus" currentField={productSortField} direction={productSortDirection} onSort={handleProductSort} align="center" className="py-3 px-5 text-center whitespace-nowrap">Stock Status</SortableHeader>
-                    <th className="py-3 px-5 text-right whitespace-nowrap">Actions</th>
+                    {!isReadOnly && <th className="py-3 px-5 text-right whitespace-nowrap">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-text-primary">
@@ -524,27 +538,29 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                     const stock = computeProductStock(product);
                     return (
                       <tr key={product.id} className="hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none/20 transition-colors group/row">
-                        <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10">
-                          <input 
-                            type="checkbox" 
-                            className="custom-checkbox"
-                            checked={checkedProductIds.includes(product.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setCheckedProductIds(prev => [...prev, product.id]);
-                              } else {
-                                setCheckedProductIds(prev => prev.filter(id => id !== product.id));
-                              }
-                            }}
-                          />
-                        </td>
-                        <td className="py-3.5 px-5 min-w-[220px] sticky left-8 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                        {!isReadOnly && (
+                          <td className="py-3.5 pl-4 pr-0 w-8 text-center sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10">
+                            <input 
+                              type="checkbox" 
+                              className="custom-checkbox"
+                              checked={checkedProductIds.includes(product.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setCheckedProductIds(prev => [...prev, product.id]);
+                                } else {
+                                  setCheckedProductIds(prev => prev.filter(id => id !== product.id));
+                                }
+                              }}
+                            />
+                          </td>
+                        )}
+                        <td className={`py-3.5 px-5 min-w-[220px] sticky ${isReadOnly ? 'left-0' : 'left-8'} bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm`}>
                           <div className="flex items-center gap-3">
                             {product.imageUrl ? (
                               <img 
                                 src={getOptimizedImageUrl(product.imageUrl, 80, 80)} 
                                 alt={product.name} 
-                                className="w-8 h-8 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200"
+                                className="w-8 h-8 rounded-sm object-cover border border-border flex-shrink-0 cursor-zoom-in hover:brightness-95 transition-all duration-200" 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setLightboxImage({ url: product.imageUrl, name: product.name });
@@ -619,26 +635,28 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                             <span className="text-text-muted text-xs">---</span>
                           )}
                         </td>
-                        <td className="py-3.5 px-5 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-3">
-                            <div className="has-tooltip">
-                              <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-xs font-semibold text-success hover:underline inline-flex items-center gap-0.5">
-                                <ArrowDownLeft size={12} />
-                                <span>Recv</span>
-                              </Link>
-                              <span className="tooltip-box tooltip-left">Inbound stock log</span>
-                            </div>
-                            {brand.stores.length > 0 && (
+                        {!isReadOnly && (
+                          <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-3">
                               <div className="has-tooltip">
-                                <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
-                                  <ArrowUpRight size={12} />
-                                  <span>Issue</span>
+                                <Link href={`/dashboard/inbound/new?productIds=${product.id}`} className="text-xs font-semibold text-success hover:underline inline-flex items-center gap-0.5">
+                                  <ArrowDownLeft size={12} />
+                                  <span>Recv</span>
                                 </Link>
-                                <span className="tooltip-box tooltip-left">Outbound stock dispatch</span>
+                                <span className="tooltip-box tooltip-left">Inbound stock log</span>
                               </div>
-                            )}
-                          </div>
-                        </td>
+                              {brand.stores.length > 0 && (
+                                <div className="has-tooltip">
+                                  <Link href={`/dashboard/outbound/new?productIds=${product.id}`} className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
+                                    <ArrowUpRight size={12} />
+                                    <span>Issue</span>
+                                  </Link>
+                                  <span className="tooltip-box tooltip-left">Outbound stock dispatch</span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -860,77 +878,79 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
                 {importStatus}
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-              <div className="flex flex-col gap-3">
-                <h4 className="font-bold text-sm text-text-primary">Register Barcodes</h4>
-                {selectedProduct.category?.toUpperCase().includes('SIM') && (
-                  <div className="flex bg-surface-elevated border border-border p-1 rounded-lg">
-                    {['SINGLES', 'RANGE', 'COUNT'].map(m => (
-                      <button 
-                        key={m} 
-                        type="button" 
-                        className={`flex-1 text-[11px] font-bold py-1.5 rounded transition-all duration-200
-                          ${entryMode === m 
-                            ? 'bg-primary text-white shadow-sm' 
-                            : 'text-text-secondary hover:text-text-primary'
-                          }`}
-                        onClick={() => { setEntryMode(m); setStartBarcode(''); setEndBarcode(''); }}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <form onSubmit={handleImportSerials} className="flex flex-col gap-4">
-                  {entryMode === 'SINGLES' ? (
-                    <>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-text-secondary">Scan Barcode (Keyboard/Scanner)</label>
-                        <div className="flex gap-2">
-                          <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" value={scanInput} onChange={(e) => setScanInput(e.target.value)} onKeyDown={handleScanInputKeyDown} placeholder="Scan &amp; press enter..." />
-                          <button type="button" className="px-3 bg-surface-elevated border border-border hover:bg-surface-hover rounded-lg text-text-secondary transition-colors" onClick={() => { setCameraTargetField('barcodeInput'); setIsCameraModalOpen(true); }}><Camera size={15} /></button>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-text-secondary">Primary Barcodes list</label>
-                        <textarea className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none" rows={4} value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} placeholder="One barcode per line..." required />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-text-secondary">Secondary Barcodes (Optional)</label>
-                        <textarea className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none" rows={2} value={secondaryBarcodeInput} onChange={(e) => setSecondaryBarcodeInput(e.target.value)} placeholder="Match line-for-line..." />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-text-secondary">First Barcode</label>
-                        <div className="flex gap-2">
-                          <input type="text" className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" value={startBarcode} onChange={(e) => setStartBarcode(e.target.value)} placeholder="Start sequence" required />
-                          <button type="button" className="px-3 bg-surface-elevated border border-border hover:bg-surface-hover rounded-lg text-text-secondary transition-colors" onClick={() => { setCameraTargetField('startBarcode'); setIsCameraModalOpen(true); }}><Camera size={15} /></button>
-                        </div>
-                      </div>
-                      {entryMode === 'RANGE' ? (
+            <div className={`grid grid-cols-1 ${isReadOnly ? 'md:grid-cols-1' : 'md:grid-cols-2'} gap-6 mt-2`}>
+              {!isReadOnly && (
+                <div className="flex flex-col gap-3">
+                  <h4 className="font-bold text-sm text-text-primary">Register Barcodes</h4>
+                  {selectedProduct.category?.toUpperCase().includes('SIM') && (
+                    <div className="flex bg-surface-elevated border border-border p-1 rounded-lg">
+                      {['SINGLES', 'RANGE', 'COUNT'].map(m => (
+                        <button 
+                          key={m} 
+                          type="button" 
+                          className={`flex-1 text-[11px] font-bold py-1.5 rounded transition-all duration-200
+                            ${entryMode === m 
+                              ? 'bg-primary text-white shadow-sm' 
+                              : 'text-text-secondary hover:text-text-primary'
+                            }`}
+                          onClick={() => { setEntryMode(m); setStartBarcode(''); setEndBarcode(''); }}
+                        >
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <form onSubmit={handleImportSerials} className="flex flex-col gap-4">
+                    {entryMode === 'SINGLES' ? (
+                      <>
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-text-secondary">Last Barcode</label>
+                          <label className="text-xs font-semibold text-text-secondary">Scan Barcode (Keyboard/Scanner)</label>
                           <div className="flex gap-2">
-                            <input type="text" className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" value={endBarcode} onChange={(e) => setEndBarcode(e.target.value)} placeholder="End sequence" required />
-                            <button type="button" className="px-3 bg-surface-elevated border border-border hover:bg-surface-hover rounded-lg text-text-secondary transition-colors" onClick={() => { setCameraTargetField('endBarcode'); setIsCameraModalOpen(true); }}><Camera size={15} /></button>
+                            <input type="text" className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" value={scanInput} onChange={(e) => setScanInput(e.target.value)} onKeyDown={handleScanInputKeyDown} placeholder="Scan &amp; press enter..." />
+                            <button type="button" className="px-3 bg-surface-elevated border border-border hover:bg-surface-hover rounded-lg text-text-secondary transition-colors" onClick={() => { setCameraTargetField('barcodeInput'); setIsCameraModalOpen(true); }}><Camera size={15} /></button>
                           </div>
                         </div>
-                      ) : (
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-semibold text-text-secondary">Quantity to auto-generate</label>
-                          <input type="number" className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" value={importQty} onChange={(e) => setImportQty(e.target.value)} min={1} required />
+                          <label className="text-xs font-semibold text-text-secondary">Primary Barcodes list</label>
+                          <textarea className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none" rows={4} value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} placeholder="One barcode per line..." required />
                         </div>
-                      )}
-                    </>
-                  )}
-                  <button type="submit" className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold transition-colors" disabled={loading}>
-                    <Upload size={14} /> 
-                    <span>Upload Barcodes</span>
-                  </button>
-                </form>
-              </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary">Secondary Barcodes (Optional)</label>
+                          <textarea className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none" rows={2} value={secondaryBarcodeInput} onChange={(e) => setSecondaryBarcodeInput(e.target.value)} placeholder="Match line-for-line..." />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-semibold text-text-secondary">First Barcode</label>
+                          <div className="flex gap-2">
+                            <input type="text" className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" value={startBarcode} onChange={(e) => setStartBarcode(e.target.value)} placeholder="Start sequence" required />
+                            <button type="button" className="px-3 bg-surface-elevated border border-border hover:bg-surface-hover rounded-lg text-text-secondary transition-colors" onClick={() => { setCameraTargetField('startBarcode'); setIsCameraModalOpen(true); }}><Camera size={15} /></button>
+                          </div>
+                        </div>
+                        {entryMode === 'RANGE' ? (
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Last Barcode</label>
+                            <div className="flex gap-2">
+                              <input type="text" className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" value={endBarcode} onChange={(e) => setEndBarcode(e.target.value)} placeholder="End sequence" required />
+                              <button type="button" className="px-3 bg-surface-elevated border border-border hover:bg-surface-hover rounded-lg text-text-secondary transition-colors" onClick={() => { setCameraTargetField('endBarcode'); setIsCameraModalOpen(true); }}><Camera size={15} /></button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-semibold text-text-secondary">Quantity to auto-generate</label>
+                            <input type="number" className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" value={importQty} onChange={(e) => setImportQty(e.target.value)} min={1} required />
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <button type="submit" className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold transition-colors" disabled={loading}>
+                      <Upload size={14} /> 
+                      <span>Upload Barcodes</span>
+                    </button>
+                  </form>
+                </div>
+              )}
               <div className="flex flex-col gap-3">
                 <h4 className="font-bold text-sm text-text-primary">Registered Barcodes ({serialsList.length})</h4>
                 <div className="max-h-[300px] overflow-y-auto border border-border rounded-lg">
@@ -967,7 +987,7 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
 
 
       {/* Floating Checked Items Actions Bar */}
-      {checkedProductIds.length > 0 && (
+      {!isReadOnly && checkedProductIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-surface/95 border border-primary/40 rounded-2xl shadow-xl px-6 py-4 flex items-center gap-6 backdrop-blur-md animate-slide-up max-w-[90vw] md:max-w-xl">
           <span className="text-sm font-semibold text-text-primary whitespace-nowrap">
             <strong>{checkedProductIds.length}</strong> items selected

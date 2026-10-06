@@ -10,12 +10,14 @@ import EmptyState from '@/components/EmptyState';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import Pagination from '@/components/Pagination';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const regions = ['AUH', 'DXB', 'SHJ', 'ALN', 'RAK', 'FUJ', 'UAQ'];
 
 export default function StoresClient({ initialStores }) {
   const router = useRouter();
   const toast = useToast();
+  const { isReadOnly } = usePermissions();
   const [stores, setStores] = useState(initialStores);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
@@ -200,15 +202,17 @@ export default function StoresClient({ initialStores }) {
             Manage physical stores, regions, and coordinates across the UAE.
           </p>
         </div>
-        <div className="has-tooltip">
-          <Link 
-            href="/dashboard/stores/new"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-          >
-            <Plus size={16} /> <span>Add Store</span>
-          </Link>
-          <span className="tooltip-box">Register new outlet</span>
-        </div>
+        {!isReadOnly && (
+          <div className="has-tooltip">
+            <Link 
+              href="/dashboard/stores/new"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              <Plus size={16} /> <span>Add Store</span>
+            </Link>
+            <span className="tooltip-box">Register new outlet</span>
+          </div>
+        )}
       </header>
 
       <div className="flex flex-col gap-6">
@@ -459,8 +463,8 @@ export default function StoresClient({ initialStores }) {
                 icon={Store}
                 title={searchQuery || selectedRegionFilter !== 'ALL' ? 'No stores match your filters' : 'No stores yet'}
                 description={searchQuery || selectedRegionFilter !== 'ALL' ? 'Try adjusting your search or filters.' : 'Stores represent retail outlets across the UAE. Register your first store to start tracking inventory.'}
-                actionLabel={searchQuery || selectedRegionFilter !== 'ALL' ? undefined : 'Add Store'}
-                actionHref="/dashboard/stores/new"
+                actionLabel={searchQuery || selectedRegionFilter !== 'ALL' || isReadOnly ? undefined : 'Add Store'}
+                actionHref={isReadOnly ? undefined : "/dashboard/stores/new"}
               />
             </div>
           ) : (
@@ -480,27 +484,29 @@ export default function StoresClient({ initialStores }) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-1.5 sm:gap-2 sm:border-t sm:border-border/60 sm:pt-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <div className="has-tooltip">
-                      <Link 
-                        href={`/dashboard/stores/${store.id}/edit`}
-                        className="p-1 sm:p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer inline-flex"
-                      >
-                        <Edit2 size={12} />
-                      </Link>
-                      <span className="tooltip-box">Edit outlet details</span>
+                  {!isReadOnly && (
+                    <div className="flex items-center justify-end gap-1.5 sm:gap-2 sm:border-t sm:border-border/60 sm:pt-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <div className="has-tooltip">
+                        <Link 
+                          href={`/dashboard/stores/${store.id}/edit`}
+                          className="p-1 sm:p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-elevated rounded-md transition-colors cursor-pointer inline-flex"
+                        >
+                          <Edit2 size={12} />
+                        </Link>
+                        <span className="tooltip-box">Edit outlet details</span>
+                      </div>
+                      <div className="has-tooltip">
+                        <button 
+                          className="p-1 sm:p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors cursor-pointer"
+                          onClick={() => handleDelete(store.id)}
+                          type="button"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <span className="tooltip-box">Delete store mapping</span>
+                      </div>
                     </div>
-                    <div className="has-tooltip">
-                      <button 
-                        className="p-1 sm:p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded-md transition-colors cursor-pointer"
-                        onClick={() => handleDelete(store.id)}
-                        type="button"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                      <span className="tooltip-box">Delete store mapping</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

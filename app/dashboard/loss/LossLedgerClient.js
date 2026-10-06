@@ -183,6 +183,7 @@ export default function LossLedgerClient({
         <div className="flex gap-2 flex-shrink-0">
           <ExportToExcel
             data={filteredTransactions.map((tx) => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', {
                 timeZone: 'Asia/Dubai',

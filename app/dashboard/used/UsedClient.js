@@ -189,6 +189,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
         actions={<>
           <ExportToExcel
             data={activeTab === 'history' ? pastUsed.map(tx => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',
@@ -200,6 +201,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
               Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
               Notes: tx.notes || '',
             })) : transactions.map(tx => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',

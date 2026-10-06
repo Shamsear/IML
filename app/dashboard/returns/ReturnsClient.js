@@ -330,6 +330,7 @@ export default function ReturnsClient({
         actions={<>
           <ExportToExcel
             data={activeTab === 'history' ? filteredHistory.map(tx => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               'Return Note': tx.deliveryNote || '—',
               Product: tx.product?.name || '',
@@ -341,6 +342,7 @@ export default function ReturnsClient({
               Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
               Remarks: tx.notes || '',
             })) : transactions.map(tx => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',

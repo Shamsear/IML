@@ -378,6 +378,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
         <div className="flex flex-wrap gap-2 flex-shrink-0">
           <ExportToExcel
             data={transactions.map(tx => ({
+              _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Barcode: tx.barcode,
               Product: tx.product?.name || '',
