@@ -75,21 +75,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Read-Only Notice Banner */}
-      {isReadOnly && (
-        <div className="bg-primary/10 border border-primary/20 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 animate-fade-in shadow-xs">
-          <div className="w-9 h-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
-            <Eye size={18} />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold text-text-primary">Read-Only Viewer Account</span>
-            <span className="text-[11px] text-text-secondary mt-0.5">
-              You are signed in with read-only permissions. All catalog items, ledger records, and operational reports are available for review and export. Data creation and editing features are disabled.
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
