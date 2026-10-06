@@ -16,7 +16,6 @@ export default async function ClientReturnsPage({ searchParams }) {
 
   const whereClause = {
     OR: [
-      { transactionType: { in: ['CLIENT_STOCK', 'CLIENT_RETURN'] } },
       { toEntityType: { in: ['CLIENT', 'BRAND'] } },
       { fromEntityType: { in: ['CLIENT', 'BRAND'] } }
     ]

@@ -351,7 +351,14 @@ export default function BrandPortalClient({ brand }) {
                           {section.title}
                         </h3>
                         <span className="text-[11px] font-bold text-text-muted bg-surface-elevated px-2 py-0.5 rounded-full border border-border/60">
-                          {sectionTotalQty} {sectionTotalQty === 1 ? 'item' : 'items'}
+                          {section.items.length} {section.items.length === 1 ? 'item' : 'items'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-text-muted font-medium hidden sm:inline">Total Quantity:</span>
+                        <span className="text-xs text-text-muted font-medium sm:hidden">Total Qty:</span>
+                        <span className="font-mono font-bold text-xs sm:text-sm text-text-primary bg-surface-elevated px-2.5 py-0.5 rounded-full border border-border/60">
+                          {sectionTotalQty.toLocaleString()}
                         </span>
                       </div>
                     </button>
@@ -414,46 +421,48 @@ export default function BrandPortalClient({ brand }) {
                             </div>
 
                             {/* Desktop Table View */}
-                            <table className="min-w-full divide-y divide-border hidden md:table">
+                            <table className="w-full table-fixed divide-y divide-border hidden md:table">
                               <thead>
-                                <tr className="text-left text-[10px] font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/20">
-                                  <th className="py-2.5 px-4">Item Description</th>
-                                  <th className="py-2.5 px-4 text-center w-28">Available Qty</th>
-                                  <th className="py-2.5 px-4 text-center w-32">Stock Level</th>
-                                  <th className="py-2.5 px-4">Remarks</th>
+                                <tr className="text-[11px] font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/30">
+                                  <th className="py-3 px-5 text-left w-[40%]">Item Description</th>
+                                  <th className="py-3 px-5 text-center w-[20%]">Available Qty</th>
+                                  <th className="py-3 px-5 text-center w-[20%]">Stock Level</th>
+                                  <th className="py-3 px-5 text-center w-[20%]">Remarks</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-border text-xs">
                                 {section.items.map(({ product: p, availableQty, stockLevel, remark }) => (
                                   <tr key={p.id} className="hover:bg-surface-elevated/20 transition-colors">
-                                    <td className="py-2.5 px-4 min-w-[200px]">
-                                      <div className="flex items-center gap-3 min-w-0">
+                                    <td className="py-3.5 px-5">
+                                      <div className="flex items-center gap-3.5 min-w-0">
                                         {p.imageUrl ? (
                                           <img 
-                                            src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
+                                            src={getOptimizedImageUrl(p.imageUrl, 100, 100)} 
                                             alt={p.name} 
-                                            className="w-7 h-7 rounded object-cover border border-border shrink-0 cursor-pointer hover:border-primary transition-all"
+                                            className="w-11 h-11 rounded-lg object-cover border border-border shrink-0 cursor-pointer hover:border-primary transition-all shadow-2xs"
                                             onClick={() => setLightboxImage({ url: p.imageUrl, name: p.name })}
                                             onError={(e) => { if (e.target.src !== p.imageUrl) e.target.src = p.imageUrl; }}
                                           />
                                         ) : (
-                                          <div className="w-7 h-7 rounded bg-primary/5 text-primary flex items-center justify-center font-display font-bold text-[9px] border border-primary/10 shrink-0">
+                                          <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-display font-bold text-xs border border-primary/20 shrink-0">
                                             {p.name.substring(0, 2).toUpperCase()}
                                           </div>
                                         )}
                                         <div className="min-w-0 flex-1">
-                                          <span className="font-semibold text-text-primary block break-words leading-snug">{p.name}</span>
-                                          <span className="text-[10px] font-mono text-text-muted">{p.itemCode || '---'}</span>
+                                          <span className="font-bold text-sm text-text-primary block break-words leading-snug">{p.name}</span>
+                                          <span className="text-[11px] font-mono text-text-muted mt-0.5 block">{p.itemCode || '---'}</span>
                                         </div>
                                       </div>
                                     </td>
-                                    <td className="py-2.5 px-4 text-center font-mono font-bold text-text-primary">
-                                      <span className={availableQty > 0 ? 'text-success font-extrabold' : 'text-text-muted'}>
-                                        {availableQty}
+                                    <td className="py-3.5 px-5 text-center">
+                                      <span className={`text-base sm:text-lg font-mono font-extrabold tracking-tight ${
+                                        availableQty > 0 ? 'text-success' : 'text-text-muted'
+                                      }`}>
+                                        {availableQty.toLocaleString()}
                                       </span>
                                     </td>
-                                    <td className="py-2.5 px-4 text-center">
-                                      <span className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded border ${
+                                    <td className="py-3.5 px-5 text-center">
+                                      <span className={`inline-flex items-center justify-center px-3 py-1 text-xs font-bold uppercase rounded-lg border tracking-wide ${
                                         stockLevel === 'AVAILABLE'
                                           ? 'bg-success/10 text-success border-success/20'
                                           : 'bg-danger/10 text-danger border-danger/20'
@@ -461,12 +470,31 @@ export default function BrandPortalClient({ brand }) {
                                         {stockLevel}
                                       </span>
                                     </td>
-                                    <td className="py-2.5 px-4 text-xs text-text-secondary max-w-xs truncate" title={remark || ''}>
-                                      {remark || '—'}
+                                    <td className="py-3.5 px-5 text-center">
+                                      {remark ? (
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-danger/10 text-danger border border-danger/20">
+                                          {remark}
+                                        </span>
+                                      ) : (
+                                        <span className="text-text-muted/60 text-sm font-medium">—</span>
+                                      )}
                                     </td>
                                   </tr>
                                 ))}
                               </tbody>
+                              {section.items.length > 1 && (
+                                <tfoot className="border-t-2 border-border bg-surface-elevated/40 text-xs font-semibold">
+                                  <tr>
+                                    <td className="py-3 px-5 text-text-secondary font-bold">
+                                      Total ({section.items.length} {section.items.length === 1 ? 'item' : 'items'})
+                                    </td>
+                                    <td className="py-3 px-5 text-center font-mono font-extrabold text-base sm:text-lg text-text-primary">
+                                      {sectionTotalQty.toLocaleString()}
+                                    </td>
+                                    <td colSpan={2}></td>
+                                  </tr>
+                                </tfoot>
+                              )}
                             </table>
                           </>
                         )}

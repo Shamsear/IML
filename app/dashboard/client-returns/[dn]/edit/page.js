@@ -39,7 +39,7 @@ export default async function EditClientReturnPage({ params }) {
     notFound();
   }
 
-  // Include CLIENT_RETURN, CLIENT_STOCK, or any brand/client involved transaction
+  // Strictly filter for client/brand transactions
   const clientReturnItems = initialItems.filter(t => 
     t.transactionType === 'CLIENT_RETURN' || 
     t.transactionType === 'CLIENT_STOCK' ||
@@ -49,22 +49,29 @@ export default async function EditClientReturnPage({ params }) {
     t.fromEntityType === 'CLIENT'
   );
 
-  const finalItems = clientReturnItems.length > 0 ? clientReturnItems : initialItems;
+  if (clientReturnItems.length === 0) {
+    // If this is an outlet/store return, send it to the store returns editor
+    const isStoreReturn = initialItems.some(t => t.transactionType === 'RETURN' && t.fromEntityType === 'STORE');
+    if (isStoreReturn) {
+      redirect(`/dashboard/returns/${encodeURIComponent(decodedDn)}/edit`);
+    }
+    notFound();
+  }
 
-  const isReturnFromClient = finalItems.some(t => 
+  const isReturnFromClient = clientReturnItems.some(t => 
     t.fromEntityType === 'BRAND' || 
     t.fromEntityType === 'CLIENT' || 
-    t.toEntityType === 'WAREHOUSE'
+    t.deliveryNote?.startsWith('CRR-')
   );
 
   const initialBrandId = isReturnFromClient
-    ? (finalItems[0].fromEntityId || finalItems[0].product?.brandId || '')
-    : (finalItems[0].toEntityId || finalItems[0].product?.brandId || '');
+    ? (clientReturnItems[0].fromEntityId || clientReturnItems[0].product?.brandId || '')
+    : (clientReturnItems[0].toEntityId || clientReturnItems[0].product?.brandId || '');
 
-  const initialReceivedBy = finalItems[0].receivedBy || '';
-  const initialGlobalNotes = finalItems[0].notes || '';
-  const initialSupervisorName = finalItems[0].deliverySupervisorId || '';
-  const initialTransactionDate = finalItems[0].timestamp || '';
+  const initialReceivedBy = clientReturnItems[0].receivedBy || '';
+  const initialGlobalNotes = clientReturnItems[0].notes || '';
+  const initialSupervisorName = clientReturnItems[0].deliverySupervisorId || '';
+  const initialTransactionDate = clientReturnItems[0].timestamp || '';
 
   return (
     <ClientReturnsClient 
@@ -74,7 +81,7 @@ export default async function EditClientReturnPage({ params }) {
       existingDn={decodedDn}
       isReturnFromClient={isReturnFromClient}
       initialBrandId={initialBrandId}
-      initialItems={finalItems}
+      initialItems={clientReturnItems}
       initialGlobalNotes={initialGlobalNotes}
       initialSupervisorName={initialSupervisorName}
       initialReceivedBy={initialReceivedBy}

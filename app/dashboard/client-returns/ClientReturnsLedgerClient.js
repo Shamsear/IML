@@ -63,7 +63,9 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
     const dispatched = [];
     const returned = [];
     (transactions || []).forEach(tx => {
-      const isFromClient = ((tx.fromEntityType === 'BRAND' || tx.fromEntityType === 'CLIENT') && tx.toEntityType === 'WAREHOUSE') || tx.transactionType === 'RETURN' || tx.transactionType === 'CLIENT_RETURN';
+      // isFromClient: Client (brand) giving back product to warehouse
+      // !isFromClient: Client (brand) taking product back from warehouse (dispatched to client)
+      const isFromClient = tx.fromEntityType === 'BRAND' || tx.fromEntityType === 'CLIENT' || tx.deliveryNote?.startsWith('CRR-');
       if (isFromClient) {
         returned.push(tx);
       } else {
@@ -78,7 +80,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
     const groups = {};
     txs.forEach(tx => {
       if (tx.deliveryNote) {
-        const isFromClient = ((tx.fromEntityType === 'BRAND' || tx.fromEntityType === 'CLIENT') && tx.toEntityType === 'WAREHOUSE') || tx.transactionType === 'RETURN' || tx.transactionType === 'CLIENT_RETURN';
+        const isFromClient = tx.fromEntityType === 'BRAND' || tx.fromEntityType === 'CLIENT' || tx.deliveryNote?.startsWith('CRR-');
         const direction = isFromClient ? 'fromClient' : 'toClient';
         const brandId = isFromClient ? tx.fromEntityId : tx.toEntityId;
         const key = `${tx.deliveryNote}_${brandId || 'unknown'}_${direction}`;

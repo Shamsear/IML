@@ -34,6 +34,10 @@ export default async function ReturnsPage({ searchParams }) {
       prisma.inventoryTransaction.findMany({
         where: {
           transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+          NOT: [
+            { toEntityType: { in: ['BRAND', 'CLIENT'] } },
+            { fromEntityType: { in: ['BRAND', 'CLIENT'] } }
+          ],
           OR: [
             { returnStatus: null },
             { returnStatus: { notIn: ['RETURNED', 'USED'] } }
@@ -90,7 +94,13 @@ export default async function ReturnsPage({ searchParams }) {
         orderBy: { name: 'asc' }
       }),
       prisma.inventoryTransaction.findMany({
-        where: { transactionType: 'RETURN' },
+        where: {
+          transactionType: 'RETURN',
+          NOT: [
+            { fromEntityType: { in: ['BRAND', 'CLIENT'] } },
+            { toEntityType: { in: ['BRAND', 'CLIENT'] } }
+          ]
+        },
         select: {
           id: true,
           quantity: true,

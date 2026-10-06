@@ -31,6 +31,9 @@ export default async function EditReturnPage({ params }) {
   ]);
 
   if (!returnData || !returnData.returnTx) {
+    if (decodedDn.startsWith('CRN-') || decodedDn.startsWith('CRR-') || decodedDn.startsWith('CGP-') || decodedDn.startsWith('CRP-') || decodedDn.startsWith('CLT-')) {
+      redirect(`/dashboard/client-returns/${encodeURIComponent(decodedDn)}/edit`);
+    }
     notFound();
   }
 

@@ -2751,7 +2751,11 @@ export async function getReturnTransactionForEdit(returnId) {
         { id: returnId },
         { deliveryNote: returnId }
       ],
-      transactionType: 'RETURN'
+      transactionType: 'RETURN',
+      NOT: [
+        { fromEntityType: { in: ['BRAND', 'CLIENT'] } },
+        { toEntityType: { in: ['BRAND', 'CLIENT'] } }
+      ]
     },
     include: {
       product: {
@@ -2893,7 +2897,11 @@ export async function updateReturnTransaction(returnId, payload) {
         { id: returnId },
         { deliveryNote: returnId }
       ],
-      transactionType: 'RETURN'
+      transactionType: 'RETURN',
+      NOT: [
+        { fromEntityType: { in: ['BRAND', 'CLIENT'] } },
+        { toEntityType: { in: ['BRAND', 'CLIENT'] } }
+      ]
     },
     include: {
       product: true,
