@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Download, Calendar, Clock, X, Check, FileSpreadsheet, Sparkles, Filter, ChevronDown, CheckSquare, Square } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Download, Calendar, Clock, X, Check, FileSpreadsheet, Sparkles, Filter, ChevronDown, CheckSquare, Square, Loader2 } from 'lucide-react';
+import ExcelJS from 'exceljs';
 
 /**
  * Parses any date/time field or string into a valid Date object or null
@@ -70,7 +70,7 @@ function toDateTimeLocalString(date) {
 }
 
 /**
- * Reusable Export to Excel component with Date & Time filtering modal, Column Selector, and HYPERLINK photo support.
+ * Reusable Export to Excel component with Date & Time filtering modal, Column Selector, and native embedded binary photos.
  */
 export default function ExportToExcel({
   data = [],
@@ -85,6 +85,8 @@ export default function ExportToExcel({
   const [fromDateTime, setFromDateTime] = useState('');
   const [toDateTime, setToDateTime] = useState('');
   const [embedImages, setEmbedImages] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgressText, setExportProgressText] = useState('');
   
   // Selected columns state (defaults to all columns)
   const [selectedColumnKeys, setSelectedColumnKeys] = useState(() => 
@@ -213,7 +215,7 @@ export default function ExportToExcel({
     setSelectedColumnKeys(columns.map(c => c.key || c.header));
   };
 
-  const executeExport = () => {
+  const executeExport = async () => {
     const exportRows = filteredData;
     if (!exportRows.length || !columns.length) return;
 
@@ -221,87 +223,192 @@ export default function ExportToExcel({
     const activeColumns = columns.filter(c => selectedColumnKeys.includes(c.key || c.header));
     if (!activeColumns.length) return;
 
-    // Build worksheet data without internal keys starting with _
-    const rows = exportRows.map((row) => {
-      const obj = {};
-      activeColumns.forEach((col) => {
-        obj[col.header] = row[col.key] ?? '';
+    setIsExporting(true);
+    setExportProgressText('Preparing Excel workbook...');
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'IML Warehouse System';
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet(sheetName, {
+        views: [{ state: 'frozen', ySplit: 1 }]
       });
-      return obj;
-    });
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows, { header: activeColumns.map((c) => c.header) });
+      // 1. Configure Columns
+      worksheet.columns = activeColumns.map((col) => {
+        if (isImageColumn(col)) {
+          return {
+            header: col.header,
+            key: col.key || col.header,
+            width: col.width || 12,
+          };
+        }
+        const dataWidth = exportRows.reduce((max, row) => {
+          const val = String(row[col.key] ?? '');
+          return Math.max(max, val.length);
+        }, 0);
+        return {
+          header: col.header,
+          key: col.key || col.header,
+          width: Math.max(col.width || 12, col.header.length + 3, Math.min(dataWidth + 3, 40)),
+        };
+      });
 
-    // 1. Column widths
-    ws['!cols'] = activeColumns.map((col) => {
-      if (isImageColumn(col)) {
-        return { wch: col.width || 16 };
-      }
-      const dataWidth = exportRows.reduce((max, row) => {
-        const val = String(row[col.key] ?? '');
-        return Math.max(max, val.length);
-      }, 0);
-      const headerWidth = col.header.length;
-      return { wch: Math.max(col.width || 12, headerWidth + 2, dataWidth + 2) };
-    });
+      // 2. Style Header Row
+      const headerRow = worksheet.getRow(1);
+      headerRow.height = 26;
+      headerRow.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: `FF${headerColor}` }
+      };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // 2. Inject Photo links
-    if (embedImages && hasImageCol) {
-      exportRows.forEach((row, rIdx) => {
-        activeColumns.forEach((col, cIdx) => {
+      // 3. Add Data Rows
+      exportRows.forEach((row) => {
+        const rowObj = {};
+        activeColumns.forEach((col) => {
           if (isImageColumn(col)) {
-            const rawVal = row[col.key];
-            const cellRef = XLSX.utils.encode_cell({ r: rIdx + 1, c: cIdx });
-            if (rawVal && typeof rawVal === 'string' && (rawVal.startsWith('http://') || rawVal.startsWith('https://'))) {
-              // Write a universal HYPERLINK formula with clickable cell link and text fallback
-              ws[cellRef] = {
-                t: 's',
-                f: `HYPERLINK("${rawVal}", "View Photo")`,
-                v: 'View Photo',
-                l: { Target: rawVal, Tooltip: 'Click to view product photo in browser' }
-              };
-            } else {
-              ws[cellRef] = {
-                t: 's',
-                v: '—',
-              };
-            }
+            rowObj[col.key || col.header] = ''; // blank cell beneath photo
+          } else {
+            rowObj[col.key || col.header] = row[col.key] ?? '';
+          }
+        });
+        const addedRow = worksheet.addRow(rowObj);
+        addedRow.height = (embedImages && hasImageCol) ? 42 : 20;
+        addedRow.font = { name: 'Calibri', size: 10, color: { argb: 'FF0F172A' } };
+        addedRow.alignment = { vertical: 'middle', horizontal: 'left' };
+        
+        // Align numeric values right
+        activeColumns.forEach((col, cIdx) => {
+          const val = row[col.key];
+          if (typeof val === 'number') {
+            addedRow.getCell(cIdx + 1).alignment = { vertical: 'middle', horizontal: 'right' };
           }
         });
       });
+
+      // 4. Fetch & Embed Binary Photos directly into Excel cells
+      if (embedImages && hasImageCol) {
+        const imageCache = new Map(); // url -> imageId
+        const imageCols = activeColumns
+          .map((col, idx) => ({ col, idx }))
+          .filter(item => isImageColumn(item.col));
+
+        for (let rIdx = 0; rIdx < exportRows.length; rIdx++) {
+          const row = exportRows[rIdx];
+          
+          if ((rIdx + 1) % 5 === 0 || rIdx === 0 || rIdx === exportRows.length - 1) {
+            setExportProgressText(`Embedding photos (${rIdx + 1}/${exportRows.length})...`);
+          }
+
+          for (const { col, idx: cIdx } of imageCols) {
+            let imgUrl = row[col.key];
+            if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim()) {
+              imgUrl = imgUrl.trim();
+              if (imgUrl.startsWith('/') && typeof window !== 'undefined') {
+                imgUrl = window.location.origin + imgUrl;
+              }
+
+              try {
+                let imageId = imageCache.get(imgUrl);
+                if (imageId === undefined) {
+                  let buffer = null;
+                  let extension = 'png';
+
+                  if (imgUrl.startsWith('data:')) {
+                    const parts = imgUrl.split(',');
+                    const mime = parts[0].split(';')[0].split(':')[1] || '';
+                    if (mime.includes('jpeg') || mime.includes('jpg')) extension = 'jpeg';
+                    const binaryStr = atob(parts[1]);
+                    const len = binaryStr.length;
+                    const bytes = new Uint8Array(len);
+                    for (let i = 0; i < len; i++) {
+                      bytes[i] = binaryStr.charCodeAt(i);
+                    }
+                    buffer = bytes.buffer;
+                  } else if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
+                    // Use optimized thumbnail size from ImageKit if applicable
+                    const fetchUrl = imgUrl.includes('ik.imagekit.io') 
+                      ? `${imgUrl}?tr=w-160,h-160,cm-pad_resize` 
+                      : imgUrl;
+
+                    const res = await fetch(fetchUrl, { mode: 'cors' });
+                    if (res.ok) {
+                      buffer = await res.arrayBuffer();
+                      const contentType = res.headers.get('content-type') || '';
+                      if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+                        extension = 'jpeg';
+                      }
+                    }
+                  }
+
+                  if (buffer && buffer.byteLength > 0) {
+                    imageId = workbook.addImage({
+                      buffer: buffer,
+                      extension: extension,
+                    });
+                    imageCache.set(imgUrl, imageId);
+                  } else {
+                    imageCache.set(imgUrl, null);
+                  }
+                }
+
+                if (imageId !== null && imageId !== undefined) {
+                  worksheet.addImage(imageId, {
+                    tl: { col: cIdx + 0.08, row: rIdx + 1.08 },
+                    ext: { width: 36, height: 36 },
+                    editAs: 'oneCell'
+                  });
+                }
+              } catch (imgErr) {
+                console.warn('Failed to embed product photo in excel for row', rIdx, imgErr);
+              }
+            }
+          }
+        }
+      }
+
+      // 5. Auto-filter
+      worksheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: exportRows.length + 1, column: activeColumns.length }
+      };
+
+      setExportProgressText('Generating Excel file...');
+
+      // 6. Write binary buffer & trigger download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const blobUrl = URL.createObjectURL(blob);
+
+      let fileSuffix = new Date().toISOString().split('T')[0];
+      if (filterMode === 'custom' && fromDateTime && toDateTime) {
+        const fDate = fromDateTime.split('T')[0];
+        const tDate = toDateTime.split('T')[0];
+        fileSuffix = fDate === tDate ? `${fDate}_Filtered` : `${fDate}_to_${tDate}`;
+      }
+
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${filename}-${fileSuffix}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+
+      setIsOpen(false);
+    } catch (err) {
+      console.error('[Excel Export Error]:', err);
+      alert('Failed to export Excel file. Please try again.');
+    } finally {
+      setIsExporting(false);
+      setExportProgressText('');
     }
-
-    // 3. Row heights
-    if (embedImages && hasImageCol) {
-      ws['!rows'] = [
-        { hpt: 24 },
-        ...exportRows.map(() => ({ hpt: 22 })),
-      ];
-    }
-
-    // 4. Freeze header row & auto filter
-    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    ws['!autofilter'] = {
-      ref: XLSX.utils.encode_range({
-        s: { r: 0, c: 0 },
-        e: { r: 0, c: range.e.c },
-      }),
-    };
-
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-
-    // Formulate descriptive filename
-    let fileSuffix = new Date().toISOString().split('T')[0];
-    if (filterMode === 'custom' && fromDateTime && toDateTime) {
-      const fDate = fromDateTime.split('T')[0];
-      const tDate = toDateTime.split('T')[0];
-      fileSuffix = fDate === tDate ? `${fDate}_Filtered` : `${fDate}_to_${tDate}`;
-    }
-
-    XLSX.writeFile(wb, `${filename}-${fileSuffix}.xlsx`);
-    setIsOpen(false);
   };
 
   return (
@@ -340,8 +447,9 @@ export default function ExportToExcel({
                 </div>
               </div>
               <button
-                onClick={() => setIsOpen(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface border border-transparent hover:border-border transition-colors cursor-pointer"
+                onClick={() => !isExporting && setIsOpen(false)}
+                disabled={isExporting}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-surface border border-transparent hover:border-border transition-colors cursor-pointer disabled:opacity-50"
               >
                 <X size={16} />
               </button>
@@ -486,7 +594,7 @@ export default function ExportToExcel({
                 </div>
               </div>
 
-              {/* 3. Product Photo Links Option */}
+              {/* 3. Product Photo Embedding Option */}
               {hasImageCol && selectedColumnKeys.some(k => k === 'Image' || k === 'imageUrl' || k === 'Photo') && (
                 <label className="flex items-center gap-3 p-3 bg-surface-elevated/40 border border-border rounded-xl cursor-pointer hover:bg-surface-elevated/80 transition-colors">
                   <input
@@ -497,10 +605,10 @@ export default function ExportToExcel({
                   />
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-text-primary">
-                      Include Product Photo Links in Excel
+                      Embed Product Images in Excel Cells
                     </span>
                     <span className="text-[11px] text-text-muted">
-                      Adds clickable high-resolution photo links (<code className="font-mono text-[10px] text-primary">View Photo</code>) directly in the spreadsheet
+                      Embeds the actual product photos directly inside each Excel cell
                     </span>
                   </div>
                 </label>
@@ -523,24 +631,45 @@ export default function ExportToExcel({
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-border bg-surface-elevated">
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-text-secondary hover:text-text-primary bg-surface border border-border hover:bg-surface-elevated rounded-xl transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              
-              <button
-                type="button"
-                onClick={executeExport}
-                disabled={filteredData.length === 0 || selectedColumnKeys.length === 0}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <Download size={14} />
-                <span>Export {filteredData.length} {filteredData.length === 1 ? 'Record' : 'Records'}</span>
-              </button>
+            <div className="flex items-center justify-between gap-2.5 px-5 py-3.5 border-t border-border bg-surface-elevated">
+              <div className="text-xs text-text-muted font-medium truncate">
+                {exportProgressText && (
+                  <span className="inline-flex items-center gap-1.5 text-primary font-semibold">
+                    <Loader2 size={13} className="animate-spin" />
+                    {exportProgressText}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => !isExporting && setIsOpen(false)}
+                  disabled={isExporting}
+                  className="px-4 py-2 text-xs font-semibold text-text-secondary hover:text-text-primary bg-surface border border-border hover:bg-surface-elevated rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={executeExport}
+                  disabled={filteredData.length === 0 || selectedColumnKeys.length === 0 || isExporting}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Exporting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download size={14} />
+                      <span>Export {filteredData.length} {filteredData.length === 1 ? 'Record' : 'Records'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
           </div>
