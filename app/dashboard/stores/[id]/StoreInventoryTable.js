@@ -7,6 +7,7 @@ import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import ExportToExcel from '@/components/ExportToExcel';
 
 export default function StoreInventoryTable({
   inventory,
@@ -39,11 +40,32 @@ export default function StoreInventoryTable({
 
   return (
     <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
-      <div className="flex items-center gap-2 pb-3 border-b border-border">
-        <Package size={18} className="text-primary" />
-        <h3 className="font-display font-bold text-base text-text-primary">
-          Current Stock Placed At Store
-        </h3>
+      <div className="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <Package size={18} className="text-primary" />
+          <h3 className="font-display font-bold text-base text-text-primary">
+            Current Stock Placed At Store
+          </h3>
+        </div>
+        {inventory && inventory.length > 0 && (
+          <ExportToExcel
+            data={inventory.map(item => ({
+              Image: item.imageUrl || '',
+              'Product Name': item.name || '',
+              Brand: item.brandName || '',
+              Quantity: item.quantity || 0,
+              'Barcodes / Serials': (item.serials || []).map(s => s.barcode).join(', ')
+            }))}
+            columns={[
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
+              { header: 'Product Name', key: 'Product Name', width: 30 },
+              { header: 'Brand', key: 'Brand', width: 20 },
+              { header: 'Quantity', key: 'Quantity', width: 12 },
+              { header: 'Barcodes / Serials', key: 'Barcodes / Serials', width: 30 }
+            ]}
+            filename="Store-Inventory"
+          />
+        )}
       </div>
 
       <div>

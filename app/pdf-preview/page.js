@@ -14,6 +14,7 @@ function PDFPreviewContent() {
   const [loading, setLoading] = useState(true);
   const [blobUrl, setBlobUrl] = useState(null);
   const [error, setError] = useState(null);
+  const [includeImages, setIncludeImages] = useState(false);
 
   const isValidPdfUrl = (url) => {
     if (!url || typeof url !== 'string') return false;
@@ -22,9 +23,26 @@ function PDFPreviewContent() {
     return trimmed.startsWith('/api/dashboard/') && !trimmed.startsWith('//');
   };
 
+  const getEffectivePdfUrl = () => {
+    if (!pdfUrl) return '';
+    try {
+      const u = new URL(pdfUrl, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+      if (includeImages) {
+        u.searchParams.set('images', '1');
+      } else {
+        u.searchParams.delete('images');
+        u.searchParams.delete('showImages');
+      }
+      return u.pathname + u.search;
+    } catch {
+      return pdfUrl + (includeImages ? (pdfUrl.includes('?') ? '&images=1' : '?images=1') : '');
+    }
+  };
+
   const fetchPDF = async () => {
-    if (!pdfUrl) return;
-    if (!isValidPdfUrl(pdfUrl)) {
+    const effectiveUrl = getEffectivePdfUrl();
+    if (!effectiveUrl) return;
+    if (!isValidPdfUrl(effectiveUrl)) {
       setError('Invalid or untrusted PDF document URL.');
       setLoading(false);
       return;
@@ -33,7 +51,7 @@ function PDFPreviewContent() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(pdfUrl);
+      const response = await fetch(effectiveUrl);
       if (!response.ok) {
         let errMessage = `Error ${response.status}: ${response.statusText}`;
         try {
@@ -53,7 +71,10 @@ function PDFPreviewContent() {
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      setBlobUrl(url);
+      setBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
     } catch (err) {
       setError(err.message || 'Failed to load PDF preview');
     } finally {
@@ -63,12 +84,15 @@ function PDFPreviewContent() {
 
   useEffect(() => {
     fetchPDF();
+  }, [pdfUrl, includeImages]);
+
+  useEffect(() => {
     return () => {
       if (blobUrl) {
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [pdfUrl]);
+  }, []);
 
   if (!pdfUrl) {
     return (
@@ -90,7 +114,7 @@ function PDFPreviewContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
       {/* Top bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', background: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={() => router.back()}
@@ -109,6 +133,45 @@ function PDFPreviewContent() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Images toggle button */}
+          <button
+            type="button"
+            onClick={() => setIncludeImages(!includeImages)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: includeImages ? '1.5px solid #0f766e' : '1px solid #cbd5e1',
+              background: includeImages ? '#f0fdfa' : '#fff',
+              color: includeImages ? '#0f766e' : '#475569',
+              fontWeight: 600,
+              fontSize: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <div
+              style={{
+                width: '14px',
+                height: '14px',
+                borderRadius: '3px',
+                border: includeImages ? 'none' : '1.5px solid #94a3b8',
+                background: includeImages ? '#0f766e' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 800
+              }}
+            >
+              {includeImages ? '✓' : ''}
+            </div>
+            <span>Product Photos: {includeImages ? 'ON' : 'OFF'}</span>
+          </button>
+
           {blobUrl && (
             <a
               href={blobUrl}
@@ -123,7 +186,7 @@ function PDFPreviewContent() {
           {blobUrl && (
             <a
               href={blobUrl}
-              download={`${title}.pdf`}
+              download={`${title}${includeImages ? '-WithImages' : ''}.pdf`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 16px', background: '#2563eb', color: '#fff', fontWeight: 700, fontSize: '13px', borderRadius: '8px', textDecoration: 'none', boxShadow: '0 1px 2px rgba(37,99,235,0.2)' }}
             >
               <Download size={14} />

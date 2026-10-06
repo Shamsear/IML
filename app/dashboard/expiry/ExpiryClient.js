@@ -119,16 +119,18 @@ export default function ExpiryClient({ initialBatches = [] }) {
         <div className="flex gap-2 flex-shrink-0">
           <ExportToExcel
             data={filteredBatches.map(b => ({
+              Image: b.productImage || '',
               'Product': b.productName,
               'Brand': b.productBrand,
               'Delivery Note': b.deliveryNote,
               'Supplier': b.supplier,
-              'Quantity': b.quantity,
+              'Quantity': b.quantity || b.remainingBatchStock || '',
               'Expiry Date': b.expiryDate ? new Date(b.expiryDate).toLocaleDateString('en-AE') : '',
               'Status': b.status,
-              'Days Left': b.daysLeft != null ? b.daysLeft : '',
+              'Days Left': b.daysLeft != null ? b.daysLeft : (b.daysRemaining != null ? b.daysRemaining : ''),
             }))}
             columns={[
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'Delivery Note', key: 'Delivery Note', width: 20 },

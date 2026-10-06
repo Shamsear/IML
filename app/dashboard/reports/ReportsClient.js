@@ -128,6 +128,7 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
           </button>
           <ExportToExcel
             data={filteredProducts.map(p => ({
+              Image: p.imageUrl || '',
               Product: p.name,
               SKU: p.itemCode || '',
               Brand: p.brand?.name || '',
@@ -143,6 +144,7 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
               'Total Stock': p.stock.total,
             }))}
             columns={[
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'SKU', key: 'SKU', width: 14 },
               { header: 'Brand', key: 'Brand', width: 18 },

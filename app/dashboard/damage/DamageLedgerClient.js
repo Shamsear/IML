@@ -185,6 +185,7 @@ export default function DamageLedgerClient({
           <CopyDeliveryNoteButton type="damage" />
           <ExportToExcel
             data={filteredTransactions.map((tx) => ({
+              Image: tx.product?.imageUrl || '',
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', {
                 timeZone: 'Asia/Dubai',
                 day: 'numeric',
@@ -201,6 +202,7 @@ export default function DamageLedgerClient({
               Remarks: tx.notes || '',
             }))}
             columns={[
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Date', key: 'Date', width: 18 },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'Brand', key: 'Brand', width: 18 },

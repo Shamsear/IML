@@ -337,6 +337,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
         <div className="flex items-center gap-2.5 flex-wrap">
           <ExportToExcel
             data={filteredBalances.map(b => ({
+              Image: b.imageUrl || '',
               SKU: b.itemCode || '',
               Product: b.productName,
               Brand: b.brandName,
@@ -344,6 +345,7 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
               Quantity: b.quantity,
             }))}
             columns={[
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'SKU', key: 'SKU', width: 15 },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'Brand', key: 'Brand', width: 18 },

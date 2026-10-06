@@ -560,6 +560,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
           <div className="flex gap-2.5">
             <ExportToExcel
               data={filteredProducts.map(p => ({
+                Image: p.imageUrl || '',
                 'Product Name': p.name,
                 'Item Code': p.itemCode || '',
                 Brand: p.brand?.name || '',
@@ -574,6 +575,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 Status: p.status || '',
               }))}
               columns={[
+                { header: 'Image', key: 'Image', width: 16, isImage: true },
                 { header: 'Product Name', key: 'Product Name', width: 25 },
                 { header: 'Item Code', key: 'Item Code', width: 16 },
                 { header: 'Brand', key: 'Brand', width: 18 },

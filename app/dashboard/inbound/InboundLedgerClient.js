@@ -144,6 +144,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
           <CopyDeliveryNoteButton type="inbound" noteType="Receive" />
           <ExportToExcel
             data={filteredTransactions.map(tx => ({
+              Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',
               Barcode: tx.barcode || '',
@@ -157,6 +158,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
               Notes: tx.notes || '',
             }))}
             columns={[
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'SKU', key: 'SKU', width: 14 },
               { header: 'Barcode', key: 'Barcode', width: 22 },

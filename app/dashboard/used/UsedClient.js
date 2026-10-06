@@ -186,7 +186,19 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
         description="Mark disposable items as fully used. Stock will not return to warehouse."
         actions={<>
           <ExportToExcel
-            data={transactions.map(tx => ({
+            data={activeTab === 'history' ? pastUsed.map(tx => ({
+              Image: tx.product?.imageUrl || '',
+              Product: tx.product?.name || '',
+              SKU: tx.product?.itemCode || '',
+              Brand: tx.product?.brand?.name || '',
+              Category: tx.product?.category || '',
+              Store: stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || '',
+              Quantity: tx.quantity,
+              'Delivery Note': tx.deliveryNote || '',
+              Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+              Notes: tx.notes || '',
+            })) : transactions.map(tx => ({
+              Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',
               Barcode: tx.barcode || '',
@@ -198,7 +210,19 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
               Notes: tx.notes || '',
             }))}
-            columns={[
+            columns={activeTab === 'history' ? [
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
+              { header: 'Product', key: 'Product', width: 25 },
+              { header: 'SKU', key: 'SKU', width: 14 },
+              { header: 'Brand', key: 'Brand', width: 18 },
+              { header: 'Category', key: 'Category', width: 18 },
+              { header: 'Store', key: 'Store', width: 20 },
+              { header: 'Quantity', key: 'Quantity', width: 10 },
+              { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
+              { header: 'Date', key: 'Date', width: 20 },
+              { header: 'Notes', key: 'Notes', width: 25 },
+            ] : [
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'SKU', key: 'SKU', width: 14 },
               { header: 'Barcode', key: 'Barcode', width: 22 },
@@ -210,7 +234,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
               { header: 'Date', key: 'Date', width: 18 },
               { header: 'Notes', key: 'Notes', width: 25 },
             ]}
-            filename="IML-Used-Items"
+            filename={activeTab === 'history' ? 'IML-Consumed-History' : 'IML-Used-Items'}
           />
         </>
       }

@@ -46,8 +46,25 @@ export default function ExportToExcel({
 
     // ─── Styling ──────────────────────────────────────────────────────
 
+    // Check if any column is an image column
+    const isImageColumn = (col) =>
+      Boolean(
+        col.isImage ||
+        col.key === 'imageUrl' ||
+        col.key === 'image' ||
+        col.key === 'productImage' ||
+        col.header?.toLowerCase() === 'image' ||
+        col.header?.toLowerCase() === 'photo' ||
+        col.header?.toLowerCase() === 'product image'
+      );
+
+    const hasImageCol = columns.some(isImageColumn);
+
     // 1. Column widths (auto-fit with minimum)
     ws['!cols'] = columns.map((col) => {
+      if (isImageColumn(col)) {
+        return { wch: col.width || 16 };
+      }
       const dataWidth = data.reduce((max, row) => {
         const val = String(row[col.key] ?? '');
         return Math.max(max, val.length);
@@ -56,7 +73,37 @@ export default function ExportToExcel({
       return { wch: Math.max(col.width || 12, headerWidth + 2, dataWidth + 2) };
     });
 
-    // 2. Cell styles via !cols (widths done above) and custom cell objects
+    // 2. Inject Excel =IMAGE("url") formula for modern Excel embedding
+    data.forEach((row, rIdx) => {
+      columns.forEach((col, cIdx) => {
+        if (isImageColumn(col)) {
+          const rawVal = row[col.key];
+          const cellRef = XLSX.utils.encode_cell({ r: rIdx + 1, c: cIdx });
+          if (rawVal && typeof rawVal === 'string' && (rawVal.startsWith('http://') || rawVal.startsWith('https://'))) {
+            ws[cellRef] = {
+              t: 's',
+              f: `IMAGE("${rawVal}")`,
+              v: ''
+            };
+          } else {
+            ws[cellRef] = {
+              t: 's',
+              v: ''
+            };
+          }
+        }
+      });
+    });
+
+    // 3. Row heights (proportioned 50pt for embedded image rendering)
+    if (hasImageCol) {
+      ws['!rows'] = [
+        { hpt: 26 },
+        ...data.map(() => ({ hpt: 50 }))
+      ];
+    }
+
+    // 4. Cell styles via !cols (widths done above) and custom cell objects
     const range = XLSX.utils.decode_range(ws['!ref']);
 
     // Style header row (row 0)
@@ -82,13 +129,17 @@ export default function ExportToExcel({
       const isEven = r % 2 === 0;
       for (let c = range.s.c; c <= range.e.c; c++) {
         const cellRef = XLSX.utils.encode_cell({ r, c });
+        const colDef = columns[c];
+        const isImg = colDef ? isImageColumn(colDef) : false;
         if (ws[cellRef]) {
           ws[cellRef].s = {
             font: { sz: 10 },
             fill: isEven
               ? { fgColor: { rgb: 'F3F4F6' }, patternType: 'solid' }
               : undefined,
-            alignment: { vertical: 'center' },
+            alignment: isImg
+              ? { horizontal: 'center', vertical: 'center' }
+              : { vertical: 'center' },
             border: {
               top: { style: 'thin', color: { rgb: 'E5E7EB' } },
               bottom: { style: 'thin', color: { rgb: 'E5E7EB' } },
@@ -100,10 +151,10 @@ export default function ExportToExcel({
       }
     }
 
-    // 3. Freeze header row
+    // 5. Freeze header row
     ws['!freeze'] = { xSplit: 0, ySplit: 1 };
 
-    // 4. Auto-filter on header
+    // 6. Auto-filter on header
     ws['!autofilter'] = {
       ref: XLSX.utils.encode_range({
         s: { r: 0, c: 0 },

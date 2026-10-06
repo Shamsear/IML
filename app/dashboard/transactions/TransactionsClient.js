@@ -118,6 +118,7 @@ export default function TransactionsClient({
           <div className="flex-shrink-0">
             <ExportToExcel
               data={initialTransactions.map(tx => ({
+                Image: tx.product?.imageUrl || '',
                 Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
                 Type: tx.transactionType,
                 Barcode: tx.barcode,
@@ -130,6 +131,7 @@ export default function TransactionsClient({
                 Notes: tx.notes || '',
               }))}
               columns={[
+                { header: 'Image', key: 'Image', width: 16, isImage: true },
                 { header: 'Date', key: 'Date', width: 18 },
                 { header: 'Type', key: 'Type', width: 16 },
                 { header: 'Barcode', key: 'Barcode', width: 22 },

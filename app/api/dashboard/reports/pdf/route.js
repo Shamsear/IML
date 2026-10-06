@@ -159,6 +159,8 @@ export async function GET(request) {
       timeStyle: 'short'
     });
 
+    const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
+
     const pdfStream = await renderToStream(
       <InventoryReportDocument
         title="GLOBAL STOCK SUMMARY REPORT"
@@ -167,6 +169,7 @@ export async function GET(request) {
         generatedDate={generatedDate}
         products={filteredProducts}
         summary={summary}
+        showImages={showImages}
       />
     );
 

@@ -378,6 +378,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
         <div className="flex flex-wrap gap-2 flex-shrink-0">
           <ExportToExcel
             data={transactions.map(tx => ({
+              Image: tx.product?.imageUrl || '',
               Barcode: tx.barcode,
               Product: tx.product?.name || '',
               Brand: tx.product?.brand?.name || '',
@@ -387,6 +388,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }),
             }))}
             columns={[
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Barcode', key: 'Barcode', width: 22 },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'Brand', key: 'Brand', width: 18 },

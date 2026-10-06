@@ -376,6 +376,7 @@ export default function RebrandLedgerClient({
         <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
           <ExportToExcel
             data={filteredTransactions.map((tx) => ({
+              Image: tx.product?.imageUrl || '',
               Date: new Date(tx.timestamp).toLocaleDateString('en-AE', {
                 timeZone: 'Asia/Dubai',
                 day: 'numeric',
@@ -396,6 +397,7 @@ export default function RebrandLedgerClient({
               Notes: tx.notes || '',
             }))}
             columns={[
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Date', key: 'Date', width: 18 },
               { header: 'Delivery Note', key: 'Delivery Note', width: 22 },
               { header: 'Type', key: 'Type', width: 18 },

@@ -328,6 +328,7 @@ export default function ReturnsClient({
         actions={<>
           <ExportToExcel
             data={activeTab === 'history' ? filteredHistory.map(tx => ({
+              Image: tx.product?.imageUrl || '',
               'Return Note': tx.deliveryNote || '—',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',
@@ -338,6 +339,7 @@ export default function ReturnsClient({
               Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
               Remarks: tx.notes || '',
             })) : transactions.map(tx => ({
+              Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',
               Barcode: tx.barcode || '',
@@ -351,6 +353,7 @@ export default function ReturnsClient({
               Notes: tx.notes || '',
             }))}
             columns={activeTab === 'history' ? [
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Return Note', key: 'Return Note', width: 22 },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'SKU', key: 'SKU', width: 14 },
@@ -361,6 +364,7 @@ export default function ReturnsClient({
               { header: 'Date', key: 'Date', width: 20 },
               { header: 'Remarks', key: 'Remarks', width: 25 },
             ] : [
+              { header: 'Image', key: 'Image', width: 16, isImage: true },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'SKU', key: 'SKU', width: 14 },
               { header: 'Barcode', key: 'Barcode', width: 22 },
