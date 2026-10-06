@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { AlertCircle, Search, X, RefreshCw } from 'lucide-react';
+import { AlertCircle, Search, X, RefreshCw, Package } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import ExportToExcel from '@/components/ExportToExcel';
 import Pagination from '@/components/Pagination';
@@ -11,6 +11,8 @@ import SortableHeader from '@/components/SortableHeader';
 import CustomSelect from '@/components/CustomSelect';
 import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
+import ImageLightbox from '@/components/ImageLightbox';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function LossLedgerClient({
   transactions = [],
@@ -31,6 +33,7 @@ export default function LossLedgerClient({
 
   // Pagination State
   const [page, setPage] = useState(initialPage || 1);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   useEffect(() => {
     setPage(1);
@@ -324,16 +327,38 @@ export default function LossLedgerClient({
                 return (
                   <div key={tx.id} className="p-4 flex flex-col gap-2.5 hover:bg-surface-elevated/20 transition-colors">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <Link
-                          href={`/dashboard/products/${tx.product?.id}`}
-                          className="font-bold text-sm text-text-primary hover:text-primary transition-colors break-words leading-snug"
-                        >
-                          {tx.product?.name}
-                        </Link>
-                        <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
-                          <span>{tx.product?.brand?.name || 'General'}</span>
-                          {tx.product?.itemCode && <span>· SKU: {tx.product.itemCode}</span>}
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        {tx.product?.imageUrl ? (
+                          <img
+                            src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                            alt={tx.product.name || 'Product'}
+                            className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                            }}
+                            onError={(e) => {
+                              if (e.target.src !== tx.product.imageUrl) {
+                                e.target.src = tx.product.imageUrl;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                            <Package size={18} />
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <Link
+                            href={`/dashboard/products/${tx.product?.id}`}
+                            className="font-bold text-sm text-text-primary hover:text-primary transition-colors break-words leading-snug"
+                          >
+                            {tx.product?.name}
+                          </Link>
+                          <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
+                            <span>{tx.product?.brand?.name || 'General'}</span>
+                            {tx.product?.itemCode && <span>· SKU: {tx.product.itemCode}</span>}
+                          </div>
                         </div>
                       </div>
                       <span className="font-mono font-bold text-sm text-warning whitespace-nowrap">
@@ -399,17 +424,39 @@ export default function LossLedgerClient({
                     const sourceName = getSourceName(tx);
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[200px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
-                          <div className="flex flex-col">
-                            <Link
-                              href={`/dashboard/products/${tx.product?.id}`}
-                              className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug"
-                            >
-                              {tx.product?.name}
-                            </Link>
-                            <span className="text-[11px] text-text-muted mt-0.5">
-                              Brand: {tx.product?.brand?.name || 'General'}{tx.product?.category ? ` · ${tx.product.category}` : ''}
-                            </span>
+                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[240px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <div className="flex items-center gap-2.5">
+                            {tx.product?.imageUrl ? (
+                              <img
+                                src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                alt={tx.product.name || 'Product'}
+                                className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                }}
+                                onError={(e) => {
+                                  if (e.target.src !== tx.product.imageUrl) {
+                                    e.target.src = tx.product.imageUrl;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                                <Package size={16} />
+                              </div>
+                            )}
+                            <div className="flex flex-col min-w-0">
+                              <Link
+                                href={`/dashboard/products/${tx.product?.id}`}
+                                className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug"
+                              >
+                                {tx.product?.name}
+                              </Link>
+                              <span className="text-[11px] text-text-muted mt-0.5">
+                                Brand: {tx.product?.brand?.name || 'General'}{tx.product?.category ? ` · ${tx.product.category}` : ''}
+                              </span>
+                            </div>
                           </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
@@ -463,6 +510,8 @@ export default function LossLedgerClient({
           </>
         )}
       </div>
+
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

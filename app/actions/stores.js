@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidateStores } from '@/lib/revalidation';
 
-import { requireAuth, requireAdmin } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin, requireWritePermission } from '@/lib/auth-guard';
 import { generateId, generateBatchIds } from '@/lib/idGenerator';
 
 export async function getStores() {
@@ -14,7 +14,7 @@ export async function getStores() {
 }
 
 export async function createStore(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const region = formData.get('region');
@@ -39,7 +39,7 @@ export async function createStore(formData) {
 }
 
 export async function updateStore(id, formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const region = formData.get('region');
@@ -72,7 +72,7 @@ export async function deleteStore(id) {
 }
 
 export async function createBulkStores(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const count = parseInt(formData.get('count'), 10) || 0;
   if (count <= 0 || count > 500) {

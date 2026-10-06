@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { revalidateBrands } from '@/lib/revalidation';
 
-import { requireAuth, requireAdmin } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin, requireWritePermission } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
 import { generateId } from '@/lib/idGenerator';
 import { generateBatchTxIds } from '@/lib/ledger';
@@ -25,7 +25,7 @@ export async function getBrands() {
 }
 
 export async function createBrand(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const description = formData.get('description');
@@ -63,7 +63,7 @@ export async function createBrand(formData) {
 }
 
 export async function updateBrand(id, formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const description = formData.get('description');
@@ -199,7 +199,7 @@ export async function getBrandWithDetails(id) {
 }
 
 export async function connectStoreToBrand(brandId, storeId) {
-  await requireAuth();
+  await requireWritePermission();
 
   await prisma.brand.update({
     where: { id: brandId },
@@ -214,7 +214,7 @@ export async function connectStoreToBrand(brandId, storeId) {
 }
 
 export async function disconnectStoreFromBrand(brandId, storeId) {
-  await requireAuth();
+  await requireWritePermission();
 
   await prisma.brand.update({
     where: { id: brandId },
@@ -229,7 +229,7 @@ export async function disconnectStoreFromBrand(brandId, storeId) {
 }
 
 export async function createStoreAndLinkToBrand(brandId, formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const region = formData.get('region');
@@ -255,7 +255,7 @@ export async function createStoreAndLinkToBrand(brandId, formData) {
 }
 
 export async function updateBrandPortalConfig(brandId, portalConfig) {
-  await requireAuth();
+  await requireWritePermission();
   if (!brandId) throw new Error('Brand ID is required');
 
   const configStr = typeof portalConfig === 'string' ? portalConfig : JSON.stringify(portalConfig);
@@ -417,7 +417,7 @@ export async function getBrandPortalDetails(secretKey) {
 }
 
 export async function createBulkBrands(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const count = parseInt(formData.get('count'), 10) || 0;
   if (count === 0) {

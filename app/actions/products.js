@@ -5,7 +5,7 @@ import { generateId, generateBatchIds } from '@/lib/idGenerator';
 import { revalidatePath } from 'next/cache';
 import { revalidateInventory } from '@/lib/revalidation';
 
-import { requireAuth, requireAdmin } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin, requireWritePermission } from '@/lib/auth-guard';
 import { uploadToImageKit } from '@/lib/imagekit';
 import { generateCustomRef, generateSkuCode } from '@/lib/ledger';
 import { getProductStock } from '@/lib/stock';
@@ -188,7 +188,7 @@ export async function getProductsSlim() {
 }
 
 export async function createProduct(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const brandId = formData.get('brandId');
@@ -373,7 +373,7 @@ export async function createProduct(formData) {
 }
 
 export async function updateProduct(id, formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const brandId = formData.get('brandId');
@@ -437,7 +437,7 @@ export async function deleteProduct(id) {
 
 // Upload/import barcodes in bulk for a serialized product
 export async function importBarcodes(productId, barcodes = [], secondaryBarcodes = []) {
-  await requireAuth();
+  await requireWritePermission();
 
   if (!productId) throw new Error('Product ID is required');
   
@@ -512,7 +512,7 @@ export async function getActiveSerialsAtLocation(productId, locationType, locati
 
 // Bulk create products from CSV import
 export async function bulkCreateProducts(productsList) {
-  await requireAuth();
+  await requireWritePermission();
 
   const ids = await generateBatchIds('product', 'PROD', productsList.length, 3);
 
@@ -540,7 +540,7 @@ export async function bulkCreateProducts(productsList) {
 
 // Bulk update multiple products
 export async function bulkUpdateProducts(ids = [], updateData = {}) {
-  await requireAuth();
+  await requireWritePermission();
 
   if (ids.length === 0) throw new Error('No product IDs specified');
 
@@ -1084,7 +1084,7 @@ export async function getProductDetail(id) {
 }
 
 export async function createBulkProducts(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const count = parseInt(formData.get('count'), 10) || 0;
   if (count === 0) {

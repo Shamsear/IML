@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { ArrowDownLeft, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPlus, Loader2, Edit2, X } from 'lucide-react';
+import { ArrowDownLeft, Plus, Search, ChevronDown, ChevronRight, FileText, CopyPlus, Loader2, Edit2, X, Package } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
@@ -14,6 +14,8 @@ import Pagination from '@/components/Pagination';
 import DeliveryNoteGroup from '@/components/DeliveryNoteGroup';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import SortableHeader from '@/components/SortableHeader';
+import ImageLightbox from '@/components/ImageLightbox';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useTableSort } from '@/hooks/useTableSort';
 
 export default function InboundLedgerClient({ transactions = [], totalCount = 0, totalPages = 1, page = 1, entityNames = {} }) {
@@ -31,6 +33,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
     }
   };
   const [pdfLoadingKey, setPdfLoadingKey] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   // Filters for Transactions Tab
   const [productFilter, setProductFilter] = useState('');
@@ -276,9 +279,31 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                 return (
                   <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block break-words leading-snug hover:text-primary transition-colors">{tx.product.name}</Link>
-                        <span className="text-[11px] text-text-muted">{tx.product.brand.name}</span>
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        {tx.product?.imageUrl ? (
+                          <img
+                            src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                            alt={tx.product.name || 'Product'}
+                            className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                            }}
+                            onError={(e) => {
+                              if (e.target.src !== tx.product.imageUrl) {
+                                e.target.src = tx.product.imageUrl;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                            <Package size={18} />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block break-words leading-snug hover:text-primary transition-colors">{tx.product.name}</Link>
+                          <span className="text-[11px] text-text-muted">{tx.product.brand.name}</span>
+                        </div>
                       </div>
                       <span className={`badge text-[10px] flex-shrink-0 ${tx.transactionType === 'RECEIVE' ? 'bg-success/10 border-success/20 text-success' : 'bg-info/10 border-info/20 text-info'}`}>
                         {tx.transactionType}
@@ -338,10 +363,32 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
 
                         return (
                           <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                            <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated/100 z-10 border-r border-border shadow-sm">
-                              <div className="flex flex-col">
-                                <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold hover:text-primary transition-colors break-words leading-snug">{tx.product.name}</Link>
-                                <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
+                            <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[240px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated/100 z-10 border-r border-border shadow-sm">
+                              <div className="flex items-center gap-2.5">
+                                {tx.product?.imageUrl ? (
+                                  <img
+                                    src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                    alt={tx.product.name || 'Product'}
+                                    className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                    }}
+                                    onError={(e) => {
+                                      if (e.target.src !== tx.product.imageUrl) {
+                                        e.target.src = tx.product.imageUrl;
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                                    <Package size={16} />
+                                  </div>
+                                )}
+                                <div className="flex flex-col min-w-0">
+                                  <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold hover:text-primary transition-colors break-words leading-snug">{tx.product.name}</Link>
+                                  <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product.brand.name}</span>
+                                </div>
                               </div>
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">{dateStr}</td>
@@ -497,7 +544,31 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                           <tbody className="divide-y divide-border text-text-primary">
                             {group.items.map(tx => (
                               <tr key={tx.id} className="hover:bg-surface-elevated/40 transition-colors">
-                                <td className="py-2.5 pl-5 pr-4 font-medium text-xs break-words leading-snug min-w-[200px]">{tx.product.name}</td>
+                                <td className="py-2.5 pl-5 pr-4 min-w-[220px]">
+                                  <div className="flex items-center gap-2.5">
+                                    {tx.product?.imageUrl ? (
+                                      <img
+                                        src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                        alt={tx.product.name || 'Product'}
+                                        className="w-8 h-8 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                        }}
+                                        onError={(e) => {
+                                          if (e.target.src !== tx.product.imageUrl) {
+                                            e.target.src = tx.product.imageUrl;
+                                          }
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                                        <Package size={14} />
+                                      </div>
+                                    )}
+                                    <span className="font-medium text-xs break-words leading-snug">{tx.product.name}</span>
+                                  </div>
+                                </td>
                                 <td className="py-2.5 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">{tx.product.itemCode || '---'}</td>
                                 <td className="py-2.5 px-4 text-xs text-text-secondary whitespace-nowrap">{tx.product.brand.name}</td>
                                 <td className="py-2.5 px-4 text-center font-mono text-xs font-bold text-success whitespace-nowrap">+{tx.quantity}</td>
@@ -523,6 +594,8 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
           </div>
         </div>
       )}
+
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

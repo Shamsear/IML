@@ -39,6 +39,11 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const role = authSession.user?.role?.toUpperCase();
+  if (role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY') {
+    return NextResponse.json({ error: 'Forbidden: Read-only accounts cannot initiate scanning sessions' }, { status: 403 });
+  }
+
   // Clear old sessions older than 2 hours to avoid db clutter
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);

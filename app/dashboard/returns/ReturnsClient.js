@@ -14,6 +14,8 @@ import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import CustomSelect from '@/components/CustomSelect';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
+import ImageLightbox from '@/components/ImageLightbox';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 
 export default function ReturnsClient({
   transactions = [],
@@ -50,6 +52,7 @@ export default function ReturnsClient({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   // Pagination states
   const [txPage, setTxPage] = useState(1);
@@ -500,31 +503,53 @@ export default function ReturnsClient({
                 return (
                   <div key={tx.id} className={`bg-surface border rounded-xl p-4 flex flex-col gap-2.5 transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border'}`}>
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
-                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-primary hover:text-primary-hover hover:underline transition-colors break-words">
-                            {tx.product?.name}
-                          </Link>
-                          {tx.product?.isReturnable && tx.product?.isDisposable ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
-                          ) : (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted flex-wrap">
-                          <span>{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</span>
-                          {getSupervisorName(tx) && (
-                            <>
-                              <span>·</span>
-                              <span className="inline-flex items-center gap-1 text-primary font-semibold">
-                                <UserCheck size={11} />
-                                {getSupervisorName(tx)}
-                              </span>
-                            </>
-                          )}
-                          <span>·</span>
-                          <span>{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer shrink-0" />
+                        {tx.product?.imageUrl ? (
+                          <img
+                            src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                            alt={tx.product.name || 'Product'}
+                            className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                            }}
+                            onError={(e) => {
+                              if (e.target.src !== tx.product.imageUrl) {
+                                e.target.src = tx.product.imageUrl;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                            <Package size={18} />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-primary hover:text-primary-hover hover:underline transition-colors break-words">
+                              {tx.product?.name}
+                            </Link>
+                            {tx.product?.isReturnable && tx.product?.isDisposable ? (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                            ) : (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted flex-wrap">
+                            <span>{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</span>
+                            {getSupervisorName(tx) && (
+                              <>
+                                <span>·</span>
+                                <span className="inline-flex items-center gap-1 text-primary font-semibold">
+                                  <UserCheck size={11} />
+                                  {getSupervisorName(tx)}
+                                </span>
+                              </>
+                            )}
+                            <span>·</span>
+                            <span>{new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                          </div>
                         </div>
                       </div>
                       <span className="font-mono font-bold text-sm flex-shrink-0">{remainingQty}</span>
@@ -569,22 +594,44 @@ export default function ReturnsClient({
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-primary/5' : 'hover:bg-surface-elevated/30'}`}>
                         <td className="py-2.5 sm:py-3 pl-4 sm:pl-5 pr-2 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" /></td>
-                        <td className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 min-w-[220px] sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
-                          <div className="flex flex-col">
-                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-primary hover:text-primary-hover hover:underline transition-colors break-words leading-snug">
-                              {tx.product?.name}
-                            </Link>
-                            <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                              {tx.product?.itemCode && (
-                                <span className="font-mono text-[10px] text-text-muted">
-                                  {tx.product.itemCode}
-                                </span>
-                              )}
-                              {tx.product?.isReturnable && tx.product?.isDisposable ? (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
-                              ) : (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
-                              )}
+                        <td className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 min-w-[240px] sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
+                          <div className="flex items-center gap-2.5">
+                            {tx.product?.imageUrl ? (
+                              <img
+                                src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                alt={tx.product.name || 'Product'}
+                                className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                }}
+                                onError={(e) => {
+                                  if (e.target.src !== tx.product.imageUrl) {
+                                    e.target.src = tx.product.imageUrl;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                                <Package size={16} />
+                              </div>
+                            )}
+                            <div className="flex flex-col min-w-0">
+                              <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-primary hover:text-primary-hover hover:underline transition-colors break-words leading-snug">
+                                {tx.product?.name}
+                              </Link>
+                              <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                                {tx.product?.itemCode && (
+                                  <span className="font-mono text-[10px] text-text-muted">
+                                    {tx.product.itemCode}
+                                  </span>
+                                )}
+                                {tx.product?.isReturnable && tx.product?.isDisposable ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                                ) : (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-success/15 text-success tracking-wider">RETURNABLE</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -718,8 +765,28 @@ export default function ReturnsClient({
                             return (
                               <div key={tx.id} className={`p-3 rounded-lg border flex flex-col gap-2 ${isSelected ? 'bg-primary/5 border-primary/30' : 'bg-surface border-border'}`}>
                                 <div className="flex items-start justify-between gap-2">
-                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                     <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer shrink-0" />
+                                    {tx.product?.imageUrl ? (
+                                      <img
+                                        src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                        alt={tx.product.name || 'Product'}
+                                        className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                        }}
+                                        onError={(e) => {
+                                          if (e.target.src !== tx.product.imageUrl) {
+                                            e.target.src = tx.product.imageUrl;
+                                          }
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                                        <Package size={16} />
+                                      </div>
+                                    )}
                                     <div className="flex flex-col min-w-0">
                                       <span className="font-semibold text-xs text-text-primary break-words leading-snug">{tx.product?.name}</span>
                                       {tx.product?.itemCode && <span className="text-[10px] text-text-muted font-mono">SKU: {tx.product.itemCode}</span>}
@@ -778,12 +845,34 @@ export default function ReturnsClient({
                                     <td className="py-2.5 pl-5 pr-3">
                                       <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
                                     </td>
-                                    <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-primary min-w-[200px]">
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="break-words leading-snug">{tx.product?.name}</span>
-                                        {tx.product?.isReturnable && tx.product?.isDisposable && (
-                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                                    <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-primary min-w-[220px]">
+                                      <div className="flex items-center gap-2.5">
+                                        {tx.product?.imageUrl ? (
+                                          <img
+                                            src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                            alt={tx.product.name || 'Product'}
+                                            className="w-8 h-8 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                            }}
+                                            onError={(e) => {
+                                              if (e.target.src !== tx.product.imageUrl) {
+                                                e.target.src = tx.product.imageUrl;
+                                              }
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                                            <Package size={14} />
+                                          </div>
                                         )}
+                                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                          <span className="break-words leading-snug">{tx.product?.name}</span>
+                                          {tx.product?.isReturnable && tx.product?.isDisposable && (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
+                                          )}
+                                        </div>
                                       </div>
                                     </td>
                                     <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs">
@@ -858,13 +947,35 @@ export default function ReturnsClient({
                   return (
                     <div key={tx.id} className="p-4 flex flex-col gap-2.5 hover:bg-surface-elevated/20 transition-colors">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <Link href={`/dashboard/products/${tx.product?.id}`} className="font-bold text-sm text-text-primary hover:text-primary transition-colors break-words leading-snug">
-                            {tx.product?.name}
-                          </Link>
-                          <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
-                            <span>{tx.product?.brand?.name || 'General'}</span>
-                            {tx.product?.itemCode && <span>· SKU: {tx.product.itemCode}</span>}
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {tx.product?.imageUrl ? (
+                            <img
+                              src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                              alt={tx.product.name || 'Product'}
+                              className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                              }}
+                              onError={(e) => {
+                                if (e.target.src !== tx.product.imageUrl) {
+                                  e.target.src = tx.product.imageUrl;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                              <Package size={18} />
+                            </div>
+                          )}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-bold text-sm text-text-primary hover:text-primary transition-colors break-words leading-snug">
+                              {tx.product?.name}
+                            </Link>
+                            <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5">
+                              <span>{tx.product?.brand?.name || 'General'}</span>
+                              {tx.product?.itemCode && <span>· SKU: {tx.product.itemCode}</span>}
+                            </div>
                           </div>
                         </div>
                         <span className="font-mono font-bold text-sm text-success whitespace-nowrap">
@@ -929,12 +1040,34 @@ export default function ReturnsClient({
                     const dateStr = new Date(tx.timestamp).toISOString().split('T')[0];
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
-                          <div className="flex flex-col">
-                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug">
-                              {tx.product?.name}
-                            </Link>
-                            <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>
+                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[240px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <div className="flex items-center gap-2.5">
+                            {tx.product?.imageUrl ? (
+                              <img
+                                src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                alt={tx.product.name || 'Product'}
+                                className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                }}
+                                onError={(e) => {
+                                  if (e.target.src !== tx.product.imageUrl) {
+                                    e.target.src = tx.product.imageUrl;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                                <Package size={16} />
+                              </div>
+                            )}
+                            <div className="flex flex-col min-w-0">
+                              <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug">
+                                {tx.product?.name}
+                              </Link>
+                              <span className="text-[11px] text-text-muted mt-0.5">Brand: {tx.product?.brand?.name || 'General'}</span>
+                            </div>
                           </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap text-xs text-text-secondary font-medium">
@@ -1012,6 +1145,8 @@ export default function ReturnsClient({
         title="Stock Returned"
         message="Selected items have been returned to the warehouse successfully."
       />
+
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

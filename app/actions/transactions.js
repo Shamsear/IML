@@ -11,7 +11,7 @@ function safeNotifyTransaction(payload) {
     .catch(() => {});
 }
 
-import { requireAuth, requireAdmin } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin, requireWritePermission } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
 import {
   generateTxId,
@@ -34,6 +34,10 @@ export { generateCustomRef, getStockAtLocation, parseTransactionDate };
 
 async function checkAuth() {
   await requireAuth();
+}
+
+async function checkWriteAuth() {
+  await requireWritePermission();
 }
 
 function revalidateTransactionPaths(moduleOrOptions = {}) {
@@ -96,7 +100,7 @@ export async function getTransactions(filters = {}) {
 
 // 3. Create a transaction (Receive, Issue, Return, Damage)
 export async function createTransaction(data) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     productId,
@@ -208,7 +212,7 @@ export async function createTransaction(data) {
 
 // 4. Rebrand items (Subtract A, Add B, Link Serials)
 export async function processRebrand(data) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     oldProductId,
@@ -354,8 +358,10 @@ export async function getStoreInventory(storeId) {
       productId: true,
       product: {
         select: {
+          id: true,
           name: true,
-            itemCode: true,
+          itemCode: true,
+          imageUrl: true,
           isSerialized: true,
           brand: { select: { name: true } }
         }
@@ -407,6 +413,7 @@ export async function getStoreInventory(storeId) {
     select: {
       id: true,
       name: true,
+      imageUrl: true,
       brand: { select: { name: true } }
     }
   });
@@ -420,6 +427,7 @@ export async function getStoreInventory(storeId) {
       inventoryMap[prodId] = {
         productId: prodId,
         name: s.product.name,
+        imageUrl: s.product.imageUrl || null,
         brandName: s.product.brand?.name || 'No Brand',
         isSerialized: true,
         quantity: 0,
@@ -439,6 +447,7 @@ export async function getStoreInventory(storeId) {
     inventoryMap[p.id] = {
       productId: p.id,
       name: p.name,
+      imageUrl: p.imageUrl || null,
       brandName: p.brand?.name || 'No Brand',
       isSerialized: false,
       quantity: netQuantities.get(p.id) || 0,
@@ -451,7 +460,7 @@ export async function getStoreInventory(storeId) {
 
 // 6. Create multiple issue transactions atomically in a single batch
 export async function createBulkIssueTransactions(payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     fromEntityType,
@@ -810,7 +819,7 @@ export async function createBulkIssueTransactions(payload) {
 
 
 export async function createBulkReceiveTransactions(formData) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const fromEntityType = formData.get('fromEntityType') || 'SUPPLIER';
   const fromEntityId = formData.get('fromEntityId') || 'Main Supplier';
@@ -1057,7 +1066,7 @@ export async function createBulkReceiveTransactions(formData) {
 
 
 export async function createBulkDamageTransactions(payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     fromEntityType,
@@ -1248,7 +1257,7 @@ export async function getRecentSuppliers() {
 }
 
 export async function createBulkRebrandTransactions(formData) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const sourceProductId = formData.get('sourceProductId');
   const remarks = formData.get('remarks');
@@ -1358,7 +1367,7 @@ export async function createBulkRebrandTransactions(formData) {
 }
 
 export async function updateBulkRebrandTransactions(deliveryNote, formData) {
-  await checkAuth();
+  await checkWriteAuth();
 
   if (!deliveryNote) throw new Error('Delivery Note is required for update');
 
@@ -1584,7 +1593,7 @@ export async function updateBulkRebrandTransactions(deliveryNote, formData) {
 }
 
 export async function updateBulkDamageTransactions(deliveryNote, payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     fromEntityType = 'WAREHOUSE',
@@ -1739,7 +1748,7 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
 
 // Update only the notes and/or deliveryNote of an existing transaction
 export async function updateTransactionNotes(id, { notes, deliveryNote }) {
-  await checkAuth();
+  await checkWriteAuth();
 
   if (!id) throw new Error('Transaction ID is required');
 
@@ -1803,7 +1812,7 @@ export async function deleteTransaction(id) {
 }
 // Full Edit for Transactions
 export async function updateFullTransaction(id, payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     timestamp,
@@ -1937,7 +1946,7 @@ export async function updateFullTransaction(id, payload) {
 }
 // Create a single duplicate transaction
 export async function createSingleTransaction(payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     timestamp,
@@ -2197,7 +2206,7 @@ export async function getTransactionsByDeliveryNote(deliveryNote) {
 
 // Process Outbound Returns & Usage
 export async function processOutboundReturns(returnsPayload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   if (!Array.isArray(returnsPayload) || returnsPayload.length === 0) {
     throw new Error('No items provided for processing');
@@ -2394,7 +2403,7 @@ export async function processOutboundReturns(returnsPayload) {
 }
 
 export async function updateBulkIssueTransactions(deliveryNote, payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     fromEntityType,
@@ -2555,7 +2564,7 @@ export async function updateBulkIssueTransactions(deliveryNote, payload) {
 }
 
 export async function updateBulkReceiveTransactions(deliveryNote, formData) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const fromEntityType = formData.get('fromEntityType') || 'SUPPLIER';
   const fromEntityId = formData.get('fromEntityId');
@@ -2766,7 +2775,7 @@ export async function getRecentDirectSellers() {
 }
 
 export async function createBulkClientReturnTransactions(payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     brandId,
@@ -2938,7 +2947,7 @@ export async function createBulkClientReturnTransactions(payload) {
 }
 
 export async function updateBulkClientReturnTransactions(deliveryNote, payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     brandId,
@@ -3145,6 +3154,7 @@ export async function getClientReturnsBalances() {
           name: true,
           itemCode: true,
           category: true,
+          imageUrl: true,
           isSerialized: true,
           trackExpiry: true,
           brandId: true,
@@ -3181,6 +3191,7 @@ export async function getClientReturnsBalances() {
         brandName,
         productId: prodId,
         productName: tx.product.name,
+        imageUrl: tx.product.imageUrl || null,
         itemCode: tx.product.itemCode,
         category: tx.product.category,
         isSerialized: tx.product.isSerialized,
@@ -3277,7 +3288,7 @@ export async function getClientReturnsBalances() {
 
 // Return items from Client/Brand back to Warehouse
 export async function returnClientItemsToWarehouse(payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     brandId,
@@ -3497,7 +3508,7 @@ export async function giveBackRebrandTransaction({
   notes,
   barcodes = [],
 }) {
-  await checkAuth();
+  await checkWriteAuth();
 
   if (!transactionId) throw new Error('Transaction ID is required');
 
@@ -3625,7 +3636,7 @@ export async function revertRebrandTransaction({
   quantity,
   notes,
 }) {
-  await checkAuth();
+  await checkWriteAuth();
 
   if (!transactionId) throw new Error('Transaction ID is required');
 
@@ -3832,7 +3843,7 @@ export async function revertRebrandTransaction({
  * Logs REBRAND_OUT from WAREHOUSE to VENDOR with returnStatus = 'PENDING'
  */
 export async function createMultiRebrandOutbound(payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     vendorName = 'Advamedia',
@@ -3950,7 +3961,7 @@ export async function createMultiRebrandOutbound(payload) {
  * Matches or completes pending outbound rebrands under a delivery note
  */
 export async function receiveRebrandItems(payload) {
-  await checkAuth();
+  await checkWriteAuth();
 
   const {
     deliveryNote,

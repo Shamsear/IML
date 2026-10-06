@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { revalidateStaff, revalidateInventory } from '@/lib/revalidation';
 
-import { requireAuth, requireAdmin } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin, requireWritePermission } from '@/lib/auth-guard';
 import { generateId } from '@/lib/idGenerator';
 import { generateCustomRef, generateTxId, generateBatchTxIds } from '@/lib/ledger';
 
@@ -47,7 +47,7 @@ export async function getStaffSlim() {
 }
 
 export async function createStaff(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const phone = formData.get('phone');
@@ -72,7 +72,7 @@ export async function createStaff(formData) {
 }
 
 export async function updateStaff(id, formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const phone = formData.get('phone');
@@ -105,7 +105,7 @@ export async function deleteStaff(id) {
 }
 
 export async function allocateUniform(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const staffId = formData.get('staffId');
   const storeId = formData.get('storeId');
@@ -152,7 +152,7 @@ export async function deleteAllocation(allocationId) {
 }
 
 export async function returnUniformItem(allocationId, payload, notes = '') {
-  await requireAuth();
+  await requireWritePermission();
 
   await prisma.$transaction(async (tx) => {
     const allocation = await tx.staffUniformAllocation.findUnique({
@@ -282,7 +282,7 @@ export async function getAllocationDetails(allocationId) {
 }
 
 export async function saveCombinedAllocation(formData, allocationId = null) {
-  await requireAuth();
+  await requireWritePermission();
 
   const isNewPromoter = formData.get('isNewPromoter') === 'true';
   const promoterName = formData.get('promoterName');
@@ -396,7 +396,7 @@ export async function saveCombinedAllocation(formData, allocationId = null) {
 }
 
 export async function bulkReturnUniformItems(allocationIds, notes = '') {
-  await requireAuth();
+  await requireWritePermission();
 
   if (!allocationIds || !Array.isArray(allocationIds) || allocationIds.length === 0) {
     throw new Error('No allocations selected for return');
@@ -490,7 +490,7 @@ export async function bulkReturnUniformItems(allocationIds, notes = '') {
 }
 
 export async function saveBulkCombinedAllocations(payload) {
-  await requireAuth();
+  await requireWritePermission();
 
   const { items = [] } = payload;
   if (items.length === 0) throw new Error('At least one promoter assignment is required');

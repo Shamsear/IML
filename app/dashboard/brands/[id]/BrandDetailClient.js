@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { createProduct, importBarcodes, getProductSerials } from '@/app/actions/products';
-import { updateBrandPortalConfig } from '@/app/actions/brands';
 import { 
   ArrowLeft, Store, Plus, Package, Edit2, Trash2, QrCode, 
   Loader2, X, AlertCircle, Camera, Upload, ArrowDownLeft, ArrowUpRight, Share2,
@@ -84,130 +83,6 @@ export default function BrandDetailClient({ brand, allStores, supervisors, staff
   // Camera scanning states
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const [cameraTargetField, setCameraTargetField] = useState('');
-
-  // Portal Summary Configuration State
-  const [portalHeadings, setPortalHeadings] = useState([]);
-  const [newHeadingTitle, setNewHeadingTitle] = useState('');
-  const [isSavingPortalConfig, setIsSavingPortalConfig] = useState(false);
-  const [activePickerHeadingId, setActivePickerHeadingId] = useState(null);
-  const [pickerSearch, setPickerSearch] = useState('');
-
-  // Initialize portal headings from config or auto-group from products
-  const initPortalHeadings = () => {
-    if (brand.portalConfig) {
-      try {
-        const parsed = typeof brand.portalConfig === 'string' ? JSON.parse(brand.portalConfig) : brand.portalConfig;
-        if (parsed && Array.isArray(parsed.headings)) {
-          setPortalHeadings(parsed.headings);
-          return;
-        }
-      } catch (e) {
-        console.error('Error parsing brand portalConfig:', e);
-      }
-    }
-
-    // Default: Group by existing product categories
-    const catMap = {};
-    (brand.products || []).forEach(p => {
-      const cat = (p.category || 'OTHERS').toUpperCase().trim();
-      if (!catMap[cat]) catMap[cat] = [];
-      catMap[cat].push(p.id);
-    });
-
-    const defaultHeadings = Object.keys(catMap).sort().map(cat => ({
-      id: `heading-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      title: cat,
-      productIds: catMap[cat],
-      remarks: {}
-    }));
-
-    setPortalHeadings(defaultHeadings);
-  };
-
-  const handleAddHeading = () => {
-    if (!newHeadingTitle.trim()) return;
-    const newHeading = {
-      id: `heading-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      title: newHeadingTitle.trim().toUpperCase(),
-      productIds: [],
-      remarks: {}
-    };
-    setPortalHeadings(prev => [...prev, newHeading]);
-    setNewHeadingTitle('');
-  };
-
-  const handleRemoveHeading = (headingId) => {
-    setPortalHeadings(prev => prev.filter(h => h.id !== headingId));
-  };
-
-  const handleMoveHeading = (index, direction) => {
-    setPortalHeadings(prev => {
-      const next = [...prev];
-      const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= next.length) return prev;
-      const temp = next[index];
-      next[index] = next[targetIndex];
-      next[targetIndex] = temp;
-      return next;
-    });
-  };
-
-  const handleRenameHeading = (headingId, newTitle) => {
-    setPortalHeadings(prev => prev.map(h => h.id === headingId ? { ...h, title: newTitle } : h));
-  };
-
-  const handleAddProductToHeading = (headingId, productId) => {
-    setPortalHeadings(prev => prev.map(h => {
-      if (h.id === headingId) {
-        if (!h.productIds.includes(productId)) {
-          return { ...h, productIds: [...h.productIds, productId] };
-        }
-      }
-      return h;
-    }));
-  };
-
-  const handleRemoveProductFromHeading = (headingId, productId) => {
-    setPortalHeadings(prev => prev.map(h => {
-      if (h.id === headingId) {
-        const nextIds = h.productIds.filter(id => id !== productId);
-        const nextRemarks = { ...(h.remarks || {}) };
-        delete nextRemarks[productId];
-        return { ...h, productIds: nextIds, remarks: nextRemarks };
-      }
-      return h;
-    }));
-  };
-
-  const handleUpdateProductRemark = (headingId, productId, remark) => {
-    setPortalHeadings(prev => prev.map(h => {
-      if (h.id === headingId) {
-        return {
-          ...h,
-          remarks: {
-            ...(h.remarks || {}),
-            [productId]: remark
-          }
-        };
-      }
-      return h;
-    }));
-  };
-
-  const handleSavePortalConfig = async () => {
-    try {
-      setIsSavingPortalConfig(true);
-      await updateBrandPortalConfig(brand.id, { headings: portalHeadings });
-      toast.show('Brand Portal Summary Headings saved successfully!', { type: 'success' });
-      setActiveModal(null);
-      router.refresh();
-    } catch (err) {
-      console.error(err);
-      toast.show(err.message || 'Failed to save portal configuration', { type: 'error' });
-    } finally {
-      setIsSavingPortalConfig(false);
-    }
-  };
 
   // Sync category with product type
   useEffect(() => {

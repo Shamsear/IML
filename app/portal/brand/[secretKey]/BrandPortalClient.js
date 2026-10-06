@@ -69,15 +69,9 @@ export default function BrandPortalClient({ brand }) {
         const items = (h.productIds || [])
           .map(pid => productMap.get(pid))
           .filter(Boolean)
-          .filter(p => {
-            if (!q) return true;
-            return p.name.toLowerCase().includes(q) || 
-              (p.itemCode && p.itemCode.toLowerCase().includes(q)) ||
-              (h.remarks?.[p.id] && h.remarks[p.id].toLowerCase().includes(q));
-          })
           .map(p => {
             const stock = computeProductStock(p);
-            const remark = h.remarks?.[p.id] || '';
+            const remark = stock.damage > 0 ? `${stock.damage} Damaged` : '';
             const stockLevel = stock.warehouse > 0 ? 'AVAILABLE' : 'NOT AVAILABLE';
 
             return {
@@ -87,6 +81,12 @@ export default function BrandPortalClient({ brand }) {
               remark,
               stock,
             };
+          })
+          .filter(({ product: p, remark }) => {
+            if (!q) return true;
+            return p.name.toLowerCase().includes(q) || 
+              (p.itemCode && p.itemCode.toLowerCase().includes(q)) ||
+              (remark && remark.toLowerCase().includes(q));
           });
 
         const totalAvailable = items.reduce((acc, i) => acc + i.availableQty, 0);
@@ -110,25 +110,24 @@ export default function BrandPortalClient({ brand }) {
 
     return Object.keys(categoryGroups).sort().map(cat => {
       const prods = categoryGroups[cat]
-        .filter(p => {
-          if (!q) return true;
-          return p.name.toLowerCase().includes(q) || (p.itemCode && p.itemCode.toLowerCase().includes(q));
-        })
         .map(p => {
           const stock = computeProductStock(p);
           const stockLevel = stock.warehouse > 0 ? 'AVAILABLE' : 'NOT AVAILABLE';
-
-          let defaultRemark = '';
-          if (stock.damage > 0) defaultRemark = `${stock.damage} Damaged`;
-          if (stock.lost > 0) defaultRemark = defaultRemark ? `${defaultRemark}, ${stock.lost} Lost` : `${stock.lost} Lost`;
+          const remark = stock.damage > 0 ? `${stock.damage} Damaged` : '';
 
           return {
             product: p,
             availableQty: stock.warehouse,
             stockLevel,
-            remark: defaultRemark,
+            remark,
             stock,
           };
+        })
+        .filter(({ product: p, remark }) => {
+          if (!q) return true;
+          return p.name.toLowerCase().includes(q) || 
+            (p.itemCode && p.itemCode.toLowerCase().includes(q)) ||
+            (remark && remark.toLowerCase().includes(q));
         });
 
       const totalAvailable = prods.reduce((acc, i) => acc + i.availableQty, 0);
@@ -415,9 +414,10 @@ export default function BrandPortalClient({ brand }) {
                                   </div>
 
                                   {remark && (
-                                    <p className="text-[11px] text-text-secondary italic bg-primary/5 border border-primary/10 p-2 rounded">
-                                      {remark}
-                                    </p>
+                                    <div className="flex items-center justify-between text-xs bg-danger/5 border border-danger/15 px-3 py-1.5 rounded-lg">
+                                      <span className="text-[10px] text-danger font-medium uppercase tracking-wider">Remarks</span>
+                                      <span className="font-semibold text-danger text-xs">{remark}</span>
+                                    </div>
                                   )}
                                 </div>
                               ))}

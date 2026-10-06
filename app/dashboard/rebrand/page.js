@@ -54,6 +54,7 @@ export default async function RebrandPage({ searchParams }) {
               id: true,
               name: true,
               itemCode: true,
+              imageUrl: true,
               category: true,
               brand: { select: { id: true, name: true } }
             }
@@ -66,13 +67,13 @@ export default async function RebrandPage({ searchParams }) {
                   replaces: {
                     select: {
                       barcode: true,
-                      product: { select: { name: true } }
+                      product: { select: { id: true, name: true, imageUrl: true } }
                     }
                   },
                   replacedBy: {
                     select: {
                       barcode: true,
-                      product: { select: { name: true } }
+                      product: { select: { id: true, name: true, imageUrl: true } }
                     }
                   }
                 }
@@ -99,6 +100,7 @@ export default async function RebrandPage({ searchParams }) {
           id: true,
           name: true,
           itemCode: true,
+          imageUrl: true,
           category: true,
           brand: { select: { name: true } }
         },

@@ -21,7 +21,7 @@ export default async function UsedPage() {
         ]
       },
       include: {
-        product: { select: { id: true, name: true, isReturnable: true, isDisposable: true, isSerialized: true } }
+        product: { select: { id: true, name: true, itemCode: true, imageUrl: true, isReturnable: true, isDisposable: true, isSerialized: true, brand: { select: { name: true } } } }
       },
       orderBy: { timestamp: 'desc' },
       take: 200,
@@ -30,7 +30,7 @@ export default async function UsedPage() {
     prisma.inventoryTransaction.findMany({
       where: { transactionType: 'USED' },
       include: {
-        product: { select: { id: true, name: true, brand: { select: { name: true } } } }
+        product: { select: { id: true, name: true, itemCode: true, imageUrl: true, brand: { select: { name: true } } } }
       },
       orderBy: { timestamp: 'desc' },
       take: 100

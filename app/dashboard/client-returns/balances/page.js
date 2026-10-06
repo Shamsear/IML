@@ -46,6 +46,7 @@ export default async function ClientReturnsBalancesPage() {
             id: true,
             name: true,
             itemCode: true,
+            imageUrl: true,
             isSerialized: true,
             brand: {
               select: {

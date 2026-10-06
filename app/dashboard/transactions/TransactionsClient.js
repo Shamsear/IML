@@ -12,6 +12,8 @@ import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
 import SortableHeader from '@/components/SortableHeader';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
+import ImageLightbox from '@/components/ImageLightbox';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useTableSort } from '@/hooks/useTableSort';
 
 export default function TransactionsClient({ 
@@ -33,6 +35,7 @@ export default function TransactionsClient({
   const [filterType, setFilterType] = useState(initialType);
   const [filterProduct, setFilterProduct] = useState(initialProductId);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   useEffect(() => {
     setFilterType(initialType);
@@ -283,9 +286,31 @@ export default function TransactionsClient({
             {paginatedTransactions.map((tx) => (
               <div key={tx.id} className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-2.5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block break-words leading-snug hover:text-primary transition-colors">{tx.product.name}</Link>
-                    <span className="text-[11px] text-text-muted font-mono">{tx.product.itemCode || ''}</span>
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    {tx.product?.imageUrl ? (
+                      <img
+                        src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                        alt={tx.product.name || 'Product'}
+                        className="w-10 h-10 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                        }}
+                        onError={(e) => {
+                          if (e.target.src !== tx.product.imageUrl) {
+                            e.target.src = tx.product.imageUrl;
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                        <Package size={18} />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-sm text-text-primary block break-words leading-snug hover:text-primary transition-colors">{tx.product.name}</Link>
+                      <span className="text-[11px] text-text-muted font-mono">{tx.product.itemCode || ''}</span>
+                    </div>
                   </div>
                   <span className={`badge text-[10px] flex-shrink-0 ${
                     tx.transactionType === 'RECEIVE' || tx.transactionType === 'REBRAND_IN' ? 'badge-success' :
@@ -345,15 +370,37 @@ export default function TransactionsClient({
                   <tbody className="divide-y divide-border text-text-primary">
                     {paginatedTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
-                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[220px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
-                          <div className="flex flex-col">
-                            <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug">{tx.product.name}</Link>
-
-                            {tx.receivedBy && (
-                              <span className="text-[10px] text-text-secondary mt-1 font-semibold flex items-center gap-1">
-                                👤 Received/Processed by: <span className="text-primary font-bold">{tx.receivedBy}</span>
-                              </span>
+                        <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[240px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
+                          <div className="flex items-center gap-2.5">
+                            {tx.product?.imageUrl ? (
+                              <img
+                                src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
+                                alt={tx.product.name || 'Product'}
+                                className="w-9 h-9 rounded-lg object-cover border border-border shrink-0 cursor-zoom-in hover:brightness-95 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLightboxImage({ url: tx.product.imageUrl, name: tx.product.name });
+                                }}
+                                onError={(e) => {
+                                  if (e.target.src !== tx.product.imageUrl) {
+                                    e.target.src = tx.product.imageUrl;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                                <Package size={16} />
+                              </div>
                             )}
+                            <div className="flex flex-col min-w-0">
+                              <Link href={`/dashboard/products/${tx.product.id}`} className="font-semibold text-text-primary hover:text-primary transition-colors break-words leading-snug">{tx.product.name}</Link>
+
+                              {tx.receivedBy && (
+                                <span className="text-[10px] text-text-secondary mt-1 font-semibold flex items-center gap-1">
+                                  👤 Received/Processed by: <span className="text-primary font-bold">{tx.receivedBy}</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 whitespace-nowrap font-mono text-xs text-text-secondary">
@@ -468,6 +515,8 @@ export default function TransactionsClient({
           )}
         </div>
       </div>
+
+      <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />
     </div>
   );
 }

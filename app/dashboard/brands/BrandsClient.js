@@ -139,7 +139,14 @@ export default function BrandsClient({ initialBrands }) {
           ) : (
             <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
               {paginatedBrands.map((brand) => (
-                <div key={brand.id} className="bg-surface border border-border rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex sm:flex-col group relative overflow-hidden">
+                <div 
+                  key={brand.id} 
+                  onClick={(e) => {
+                    if (e.target.closest('button, a')) return;
+                    router.push(`/dashboard/brands/${brand.id}`);
+                  }}
+                  className="bg-surface border border-border rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-200 flex sm:flex-col group relative overflow-hidden cursor-pointer"
+                >
                   {/* Brand Image/Logo Container */}
                   <div className="w-16 h-16 sm:w-full sm:h-auto sm:aspect-square bg-white flex items-center justify-center relative overflow-hidden flex-shrink-0 sm:rounded-t-md rounded-l-xl sm:rounded-l-none">
                     {brand.imageUrl ? (
@@ -159,10 +166,12 @@ export default function BrandsClient({ initialBrands }) {
                   {/* Brand Info */}
                   <div className="bg-surface-elevated/95 sm:border-t border-border p-3 sm:p-4 flex flex-col gap-1 flex-shrink-0 sm:rounded-b-2xl flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-display font-extrabold text-xs sm:text-sm text-text-primary truncate">{brand.name}</h3>
+                      <h3 className="font-display font-extrabold text-xs sm:text-sm text-text-primary group-hover:text-primary transition-colors truncate">
+                        {brand.name}
+                      </h3>
                       <Link 
                         href={`/dashboard/brands/${brand.id}`} 
-                        className="text-[10px] sm:text-xs font-bold text-primary hover:underline flex-shrink-0 sm:relative z-0 sm:z-10 after:absolute after:inset-0 after:content-[''] sm:after:hidden"
+                        className="text-[10px] sm:text-xs font-bold text-primary group-hover:underline flex-shrink-0 after:absolute after:inset-0 after:content-['']"
                       >
                         Manage →
                       </Link>
@@ -177,7 +186,10 @@ export default function BrandsClient({ initialBrands }) {
                         {brand.rack || brand.shelf ? `${brand.rack || ''}${brand.rack && brand.shelf ? '/' : ''}${brand.shelf || ''}` : ''}
                       </span>
                       
-                      <div className="flex items-center gap-1.5 sm:gap-2 relative z-10 flex-shrink-0">
+                      <div 
+                        className="flex items-center gap-1.5 sm:gap-2 relative z-20 flex-shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="has-tooltip">
                           <Link 
                             href={`/dashboard/brands/${brand.id}/edit`}

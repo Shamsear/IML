@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidateSupervisors } from '@/lib/revalidation';
 
-import { requireAuth, requireAdmin } from '@/lib/auth-guard';
+import { requireAuth, requireAdmin, requireWritePermission } from '@/lib/auth-guard';
 import { generateId, generateBatchIds } from '@/lib/idGenerator';
 
 export async function getSupervisors() {
@@ -14,7 +14,7 @@ export async function getSupervisors() {
 }
 
 export async function createSupervisor(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const email = formData.get('email');
@@ -38,7 +38,7 @@ export async function createSupervisor(formData) {
 }
 
 export async function createBulkSupervisors(formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const items = [];
   for (const [key, value] of formData.entries()) {
@@ -72,7 +72,7 @@ export async function createBulkSupervisors(formData) {
 }
 
 export async function updateSupervisor(id, formData) {
-  await requireAuth();
+  await requireWritePermission();
 
   const name = formData.get('name');
   const email = formData.get('email');

@@ -78,7 +78,19 @@ export default function DashboardShell({ user, children }) {
                 alt="IML Group Logo" 
                 className="h-8 w-auto object-contain block max-w-[140px]" 
               />
-              <span className="text-[9px] font-bold tracking-wider text-secondary uppercase bg-secondary/10 px-1.5 py-0.5 rounded-md">Admin</span>
+              {(() => {
+                const roleUpper = (user?.role || 'ADMIN').toUpperCase();
+                const isReadOnly = roleUpper === 'VIEWER' || roleUpper === 'READ_ONLY' || roleUpper === 'READONLY';
+                return (
+                  <span className={`text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-md ${
+                    isReadOnly 
+                      ? 'text-amber-500 bg-amber-500/10 border border-amber-500/20' 
+                      : 'text-secondary bg-secondary/10'
+                  }`}>
+                    {isReadOnly ? 'Viewer' : (roleUpper === 'ADMIN' ? 'Admin' : user?.role || 'User')}
+                  </span>
+                );
+              })()}
             </div>
             {/* Compact logo — fades */}
             <img 
@@ -126,7 +138,15 @@ export default function DashboardShell({ user, children }) {
             </div>
             <div className={`flex flex-col min-w-0 transition-opacity duration-200 ${(!collapsed || mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <span className="text-xs font-semibold text-text-primary truncate whitespace-nowrap">{user?.name}</span>
-              <span className="text-[10px] text-text-secondary truncate whitespace-nowrap">Administrator</span>
+              <span className="text-[10px] text-text-secondary truncate whitespace-nowrap">
+                {(() => {
+                  const roleUpper = (user?.role || 'ADMIN').toUpperCase();
+                  if (roleUpper === 'VIEWER' || roleUpper === 'READ_ONLY' || roleUpper === 'READONLY') {
+                    return 'Read-Only Viewer';
+                  }
+                  return roleUpper === 'ADMIN' ? 'Administrator' : (user?.role || 'Staff');
+                })()}
+              </span>
             </div>
           </div>
           <div className={`transition-opacity duration-200 ${(!collapsed || mobileOpen) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>

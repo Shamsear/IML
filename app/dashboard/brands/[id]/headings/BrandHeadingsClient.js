@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import { getProductStock } from '@/lib/stock';
 import { updateBrandPortalConfig } from '@/app/actions/brands';
 import { 
   ArrowLeft, ListTree, Plus, Trash2, ArrowUp, ArrowDown, 
@@ -19,13 +20,32 @@ export default function BrandHeadingsClient({ brand }) {
   const [activePickerHeadingId, setActivePickerHeadingId] = useState(null);
   const [pickerSearch, setPickerSearch] = useState('');
 
+  // Helper to compute stock with serialized status reconciliation
+  const computeProductStock = (p) => {
+    const stock = getProductStock(p.transactions);
+    if (p.isSerialized && p.serialStats) {
+      stock.warehouse = p.serialStats.warehouse;
+      stock.withClient = p.serialStats.withClient;
+      stock.damage = p.serialStats.damage;
+      stock.lost = p.serialStats.lost;
+      stock.issued = p.serialStats.issued;
+      stock.used = p.serialStats.used;
+      stock.total = stock.warehouse;
+    }
+    return stock;
+  };
+
   // Initialize headings from brand.portalConfig or group by product categories
   const [portalHeadings, setPortalHeadings] = useState(() => {
     if (brand.portalConfig) {
       try {
         const parsed = typeof brand.portalConfig === 'string' ? JSON.parse(brand.portalConfig) : brand.portalConfig;
         if (parsed && Array.isArray(parsed.headings)) {
-          return parsed.headings;
+          return parsed.headings.map(h => ({
+            id: h.id || `heading-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            title: h.title,
+            productIds: Array.isArray(h.productIds) ? h.productIds : []
+          }));
         }
       } catch (e) {
         console.error('Error parsing brand portalConfig:', e);
@@ -43,8 +63,7 @@ export default function BrandHeadingsClient({ brand }) {
     return Object.keys(catMap).sort().map(cat => ({
       id: `heading-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       title: cat,
-      productIds: catMap[cat],
-      remarks: {}
+      productIds: catMap[cat]
     }));
   });
 
@@ -59,8 +78,7 @@ export default function BrandHeadingsClient({ brand }) {
     const defaultHeadings = Object.keys(catMap).sort().map(cat => ({
       id: `heading-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       title: cat,
-      productIds: catMap[cat],
-      remarks: {}
+      productIds: catMap[cat]
     }));
 
     setPortalHeadings(defaultHeadings);
@@ -72,8 +90,7 @@ export default function BrandHeadingsClient({ brand }) {
     const newHeading = {
       id: `heading-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       title: newHeadingTitle.trim().toUpperCase(),
-      productIds: [],
-      remarks: {}
+      productIds: []
     };
     setPortalHeadings(prev => [...prev, newHeading]);
     setNewHeadingTitle('');
@@ -114,24 +131,7 @@ export default function BrandHeadingsClient({ brand }) {
     setPortalHeadings(prev => prev.map(h => {
       if (h.id === headingId) {
         const nextIds = h.productIds.filter(id => id !== productId);
-        const nextRemarks = { ...(h.remarks || {}) };
-        delete nextRemarks[productId];
-        return { ...h, productIds: nextIds, remarks: nextRemarks };
-      }
-      return h;
-    }));
-  };
-
-  const handleUpdateProductRemark = (headingId, productId, remark) => {
-    setPortalHeadings(prev => prev.map(h => {
-      if (h.id === headingId) {
-        return {
-          ...h,
-          remarks: {
-            ...(h.remarks || {}),
-            [productId]: remark
-          }
-        };
+        return { ...h, productIds: nextIds };
       }
       return h;
     }));
@@ -140,7 +140,12 @@ export default function BrandHeadingsClient({ brand }) {
   const handleSavePortalConfig = async () => {
     try {
       setIsSaving(true);
-      await updateBrandPortalConfig(brand.id, { headings: portalHeadings });
+      const cleanHeadings = portalHeadings.map(h => ({
+        id: h.id,
+        title: h.title,
+        productIds: h.productIds || []
+      }));
+      await updateBrandPortalConfig(brand.id, { headings: cleanHeadings });
       toast.success('Headings Saved', `Portal summary headings for ${brand.name} updated successfully.`);
       router.refresh();
     } catch (e) {
@@ -173,7 +178,7 @@ export default function BrandHeadingsClient({ brand }) {
               </span>
             </div>
             <p className="text-text-secondary text-sm mt-1">
-              Organize products into custom categorized sections and custom remarks for the {brand.name} Partner Portal.
+              Organize products into custom categorized sections for the {brand.name} Partner Portal. Damage counts are automatically tracked from inventory and displayed on the portal.
             </p>
           </div>
         </div>
@@ -383,10 +388,10 @@ export default function BrandHeadingsClient({ brand }) {
                     </div>
                   ) : (
                     headingProducts.map(p => {
-                      const remarkVal = heading.remarks?.[p.id] || '';
+                      const stock = computeProductStock(p);
                       return (
-                        <div key={p.id} className="p-3.5 sm:px-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 hover:bg-surface-elevated/20 transition-colors">
-                          <div className="flex items-center gap-3 min-w-0 sm:w-1/2">
+                        <div key={p.id} className="p-3.5 sm:px-5 flex items-center justify-between gap-3 hover:bg-surface-elevated/20 transition-colors">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
                             {p.imageUrl ? (
                               <img 
                                 src={getOptimizedImageUrl(p.imageUrl, 80, 80)} 
@@ -398,24 +403,31 @@ export default function BrandHeadingsClient({ brand }) {
                                 {p.name.substring(0, 2).toUpperCase()}
                               </div>
                             )}
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <span className="font-semibold text-xs text-text-primary block truncate">{p.name}</span>
-                              <span className="text-[10px] font-mono text-text-muted">SKU: {p.itemCode || '---'}</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] font-mono text-text-muted">SKU: {p.itemCode || '---'}</span>
+                                <span className={`text-[10px] font-semibold ${stock.warehouse > 0 ? 'text-success' : 'text-text-muted'}`}>
+                                  {stock.warehouse} available
+                                </span>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-1">
-                            <input
-                              type="text"
-                              placeholder="Custom remark for portal (e.g. 3 Damage / Skirt Broken)..."
-                              value={remarkVal}
-                              onChange={(e) => handleUpdateProductRemark(heading.id, p.id, e.target.value)}
-                              className="w-full bg-surface-elevated/40 text-text-primary placeholder:text-text-muted border border-border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-primary transition-colors italic"
-                            />
+                          <div className="flex items-center gap-3 shrink-0">
+                            {stock.damage > 0 ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-danger/10 text-danger border border-danger/20">
+                                {stock.damage} Damaged
+                              </span>
+                            ) : (
+                              <span className="text-xs text-text-muted hidden sm:inline">
+                                0 Damaged
+                              </span>
+                            )}
                             <button
                               type="button"
                               onClick={() => handleRemoveProductFromHeading(heading.id, p.id)}
-                              className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-xl transition-colors shrink-0 cursor-pointer"
+                              className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-xl transition-colors shrink-0 cursor-pointer"
                               title="Remove from this heading"
                             >
                               <X size={15} />
