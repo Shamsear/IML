@@ -1784,12 +1784,168 @@ export async function deleteTransaction(id) {
   if (!txRecord) throw new Error('Transaction not found');
 
   await prisma.$transaction(async (tx) => {
+    // 1. If this is a RETURN transaction, revert the return effect on the original Outbound transaction & allocations
+    if (txRecord.transactionType === 'RETURN') {
+      let parentTx = null;
+
+      // A. Try matching parent transaction from notes: "Auto-generated Return from Outbound <ID>."
+      const outboundMatch = txRecord.notes?.match(/from Outbound ([a-zA-Z0-9-]+)/i);
+      if (outboundMatch && outboundMatch[1]) {
+        parentTx = await tx.inventoryTransaction.findUnique({
+          where: { id: outboundMatch[1] }
+        });
+      }
+
+      // B. Try matching from give-back notes: "Returned to source from <ID or DN>"
+      if (!parentTx) {
+        const sourceMatch = txRecord.notes?.match(/Returned to source from ([a-zA-Z0-9-]+)/i);
+        if (sourceMatch && sourceMatch[1]) {
+          parentTx = await tx.inventoryTransaction.findFirst({
+            where: {
+              OR: [
+                { id: sourceMatch[1] },
+                { deliveryNote: sourceMatch[1] }
+              ]
+            }
+          });
+        }
+      }
+
+      // C. Fallback: try matching by product, destination store/entity with returnedQty > 0
+      if (!parentTx && txRecord.fromEntityType && txRecord.fromEntityId) {
+        parentTx = await tx.inventoryTransaction.findFirst({
+          where: {
+            productId: txRecord.productId,
+            transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+            toEntityType: txRecord.fromEntityType,
+            toEntityId: txRecord.fromEntityId,
+            returnedQty: { gt: 0 }
+          },
+          orderBy: { timestamp: 'desc' }
+        });
+      }
+
+      if (parentTx) {
+        // Find other active return transactions for this parent transaction (excluding the one being deleted)
+        const siblingReturns = await tx.inventoryTransaction.findMany({
+          where: {
+            transactionType: 'RETURN',
+            id: { not: txRecord.id },
+            notes: { contains: parentTx.id },
+          },
+          select: { quantity: true }
+        });
+
+        let newReturnedQty = 0;
+        if (siblingReturns.length > 0) {
+          newReturnedQty = siblingReturns.reduce((sum, r) => sum + r.quantity, 0);
+        } else {
+          newReturnedQty = Math.max(0, (parentTx.returnedQty || 0) - txRecord.quantity);
+        }
+
+        const newStatus = newReturnedQty <= 0 
+          ? null 
+          : (newReturnedQty >= parentTx.quantity - 0.0001 ? 'RETURNED' : 'PARTIAL');
+
+        await tx.inventoryTransaction.update({
+          where: { id: parentTx.id },
+          data: {
+            returnedQty: newReturnedQty,
+            returnStatus: newStatus,
+            ...(newReturnedQty <= 0 ? { returnNotes: null } : {})
+          }
+        });
+
+        // Sync associated StaffUniformAllocation if linked by delivery note
+        if (parentTx.deliveryNote) {
+          const allocations = await tx.staffUniformAllocation.findMany({
+            where: { ref: parentTx.deliveryNote }
+          });
+
+          for (const alloc of allocations) {
+            let dynamicItems = [];
+            if (alloc.allocatedItems) {
+              if (typeof alloc.allocatedItems === 'string') {
+                try { dynamicItems = JSON.parse(alloc.allocatedItems); } catch(e){}
+              } else if (Array.isArray(alloc.allocatedItems)) {
+                dynamicItems = alloc.allocatedItems;
+              }
+            }
+
+            let itemUpdated = false;
+            const updatedItems = dynamicItems.map(item => {
+              if (item.productId === txRecord.productId && item.returned) {
+                itemUpdated = true;
+                return { ...item, returned: false, returnedAt: null };
+              }
+              return item;
+            });
+
+            if (itemUpdated || newStatus !== 'RETURNED') {
+              await tx.staffUniformAllocation.update({
+                where: { id: alloc.id },
+                data: {
+                  allocatedItems: updatedItems,
+                  uniformReturned: false,
+                  capReturned: false,
+                  returnDate: null
+                }
+              });
+            }
+          }
+        }
+      }
+
+      // Check if notes reference a specific promoter uniform allocation: e.g. "Allocation: <ID>"
+      const allocMatch = txRecord.notes?.match(/Allocation: ([a-zA-Z0-9-]+)/i);
+      if (allocMatch && allocMatch[1]) {
+        const alloc = await tx.staffUniformAllocation.findUnique({
+          where: { id: allocMatch[1] }
+        });
+        if (alloc) {
+          let dynamicItems = [];
+          if (alloc.allocatedItems) {
+            if (typeof alloc.allocatedItems === 'string') {
+              try { dynamicItems = JSON.parse(alloc.allocatedItems); } catch(e){}
+            } else if (Array.isArray(alloc.allocatedItems)) {
+              dynamicItems = alloc.allocatedItems;
+            }
+          }
+          const updatedItems = dynamicItems.map(item => {
+            if (item.productId === txRecord.productId && item.returned) {
+              return { ...item, returned: false, returnedAt: null };
+            }
+            return item;
+          });
+          await tx.staffUniformAllocation.update({
+            where: { id: alloc.id },
+            data: {
+              allocatedItems: updatedItems,
+              uniformReturned: false,
+              capReturned: false,
+              returnDate: null
+            }
+          });
+        }
+      }
+    }
+
+    // 2. Serialized product handling
     if (txRecord.product.isSerialized && txRecord.serialNumbers.length > 0) {
       const oldSerials = txRecord.serialNumbers.map(s => s.serialNumber);
       
-      if (txRecord.transactionType === 'RECEIVE' || txRecord.transactionType === 'REBRAND_IN' || txRecord.transactionType === 'RETURN') {
+      if (txRecord.transactionType === 'RECEIVE' || txRecord.transactionType === 'REBRAND_IN') {
         await tx.productSerialNumber.deleteMany({
           where: { id: { in: oldSerials.map(s => s.id) } }
+        });
+      } else if (txRecord.transactionType === 'RETURN') {
+        await tx.productSerialNumber.updateMany({
+          where: { id: { in: oldSerials.map(s => s.id) } },
+          data: {
+            currentLocationType: txRecord.fromEntityType || 'STORE',
+            currentLocationId: txRecord.fromEntityId || null,
+            status: 'AVAILABLE'
+          }
         });
       } else {
         await tx.productSerialNumber.updateMany({
@@ -1802,13 +1958,85 @@ export async function deleteTransaction(id) {
         });
       }
     }
+
+    // 3. Delete the transaction record
     // TransactionSerialNumber rows cascade-delete via schema onDelete: Cascade
     await tx.inventoryTransaction.delete({ where: { id } });
   });
 
-  revalidateTransactionPaths();
+  revalidateTransactionPaths({
+    module: txRecord.transactionType === 'RETURN' ? 'returns' : undefined,
+    productId: txRecord.productId,
+    storeId: txRecord.fromEntityId || txRecord.toEntityId || null,
+    extraPaths: [
+      '/dashboard/returns',
+      '/dashboard/stores',
+      txRecord.fromEntityId ? `/dashboard/stores/${txRecord.fromEntityId}` : null,
+      txRecord.toEntityId ? `/dashboard/stores/${txRecord.toEntityId}` : null,
+      '/dashboard/products',
+      `/dashboard/products/${txRecord.productId}`,
+      '/dashboard/transactions',
+      '/dashboard'
+    ].filter(Boolean)
+  });
 
   return { success: true };
+}
+
+// Reconcile all outbound transactions so their returnedQty and returnStatus match active ledger returns
+export async function reconcileOutboundReturnStatuses() {
+  await requireAdmin();
+
+  const outbounds = await prisma.inventoryTransaction.findMany({
+    where: {
+      transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+      OR: [
+        { returnedQty: { gt: 0 } },
+        { returnStatus: { not: null } }
+      ]
+    }
+  });
+
+  const allReturns = await prisma.inventoryTransaction.findMany({
+    where: { transactionType: 'RETURN' },
+    select: { id: true, productId: true, fromEntityType: true, fromEntityId: true, quantity: true, notes: true }
+  });
+
+  let updatedCount = 0;
+  await prisma.$transaction(async (tx) => {
+    for (const ob of outbounds) {
+      const matchingReturns = allReturns.filter(r => r.notes && r.notes.includes(ob.id));
+      const actualReturnedQty = matchingReturns.reduce((sum, r) => sum + r.quantity, 0);
+
+      const expectedStatus = actualReturnedQty <= 0 
+        ? null 
+        : (actualReturnedQty >= ob.quantity - 0.0001 ? 'RETURNED' : 'PARTIAL');
+
+      if (Math.abs((ob.returnedQty || 0) - actualReturnedQty) > 0.0001 || ob.returnStatus !== expectedStatus) {
+        await tx.inventoryTransaction.update({
+          where: { id: ob.id },
+          data: {
+            returnedQty: actualReturnedQty,
+            returnStatus: expectedStatus,
+            ...(actualReturnedQty <= 0 ? { returnNotes: null } : {})
+          }
+        });
+        updatedCount++;
+      }
+    }
+  });
+
+  revalidateInventory({
+    extraPaths: [
+      '/dashboard/returns',
+      '/dashboard/stores',
+      '/dashboard/products',
+      '/dashboard/transactions',
+      '/dashboard'
+    ]
+  });
+
+  return { success: true, updatedCount };
 }
 // Full Edit for Transactions
 export async function updateFullTransaction(id, payload) {
@@ -1860,9 +2088,18 @@ export async function updateFullTransaction(id, payload) {
     if (product.isSerialized && txRecord.serialNumbers.length > 0) {
       const oldSerials = txRecord.serialNumbers.map(s => s.serialNumber);
       
-      if (txRecord.transactionType === 'RECEIVE' || txRecord.transactionType === 'REBRAND_IN' || txRecord.transactionType === 'RETURN') {
+      if (txRecord.transactionType === 'RECEIVE' || txRecord.transactionType === 'REBRAND_IN') {
         await tx.productSerialNumber.deleteMany({
           where: { id: { in: oldSerials.map(s => s.id) } }
+        });
+      } else if (txRecord.transactionType === 'RETURN') {
+        await tx.productSerialNumber.updateMany({
+          where: { id: { in: oldSerials.map(s => s.id) } },
+          data: {
+            currentLocationType: txRecord.fromEntityType || 'STORE',
+            currentLocationId: txRecord.fromEntityId || null,
+            status: 'AVAILABLE'
+          }
         });
       } else {
         await tx.productSerialNumber.updateMany({
