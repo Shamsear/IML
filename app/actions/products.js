@@ -24,12 +24,9 @@ async function computeWarehouseStockMap(products) {
   if (!products || products.length === 0) return new Map();
   const productIds = products.map(p => p.id);
 
-  const [aggregates, serialsCount] = await Promise.all([
-    prisma.inventoryTransaction.groupBy({
-      by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType'],
-      where: { productId: { in: productIds } },
-      _sum: { quantity: true },
-    }),
+  const standardProductIds = products.filter(p => !p.isSerialized && !p.trackExpiry).map(p => p.id);
+
+  const [serialsCount, standardTxs] = await Promise.all([
     prisma.productSerialNumber.groupBy({
       by: ['productId'],
       where: {
@@ -41,15 +38,32 @@ async function computeWarehouseStockMap(products) {
         ]
       },
       _count: { id: true }
-    })
+    }),
+    standardProductIds.length > 0
+      ? prisma.inventoryTransaction.findMany({
+          where: { productId: { in: standardProductIds } },
+          select: {
+            productId: true,
+            transactionType: true,
+            quantity: true,
+            fromEntityType: true,
+            toEntityType: true,
+            deliveryNote: true,
+            notes: true,
+            returnStatus: true,
+            timestamp: true,
+          },
+          orderBy: { timestamp: 'asc' }
+        })
+      : Promise.resolve([])
   ]);
 
   const serialsMap = new Map(serialsCount.map(s => [s.productId, s._count.id]));
 
-  const aggsMap = new Map();
-  aggregates.forEach(agg => {
-    if (!aggsMap.has(agg.productId)) aggsMap.set(agg.productId, []);
-    aggsMap.get(agg.productId).push(agg);
+  const standardTxsMap = new Map();
+  standardTxs.forEach(t => {
+    if (!standardTxsMap.has(t.productId)) standardTxsMap.set(t.productId, []);
+    standardTxsMap.get(t.productId).push(t);
   });
 
   // Expiry-aware stock for products that track expiry
@@ -106,31 +120,9 @@ async function computeWarehouseStockMap(products) {
     } else if (product.trackExpiry) {
       warehouseStock = expiryStockMap[product.id] || 0;
     } else {
-      const productAggs = aggsMap.get(product.id) || [];
-      for (const t of productAggs) {
-        const qty = t._sum.quantity || 0;
-        const type = t.transactionType;
-        const from = t.fromEntityType;
-        const to = t.toEntityType;
-
-        // Inbound to warehouse
-        if (to === 'WAREHOUSE' || (!to && ['RECEIVE', 'INITIAL', 'REBRAND_IN', 'CLIENT_RETURN'].includes(type))) {
-          if (type === 'RETURN' && (to === 'VENDOR' || to === 'SUPPLIER')) {
-            warehouseStock -= qty;
-          } else {
-            warehouseStock += qty;
-          }
-        }
-        // Outbound from warehouse
-        else if (from === 'WAREHOUSE' || (!from && ['ISSUE', 'USED', 'DAMAGE', 'LOST', 'REBRAND', 'REBRAND_OUT', 'CLIENT_STOCK'].includes(type))) {
-          if (type === 'RETURN' && (to === 'VENDOR' || to === 'SUPPLIER')) {
-            warehouseStock -= qty;
-          } else if (['ISSUE', 'USED', 'DAMAGE', 'LOST', 'REBRAND', 'REBRAND_OUT', 'CLIENT_STOCK'].includes(type)) {
-            warehouseStock -= qty;
-          }
-        }
-      }
-      warehouseStock = Math.max(0, warehouseStock);
+      const pTxs = standardTxsMap.get(product.id) || [];
+      const stock = getProductStock(pTxs);
+      warehouseStock = stock.warehouse;
     }
     stockMap.set(product.id, warehouseStock);
   }
@@ -846,6 +838,9 @@ export async function getProductDetail(id) {
         fromEntityType: true,
         toEntityType: true,
         returnStatus: true,
+        deliveryNote: true,
+        notes: true,
+        timestamp: true,
       }
     }),
   ]);

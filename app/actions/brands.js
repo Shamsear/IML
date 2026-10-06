@@ -137,6 +137,9 @@ export async function getBrandWithDetails(id) {
               fromEntityType: true,
               toEntityType: true,
               returnStatus: true,
+              deliveryNote: true,
+              notes: true,
+              timestamp: true,
             }
           }
         },
@@ -301,6 +304,7 @@ export async function getBrandPortalDetails(secretKey) {
             timestamp: true,
             notes: true,
             returnStatus: true,
+            deliveryNote: true,
           },
           orderBy: { timestamp: 'desc' }
         }
