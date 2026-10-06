@@ -4,6 +4,9 @@ import { getSupervisors } from '@/app/actions/supervisors';
 import { getStaff } from '@/app/actions/staff';
 import { getRecentReceivers, getRecentSuppliers } from '@/app/actions/transactions';
 import NewProductClient from './NewProductClient';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -19,6 +22,13 @@ export async function generateMetadata({ searchParams }) {
 }
 
 export default async function NewProductPage({ searchParams }) {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect('/login');
+  const role = session?.user?.role?.toUpperCase();
+  if (role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY') {
+    redirect('/dashboard/products');
+  }
+
   const params = await searchParams;
   const editId = params?.editId || null;
 

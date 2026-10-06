@@ -15,6 +15,7 @@ import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useTableSort } from '@/hooks/useTableSort';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function TransactionsClient({ 
   initialTransactions, 
@@ -27,6 +28,7 @@ export default function TransactionsClient({
   initialProductId = 'ALL',
   entityNames = {}
 }) {
+  const { isReadOnly } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -169,19 +171,19 @@ export default function TransactionsClient({
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Link href="/dashboard/inbound" className="inline-flex items-center gap-2 px-3.5 py-2 bg-success/10 hover:bg-success text-success hover:text-white border border-success/30 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
             <ArrowDownLeft size={15} />
-            <span>Inbound (Receive)</span>
+            <span>{isReadOnly ? 'Inbound Ledger' : 'Inbound (Receive)'}</span>
           </Link>
           <Link href="/dashboard/outbound" className="inline-flex items-center gap-2 px-3.5 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/30 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
             <ArrowUpRight size={15} />
-            <span>Outbound (Dispatch)</span>
+            <span>{isReadOnly ? 'Outbound Ledger' : 'Outbound (Dispatch)'}</span>
           </Link>
           <Link href="/dashboard/rebrand" className="inline-flex items-center gap-2 px-3.5 py-2 bg-secondary/10 hover:bg-secondary text-secondary hover:text-white border border-secondary/30 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
             <RefreshCw size={15} />
-            <span>Rebrand Stock</span>
+            <span>{isReadOnly ? 'Rebrand Ledger' : 'Rebrand Stock'}</span>
           </Link>
           <Link href="/dashboard/damage" className="inline-flex items-center gap-2 px-3.5 py-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/30 rounded-lg text-xs font-bold transition-all duration-200 shadow-sm">
             <ShieldAlert size={15} />
-            <span>Log Damage</span>
+            <span>{isReadOnly ? 'Damage Ledger' : 'Log Damage'}</span>
           </Link>
         </div>
       </header>

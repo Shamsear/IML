@@ -5,7 +5,9 @@ import { getSupervisors } from '@/app/actions/supervisors';
 import { getStaff } from '@/app/actions/staff';
 import { getTransactionsByDeliveryNote, getRecentDirectSellers } from '@/app/actions/transactions';
 import OutboundClient from '../../OutboundClient';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,6 +19,13 @@ export const metadata = {
 };
 
 export default async function EditOutboundPage({ params }) {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect('/login');
+  const role = session?.user?.role?.toUpperCase();
+  if (role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY') {
+    redirect('/dashboard/outbound');
+  }
+
   const { dn } = await params;
   const decodedDn = decodeURIComponent(dn);
 

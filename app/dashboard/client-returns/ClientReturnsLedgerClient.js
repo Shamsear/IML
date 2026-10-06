@@ -264,14 +264,16 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                         return <div>Approver: <strong className="text-text-primary">{isPlaceholder ? '—' : ap}</strong></div>;
                       })()}
                     </div>
-                    <Link
-                      href={`/dashboard/client-returns/${encodeURIComponent(group.deliveryNote)}/edit`}
-                      className="px-2.5 py-1.5 bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary font-bold text-xs rounded-lg transition-colors border border-border flex items-center gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0"
-                      title="Edit Gate Pass"
-                    >
-                      <Edit2 size={13} />
-                      <span>Edit</span>
-                    </Link>
+                    {!isReadOnly && (
+                      <Link
+                        href={`/dashboard/client-returns/${encodeURIComponent(group.deliveryNote)}/edit`}
+                        className="px-2.5 py-1.5 bg-surface hover:bg-surface-elevated text-text-secondary hover:text-text-primary font-bold text-xs rounded-lg transition-colors border border-border flex items-center gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0"
+                        title="Edit Gate Pass"
+                      >
+                        <Edit2 size={13} />
+                        <span>Edit</span>
+                      </Link>
+                    )}
                     <a
                       href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/client-returns/${group.direction === 'fromClient' ? 'return-gate-pass' : 'gate-pass'}?dn=${encodeURIComponent(group.deliveryNote)}${group.brandId ? `&brandId=${group.brandId}` : ''}&date=${new Date(group.timestamp).toISOString().split('T')[0]}`)}&title=${encodeURIComponent(group.deliveryNote)}`}
                       target="_blank"
@@ -356,6 +358,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
       selectedBrandId={selectedBrandId}
       setSelectedBrandId={setSelectedBrandId}
       setLightboxImage={setLightboxImage}
+      isReadOnly={isReadOnly}
     />
   );
 
@@ -407,13 +410,15 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
             <BarChart3 size={15} />
             <span>Stock With Clients</span>
           </Link>
-          <Link
-            href="/dashboard/client-returns/new"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
-          >
-            <Plus size={16} />
-            <span>Return Stock to Client</span>
-          </Link>
+          {!isReadOnly && (
+            <Link
+              href="/dashboard/client-returns/new"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
+            >
+              <Plus size={16} />
+              <span>Return Stock to Client</span>
+            </Link>
+          )}
         </div>
       </header>
 
@@ -568,7 +573,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
 }
 
 // Shared flat transaction table component
-function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilter, selectedBrandId, setSelectedBrandId, setLightboxImage }) {
+function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilter, selectedBrandId, setSelectedBrandId, setLightboxImage, isReadOnly }) {
   const [flatPage, setFlatPage] = useState(1);
   const itemsPerPage = 25;
 
@@ -719,13 +724,13 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
                 <SortableHeader field="brand" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Client Brand</SortableHeader>
                 <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Qty</SortableHeader>
                 <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
-                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
+                {!isReadOnly && <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border text-text-primary">
               {paginatedFlatItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-text-muted text-xs">
+                  <td colSpan={isReadOnly ? 6 : 7} className="py-8 text-center text-text-muted text-xs">
                     No matching transactions found.
                   </td>
                 </tr>
@@ -777,15 +782,17 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
                       <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-bold text-primary whitespace-nowrap">{tx.product?.brand?.name || '—'}</td>
                       <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-sm whitespace-nowrap">{tx.quantity}</td>
                       <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-text-secondary font-medium max-w-xs truncate text-xs" title={tx.notes || ''}>{tx.notes || '—'}</td>
-                      <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
-                        <TransactionActions
-                          transactionId={tx.id}
-                          deliveryNote={tx.deliveryNote}
-                          transactionType={tx.transactionType}
-                          barcode={tx.barcode}
-                          copyType="client-returns"
-                        />
-                      </td>
+                      {!isReadOnly && (
+                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
+                          <TransactionActions
+                            transactionId={tx.id}
+                            deliveryNote={tx.deliveryNote}
+                            transactionType={tx.transactionType}
+                            barcode={tx.barcode}
+                            copyType="client-returns"
+                          />
+                        </td>
+                      )}
                     </tr>
                   );
                 })

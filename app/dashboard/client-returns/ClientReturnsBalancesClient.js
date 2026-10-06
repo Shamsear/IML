@@ -15,10 +15,12 @@ import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ClientReturnsBalancesClient({ balances, recentTransactions = [] }) {
   const toast = useToast();
   const router = useRouter();
+  const { isReadOnly } = usePermissions();
   const [lightboxImage, setLightboxImage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSerialList, setActiveSerialList] = useState(null); // { productName, serials: [...] }
@@ -466,16 +468,18 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                               View Serials
                             </button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const bg = balancesByBrand.find(b => b.brandId === bal.brandId);
-                              if (bg) handleOpenReturnModal(bg);
-                            }}
-                            className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] rounded transition-all cursor-pointer"
-                          >
-                            Return to WH
-                          </button>
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const bg = balancesByBrand.find(b => b.brandId === bal.brandId);
+                                if (bg) handleOpenReturnModal(bg);
+                              }}
+                              className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] rounded transition-all cursor-pointer"
+                            >
+                              Return to WH
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -490,7 +494,9 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                           <th className="py-2.5 pr-4 font-semibold">Product Description</th>
                           <th className="py-2.5 pr-4 font-semibold">Category</th>
                           <th className="py-2.5 pr-4 text-center font-semibold">Stock Qty</th>
-                          <th className="py-2.5 pr-4 font-semibold text-right">Action</th>
+                          {(!isReadOnly || brandGroup.items.some(b => b.isSerialized)) && (
+                            <th className="py-2.5 pr-4 font-semibold text-right">{isReadOnly ? 'Serials' : 'Action'}</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border text-text-primary">
@@ -524,30 +530,34 @@ export default function ClientReturnsBalancesClient({ balances, recentTransactio
                             </td>
                             <td className="py-3 pr-4 text-text-secondary font-semibold">{bal.category || 'General'}</td>
                             <td className="py-3 pr-4 text-center font-extrabold">{bal.quantity}</td>
-                            <td className="py-3 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {bal.isSerialized && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setActiveSerialList({ productName: bal.productName, serials: bal.serialNumbers })}
-                                    className="px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated hover:text-primary font-bold text-[10px] rounded transition-all cursor-pointer"
-                                  >
-                                    View Serials
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    // Open modal pre-filtered to this specific brand group
-                                    const brandGroup = balancesByBrand.find(bg => bg.brandId === bal.brandId);
-                                    if (brandGroup) handleOpenReturnModal(brandGroup);
-                                  }}
-                                  className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] rounded transition-all cursor-pointer"
-                                >
-                                  Return to WH
-                                </button>
-                              </div>
-                            </td>
+                            {(!isReadOnly || brandGroup.items.some(b => b.isSerialized)) && (
+                              <td className="py-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {bal.isSerialized && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setActiveSerialList({ productName: bal.productName, serials: bal.serialNumbers })}
+                                      className="px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated hover:text-primary font-bold text-[10px] rounded transition-all cursor-pointer"
+                                    >
+                                      View Serials
+                                    </button>
+                                  )}
+                                  {!isReadOnly && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        // Open modal pre-filtered to this specific brand group
+                                        const brandGroup = balancesByBrand.find(bg => bg.brandId === bal.brandId);
+                                        if (brandGroup) handleOpenReturnModal(brandGroup);
+                                      }}
+                                      className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] rounded transition-all cursor-pointer"
+                                    >
+                                      Return to WH
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
