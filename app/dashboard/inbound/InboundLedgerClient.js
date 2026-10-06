@@ -519,7 +519,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                           <span className="hidden sm:inline">Duplicate</span>
                         </button>
                         <a
-                          href={`/api/dashboard/inbound/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId}&dn=${encodeURIComponent(group.deliveryNote)}`}
+                          href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/inbound/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&brandId=${group.items[0]?.product.brandId || ''}&dn=${encodeURIComponent(group.deliveryNote)}`)}&title=${encodeURIComponent(group.deliveryNote)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"

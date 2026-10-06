@@ -271,7 +271,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                       <span>Edit</span>
                     </Link>
                     <a
-                      href={`/api/dashboard/client-returns/${group.direction === 'fromClient' ? 'return-gate-pass' : 'gate-pass'}?dn=${encodeURIComponent(group.deliveryNote)}${group.brandId ? `&brandId=${group.brandId}` : ''}&date=${new Date(group.timestamp).toISOString().split('T')[0]}`}
+                      href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/client-returns/${group.direction === 'fromClient' ? 'return-gate-pass' : 'gate-pass'}?dn=${encodeURIComponent(group.deliveryNote)}${group.brandId ? `&brandId=${group.brandId}` : ''}&date=${new Date(group.timestamp).toISOString().split('T')[0]}`)}&title=${encodeURIComponent(group.deliveryNote)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap flex-shrink-0"

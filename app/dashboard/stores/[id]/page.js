@@ -113,14 +113,14 @@ export default async function StoreDetailPage({ params }) {
             <span>Edit Outlet</span>
           </Link>
           <a 
-            href={`/api/dashboard/stores/${id}/delivery-note`} 
+            href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/stores/${id}/delivery-note`)}&title=${encodeURIComponent(`${store.name} Stock Statement`)}`} 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200"
           >
             <Printer size={16} />
-            <span className="hidden sm:inline">Download Store Stock Statement (PDF)</span>
-            <span className="sm:hidden">Download PDF</span>
+            <span className="hidden sm:inline">Store Stock Statement (PDF)</span>
+            <span className="sm:hidden">PDF</span>
           </a>
         </div>
       </div>

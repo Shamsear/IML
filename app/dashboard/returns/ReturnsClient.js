@@ -739,7 +739,7 @@ export default function ReturnsClient({
                         onClick={(e) => e.stopPropagation()}
                       >
                         <a
-                          href={`/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}${(group.items[0]?.product?.brandId || group.items[0]?.product?.brand?.id) ? `&brandId=${group.items[0]?.product?.brandId || group.items[0]?.product?.brand?.id}` : ''}&dn=${encodeURIComponent(group.dn)}`}
+                          href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}${(group.items[0]?.product?.brandId || group.items[0]?.product?.brand?.id) ? `&brandId=${group.items[0]?.product?.brandId || group.items[0]?.product?.brand?.id}` : ''}&dn=${encodeURIComponent(group.dn)}`)}&title=${encodeURIComponent(group.dn)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"

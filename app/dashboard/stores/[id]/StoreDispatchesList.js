@@ -55,7 +55,7 @@ export default function StoreDispatchesList({ storeId, groupedDispatches = [], p
               </span>
             </div>
             <a
-              href={`/api/dashboard/stores/${storeId}/delivery-note?date=${disp.date}&brandId=${disp.brandId}&dn=${disp.deliveryNote}`}
+              href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/stores/${storeId}/delivery-note?date=${disp.date}&brandId=${disp.brandId}&dn=${disp.deliveryNote}`)}&title=${encodeURIComponent(disp.deliveryNote)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap flex-shrink-0"

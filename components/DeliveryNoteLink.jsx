@@ -56,6 +56,13 @@ export function getDeliveryNotePdfUrl(tx) {
   return `/api/dashboard/returns/delivery-note?${qs}`;
 }
 
+export function getDeliveryNotePreviewUrl(tx, fallbackTitle = 'Delivery Note') {
+  const rawUrl = getDeliveryNotePdfUrl(tx);
+  if (!rawUrl) return null;
+  const title = (typeof tx === 'object' ? tx?.deliveryNote : tx) || fallbackTitle;
+  return `/pdf-preview?url=${encodeURIComponent(rawUrl)}&title=${encodeURIComponent(title)}`;
+}
+
 export default function DeliveryNoteLink({
   tx,
   deliveryNote,
@@ -74,6 +81,8 @@ export default function DeliveryNoteLink({
     return <span className="font-mono text-xs text-text-secondary">{dnText}</span>;
   }
 
+  const previewUrl = `/pdf-preview?url=${encodeURIComponent(pdfUrl)}&title=${encodeURIComponent(dnText)}`;
+
   let badgeStyle = 'text-primary hover:text-primary-hover hover:underline transition-colors font-mono font-bold text-xs inline-flex items-center gap-1.5 has-tooltip';
   if (variant === 'badge') {
     badgeStyle = 'inline-flex items-center gap-1 font-mono text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 px-2 py-0.5 rounded transition-all has-tooltip';
@@ -83,7 +92,7 @@ export default function DeliveryNoteLink({
 
   return (
     <a
-      href={pdfUrl}
+      href={previewUrl}
       target="_blank"
       rel="noopener noreferrer"
       className={`${badgeStyle} ${className}`}
