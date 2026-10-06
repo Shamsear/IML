@@ -10,10 +10,12 @@ import EmptyState from '@/components/EmptyState';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import Pagination from '@/components/Pagination';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function BrandsClient({ initialBrands }) {
   const router = useRouter();
   const toast = useToast();
+  const { isReadOnly } = usePermissions();
   const [brands, setBrands] = useState(initialBrands);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,16 +80,18 @@ export default function BrandsClient({ initialBrands }) {
             Manage active business brands and their client-facing settings.
           </p>
         </div>
-        <div className="has-tooltip">
-          <Link 
-            href="/dashboard/brands/new"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
-          >
-            <Plus size={16} />
-            <span>Add Brand</span>
-          </Link>
-          <span className="tooltip-box">Register new brand owner</span>
-        </div>
+        {!isReadOnly && (
+          <div className="has-tooltip">
+            <Link 
+              href="/dashboard/brands/new"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            >
+              <Plus size={16} />
+              <span>Add Brand</span>
+            </Link>
+            <span className="tooltip-box">Register new brand owner</span>
+          </div>
+        )}
       </header>
 
       <div className="flex flex-col gap-6">
@@ -131,8 +135,8 @@ export default function BrandsClient({ initialBrands }) {
                   icon={Tag}
                   title="No brands yet"
                   description="Brands represent your client operations. Register your first brand to start managing inventory."
-                  actionLabel="Add Brand"
-                  actionHref="/dashboard/brands/new"
+                  actionLabel={isReadOnly ? undefined : "Add Brand"}
+                  actionHref={isReadOnly ? undefined : "/dashboard/brands/new"}
                 />
               </div>
             )
@@ -173,7 +177,7 @@ export default function BrandsClient({ initialBrands }) {
                         href={`/dashboard/brands/${brand.id}`} 
                         className="text-[10px] sm:text-xs font-bold text-primary group-hover:underline flex-shrink-0 after:absolute after:inset-0 after:content-['']"
                       >
-                        Manage →
+                        {isReadOnly ? 'View →' : 'Manage →'}
                       </Link>
                     </div>
                     
@@ -186,31 +190,33 @@ export default function BrandsClient({ initialBrands }) {
                         {brand.rack || brand.shelf ? `${brand.rack || ''}${brand.rack && brand.shelf ? '/' : ''}${brand.shelf || ''}` : ''}
                       </span>
                       
-                      <div 
-                        className="flex items-center gap-1.5 sm:gap-2 relative z-20 flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="has-tooltip">
-                          <Link 
-                            href={`/dashboard/brands/${brand.id}/edit`}
-                            className="p-0.5 sm:p-1 hover:text-text-primary rounded transition-colors cursor-pointer inline-flex items-center justify-center"
-                          >
-                            <Edit2 size={11} />
-                          </Link>
-                          <span className="tooltip-box">Modify name or logo</span>
+                      {!isReadOnly && (
+                        <div 
+                          className="flex items-center gap-1.5 sm:gap-2 relative z-20 flex-shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="has-tooltip">
+                            <Link 
+                              href={`/dashboard/brands/${brand.id}/edit`}
+                              className="p-0.5 sm:p-1 hover:text-text-primary rounded transition-colors cursor-pointer inline-flex items-center justify-center"
+                            >
+                              <Edit2 size={11} />
+                            </Link>
+                            <span className="tooltip-box">Modify name or logo</span>
+                          </div>
+                          <div className="has-tooltip">
+                            <button 
+                              className="p-0.5 sm:p-1 hover:text-danger rounded transition-colors cursor-pointer"
+                              onClick={() => handleDelete(brand.id)}
+                              type="button"
+                              disabled={loading}
+                            >
+                              {loading ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                            </button>
+                            <span className="tooltip-box">Delete brand</span>
+                          </div>
                         </div>
-                        <div className="has-tooltip">
-                          <button 
-                            className="p-0.5 sm:p-1 hover:text-danger rounded transition-colors cursor-pointer"
-                            onClick={() => handleDelete(brand.id)}
-                            type="button"
-                            disabled={loading}
-                          >
-                            {loading ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                          </button>
-                          <span className="tooltip-box">Delete brand</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>

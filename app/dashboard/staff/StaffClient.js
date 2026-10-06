@@ -16,10 +16,12 @@ import Pagination from '@/components/Pagination';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function StaffClient({ initialStaff = [], stores = [] }) {
   const router = useRouter();
   const toast = useToast();
+  const { isReadOnly } = usePermissions();
   const [staffList, setStaffList] = useState(initialStaff || []);
   const [activeTab, setActiveTab] = useState('ledger'); // 'ledger' or 'promoters'
   const [mounted, setMounted] = useState(false);
@@ -438,7 +440,7 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
           <div className="flex flex-col gap-4">
             
             {/* Bulk Actions Bar */}
-            {selectedAllocIds.length > 0 && (
+            {!isReadOnly && selectedAllocIds.length > 0 && (
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3.5 flex items-center justify-between animate-slide-down shadow-sm">
                 <div className="flex items-center gap-2 text-xs text-text-primary font-bold">
                   <CheckCircle size={16} className="text-primary" />
@@ -524,7 +526,9 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <input type="checkbox" checked={selectedAllocIds.includes(alloc.id)} onChange={(e) => { if (e.target.checked) setSelectedAllocIds(prev => [...prev, alloc.id]); else setSelectedAllocIds(prev => prev.filter(id => id !== alloc.id)); }} className="w-4 h-4 rounded accent-primary cursor-pointer" disabled={isFullyReturned} />
+                            {!isReadOnly && (
+                              <input type="checkbox" checked={selectedAllocIds.includes(alloc.id)} onChange={(e) => { if (e.target.checked) setSelectedAllocIds(prev => [...prev, alloc.id]); else setSelectedAllocIds(prev => prev.filter(id => id !== alloc.id)); }} className="w-4 h-4 rounded accent-primary cursor-pointer" disabled={isFullyReturned} />
+                            )}
                             <span className="font-semibold text-sm text-text-primary">{alloc.staffName}</span>
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
@@ -559,27 +563,29 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                   <table className="min-w-full divide-y divide-border text-sm">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                        <th className="py-3 px-5 w-12 text-left">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
-                            checked={isAllSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                const activeIds = activeFilteredAllocations.map(a => a.id);
-                                setSelectedAllocIds(activeIds);
-                              } else {
-                                setSelectedAllocIds([]);
-                              }
-                            }}
-                          />
-                        </th>
+                        {!isReadOnly && (
+                          <th className="py-3 px-5 w-12 text-left">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
+                              checked={isAllSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const activeIds = activeFilteredAllocations.map(a => a.id);
+                                  setSelectedAllocIds(activeIds);
+                                } else {
+                                  setSelectedAllocIds([]);
+                                }
+                              }}
+                            />
+                          </th>
+                        )}
                         <SortableHeader field="promoter" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Promoter</SortableHeader>
                         <SortableHeader field="store" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Store Location</SortableHeader>
                         <SortableHeader field="items" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Allocated Items</SortableHeader>
                         <SortableHeader field="period" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Working Period</SortableHeader>
                         <SortableHeader field="issuedDate" currentField={allocSortField} direction={allocSortDirection} onSort={handleAllocSort} className="py-3 px-5">Issued Date</SortableHeader>
-                        <th className="py-3 px-5 text-right">Actions</th>
+                        {!isReadOnly && <th className="py-3 px-5 text-right">Actions</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -589,31 +595,33 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                         
                         return (
                           <tr key={alloc.id} className="hover:bg-surface-elevated/20 transition-colors">
-                            <td className="py-3.5 px-5 w-12">
-                              {!isFullyReturned ? (
-                                <input
-                                  type="checkbox"
-                                  className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
-                                  checked={selectedAllocIds.includes(alloc.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSelectedAllocIds(prev => [...prev, alloc.id]);
-                                    } else {
-                                      setSelectedAllocIds(prev => prev.filter(id => id !== alloc.id));
-                                    }
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              ) : (
-                                <input
-                                  type="checkbox"
-                                  disabled
-                                  checked
-                                  className="w-4 h-4 rounded text-success/40 accent-success/30 cursor-not-allowed"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              )}
-                            </td>
+                            {!isReadOnly && (
+                              <td className="py-3.5 px-5 w-12">
+                                {!isFullyReturned ? (
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded text-primary focus:ring-primary accent-primary cursor-pointer"
+                                    checked={selectedAllocIds.includes(alloc.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedAllocIds(prev => [...prev, alloc.id]);
+                                      } else {
+                                        setSelectedAllocIds(prev => prev.filter(id => id !== alloc.id));
+                                      }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                ) : (
+                                  <input
+                                    type="checkbox"
+                                    disabled
+                                    checked
+                                    className="w-4 h-4 rounded text-success/40 accent-success/30 cursor-not-allowed"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                )}
+                              </td>
+                            )}
                             <td className="py-3.5 px-5">
                               <div className="flex flex-col">
                                 <span className="font-semibold text-xs text-text-primary">{alloc.staffName}</span>
@@ -678,46 +686,48 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                             <td className="py-3.5 px-5 text-xs text-text-secondary font-mono whitespace-nowrap">
                               {new Date(alloc.givenDate).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </td>
-                            <td className="py-3.5 px-5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center gap-1.5 justify-end">
-                                <div className="has-tooltip">
-                                  <button
-                                    onClick={() => router.push(`/dashboard/staff/assign?id=${alloc.id}`)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold transition-colors cursor-pointer"
-                                    type="button"
-                                  >
-                                    <Edit2 size={10} /> <span>Edit</span>
-                                  </button>
-                                  <span className="tooltip-box tooltip-left">Edit assignment log</span>
-                                </div>
-                                {( !isFullyReturned ) ? (
+                            {!isReadOnly && (
+                              <td className="py-3.5 px-5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center gap-1.5 justify-end">
                                   <div className="has-tooltip">
                                     <button
-                                      onClick={() => openSingleReturnModal(alloc)}
-                                      className="px-2 py-1 bg-success hover:bg-success-hover text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
+                                      onClick={() => router.push(`/dashboard/staff/assign?id=${alloc.id}`)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-[10px] font-bold transition-colors cursor-pointer"
                                       type="button"
                                     >
-                                      Return / Mark Used
+                                      <Edit2 size={10} /> <span>Edit</span>
                                     </button>
-                                    <span className="tooltip-box tooltip-left">Mark items as returned or used</span>
+                                    <span className="tooltip-box tooltip-left">Edit assignment log</span>
                                   </div>
-                                ) : (
-                                  <span className="text-[10px] font-bold text-success uppercase tracking-wider block pr-2 animate-pulse">
-                                    Fully Returned
-                                  </span>
-                                )}
-                                <div className="has-tooltip">
-                                  <button
-                                    onClick={() => handleAllocationDelete(alloc.id)}
-                                    className="p-1.5 bg-danger/10 hover:bg-danger text-danger hover:text-white rounded transition-all cursor-pointer flex items-center justify-center"
-                                    type="button"
-                                  >
-                                    <Trash2 size={10} />
-                                  </button>
-                                  <span className="tooltip-box tooltip-left">Undo / Delete allocation</span>
+                                  {( !isFullyReturned ) ? (
+                                    <div className="has-tooltip">
+                                      <button
+                                        onClick={() => openSingleReturnModal(alloc)}
+                                        className="px-2 py-1 bg-success hover:bg-success-hover text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
+                                        type="button"
+                                      >
+                                        Return / Mark Used
+                                      </button>
+                                      <span className="tooltip-box tooltip-left">Mark items as returned or used</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-[10px] font-bold text-success uppercase tracking-wider block pr-2 animate-pulse">
+                                      Fully Returned
+                                    </span>
+                                  )}
+                                  <div className="has-tooltip">
+                                    <button
+                                      onClick={() => handleAllocationDelete(alloc.id)}
+                                      className="p-1.5 bg-danger/10 hover:bg-danger text-danger hover:text-white rounded transition-all cursor-pointer flex items-center justify-center"
+                                      type="button"
+                                    >
+                                      <Trash2 size={10} />
+                                    </button>
+                                    <span className="tooltip-box tooltip-left">Undo / Delete allocation</span>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
@@ -772,8 +782,8 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                   icon={Users}
                   title="No promoters yet"
                   description="Promoters are field staff who receive uniform assignments. Add your first promoter to get started."
-                  actionLabel="Add Promoter"
-                  actionHref="/dashboard/staff/assign"
+                  actionLabel={isReadOnly ? undefined : "Add Promoter"}
+                  actionHref={isReadOnly ? undefined : "/dashboard/staff/assign"}
                 />
               </div>
             ) : (
@@ -793,11 +803,13 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 pt-1.5 border-t border-border/40 text-[10px]" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} className="text-primary font-semibold hover:underline">Allocate</button>
-                      <button onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)} className="text-text-secondary hover:text-text-primary">Edit</button>
-                      <button onClick={() => handlePromoterDelete(staff.id)} className="text-danger/70 hover:text-danger ml-auto">Delete</button>
-                    </div>
+                    {!isReadOnly && (
+                      <div className="flex items-center gap-3 pt-1.5 border-t border-border/40 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} className="text-primary font-semibold hover:underline">Allocate</button>
+                        <button onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)} className="text-text-secondary hover:text-text-primary">Edit</button>
+                        <button onClick={() => handlePromoterDelete(staff.id)} className="text-danger/70 hover:text-danger ml-auto">Delete</button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -810,8 +822,8 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                   icon={Users}
                   title="No promoters yet"
                   description="Promoters are field staff who receive uniform assignments. Add your first promoter to get started."
-                  actionLabel="Add Promoter"
-                  actionHref="/dashboard/staff/assign"
+                  actionLabel={isReadOnly ? undefined : "Add Promoter"}
+                  actionHref={isReadOnly ? undefined : "/dashboard/staff/assign"}
                 />
               ) : (
                 <div className="overflow-x-auto">
@@ -823,7 +835,7 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                         <SortableHeader field="shirtSize" currentField={promoterSortField} direction={promoterSortDirection} onSort={handlePromoterSort} className="py-3 px-5">Shirt Size</SortableHeader>
                         <SortableHeader field="store" currentField={promoterSortField} direction={promoterSortDirection} onSort={handlePromoterSort} className="py-3 px-5">Current Store Placement</SortableHeader>
                         <SortableHeader field="uniformCount" currentField={promoterSortField} direction={promoterSortDirection} onSort={handlePromoterSort} className="py-3 px-5">Uniform Inventory</SortableHeader>
-                        <th className="py-3 px-5 text-right">Actions</th>
+                        {!isReadOnly && <th className="py-3 px-5 text-right">Actions</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -865,7 +877,12 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                               }).reduce((acc, a) => acc + (a.uniformReturned ? 0 : a.uniformQty) + (a.capReturned ? 0 : a.capQty), 0) || 0;
                               
                               const totalCount = staff.allocations?.reduce((acc, a) => acc + a.uniformQty + a.capQty, 0) || 0;
-                              return (
+                              return isReadOnly ? (
+                                <span className={`text-xs inline-flex items-center gap-1.5 font-semibold ${activeCount > 0 ? 'text-warning font-bold' : 'text-text-secondary'}`}>
+                                  <Shirt size={12} />
+                                  <span>{activeCount} active / {totalCount} total</span>
+                                </span>
+                              ) : (
                                 <button
                                   onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)}
                                   className={`text-xs inline-flex items-center gap-1.5 font-semibold hover:underline ${activeCount > 0 ? 'text-warning font-bold' : 'text-text-secondary'}`}
@@ -876,40 +893,42 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                               );
                             })()}
                           </td>
-                          <td className="py-3.5 px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="has-tooltip">
-                                <button 
-                                  className="p-1.5 hover:bg-primary/10 text-text-secondary hover:text-primary rounded-md transition-colors" 
-                                  onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} 
-                                  type="button"
-                                >
-                                  <Shirt size={13} />
-                                </button>
-                                <span className="tooltip-box tooltip-left">Allocate uniforms to promoter</span>
+                          {!isReadOnly && (
+                            <td className="py-3.5 px-5 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="has-tooltip">
+                                  <button 
+                                    className="p-1.5 hover:bg-primary/10 text-text-secondary hover:text-primary rounded-md transition-colors" 
+                                    onClick={() => router.push(`/dashboard/staff/assign?staffId=${staff.id}`)} 
+                                    type="button"
+                                  >
+                                    <Shirt size={13} />
+                                  </button>
+                                  <span className="tooltip-box tooltip-left">Allocate uniforms to promoter</span>
+                                </div>
+                                <div className="has-tooltip">
+                                  <button 
+                                    className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" 
+                                    onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)} 
+                                    type="button"
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                  <span className="tooltip-box tooltip-left">Edit promoter details</span>
+                                </div>
+                                <div className="has-tooltip">
+                                  <button 
+                                    className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" 
+                                    onClick={() => handlePromoterDelete(staff.id)} 
+                                    type="button"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                  <span className="tooltip-box tooltip-left">Delete promoter and records</span>
+                                </div>
                               </div>
-                              <div className="has-tooltip">
-                                <button 
-                                  className="p-1.5 hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-md transition-colors" 
-                                  onClick={() => router.push(`/dashboard/staff/assign?editStaffId=${staff.id}`)} 
-                                  type="button"
-                                >
-                                  <Edit2 size={13} />
-                                </button>
-                                <span className="tooltip-box tooltip-left">Edit promoter details</span>
-                              </div>
-                              <div className="has-tooltip">
-                                <button 
-                                  className="p-1.5 hover:bg-danger/10 text-text-secondary hover:text-danger rounded-md transition-colors" 
-                                  onClick={() => handlePromoterDelete(staff.id)}
-                                  type="button"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                                <span className="tooltip-box tooltip-left">Delete promoter and records</span>
-                              </div>
-                            </div>
-                          </td>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -1168,7 +1187,7 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                           )}
 
                           {/* Quick return button from timeline */}
-                          {!isFullyReturned && (
+                          {!isReadOnly && !isFullyReturned && (
                             <button
                               type="button"
                               onClick={() => {
@@ -1194,18 +1213,20 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
             </div>
 
             {/* Footer */}
-            <div className="p-5 border-t border-border bg-surface-elevated/20 flex justify-between items-center flex-shrink-0 font-sans">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPromoter(null);
-                  router.push(`/dashboard/staff/assign?editStaffId=${selectedPromoter.id}`);
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 border border-border bg-surface hover:bg-surface-elevated text-text-primary rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                <Edit2 size={13} />
-                <span>Edit Profile</span>
-              </button>
+            <div className={`p-5 border-t border-border bg-surface-elevated/20 flex ${isReadOnly ? 'justify-end' : 'justify-between'} items-center flex-shrink-0 font-sans`}>
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPromoter(null);
+                    router.push(`/dashboard/staff/assign?editStaffId=${selectedPromoter.id}`);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 border border-border bg-surface hover:bg-surface-elevated text-text-primary rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <Edit2 size={13} />
+                  <span>Edit Profile</span>
+                </button>
+              )}
               
               <div className="flex gap-2">
                 <button
@@ -1215,17 +1236,19 @@ export default function StaffClient({ initialStaff = [], stores = [] }) {
                 >
                   Close
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPromoter(null);
-                    router.push(`/dashboard/staff/assign?staffId=${selectedPromoter.id}`);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
-                >
-                  <Shirt size={13} />
-                  <span>Issue New Uniform</span>
-                </button>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPromoter(null);
+                      router.push(`/dashboard/staff/assign?staffId=${selectedPromoter.id}`);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                  >
+                    <Shirt size={13} />
+                    <span>Issue New Uniform</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
