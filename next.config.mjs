@@ -93,6 +93,11 @@ const nextConfig = {
       static: 30,
     },
   },
+  webpack: (config) => {
+    config.resolve.alias.canvas = false;
+    config.resolve.alias.encoding = false;
+    return config;
+  },
   async headers() {
     return [
       {

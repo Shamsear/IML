@@ -16,9 +16,11 @@ import CustomSelect from '@/components/CustomSelect';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function UsedClient({ transactions = [], stores = [], pastUsed = [] }) {
   const router = useRouter();
+  const { isReadOnly } = usePermissions();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const initialDN = searchParams.get('dn') || '';
@@ -329,7 +331,9 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                   <div key={tx.id} className={`bg-surface border rounded-xl p-4 flex flex-col gap-2.5 transition-all ${isSelected ? 'border-warning bg-warning/5' : 'border-border'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                        <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer mt-1 shrink-0" />
+                        {!isReadOnly && (
+                          <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer mt-1 shrink-0" />
+                        )}
                         {tx.product?.imageUrl ? (
                           <img
                             src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
@@ -352,7 +356,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                         )}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-sm text-warning hover:text-warning transition-colors break-words leading-snug">{tx.product?.name}</Link>
+                            <Link href={`/dashboard/products/${tx.product?.id}`} className="font-semibold text-warning hover:text-warning transition-colors break-words leading-snug">{tx.product?.name}</Link>
                             {tx.product?.isReturnable && tx.product?.isDisposable ? (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary tracking-wider">RETURNABLE &amp; USED</span>
                             ) : (
@@ -369,7 +373,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                       <span className="font-mono font-bold text-sm flex-shrink-0">{remainingQty}</span>
                     </div>
                     {tx.deliveryNote && <div className="mt-1"><DeliveryNoteLink tx={tx} /></div>}
-                    {isSelected && (
+                    {!isReadOnly && isSelected && (
                       <div className="pt-2 border-t border-border/50 flex flex-col gap-2">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-xs text-text-secondary font-semibold">Qty to Mark Used:</span>
@@ -395,17 +399,17 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
-                    <th className="py-2.5 sm:py-3 pl-4 sm:pl-5 pr-2 w-10 sticky left-0 bg-surface-elevated z-20"></th>
-                    <SortableHeader field="product" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 sticky left-10 bg-surface-elevated z-20 border-r border-border shadow-sm">Product</SortableHeader>
+                    {!isReadOnly && <th className="py-2.5 sm:py-3 pl-4 sm:pl-5 pr-2 w-10 sticky left-0 bg-surface-elevated z-20"></th>}
+                    <SortableHeader field="product" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className={`py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 sticky ${isReadOnly ? 'left-0' : 'left-10'} bg-surface-elevated z-20 border-r border-border shadow-sm`}>Product</SortableHeader>
                     <SortableHeader field="date" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Date &amp; DN</SortableHeader>
                     <SortableHeader field="store" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</SortableHeader>
-                    <SortableHeader field="available" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} align="right" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Qty to Mark</SortableHeader>
+                    <SortableHeader field="available" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} align="right" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">{isReadOnly ? 'Available Qty' : 'Qty to Mark'}</SortableHeader>
                     <SortableHeader field="remarks" currentField={txSortField} direction={txSortDirection} onSort={handleTxSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
                   {sortedTransactions.length === 0 ? (
-                    <tr><td colSpan="6" className="py-12 text-center text-text-muted">
+                    <tr><td colSpan={isReadOnly ? 5 : 6} className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No disposable items pending.</span></div>
                     </td></tr>
                   ) : paginatedTransactions.map(tx => {
@@ -413,8 +417,10 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                     const remainingQty = tx.quantity - (tx.returnedQty || 0);
                     return (
                       <tr key={tx.id} className={`transition-colors group/row ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/30'}`}>
-                        <td className="py-2.5 sm:py-3 pl-4 sm:pl-5 pr-2 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
-                        <td className="py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 min-w-[240px] sticky left-10 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm" title={tx.product?.name}>
+                        {!isReadOnly && (
+                          <td className="py-2.5 sm:py-3 pl-4 sm:pl-5 pr-2 sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10"><input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" /></td>
+                        )}
+                        <td className={`py-2.5 sm:py-3 pl-3 sm:pl-4 pr-3 sm:pr-5 min-w-[240px] sticky ${isReadOnly ? 'left-0' : 'left-10'} bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm`} title={tx.product?.name}>
                           <div className="flex items-center gap-2.5">
                             {tx.product?.imageUrl ? (
                               <img
@@ -459,7 +465,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-text-primary text-xs whitespace-nowrap">{stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown'}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary whitespace-nowrap">
-                          {isSelected ? (
+                          {!isReadOnly && isSelected ? (
                             <input
                               type="number"
                               min={1}
@@ -473,9 +479,13 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                           )}
                         </td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
-                          <input type="text" placeholder="Optional notes..." disabled={!isSelected}
-                            value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
-                            className="w-full min-w-[150px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
+                          {isReadOnly ? (
+                            <span className="text-xs text-text-secondary truncate block max-w-[200px]" title={tx.notes || ''}>{tx.notes || '—'}</span>
+                          ) : (
+                            <input type="text" placeholder="Optional notes..." disabled={!isSelected}
+                              value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
+                              className="w-full min-w-[150px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
+                          )}
                         </td>
                       </tr>
                     );
@@ -520,12 +530,14 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                     >
                       {/* Left: checkbox + chevron + info */}
                       <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
-                          className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-colors ${allSelected ? 'bg-warning border-warning' : someSelected ? 'bg-warning/30 border-warning' : 'border-border bg-surface'}`}
-                        >
-                          {(allSelected || someSelected) && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
-                        </div>
+                        {!isReadOnly && (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); handleSelectGroup(group); }}
+                            className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-colors ${allSelected ? 'bg-warning border-warning' : someSelected ? 'bg-warning/30 border-warning' : 'border-border bg-surface'}`}
+                          >
+                            {(allSelected || someSelected) && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
+                          </div>
+                        )}
                         {isExpanded ? <ChevronDown size={17} className="text-text-muted flex-shrink-0" /> : <ChevronRight size={17} className="text-text-muted flex-shrink-0" />}
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -538,15 +550,17 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                         </div>
                       </div>
                       {/* Right: action button */}
-                      <div className="flex flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectGroup(group)}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors whitespace-nowrap ${allSelected ? 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20' : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated/60'}`}
-                        >
-                          {allSelected ? 'Deselect All' : 'Select All'}
-                        </button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectGroup(group)}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors whitespace-nowrap ${allSelected ? 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20' : 'bg-surface-elevated text-text-secondary border-border hover:bg-surface-elevated/60'}`}
+                          >
+                            {allSelected ? 'Deselect All' : 'Select All'}
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {isExpanded && (
@@ -560,7 +574,9 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                               <div key={tx.id} className={`p-3 rounded-lg border flex flex-col gap-2 ${isSelected ? 'bg-warning/5 border-warning/30' : 'bg-surface border-border'}`}>
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                    <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer shrink-0" />
+                                    {!isReadOnly && (
+                                      <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer shrink-0" />
+                                    )}
                                     {tx.product?.imageUrl ? (
                                       <img
                                         src={getOptimizedImageUrl(tx.product.imageUrl, 80, 80)}
@@ -588,7 +604,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                   </div>
                                   <span className="font-mono font-bold text-xs shrink-0">{remainingQty} pcs</span>
                                 </div>
-                                {isSelected && (
+                                {!isReadOnly && isSelected && (
                                   <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="text-text-secondary font-semibold">Qty to Mark:</span>
@@ -620,9 +636,9 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                           <table className="min-w-full divide-y divide-border text-xs">
                             <thead>
                               <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
-                                <th className="py-2.5 pl-5 pr-3 w-10"></th>
+                                {!isReadOnly && <th className="py-2.5 pl-5 pr-3 w-10"></th>}
                                 <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Product</th>
-                                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">Qty to Mark</th>
+                                <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">{isReadOnly ? 'Available Qty' : 'Qty to Mark'}</th>
                                 <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</th>
                               </tr>
                             </thead>
@@ -632,9 +648,11 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                 const remainingQty = tx.quantity - (tx.returnedQty || 0);
                                 return (
                                   <tr key={tx.id} className={`transition-colors ${isSelected ? 'bg-warning/5' : 'hover:bg-surface-elevated/40'}`}>
-                                    <td className="py-2.5 pl-5 pr-3">
-                                      <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
-                                    </td>
+                                    {!isReadOnly && (
+                                      <td className="py-2.5 pl-5 pr-3">
+                                        <input type="checkbox" checked={isSelected} onChange={(e) => handleSelect(tx.id, e.target.checked)} className="w-4 h-4 rounded accent-warning cursor-pointer" />
+                                      </td>
+                                    )}
                                     <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-medium text-xs text-warning">
                                       <div className="flex items-center gap-2.5">
                                         {tx.product?.imageUrl ? (
@@ -666,7 +684,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                       </div>
                                     </td>
                                     <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right font-mono font-bold text-text-primary text-xs whitespace-nowrap">
-                                      {isSelected ? (
+                                      {!isReadOnly && isSelected ? (
                                         <input
                                           type="number"
                                           min={1}
@@ -680,9 +698,13 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                                       )}
                                     </td>
                                     <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">
-                                      <input type="text" placeholder="Notes..." disabled={!isSelected}
-                                        value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
-                                        className="w-full min-w-[120px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
+                                      {isReadOnly ? (
+                                        <span className="text-xs text-text-secondary truncate block max-w-[200px]" title={tx.notes || ''}>{tx.notes || '—'}</span>
+                                      ) : (
+                                        <input type="text" placeholder="Notes..." disabled={!isSelected}
+                                          value={selectedIds[tx.id]?.notes || ''} onChange={(e) => handleNotes(tx.id, e.target.value)}
+                                          className="w-full min-w-[120px] bg-surface text-text-primary border border-border rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 disabled:bg-surface-elevated" />
+                                      )}
                                     </td>
                                   </tr>
                                 );
@@ -784,9 +806,11 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                         </p>
                       )}
 
-                      <div className="flex items-center justify-end pt-2 border-t border-border/50 text-[11px]">
-                        <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex items-center justify-end pt-2 border-t border-border/50 text-[11px]">
+                          <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -803,12 +827,12 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                     <SortableHeader field="store" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Store</SortableHeader>
                     <SortableHeader field="quantity" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Consumed Qty</SortableHeader>
                     <SortableHeader field="notes" currentField={historySortField} direction={historySortDirection} onSort={handleHistorySort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions / Undo</th>
+                    {!isReadOnly && <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions / Undo</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {sortedHistory.length === 0 ? (
-                    <tr><td colSpan="6" className="py-12 text-center text-text-muted">
+                    <tr><td colSpan={isReadOnly ? 5 : 6} className="py-12 text-center text-text-muted">
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No consumed logs found.</span></div>
                     </td></tr>
                   ) : paginatedHistory.map(tx => {
@@ -851,9 +875,11 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 font-semibold text-xs text-text-secondary">{fromStore}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center font-mono font-bold text-warning">-{tx.quantity}</td>
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
-                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
-                          <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
-                        </td>
+                        {!isReadOnly && (
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
+                            <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -876,7 +902,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
           )}
 
           {/* Footer */}
-          {activeTab !== 'history' && (
+          {activeTab !== 'history' && !isReadOnly && (
             <div className="p-4 border-t border-border bg-surface flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex flex-col">
                 {error && <div className="text-danger text-xs font-bold flex items-center gap-1.5 mb-1 bg-danger/10 px-2 py-1 rounded"><AlertCircle size={14} /> {error}</div>}

@@ -290,14 +290,16 @@ export default function OutboundLedgerClient({
             ]}
             filename="IML-Outbound-Ledger"
           />
-          <Link 
-            href="/dashboard/outbound/new" 
-            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
-          >
-            <Plus size={16} />
-            <span className="hidden sm:inline">New Outbound Dispatch</span>
-            <span className="sm:hidden">New</span>
-          </Link>
+          {!isReadOnly && (
+            <Link 
+              href="/dashboard/outbound/new" 
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">New Outbound Dispatch</span>
+              <span className="sm:hidden">New</span>
+            </Link>
+          )}
         </>
       }
       />
@@ -484,7 +486,7 @@ export default function OutboundLedgerClient({
                         <SortableHeader field="quantity" currentField={outboundSortField} direction={outboundSortDirection} onSort={handleOutboundSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Quantity</SortableHeader>
                         <SortableHeader field="deliveryNote" currentField={outboundSortField} direction={outboundSortDirection} onSort={handleOutboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Delivery Note</SortableHeader>
                         <SortableHeader field="notes" currentField={outboundSortField} direction={outboundSortDirection} onSort={handleOutboundSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
-                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
+                        {!isReadOnly && <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
@@ -551,16 +553,18 @@ export default function OutboundLedgerClient({
                               <DeliveryNoteLink tx={tx} />
                             </td>
                             <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 max-w-xs truncate text-xs text-text-secondary" title={tx.notes || ''}>{tx.notes || '---'}</td>
-                            <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
-                              <TransactionActions
-                                txId={tx.id}
-                                notes={tx.notes || ''}
-                                deliveryNote={tx.deliveryNote || ''}
-                                showDeliveryNote={true}
-                                copyType="outbound"
-                                copyDnUrl={tx.deliveryNote ? `/dashboard/outbound/new?copyDn=${encodeURIComponent(tx.deliveryNote)}` : null}
-                              />
-                            </td>
+                            {!isReadOnly && (
+                              <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
+                                <TransactionActions
+                                  txId={tx.id}
+                                  notes={tx.notes || ''}
+                                  deliveryNote={tx.deliveryNote || ''}
+                                  showDeliveryNote={true}
+                                  copyType="outbound"
+                                  copyDnUrl={tx.deliveryNote ? `/dashboard/outbound/new?copyDn=${encodeURIComponent(tx.deliveryNote)}` : null}
+                                />
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
@@ -658,41 +662,45 @@ export default function OutboundLedgerClient({
                         className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0"
                         onClick={e => e.stopPropagation()}
                       >
-                        <button
-                          onClick={() => router.push(`/dashboard/outbound/${encodeURIComponent(group.deliveryNote)}/edit`)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
-                          title="Edit Outbound"
-                        >
-                          <Edit2 size={13} />
-                          <span className="hidden sm:inline">Edit</span>
-                        </button>
-                        <button
-                          onClick={() => router.push(`/dashboard/outbound/new?copyDn=${encodeURIComponent(group.deliveryNote)}`)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
-                          title="Duplicate"
-                        >
-                          <CopyPlus size={13} />
-                          <span className="hidden sm:inline">Duplicate</span>
-                        </button>
-                        {group.items.some(tx => tx.product?.isReturnable) && (
-                          <button
-                            onClick={() => router.push(`/dashboard/returns?dn=${encodeURIComponent(group.deliveryNote)}`)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
-                            title="Return Items"
-                          >
-                            <RotateCcw size={13} />
-                            <span className="hidden sm:inline">Return</span>
-                          </button>
-                        )}
-                        {group.items.some(tx => tx.product?.isDisposable) && (
-                          <button
-                            onClick={() => router.push(`/dashboard/used?dn=${encodeURIComponent(group.deliveryNote)}`)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
-                            title="Mark Items as Used"
-                          >
-                            <Trash2 size={13} />
-                            <span className="hidden sm:inline">Mark Used</span>
-                          </button>
+                        {!isReadOnly && (
+                          <>
+                            <button
+                              onClick={() => router.push(`/dashboard/outbound/${encodeURIComponent(group.deliveryNote)}/edit`)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                              title="Edit Outbound"
+                            >
+                              <Edit2 size={13} />
+                              <span className="hidden sm:inline">Edit</span>
+                            </button>
+                            <button
+                              onClick={() => router.push(`/dashboard/outbound/new?copyDn=${encodeURIComponent(group.deliveryNote)}`)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                              title="Duplicate"
+                            >
+                              <CopyPlus size={13} />
+                              <span className="hidden sm:inline">Duplicate</span>
+                            </button>
+                            {group.items.some(tx => tx.product?.isReturnable) && (
+                              <button
+                                onClick={() => router.push(`/dashboard/returns?dn=${encodeURIComponent(group.deliveryNote)}`)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                                title="Return Items"
+                              >
+                                <RotateCcw size={13} />
+                                <span className="hidden sm:inline">Return</span>
+                              </button>
+                            )}
+                            {group.items.some(tx => tx.product?.isDisposable) && (
+                              <button
+                                onClick={() => router.push(`/dashboard/used?dn=${encodeURIComponent(group.deliveryNote)}`)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 font-bold text-xs rounded-lg transition-colors whitespace-nowrap"
+                                title="Mark Items as Used"
+                              >
+                                <Trash2 size={13} />
+                                <span className="hidden sm:inline">Mark Used</span>
+                              </button>
+                            )}
+                          </>
                         )}
                         <a
                           href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/returns/delivery-note?date=${new Date(group.timestamp).toISOString().split('T')[0]}&dn=${encodeURIComponent(group.deliveryNote)}`)}&title=${encodeURIComponent(group.deliveryNote)}`}
@@ -716,7 +724,7 @@ export default function OutboundLedgerClient({
                               <th className="py-2.5 px-4">SKU</th>
                               <th className="py-2.5 px-4">Brand</th>
                               <th className="py-2.5 px-4 text-center">Qty</th>
-                              <th className="py-2.5 px-4 text-right">Actions</th>
+                              {!isReadOnly && <th className="py-2.5 px-4 text-right">Actions</th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border text-text-primary">
@@ -750,35 +758,37 @@ export default function OutboundLedgerClient({
                                 <td className="py-2.5 px-4 text-xs font-mono text-text-secondary whitespace-nowrap">{tx.product?.itemCode || '---'}</td>
                                 <td className="py-2.5 px-4 text-xs text-text-secondary whitespace-nowrap">{tx.product?.brand?.name || 'General'}</td>
                                 <td className="py-2.5 px-4 text-center font-mono text-xs font-bold text-primary whitespace-nowrap">-{tx.quantity}</td>
-                                <td className="py-2.5 px-4 text-right">
-                                  <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                    {tx.product?.isReturnable && (
-                                      <button
-                                        type="button"
-                                        onClick={() => router.push(`/dashboard/returns?dn=${encodeURIComponent(tx.deliveryNote || '')}`)}
-                                        className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] rounded-md transition-colors"
-                                      >
-                                        <RotateCcw size={10} /> Return
-                                      </button>
-                                    )}
-                                    {tx.product?.isDisposable && (
-                                      <button
-                                        type="button"
-                                        onClick={() => router.push(`/dashboard/used?dn=${encodeURIComponent(tx.deliveryNote || '')}`)}
-                                        className="inline-flex items-center gap-1 px-2 py-1 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 font-bold text-[10px] rounded-md transition-colors"
-                                      >
-                                        <Trash2 size={10} /> Mark Used
-                                      </button>
-                                    )}
-                                    <TransactionActions
-                                      txId={tx.id}
-                                      notes={tx.notes || ''}
-                                      deliveryNote={tx.deliveryNote || ''}
-                                      showDeliveryNote={true}
-                                      copyType="outbound"
-                                    />
-                                  </div>
-                                </td>
+                                {!isReadOnly && (
+                                  <td className="py-2.5 px-4 text-right">
+                                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                      {tx.product?.isReturnable && (
+                                        <button
+                                          type="button"
+                                          onClick={() => router.push(`/dashboard/returns?dn=${encodeURIComponent(tx.deliveryNote || '')}`)}
+                                          className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-bold text-[10px] rounded-md transition-colors"
+                                        >
+                                          <RotateCcw size={10} /> Return
+                                        </button>
+                                      )}
+                                      {tx.product?.isDisposable && (
+                                        <button
+                                          type="button"
+                                          onClick={() => router.push(`/dashboard/used?dn=${encodeURIComponent(tx.deliveryNote || '')}`)}
+                                          className="inline-flex items-center gap-1 px-2 py-1 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 font-bold text-[10px] rounded-md transition-colors"
+                                        >
+                                          <Trash2 size={10} /> Mark Used
+                                        </button>
+                                      )}
+                                      <TransactionActions
+                                        txId={tx.id}
+                                        notes={tx.notes || ''}
+                                        deliveryNote={tx.deliveryNote || ''}
+                                        showDeliveryNote={true}
+                                        copyType="outbound"
+                                      />
+                                    </div>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
