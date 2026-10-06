@@ -89,13 +89,10 @@ export default function BrandPortalClient({ brand }) {
               (remark && remark.toLowerCase().includes(q));
           });
 
-        const totalAvailable = items.reduce((acc, i) => acc + i.availableQty, 0);
-
         return {
           id: h.id || h.title,
           title: h.title,
           items,
-          totalAvailable,
         };
       }).filter(h => h.items.length > 0 || !q);
     }
@@ -130,13 +127,10 @@ export default function BrandPortalClient({ brand }) {
             (remark && remark.toLowerCase().includes(q));
         });
 
-      const totalAvailable = prods.reduce((acc, i) => acc + i.availableQty, 0);
-
       return {
         id: cat,
         title: cat,
         items: prods,
-        totalAvailable,
       };
     }).filter(h => h.items.length > 0);
   }, [brand?.portalConfig, brand?.products, productMap, summarySearch]);
@@ -355,13 +349,6 @@ export default function BrandPortalClient({ brand }) {
                         </h3>
                         <span className="text-[11px] font-bold text-text-muted bg-surface-elevated px-2 py-0.5 rounded-full border border-border/60">
                           {section.items.length} items
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-text-secondary font-semibold hidden xs:inline">Available:</span>
-                        <span className="font-mono font-black text-sm text-success bg-success/10 px-2.5 py-0.5 rounded-md border border-success/20">
-                          {section.totalAvailable}
                         </span>
                       </div>
                     </button>

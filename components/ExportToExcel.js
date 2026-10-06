@@ -217,7 +217,7 @@ export default function ExportToExcel({
       return { wch: Math.max(col.width || 12, headerWidth + 2, dataWidth + 2) };
     });
 
-    // 2. Inject Excel =IMAGE("url") formula
+    // 2. Inject Photo links or IMAGE formulas
     if (embedImages && hasImageCol) {
       exportRows.forEach((row, rIdx) => {
         columns.forEach((col, cIdx) => {
@@ -225,15 +225,17 @@ export default function ExportToExcel({
             const rawVal = row[col.key];
             const cellRef = XLSX.utils.encode_cell({ r: rIdx + 1, c: cIdx });
             if (rawVal && typeof rawVal === 'string' && (rawVal.startsWith('http://') || rawVal.startsWith('https://'))) {
+              // Write a universal HYPERLINK formula with clickable cell link and text fallback
               ws[cellRef] = {
                 t: 's',
-                f: `IMAGE("${rawVal}")`,
-                v: '',
+                f: `HYPERLINK("${rawVal}", "View Photo")`,
+                v: 'View Photo',
+                l: { Target: rawVal, Tooltip: 'Click to view product photo in browser' }
               };
             } else {
               ws[cellRef] = {
                 t: 's',
-                v: '',
+                v: '—',
               };
             }
           }
@@ -241,11 +243,11 @@ export default function ExportToExcel({
       });
     }
 
-    // 3. Row heights for image cells
+    // 3. Row heights
     if (embedImages && hasImageCol) {
       ws['!rows'] = [
-        { hpt: 26 },
-        ...exportRows.map(() => ({ hpt: 50 })),
+        { hpt: 24 },
+        ...exportRows.map(() => ({ hpt: 22 })),
       ];
     }
 
@@ -427,10 +429,10 @@ export default function ExportToExcel({
                   />
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-text-primary">
-                      Embed Product Photos in Excel
+                      Include Product Photo Links in Excel
                     </span>
                     <span className="text-[11px] text-text-muted">
-                      Uses Excel <code className="font-mono text-[10px] text-primary">=IMAGE(&quot;url&quot;)</code> formula for supported spreadsheets
+                      Adds clickable high-resolution photo links (<code className="font-mono text-[10px] text-primary">View Photo</code>) directly in the spreadsheet
                     </span>
                   </div>
                 </label>

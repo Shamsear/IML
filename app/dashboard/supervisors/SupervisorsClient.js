@@ -9,10 +9,12 @@ import EmptyState from '@/components/EmptyState';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import Pagination from '@/components/Pagination';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function SupervisorsClient({ initialSupervisors }) {
   const router = useRouter();
   const toast = useToast();
+  const { isReadOnly } = usePermissions();
   const [supervisors, setSupervisors] = useState(initialSupervisors);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSupervisor, setEditingSupervisor] = useState(null);
@@ -194,16 +196,18 @@ export default function SupervisorsClient({ initialSupervisors }) {
             Manage regional field supervisors responsible for operations and stock.
           </p>
         </div>
-        <div className="has-tooltip">
-          <button 
-            type="button"
-            onClick={openAddModal}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200 cursor-pointer"
-          >
-            <Plus size={16} /> <span>Add Supervisor</span>
-          </button>
-          <span className="tooltip-box">Register new team supervisor</span>
-        </div>
+        {!isReadOnly && (
+          <div className="has-tooltip">
+            <button 
+              type="button"
+              onClick={openAddModal}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors duration-200 cursor-pointer"
+            >
+              <Plus size={16} /> <span>Add Supervisor</span>
+            </button>
+            <span className="tooltip-box">Register new team supervisor</span>
+          </div>
+        )}
       </header>
 
       <div className="flex flex-col gap-6">
@@ -429,8 +433,8 @@ export default function SupervisorsClient({ initialSupervisors }) {
                     icon={UserCheck}
                     title="No supervisors yet"
                     description="Supervisors manage delivery operations between warehouse and stores. Add your first supervisor."
-                    actionLabel="Add Supervisor"
-                    onAction={openAddModal}
+                    actionLabel={isReadOnly ? undefined : "Add Supervisor"}
+                    onAction={isReadOnly ? undefined : openAddModal}
                   />
                 </div>
               )
@@ -438,13 +442,17 @@ export default function SupervisorsClient({ initialSupervisors }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
                 {paginatedSupervisors.map((supervisor) => (
                   <div 
-                    className="bg-surface border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-200 flex flex-col gap-4 group cursor-pointer" 
+                    className={`bg-surface border border-border rounded-xl p-5 shadow-sm transition-all duration-200 flex flex-col gap-4 group ${
+                      isReadOnly ? '' : 'hover:shadow-md hover:border-primary/40 cursor-pointer'
+                    }`} 
                     key={supervisor.id}
-                    onClick={() => openEditModal(supervisor)}
+                    onClick={() => {
+                      if (!isReadOnly) openEditModal(supervisor);
+                    }}
                   >
                     <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                       <div className="w-10 h-10 rounded-sm bg-primary/10 border border-primary/10 flex items-center justify-center">
-                        <UserCheck size={18} className="text-primary" />
+                         <UserCheck size={18} className="text-primary" />
                       </div>
                       <span className="badge bg-surface-elevated text-text-secondary border border-border text-[10px]">
                         {supervisor.staff?.length || 0} Placed Staff
@@ -465,22 +473,24 @@ export default function SupervisorsClient({ initialSupervisors }) {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-4 border-t border-border mt-2" onClick={(e) => e.stopPropagation()}>
-                      <button 
-                        type="button"
-                        onClick={() => openEditModal(supervisor)}
-                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors duration-200 cursor-pointer"
-                      >
-                        <Edit2 size={13} />
-                        <span>Edit</span>
-                      </button>
-                      <div className="has-tooltip">
-                        <button className="inline-flex items-center justify-center p-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 rounded-lg text-xs font-semibold transition-colors duration-200 cursor-pointer" onClick={() => handleDelete(supervisor.id)}>
-                          <Trash2 size={14} />
+                    {!isReadOnly && (
+                      <div className="flex gap-2 pt-4 border-t border-border mt-2" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          type="button"
+                          onClick={() => openEditModal(supervisor)}
+                          className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors duration-200 cursor-pointer"
+                        >
+                          <Edit2 size={13} />
+                          <span>Edit</span>
                         </button>
-                        <span className="tooltip-box">Remove supervisor profile</span>
+                        <div className="has-tooltip">
+                          <button className="inline-flex items-center justify-center p-2 bg-danger/10 hover:bg-danger text-danger hover:text-white border border-danger/20 rounded-lg text-xs font-semibold transition-colors duration-200 cursor-pointer" onClick={() => handleDelete(supervisor.id)}>
+                            <Trash2 size={14} />
+                          </button>
+                          <span className="tooltip-box">Remove supervisor profile</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>

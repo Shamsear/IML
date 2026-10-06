@@ -15,6 +15,10 @@ export const revalidate = 0;
 export default async function EditStorePage({ params }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
+  const role = session?.user?.role?.toUpperCase();
+  if (role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY') {
+    redirect('/dashboard/stores');
+  }
 
   const { id } = await params;
   const store = await prisma.store.findUnique({ where: { id } });

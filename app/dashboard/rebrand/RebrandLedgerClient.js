@@ -14,6 +14,7 @@ import CustomSelect from '@/components/CustomSelect';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function RebrandLedgerClient({
   transactions = [],
@@ -25,6 +26,7 @@ export default function RebrandLedgerClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const { isReadOnly } = usePermissions();
 
   const [lightboxImage, setLightboxImage] = useState(null);
 
@@ -378,7 +380,7 @@ export default function RebrandLedgerClient({
             data={filteredTransactions.map((tx) => ({
               _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
-              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', {
+              Date: new Date(tx.timestamp).toLocaleString('en-AE', {
                 timeZone: 'Asia/Dubai',
                 day: 'numeric',
                 month: 'short',
@@ -394,21 +396,19 @@ export default function RebrandLedgerClient({
               From: getFromName(tx),
               To: getToName(tx),
               Quantity: tx.quantity,
-              Barcodes: (tx.serialNumbers || []).map((s) => s.serialNumber?.barcode).filter(Boolean).join(', '),
               Notes: tx.notes || '',
             }))}
             columns={[
               { header: 'Image', key: 'Image', width: 16, isImage: true },
-              { header: 'Date', key: 'Date', width: 18 },
+              { header: 'Date', key: 'Date', width: 20 },
               { header: 'Delivery Note', key: 'Delivery Note', width: 22 },
               { header: 'Type', key: 'Type', width: 18 },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'SKU', key: 'SKU', width: 16 },
-              { header: 'From', key: 'From', width: 20 },
-              { header: 'To', key: 'To', width: 20 },
+              { header: 'From', key: 'From', width: 22 },
+              { header: 'To', key: 'To', width: 22 },
               { header: 'Quantity', key: 'Quantity', width: 10 },
-              { header: 'Barcodes', key: 'Barcodes', width: 22 },
               { header: 'Notes', key: 'Notes', width: 25 },
             ]}
             filename="IML-Rebrand-Ledger"

@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import { getProductsSlim } from '@/app/actions/products';
 import { getBrands } from '@/app/actions/brands';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import GiveBackClient from './GiveBackClient';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +15,13 @@ export const metadata = {
 };
 
 export default async function GiveBackPage({ searchParams }) {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect('/login');
+  const role = session?.user?.role?.toUpperCase();
+  if (role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY') {
+    redirect('/dashboard/rebrand');
+  }
+
   const params = await searchParams;
   const targetTxId = params?.txId || '';
   const targetDn = params?.dn || '';

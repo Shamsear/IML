@@ -13,6 +13,7 @@ export default withAuth(
         pathname.endsWith('/new') ||
         pathname.endsWith('/edit') ||
         pathname.includes('/edit/') ||
+        pathname.includes('/headings') ||
         pathname === '/dashboard/staff/assign' ||
         pathname === '/dashboard/rebrand/new' ||
         pathname === '/dashboard/rebrand/receive' ||

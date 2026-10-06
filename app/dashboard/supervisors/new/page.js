@@ -15,6 +15,10 @@ export const metadata = {
 export default async function NewSupervisorPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect('/login');
+  const role = session?.user?.role?.toUpperCase();
+  if (role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY') {
+    redirect('/dashboard/supervisors');
+  }
 
   return <NewSupervisorClient />;
 }

@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getStoreInventory } from '@/app/actions/transactions';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { 
   Store, MapPin, Globe, EyeOff, Users, 
   ClipboardCheck, ArrowLeft, Printer, Pencil
@@ -12,6 +14,10 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function StoreDetailPage({ params }) {
+  const session = await getServerSession(authOptions);
+  const role = session?.user?.role?.toUpperCase();
+  const isReadOnly = role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY';
+
   const { id } = await params;
   const pageSize = 15;
 
@@ -88,13 +94,6 @@ export default async function StoreDetailPage({ params }) {
 
   const groupedDispatches = Object.values(groupedDispatchesMap).sort((a, b) => b.date.localeCompare(a.date));
 
-  // Pagination lists and totals
-  const totalInvPages = Math.ceil(inventory.length / pageSize);
-  const paginatedInventory = inventory.slice((invPage - 1) * pageSize, invPage * pageSize);
-
-  const totalDispPages = Math.ceil(groupedDispatches.length / pageSize);
-  const paginatedDispatches = groupedDispatches.slice((dispPage - 1) * pageSize, dispPage * pageSize);
-
   return (
     <div className="flex flex-col gap-6">
       {/* Back & Print Row */}
@@ -105,13 +104,15 @@ export default async function StoreDetailPage({ params }) {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Link 
-            href={`/dashboard/stores/${id}/edit`} 
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors"
-          >
-            <Pencil size={14} />
-            <span>Edit Outlet</span>
-          </Link>
+          {!isReadOnly && (
+            <Link 
+              href={`/dashboard/stores/${id}/edit`} 
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs font-semibold transition-colors"
+            >
+              <Pencil size={14} />
+              <span>Edit Outlet</span>
+            </Link>
+          )}
           <a 
             href={`/pdf-preview?url=${encodeURIComponent(`/api/dashboard/stores/${id}/delivery-note`)}&title=${encodeURIComponent(`${store.name} Stock Statement`)}`} 
             target="_blank" 

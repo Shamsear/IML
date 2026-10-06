@@ -380,23 +380,21 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
             data={transactions.map(tx => ({
               _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
-              Barcode: tx.barcode,
               Product: tx.product?.name || '',
               Brand: tx.product?.brand?.name || '',
               Type: tx.transactionType || '',
               Quantity: tx.quantity,
               'Delivery Note': tx.deliveryNote || '',
-              Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai' }),
+              Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
             }))}
             columns={[
               { header: 'Image', key: 'Image', width: 16, isImage: true },
-              { header: 'Barcode', key: 'Barcode', width: 22 },
               { header: 'Product', key: 'Product', width: 25 },
               { header: 'Brand', key: 'Brand', width: 18 },
               { header: 'Type', key: 'Type', width: 16 },
               { header: 'Quantity', key: 'Quantity', width: 10 },
               { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
-              { header: 'Date', key: 'Date', width: 14 },
+              { header: 'Date', key: 'Date', width: 20 },
             ]}
             filename="IML-Client-Returns-Ledger"
           />

@@ -117,30 +117,46 @@ export default function TransactionsClient({
           </div>
           <div className="flex-shrink-0">
             <ExportToExcel
-              data={initialTransactions.map(tx => ({
-                _rawTimestamp: tx.timestamp,
-                Image: tx.product?.imageUrl || '',
-                Date: new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric' }),
-                Type: tx.transactionType,
-                Barcode: tx.barcode,
-                Product: tx.product?.name || '',
-                Brand: tx.product?.brand?.name || '',
-                Quantity: tx.quantity,
-                'From': tx.fromEntityType || '',
-                'To': tx.toEntityType || '',
-                'Delivery Note': tx.deliveryNote || '',
-                Notes: tx.notes || '',
-              }))}
+              data={initialTransactions.map(tx => {
+                const fromName = tx.fromEntityType === 'WAREHOUSE' 
+                  ? 'Warehouse' 
+                  : (tx.fromEntityType === 'SUPPLIER' 
+                      ? (tx.fromEntityId || 'Supplier') 
+                      : (entityNames[tx.fromEntityId] || tx.fromEntityId || tx.fromEntityType || '—'));
+                const toName = tx.toEntityType === 'WAREHOUSE' 
+                  ? 'Warehouse' 
+                  : (entityNames[tx.toEntityId] || tx.toEntityId || tx.toEntityType || '—');
+
+                return {
+                  _rawTimestamp: tx.timestamp,
+                  Image: tx.product?.imageUrl || '',
+                  Date: new Date(tx.timestamp).toLocaleString('en-AE', { 
+                    timeZone: 'Asia/Dubai', 
+                    day: 'numeric', 
+                    month: 'short', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }),
+                  Type: tx.transactionType,
+                  Product: tx.product?.name || '',
+                  Brand: tx.product?.brand?.name || '',
+                  Quantity: tx.quantity,
+                  'From': fromName,
+                  'To': toName,
+                  'Delivery Note': tx.deliveryNote || '',
+                  Notes: tx.notes || '',
+                };
+              })}
               columns={[
                 { header: 'Image', key: 'Image', width: 16, isImage: true },
-                { header: 'Date', key: 'Date', width: 18 },
+                { header: 'Date', key: 'Date', width: 20 },
                 { header: 'Type', key: 'Type', width: 16 },
-                { header: 'Barcode', key: 'Barcode', width: 22 },
                 { header: 'Product', key: 'Product', width: 25 },
                 { header: 'Brand', key: 'Brand', width: 18 },
                 { header: 'Quantity', key: 'Quantity', width: 10 },
-                { header: 'From', key: 'From', width: 14 },
-                { header: 'To', key: 'To', width: 14 },
+                { header: 'From', key: 'From', width: 22 },
+                { header: 'To', key: 'To', width: 22 },
                 { header: 'Delivery Note', key: 'Delivery Note', width: 20 },
                 { header: 'Notes', key: 'Notes', width: 25 },
               ]}
