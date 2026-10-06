@@ -13,6 +13,7 @@ export default function CustomSelect({
   required = false,
   className = '',
   size = 'md', // 'sm' or 'md'
+  searchable,
 }) {
   const [isOpen, setIsOpen]               = useState(false);
   const [search, setSearch]               = useState('');
@@ -73,11 +74,16 @@ export default function CustomSelect({
   }, [isOpen]);
 
   // ── Derived ──────────────────────────────────────────────────────────────
+  const showSearch = searchable !== undefined ? Boolean(searchable) : options.length > 5;
   const selectedOption = options.find((opt) => String(opt.value) === String(value));
 
-  const filteredOptions = options.filter((opt) =>
-    opt.label.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredOptions = options.filter((opt) => {
+    const q = search.toLowerCase();
+    return (
+      (opt.label && opt.label.toLowerCase().includes(q)) ||
+      (opt.description && opt.description.toLowerCase().includes(q))
+    );
+  });
 
   // ── Open / close helpers ─────────────────────────────────────────────────
   const open = useCallback(() => {
@@ -211,7 +217,10 @@ export default function CustomSelect({
               className="w-5 h-5 rounded border border-border bg-white object-contain flex-shrink-0"
             />
           )}
-          <span>{selectedOption ? selectedOption.label : placeholder}</span>
+          {selectedOption?.icon && (
+            <selectedOption.icon size={size === 'sm' ? 13 : 15} className="text-primary flex-shrink-0" />
+          )}
+          <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
           {selectedOption && (() => {
             const optionCount = selectedOption.count !== undefined 
               ? selectedOption.count 
@@ -255,6 +264,8 @@ export default function CustomSelect({
         <div
           ref={dropdownRef}
           role="listbox"
+          tabIndex={-1}
+          onKeyDown={handleSearchKeyDown}
           style={{
             position: 'absolute',
             top:   `${coords.top}px`,
@@ -262,22 +273,24 @@ export default function CustomSelect({
             width: `${coords.width}px`,
             zIndex: 99999,
           }}
-          className="bg-surface border border-border rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-down max-h-[260px]"
+          className="bg-surface border border-border rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-down max-h-[260px] focus:outline-none"
         >
           {/* Search bar */}
-          <div className="p-2 border-b border-border bg-surface-elevated/20 flex items-center gap-1.5 flex-shrink-0">
-            <Search size={13} className="text-text-muted flex-shrink-0" />
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder="Search or use ↑ ↓ Enter…"
-              className="w-full bg-transparent text-xs text-text-primary focus:outline-none placeholder:text-text-muted"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              autoFocus
-            />
-          </div>
+          {showSearch && (
+            <div className="p-2 border-b border-border bg-surface-elevated/20 flex items-center gap-1.5 flex-shrink-0">
+              <Search size={13} className="text-text-muted flex-shrink-0" />
+              <input
+                ref={searchRef}
+                type="text"
+                placeholder="Search or use ↑ ↓ Enter…"
+                className="w-full bg-transparent text-xs text-text-primary focus:outline-none placeholder:text-text-muted"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                autoFocus
+              />
+            </div>
+          )}
 
           {/* Options list */}
           <div ref={listRef} className="flex-1 overflow-y-auto py-1 max-h-[210px]">
@@ -309,7 +322,7 @@ export default function CustomSelect({
                         : 'text-text-secondary hover:bg-surface-elevated'
                     }`}
                   >
-                    <span className="truncate flex items-center gap-2">
+                    <span className="flex items-center gap-2.5 min-w-0">
                       {opt.imageUrl && (
                         <img
                           src={opt.imageUrl}
@@ -317,7 +330,15 @@ export default function CustomSelect({
                           className="w-5 h-5 rounded border border-border bg-white object-contain flex-shrink-0"
                         />
                       )}
-                      <span>{opt.label}</span>
+                      {opt.icon && (
+                        <opt.icon size={15} className={`flex-shrink-0 ${isSelected ? 'text-primary' : 'text-text-muted'}`} />
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className={`truncate ${opt.description ? 'font-semibold' : ''}`}>{opt.label}</span>
+                        {opt.description && (
+                          <span className="text-[10px] text-text-muted leading-tight truncate">{opt.description}</span>
+                        )}
+                      </div>
                     </span>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {(() => {

@@ -28,6 +28,7 @@ import {
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/Toast';
 import { createUser, updateUser, deleteUser, getUsers } from '@/app/actions/users';
+import CustomSelect from '@/components/CustomSelect';
 
 function copyToClipboard(text) {
   if (navigator?.clipboard?.writeText) {
@@ -878,54 +879,35 @@ export default function SettingsClient({ config, user, initialUsers = [] }) {
                 </span>
               </div>
 
-              {/* Role Selection */}
-              <div className="flex flex-col gap-2 pt-1">
+              {/* Role Selection Dropdown */}
+              <div className="flex flex-col gap-1.5 pt-1">
                 <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
                   Access Role *
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <label className={`flex flex-col p-3 rounded-xl border cursor-pointer transition-all ${
-                    createForm.role === 'VIEWER' 
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary/30' 
-                      : 'border-border bg-surface-elevated/20 hover:border-border/80'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="createRole"
-                        value="VIEWER"
-                        checked={createForm.role === 'VIEWER'}
-                        onChange={() => setCreateForm(prev => ({ ...prev, role: 'VIEWER' }))}
-                        className="text-primary focus:ring-primary"
-                      />
-                      <span className="font-bold text-xs text-text-primary">Read-Only Viewer</span>
-                    </div>
-                    <span className="text-[11px] text-text-muted mt-1 pl-5">
-                      Full view, audit, search &amp; export. Strictly zero write permissions.
-                    </span>
-                  </label>
-
-                  <label className={`flex flex-col p-3 rounded-xl border cursor-pointer transition-all ${
-                    createForm.role === 'ADMIN' 
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary/30' 
-                      : 'border-border bg-surface-elevated/20 hover:border-border/80'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="createRole"
-                        value="ADMIN"
-                        checked={createForm.role === 'ADMIN'}
-                        onChange={() => setCreateForm(prev => ({ ...prev, role: 'ADMIN' }))}
-                        className="text-primary focus:ring-primary"
-                      />
-                      <span className="font-bold text-xs text-text-primary">Administrator</span>
-                    </div>
-                    <span className="text-[11px] text-text-muted mt-1 pl-5">
-                      Full access to create, edit, delete data, and manage settings.
-                    </span>
-                  </label>
-                </div>
+                <CustomSelect
+                  options={[
+                    {
+                      value: 'VIEWER',
+                      label: 'Read-Only Viewer',
+                      description: 'Zero write permissions. View, audit, search & export only.',
+                      icon: Shield,
+                    },
+                    {
+                      value: 'ADMIN',
+                      label: 'Administrator',
+                      description: 'Full access to create, edit, delete data & manage system.',
+                      icon: ShieldCheck,
+                    },
+                  ]}
+                  value={createForm.role}
+                  onChange={(val) => setCreateForm(prev => ({ ...prev, role: val }))}
+                  searchable={false}
+                />
+                <span className="text-[11px] text-text-muted">
+                  {createForm.role === 'VIEWER' 
+                    ? 'Viewer accounts can audit and export data, but cannot edit or delete anything.' 
+                    : 'Administrators have unrestricted access across all system settings and records.'}
+                </span>
               </div>
 
               {/* Footer Buttons */}
@@ -1168,30 +1150,50 @@ export default function SettingsClient({ config, user, initialUsers = [] }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-                    Role
+                    Access Role
                   </label>
-                  <select
+                  <CustomSelect
+                    options={[
+                      {
+                        value: 'VIEWER',
+                        label: 'Read-Only Viewer',
+                        description: 'Zero write permissions',
+                        icon: Shield,
+                      },
+                      {
+                        value: 'ADMIN',
+                        label: 'Administrator',
+                        description: 'Full system permissions',
+                        icon: ShieldCheck,
+                      },
+                    ]}
                     value={editForm.role}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
-                    className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary"
-                  >
-                    <option value="VIEWER">Read-Only Viewer</option>
-                    <option value="ADMIN">Administrator</option>
-                  </select>
+                    onChange={(val) => setEditForm(prev => ({ ...prev, role: val }))}
+                    searchable={false}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
                     Account Status
                   </label>
-                  <select
-                    value={editForm.isActive ? "true" : "false"}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, isActive: e.target.value === "true" }))}
-                    className="w-full bg-surface-elevated/40 text-text-primary border border-border rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-primary"
-                  >
-                    <option value="true">Active (Can Login)</option>
-                    <option value="false">Disabled (Suspended)</option>
-                  </select>
+                  <CustomSelect
+                    options={[
+                      {
+                        value: 'true',
+                        label: 'Active (Can Login)',
+                        description: 'Account enabled',
+                      },
+                      {
+                        value: 'false',
+                        label: 'Disabled (Suspended)',
+                        description: 'Access locked',
+                      },
+                    ]}
+                    value={String(editForm.isActive)}
+                    onChange={(val) => setEditForm(prev => ({ ...prev, isActive: val === 'true' }))}
+                    searchable={false}
+                  />
                 </div>
               </div>
 
