@@ -15,50 +15,43 @@ export default async function InboundPage({ searchParams }) {
   const page = parseInt(params?.page || '1', 10);
   const pageSize = 25;
 
-  // Query all RECEIVE or RETURN transactions with skip and take
-  const [transactions, totalCount] = await Promise.all([
-    prisma.inventoryTransaction.findMany({
-      where: {
-        transactionType: { in: ['RECEIVE', 'RETURN'] },
-      },
-      select: {
-        id: true,
-        transactionType: true,
-        fromEntityType: true,
-        fromEntityId: true,
-        quantity: true,
-        deliveryNote: true,
-        timestamp: true,
-        notes: true,
-        product: {
-          select: {
-            id: true,
-            name: true,
-            itemCode: true,
-            category: true,
-            imageUrl: true,
-            brandId: true,
-            brand: {
-              select: {
-                name: true
-              }
+  // Query all RECEIVE or RETURN transactions
+  const transactions = await prisma.inventoryTransaction.findMany({
+    where: {
+      transactionType: { in: ['RECEIVE', 'RETURN'] },
+    },
+    select: {
+      id: true,
+      transactionType: true,
+      fromEntityType: true,
+      fromEntityId: true,
+      quantity: true,
+      deliveryNote: true,
+      timestamp: true,
+      notes: true,
+      receivedBy: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          category: true,
+          imageUrl: true,
+          brandId: true,
+          brand: {
+            select: {
+              name: true
             }
           }
         }
-      },
-      orderBy: {
-        timestamp: 'desc',
-      },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.inventoryTransaction.count({
-      where: {
-        transactionType: { in: ['RECEIVE', 'RETURN'] },
       }
-    })
-  ]);
+    },
+    orderBy: {
+      timestamp: 'desc',
+    },
+  });
 
+  const totalCount = transactions.length;
   const totalPages = Math.ceil(totalCount / pageSize);
 
   const [stores, supervisors, staffList, brands] = await Promise.all([

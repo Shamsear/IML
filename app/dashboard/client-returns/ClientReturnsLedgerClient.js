@@ -531,7 +531,7 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
       {activeTab === 'returned-flat' && renderFlatTransactions(filteredReturnedTxs)}
 
       {/* Bottom Pagination */}
-      {isGroupedView ? (
+      {isGroupedView && (
         <Pagination
           currentPage={groupPage}
           totalPages={totalGroupPages}
@@ -540,34 +540,6 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
           onPageChange={handleGroupPageChange}
           itemLabel="Gate Pass batches"
         />
-      ) : (
-        totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 bg-surface border border-border rounded-xl shadow-sm text-xs print:hidden">
-            <span className="text-text-muted">
-              Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{' '}
-              <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{' '}
-              <strong className="text-text-primary">{totalCount}</strong> transactions
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => changePage(page - 1)}
-                disabled={page <= 1}
-                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() => changePage(page + 1)}
-                disabled={page >= totalPages}
-                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-50 text-text-secondary disabled:hover:bg-surface rounded-lg font-semibold transition-all cursor-pointer"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )
       )}
 
       <ImageLightbox image={lightboxImage} onClose={() => setLightboxImage(null)} />

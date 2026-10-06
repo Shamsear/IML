@@ -84,7 +84,6 @@ export default async function RebrandPage({ searchParams }) {
         orderBy: {
           timestamp: 'desc',
         },
-        take: 500,
       }),
       prisma.inventoryTransaction.count({
         where: {

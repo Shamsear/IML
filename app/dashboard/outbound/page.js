@@ -55,6 +55,7 @@ export default async function OutboundPage({ searchParams }) {
               itemCode: true,
               imageUrl: true,
               brandId: true,
+              category: true,
               isReturnable: true,
               isDisposable: true,
               brand: {
@@ -75,7 +76,6 @@ export default async function OutboundPage({ searchParams }) {
         orderBy: {
           timestamp: 'desc',
         },
-        take: 1000,
       }),
       prisma.store.findMany({
         select: { id: true, name: true },

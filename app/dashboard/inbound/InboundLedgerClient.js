@@ -43,8 +43,33 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
   const [brandId, setBrandId] = useState(''); // '' = all brands
   const [categoryFilter, setCategoryFilter] = useState(''); // '' = all categories
 
-  // Search filter for Receive Notes Tab
+  // Pagination for Transactions Tab
+  const itemsPerPage = 25;
+  const initialPage = page || (searchParams ? parseInt(searchParams.get('page') || '1', 10) : 1);
+  const [currentPage, setCurrentPage] = useState(initialPage > 0 ? initialPage : 1);
+
+  // Search filter and Pagination for Receive Notes Tab
   const [dnSearch, setDnSearch] = useState('');
+  const [groupPage, setGroupPage] = useState(1);
+  const groupsPerPage = 25;
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [productFilter, brandId, categoryFilter]);
+
+  React.useEffect(() => {
+    setGroupPage(1);
+  }, [dnSearch]);
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      params.set('page', String(newPage));
+      window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
+    }
+  };
 
   // Expand state for Receive Notes
   const [expandedDn, setExpandedDn] = useState({});
@@ -106,13 +131,27 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
 
   // Filtered transactions for the Ledger tab
   const filteredTransactions = useMemo(() => {
+    const q = productFilter.trim().toLowerCase();
     return (transactions || []).filter(tx => {
-      const matchProduct = (tx.product?.name || '').toLowerCase().includes(productFilter.toLowerCase());
       const matchBrand = brandId ? tx.product?.brandId === brandId : true;
+      if (!matchBrand) return false;
+
       const matchCategory = categoryFilter ? tx.product?.category === categoryFilter : true;
-      return matchProduct && matchBrand && matchCategory;
+      if (!matchCategory) return false;
+
+      if (!q) return true;
+
+      const prodName = (tx.product?.name || '').toLowerCase();
+      const prodCode = (tx.product?.itemCode || '').toLowerCase();
+      const brandName = (tx.product?.brand?.name || '').toLowerCase();
+      const catName = (tx.product?.category || '').toLowerCase();
+      const dn = (tx.deliveryNote || '').toLowerCase();
+      const sourceName = (tx.fromEntityType === 'STORE' ? (entityNames?.[tx.fromEntityId] || tx.fromEntityId || '') : (tx.fromEntityId || '')).toLowerCase();
+      const notes = (tx.notes || '').toLowerCase();
+
+      return prodName.includes(q) || prodCode.includes(q) || brandName.includes(q) || catName.includes(q) || dn.includes(q) || sourceName.includes(q) || notes.includes(q);
     });
-  }, [transactions, productFilter, brandId, categoryFilter]);
+  }, [transactions, productFilter, brandId, categoryFilter, entityNames]);
 
   const inboundGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
@@ -132,10 +171,26 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
     handleSort: handleInboundSort,
   } = useTableSort(filteredTransactions, 'date', 'desc', inboundGetters);
 
-  const filteredGroups = deliveryNotesGroups.filter(g => 
-    g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) || 
-    g.sourceName.toLowerCase().includes(dnSearch.toLowerCase())
-  );
+  const totalLedgerPages = Math.ceil(sortedTransactions.length / itemsPerPage);
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return sortedTransactions.slice(start, start + itemsPerPage);
+  }, [sortedTransactions, currentPage, itemsPerPage]);
+
+  const filteredGroups = useMemo(() => {
+    const q = dnSearch.trim().toLowerCase();
+    return deliveryNotesGroups.filter(g => 
+      !q ||
+      g.deliveryNote.toLowerCase().includes(q) || 
+      g.sourceName.toLowerCase().includes(q)
+    );
+  }, [deliveryNotesGroups, dnSearch]);
+
+  const totalGroupPages = Math.ceil(filteredGroups.length / groupsPerPage);
+  const paginatedGroups = useMemo(() => {
+    const start = (groupPage - 1) * groupsPerPage;
+    return filteredGroups.slice(start, start + groupsPerPage);
+  }, [filteredGroups, groupPage, groupsPerPage]);
 
   return (
     <div className="flex flex-col gap-6 relative">
@@ -257,18 +312,15 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
           </div>
 
           {/* Top Pagination */}
-          {totalPages > 1 && !productFilter && !brandId && !categoryFilter && (
-            <div className="flex items-center justify-between px-5 py-3 border border-border bg-surface rounded-xl shadow-sm text-xs print:hidden">
-              <span className="text-text-muted">
-                Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{" "}
-                <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{" "}
-                <strong className="text-text-primary">{totalCount}</strong> receipts
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Link href={`/dashboard/inbound?page=${Math.max(1, page - 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}>Previous</Link>
-                <Link href={`/dashboard/inbound?page=${Math.min(totalPages, page + 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === totalPages ? 'pointer-events-none opacity-50' : ''}`}>Next</Link>
-              </div>
-            </div>
+          {totalLedgerPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalLedgerPages}
+              totalItems={sortedTransactions.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              itemLabel="receipts"
+            />
           )}
 
           {/* Mobile Card View */}
@@ -279,7 +331,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
             </div>
           ) : (
             <div className="md:hidden flex flex-col gap-3">
-              {sortedTransactions.map((tx) => {
+              {paginatedTransactions.map((tx) => {
                 const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const sourceName = tx.fromEntityType === 'STORE' ? `Store: ${entityNames[tx.fromEntityId] || tx.fromEntityId}` : `Supplier: ${tx.fromEntityId || '---'}`;
                 return (
@@ -357,7 +409,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-text-primary">
-                      {sortedTransactions.map((tx) => {
+                      {paginatedTransactions.map((tx) => {
                         const dateStr = new Date(tx.timestamp).toLocaleDateString('en-AE', { timeZone: 'Asia/Dubai',
                           day: 'numeric', month: 'short', year: 'numeric',
                           hour: '2-digit', minute: '2-digit'
@@ -429,17 +481,16 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                   </table>
                 </ScrollableTable>
 
-                {totalPages > 1 && !productFilter && !brandId && (
-                  <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">
-                    <span className="text-text-muted">
-                      Showing <strong className="text-text-primary">{(page - 1) * 25 + 1}</strong> to{" "}
-                      <strong className="text-text-primary">{Math.min(page * 25, totalCount)}</strong> of{" "}
-                      <strong className="text-text-primary">{totalCount}</strong> receipts
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <Link href={`/dashboard/inbound?page=${Math.max(1, page - 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}>Previous</Link>
-                      <Link href={`/dashboard/inbound?page=${Math.min(totalPages, page + 1)}`} className={`px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary rounded-lg font-semibold transition-all duration-200 ${page === totalPages ? 'pointer-events-none opacity-50' : ''}`}>Next</Link>
-                    </div>
+                {totalLedgerPages > 1 && (
+                  <div className="p-4 border-t border-border bg-surface-elevated/20">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalLedgerPages}
+                      totalItems={sortedTransactions.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={handlePageChange}
+                      itemLabel="receipts"
+                    />
                   </div>
                 )}
               </>
@@ -470,7 +521,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                 <h3 className="font-display font-bold text-lg text-text-primary">No Receive Notes found</h3>
               </div>
             ) : (
-              filteredGroups.map(group => {
+              paginatedGroups.map(group => {
                 const groupKey = `${group.deliveryNote}_${group.sourceId || 'unknown'}`;
                 const isExpanded = expandedDn[groupKey];
                 const isGroupReturn = group.deliveryNote?.startsWith('RET-') || 
@@ -606,6 +657,19 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
               })
             )}
           </div>
+
+          {totalGroupPages > 1 && (
+            <div className="pt-2">
+              <Pagination
+                currentPage={groupPage}
+                totalPages={totalGroupPages}
+                totalItems={filteredGroups.length}
+                itemsPerPage={groupsPerPage}
+                onPageChange={setGroupPage}
+                itemLabel="Receive Notes"
+              />
+            </div>
+          )}
         </div>
       )}
 

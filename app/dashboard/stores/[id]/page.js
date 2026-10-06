@@ -52,7 +52,6 @@ export default async function StoreDetailPage({ params }) {
       orderBy: {
         timestamp: 'desc'
       },
-      take: 200,
     })
   ]);
 

@@ -87,7 +87,6 @@ export default async function ReturnsPage({ searchParams }) {
           }
         },
         orderBy: { timestamp: 'desc' },
-        take: 500,
       }),
       prisma.store.findMany({
         select: { id: true, name: true },
@@ -126,7 +125,6 @@ export default async function ReturnsPage({ searchParams }) {
           }
         },
         orderBy: { timestamp: 'desc' },
-        take: 500
       }),
       prisma.supervisor.findMany({
         select: { id: true, name: true },

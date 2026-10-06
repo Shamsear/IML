@@ -795,7 +795,6 @@ export async function getProductDetail(id) {
         _count: { select: { serialNumbers: true, transactions: true } },
         transactions: {
           orderBy: { timestamp: 'desc' },
-          take: 100,
           select: {
             id: true,
             transactionType: true,
@@ -815,7 +814,6 @@ export async function getProductDetail(id) {
         },
         serialNumbers: {
           orderBy: { createdAt: 'desc' },
-          take: 200,
           select: {
             id: true,
             barcode: true,

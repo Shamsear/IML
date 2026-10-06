@@ -61,7 +61,6 @@ export default async function ClientReturnsPage({ searchParams }) {
       orderBy: {
         timestamp: 'desc',
       },
-      take: 1000,
     }),
     prisma.inventoryTransaction.count({
       where: whereClause

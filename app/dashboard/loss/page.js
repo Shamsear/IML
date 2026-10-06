@@ -16,36 +16,32 @@ export default async function LossPage({ searchParams }) {
 
   const whereClause = { transactionType: 'LOST' };
 
-  const [transactions, totalCount] = await Promise.all([
-    prisma.inventoryTransaction.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        transactionType: true,
-        quantity: true,
-        fromEntityType: true,
-        fromEntityId: true,
-        timestamp: true,
-        notes: true,
-        deliveryNote: true,
-        product: {
-          select: {
-            id: true,
-            name: true,
-            itemCode: true,
-            category: true,
-            imageUrl: true,
-            brandId: true,
-            brand: { select: { id: true, name: true } }
-          }
+  const transactions = await prisma.inventoryTransaction.findMany({
+    where: whereClause,
+    select: {
+      id: true,
+      transactionType: true,
+      quantity: true,
+      fromEntityType: true,
+      fromEntityId: true,
+      timestamp: true,
+      notes: true,
+      deliveryNote: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          category: true,
+          imageUrl: true,
+          brandId: true,
+          brand: { select: { id: true, name: true } }
         }
-      },
-      orderBy: { timestamp: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.inventoryTransaction.count({ where: whereClause })
-  ]);
+      }
+    },
+    orderBy: { timestamp: 'desc' },
+  });
+  const totalCount = transactions.length;
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
