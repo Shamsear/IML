@@ -19,6 +19,14 @@ export default withAuth(
         pathname === '/dashboard/rebrand/give-back' ||
         pathname === '/dashboard/rebrand/revert';
 
+      const isSettingsPath =
+        pathname === '/dashboard/settings' ||
+        pathname.startsWith('/dashboard/settings/');
+
+      if (isSettingsPath) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+
       if (isWritePath) {
         // Redirect to the corresponding list view
         const segments = pathname.split('/').filter(Boolean);

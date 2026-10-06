@@ -72,12 +72,28 @@ const navSections = [
   },
 ];
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function DashboardNav({ collapsed }) {
   const pathname = usePathname();
   const currentPath = pathname || '';
   const activeItemRef = useRef(null);
+  const { isReadOnly } = usePermissions();
+
+  const visibleSections = useMemo(() => {
+    return navSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          if (isReadOnly && item.href.startsWith('/dashboard/settings')) {
+            return false;
+          }
+          return true;
+        }),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [isReadOnly]);
 
   // Auto-scroll active item into view on reload or route change
   useEffect(() => {
@@ -92,7 +108,7 @@ export default function DashboardNav({ collapsed }) {
 
   return (
     <nav className="flex flex-col gap-6">
-      {navSections.map((section) => (
+      {visibleSections.map((section) => (
         <div key={section.label} className="flex flex-col gap-1.5">
           {/* Section label — always rendered, fades */}
           <span className={`px-3 text-[11px] font-bold tracking-wider text-text-muted uppercase transition-opacity duration-200 whitespace-nowrap overflow-hidden ${collapsed ? 'opacity-0 h-0 px-0 py-0 mb-0 pointer-events-none' : 'opacity-100'}`}>

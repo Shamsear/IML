@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, Loader2 } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 /**
  * Delete button with confirmation dialog.
@@ -15,10 +16,15 @@ import { Trash2, Loader2 } from 'lucide-react';
  * @param {string} [props.size] - 'sm' or 'md' (default: 'sm')
  */
 export default function DeleteButton({ onDelete, itemName = 'this item', className = '', size = 'sm' }) {
+  const { isReadOnly } = usePermissions();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
+
+  if (isReadOnly) {
+    return null;
+  }
 
   useEffect(() => {
     setMounted(true);

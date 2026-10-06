@@ -14,6 +14,12 @@ export default async function SettingsPage() {
     redirect('/login');
   }
 
+  const role = session.user?.role?.toUpperCase();
+  const isReadOnly = role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY';
+  if (isReadOnly) {
+    redirect('/dashboard');
+  }
+
   // Safely extract environment metadata without leaking keys to client side
   const databaseUrl = process.env.DATABASE_URL || '';
   let databaseHost = 'Not Configured';

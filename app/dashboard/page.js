@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { 
   Tag, Package, Store, Users, FolderGit, 
   ArrowRight, ArrowDownLeft, ArrowUpRight, ShieldAlert, 
-  RefreshCw, TrendingUp, AlertTriangle
+  RefreshCw, TrendingUp, AlertTriangle, Eye, History, Shirt, BarChart3, Compass
 } from 'lucide-react';
 import Link from 'next/link';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
@@ -19,6 +19,9 @@ export default async function DashboardPage() {
   if (!session) {
     redirect('/login');
   }
+
+  const role = session.user?.role?.toUpperCase();
+  const isReadOnly = role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY';
 
   const [
     brandCount,
@@ -58,7 +61,12 @@ export default async function DashboardPage() {
     { name: 'Staff', count: promoterCount, icon: Users, color: 'text-danger bg-danger/10 border-danger/20', href: '/dashboard/staff' },
   ];
 
-  const quickActions = [
+  const quickActions = isReadOnly ? [
+    { label: 'Audit Ledger Logs', desc: 'Review movement history', href: '/dashboard/transactions', icon: History, color: 'text-primary bg-primary/10 border-primary/20 hover:border-primary/40' },
+    { label: 'Products Inventory', desc: 'Browse catalog stock & SKUs', href: '/dashboard/products', icon: Package, color: 'text-secondary bg-secondary/10 border-secondary/20 hover:border-secondary/40' },
+    { label: 'Staff Allocations', desc: 'View uniforms & staff logs', href: '/dashboard/staff', icon: Shirt, color: 'text-warning bg-warning/10 border-warning/20 hover:border-warning/40' },
+    { label: 'Operational Reports', desc: 'Analytics and report exports', href: '/dashboard/reports', icon: BarChart3, color: 'text-success bg-success/10 border-success/20 hover:border-success/40' },
+  ] : [
     { label: 'Receive Stock', desc: 'Log inbound inventory', href: '/dashboard/inbound', icon: ArrowDownLeft, color: 'text-success bg-success/10 border-success/20 hover:border-success/40' },
     { label: 'Dispatch Stock', desc: 'Issue to store or staff', href: '/dashboard/outbound', icon: ArrowUpRight, color: 'text-primary bg-primary/10 border-primary/20 hover:border-primary/40' },
     { label: 'Rebrand Items', desc: 'Swap product labels', href: '/dashboard/rebrand', icon: RefreshCw, color: 'text-secondary bg-secondary/10 border-secondary/20 hover:border-secondary/40' },
@@ -67,6 +75,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Read-Only Notice Banner */}
+      {isReadOnly && (
+        <div className="bg-primary/10 border border-primary/20 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 animate-fade-in shadow-xs">
+          <div className="w-9 h-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
+            <Eye size={18} />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold text-text-primary">Read-Only Viewer Account</span>
+            <span className="text-[11px] text-text-secondary mt-0.5">
+              You are signed in with read-only permissions. All catalog items, ledger records, and operational reports are available for review and export. Data creation and editing features are disabled.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
@@ -123,7 +146,7 @@ export default async function DashboardPage() {
               href="/dashboard/brands" 
               className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover transition-colors"
             >
-              <span>Manage Brands</span>
+              <span>{isReadOnly ? 'Browse Brands' : 'Manage Brands'}</span>
               <ArrowRight size={14} />
             </Link>
           </div>
@@ -133,9 +156,11 @@ export default async function DashboardPage() {
               <div className="py-12 text-center flex flex-col items-center gap-3 text-text-muted col-span-2">
                 <Tag size={36} className="stroke-[1.5]" />
                 <p className="text-sm">No brands registered yet.</p>
-                <Link href="/dashboard/brands" className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-hover shadow-xs transition-all duration-150">
-                  Register First Brand
-                </Link>
+                {!isReadOnly && (
+                  <Link href="/dashboard/brands" className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-hover shadow-xs transition-all duration-150">
+                    Register First Brand
+                  </Link>
+                )}
               </div>
             ) : (
               brands.map((brand) => (
@@ -179,8 +204,14 @@ export default async function DashboardPage() {
           {/* Quick Actions Card */}
           <div className="bg-surface border border-border rounded-xl p-5 flex flex-col gap-4">
             <div className="flex items-center gap-2 pb-3 border-b border-border">
-              <ShieldAlert size={18} className="text-secondary" />
-              <h3 className="font-display font-bold text-base text-text-primary">Quick Actions</h3>
+              {isReadOnly ? (
+                <Compass size={18} className="text-primary" />
+              ) : (
+                <ShieldAlert size={18} className="text-secondary" />
+              )}
+              <h3 className="font-display font-bold text-base text-text-primary">
+                {isReadOnly ? 'Quick Navigation' : 'Quick Actions'}
+              </h3>
             </div>
             
             <div className="flex flex-col gap-2.5">

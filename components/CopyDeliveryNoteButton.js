@@ -3,9 +3,13 @@
 import { useState } from 'react';
 import { CopyPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function CopyDeliveryNoteButton({ type, noteType = 'Delivery' }) {
   const router = useRouter();
+  const { isReadOnly } = usePermissions();
+
+  if (isReadOnly) return null;
 
   const handleCopy = () => {
     const dn = window.prompt(`Enter the ${noteType} Note number you want to copy:`);

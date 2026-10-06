@@ -24,12 +24,14 @@ import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import SortableHeader from '@/components/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const shirtSizes = ['Small', 'Medium', 'Large', 'Xl', 'X-large', 'Xref', 'Xxl'];
 
 export default function ProductsClient({ initialProducts, brands, stores = [] }) {
   const router = useRouter();
   const toast = useToast();
+  const { isReadOnly } = usePermissions();
   const [products, setProducts] = useState(initialProducts);
   const [activePanel, setActivePanel] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -591,25 +593,29 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
               ]}
               filename="IML-Products"
             />
-            <div className="has-tooltip">
-              <button 
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap" 
-                onClick={openCSVModal}
-                type="button"
-              >
-                <Upload size={13} /> <span>Import CSV</span>
-              </button>
-              <span className="tooltip-box">Import catalog items via CSV</span>
-            </div>
-            <div className="has-tooltip">
-              <Link 
-                href="/dashboard/products/new" 
-                className="inline-flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
-              >
-                <Plus size={14} /> <span>Add Product</span>
-              </Link>
-              <span className="tooltip-box">Create a new catalog item</span>
-            </div>
+            {!isReadOnly && (
+              <>
+                <div className="has-tooltip">
+                  <button 
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2.5 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap" 
+                    onClick={openCSVModal}
+                    type="button"
+                  >
+                    <Upload size={13} /> <span>Import CSV</span>
+                  </button>
+                  <span className="tooltip-box">Import catalog items via CSV</span>
+                </div>
+                <div className="has-tooltip">
+                  <Link 
+                    href="/dashboard/products/new" 
+                    className="inline-flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2.5 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 whitespace-nowrap"
+                  >
+                    <Plus size={14} /> <span>Add Product</span>
+                  </Link>
+                  <span className="tooltip-box">Create a new catalog item</span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </header>

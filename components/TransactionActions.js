@@ -7,15 +7,21 @@ import { deleteTransaction } from '@/app/actions/transactions';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getTransactionNoteName } from '@/lib/transactionHelpers';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function TransactionActions({ txId, deliveryNote, notes, showDeliveryNote, copyType = 'inbound', transactionType = null }) {
   const router = useRouter();
+  const { isReadOnly } = usePermissions();
 
   // Delete state
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [mounted, setMounted] = useState(false);
+
+  if (isReadOnly) {
+    return null;
+  }
 
   useEffect(() => {
     setMounted(true);

@@ -234,11 +234,28 @@ function PDFPreviewContent() {
         )}
 
         {blobUrl && !loading && !error && (
-          <iframe
-            src={blobUrl}
+          <object
+            data={`${blobUrl}#view=FitH`}
+            type="application/pdf"
             style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-            title={title}
-          />
+          >
+            <iframe
+              src={`${blobUrl}#view=FitH`}
+              style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+              title={title}
+            >
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#334155', color: '#fff', padding: '30px', textAlign: 'center' }}>
+                <p style={{ marginBottom: '16px', fontSize: '15px', fontWeight: 600 }}>Your browser does not support inline PDF previews.</p>
+                <a
+                  href={blobUrl}
+                  download={`${title}.pdf`}
+                  style={{ display: 'inline-block', padding: '10px 20px', background: '#2563eb', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontWeight: 700 }}
+                >
+                  Download PDF Instead
+                </a>
+              </div>
+            </iframe>
+          </object>
         )}
       </div>
     </div>
