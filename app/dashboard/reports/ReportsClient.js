@@ -118,18 +118,30 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
   );
 
   // Aggregate global metrics across the filtered list
-  const aggregateTotals = filteredProducts.reduce((acc, p) => {
-    acc.purchased += p.stock.purchased;
-    acc.warehouse += p.stock.warehouse;
-    acc.issued += p.stock.issued;
-    acc.used += p.stock.used;
-    acc.damage += p.stock.damage;
-    acc.lost += p.stock.lost;
-    acc.withClient += p.stock.withClient;
-    acc.reBrand += p.stock.reBrand;
-    acc.total += p.stock.total;
+  const rawAggregateTotals = filteredProducts.reduce((acc, p) => {
+    acc.purchased += Number(p.stock.purchased) || 0;
+    acc.warehouse += Number(p.stock.warehouse) || 0;
+    acc.issued += Number(p.stock.issued) || 0;
+    acc.used += Number(p.stock.used) || 0;
+    acc.damage += Number(p.stock.damage) || 0;
+    acc.lost += Number(p.stock.lost) || 0;
+    acc.withClient += Number(p.stock.withClient) || 0;
+    acc.reBrand += Number(p.stock.reBrand) || 0;
+    acc.total += Number(p.stock.total) || 0;
     return acc;
   }, { purchased: 0, warehouse: 0, issued: 0, used: 0, damage: 0, lost: 0, withClient: 0, reBrand: 0, total: 0 });
+
+  const aggregateTotals = {
+    purchased: Math.round(rawAggregateTotals.purchased),
+    warehouse: Math.round(rawAggregateTotals.warehouse),
+    issued: Math.round(rawAggregateTotals.issued),
+    used: Math.round(rawAggregateTotals.used),
+    damage: Math.round(rawAggregateTotals.damage),
+    lost: Math.round(rawAggregateTotals.lost),
+    withClient: Math.round(rawAggregateTotals.withClient),
+    reBrand: Math.round(rawAggregateTotals.reBrand),
+    total: Math.round(rawAggregateTotals.total),
+  };
 
   const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
   const paginatedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);

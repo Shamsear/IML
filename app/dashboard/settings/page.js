@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { getUsers } from '@/app/actions/users';
 import SettingsClient from './SettingsClient';
 
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,13 @@ export default async function SettingsPage() {
     }
   }
 
+  const [initialUsers] = await Promise.all([
+    getUsers().catch(err => {
+      console.error('Failed to load users in settings:', err);
+      return [];
+    }),
+  ]);
+
   const config = {
     imageKitStatus: !!process.env.IMAGEKIT_PRIVATE_KEY && !!process.env.IMAGEKIT_URL_ENDPOINT ? 'Configured' : 'Missing',
     imageKitEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || 'Not Set',
@@ -43,5 +51,5 @@ export default async function SettingsPage() {
     adminUsername: process.env.ADMIN_USERNAME || 'admin'
   };
 
-  return <SettingsClient config={config} user={session.user} />;
+  return <SettingsClient config={config} user={session.user} initialUsers={initialUsers} />;
 }

@@ -24,6 +24,7 @@ export async function GET(request) {
         name: true,
         email: true,
         role: true,
+        clearPassword: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -60,9 +61,9 @@ export async function POST(request) {
       );
     }
 
-    if (password.length < 8) {
+    if (password.length < 4) {
       return NextResponse.json(
-        { error: 'Password must be at least 8 characters' },
+        { error: 'Password must be at least 4 characters' },
         { status: 400 }
       );
     }
@@ -90,11 +91,12 @@ export async function POST(request) {
     // Create user
     const user = await prisma.user.create({
       data: {
-        username,
-        name,
-        email: email || null,
+        username: username.trim(),
+        name: name.trim(),
+        email: email ? email.trim() : null,
         password: hashedPassword,
-        role: role || 'ADMIN',
+        clearPassword: password.trim(),
+        role: (role || 'VIEWER').toUpperCase(),
         isActive: true
       },
       select: {
@@ -103,6 +105,7 @@ export async function POST(request) {
         name: true,
         email: true,
         role: true,
+        clearPassword: true,
         isActive: true,
         createdAt: true,
       }

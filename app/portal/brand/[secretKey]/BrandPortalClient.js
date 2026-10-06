@@ -76,7 +76,7 @@ export default function BrandPortalClient({ brand }) {
 
             return {
               product: p,
-              availableQty: stock.warehouse,
+              availableQty: Math.round(stock.warehouse),
               stockLevel,
               remark,
               stock,
@@ -114,7 +114,7 @@ export default function BrandPortalClient({ brand }) {
 
           return {
             product: p,
-            availableQty: stock.warehouse,
+            availableQty: Math.round(stock.warehouse),
             stockLevel,
             remark,
             stock,
@@ -332,6 +332,9 @@ export default function BrandPortalClient({ brand }) {
             ) : (
               summarySections.map(section => {
                 const isExpanded = summarySearch.trim() ? true : !!expandedSections[section.id];
+                const sectionTotalQty = Math.round(
+                  section.items.reduce((sum, it) => sum + (Number(it.availableQty) || 0), 0)
+                );
                 return (
                   <div key={section.id} className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden transition-colors">
                     {/* Section Heading Bar */}
@@ -348,7 +351,7 @@ export default function BrandPortalClient({ brand }) {
                           {section.title}
                         </h3>
                         <span className="text-[11px] font-bold text-text-muted bg-surface-elevated px-2 py-0.5 rounded-full border border-border/60">
-                          {section.items.length} items
+                          {sectionTotalQty} {sectionTotalQty === 1 ? 'item' : 'items'}
                         </span>
                       </div>
                     </button>

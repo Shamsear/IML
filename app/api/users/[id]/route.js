@@ -60,24 +60,26 @@ export async function PATCH(request, { params }) {
 
     const { id } = await params;
     const body = await request.json();
-    const { name, email, password, role, isActive } = body;
+    const { username, name, email, password, role, isActive } = body;
 
     // Build update data
     const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (email !== undefined) updateData.email = email || null;
-    if (role !== undefined) updateData.role = role;
+    if (username !== undefined) updateData.username = username.trim();
+    if (name !== undefined) updateData.name = name.trim();
+    if (email !== undefined) updateData.email = email ? email.trim() : null;
+    if (role !== undefined) updateData.role = role.toUpperCase();
     if (isActive !== undefined) updateData.isActive = isActive;
 
     // Hash new password if provided
     if (password) {
-      if (password.length < 8) {
+      if (password.length < 4) {
         return NextResponse.json(
-          { error: 'Password must be at least 8 characters' },
+          { error: 'Password must be at least 4 characters' },
           { status: 400 }
         );
       }
-      updateData.password = await hashPassword(password);
+      updateData.password = await hashPassword(password.trim());
+      updateData.clearPassword = password.trim();
     }
 
     const user = await prisma.user.update({
@@ -89,6 +91,7 @@ export async function PATCH(request, { params }) {
         name: true,
         email: true,
         role: true,
+        clearPassword: true,
         isActive: true,
         updatedAt: true,
       }
