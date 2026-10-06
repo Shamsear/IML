@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Download, Calendar, Clock, X, Check, FileSpreadsheet, Sparkles, Filter, ChevronDown } from 'lucide-react';
+import { Download, Calendar, Clock, X, Check, FileSpreadsheet, Sparkles, Filter, ChevronDown, CheckSquare, Square } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 /**
@@ -70,7 +70,7 @@ function toDateTimeLocalString(date) {
 }
 
 /**
- * Reusable Export to Excel component with Date & Time filtering modal and IMAGE formula support.
+ * Reusable Export to Excel component with Date & Time filtering modal, Column Selector, and HYPERLINK photo support.
  */
 export default function ExportToExcel({
   data = [],
@@ -85,6 +85,16 @@ export default function ExportToExcel({
   const [fromDateTime, setFromDateTime] = useState('');
   const [toDateTime, setToDateTime] = useState('');
   const [embedImages, setEmbedImages] = useState(true);
+  
+  // Selected columns state (defaults to all columns)
+  const [selectedColumnKeys, setSelectedColumnKeys] = useState(() => 
+    columns.map(c => c.key || c.header)
+  );
+
+  // Sync selected columns when `columns` prop changes
+  useEffect(() => {
+    setSelectedColumnKeys(columns.map(c => c.key || c.header));
+  }, [columns]);
 
   // Check if any column is an image column
   const isImageColumn = (col) =>
@@ -188,24 +198,43 @@ export default function ExportToExcel({
     setToDateTime(toDateTimeLocalString(end));
   };
 
+  const toggleColumn = (key) => {
+    setSelectedColumnKeys(prev => {
+      if (prev.includes(key)) {
+        if (prev.length === 1) return prev; // Keep at least one column
+        return prev.filter(k => k !== key);
+      } else {
+        return [...prev, key];
+      }
+    });
+  };
+
+  const selectAllColumns = () => {
+    setSelectedColumnKeys(columns.map(c => c.key || c.header));
+  };
+
   const executeExport = () => {
     const exportRows = filteredData;
     if (!exportRows.length || !columns.length) return;
 
+    // Filter active columns based on user column selection
+    const activeColumns = columns.filter(c => selectedColumnKeys.includes(c.key || c.header));
+    if (!activeColumns.length) return;
+
     // Build worksheet data without internal keys starting with _
     const rows = exportRows.map((row) => {
       const obj = {};
-      columns.forEach((col) => {
+      activeColumns.forEach((col) => {
         obj[col.header] = row[col.key] ?? '';
       });
       return obj;
     });
 
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows, { header: columns.map((c) => c.header) });
+    const ws = XLSX.utils.json_to_sheet(rows, { header: activeColumns.map((c) => c.header) });
 
     // 1. Column widths
-    ws['!cols'] = columns.map((col) => {
+    ws['!cols'] = activeColumns.map((col) => {
       if (isImageColumn(col)) {
         return { wch: col.width || 16 };
       }
@@ -217,10 +246,10 @@ export default function ExportToExcel({
       return { wch: Math.max(col.width || 12, headerWidth + 2, dataWidth + 2) };
     });
 
-    // 2. Inject Photo links or IMAGE formulas
+    // 2. Inject Photo links
     if (embedImages && hasImageCol) {
       exportRows.forEach((row, rIdx) => {
-        columns.forEach((col, cIdx) => {
+        activeColumns.forEach((col, cIdx) => {
           if (isImageColumn(col)) {
             const rawVal = row[col.key];
             const cellRef = XLSX.utils.encode_cell({ r: rIdx + 1, c: cIdx });
@@ -305,8 +334,8 @@ export default function ExportToExcel({
                   <h3 className="font-bold text-base text-text-primary">Export to Excel</h3>
                   <p className="text-xs text-text-secondary">
                     {dateStats.hasDates 
-                      ? 'Filter by specific date & time or export current table view' 
-                      : 'Export matching records to an Excel workbook'}
+                      ? 'Filter by date, time range, and select columns to include' 
+                      : 'Customize columns and export records to Excel'}
                   </p>
                 </div>
               </div>
@@ -321,8 +350,8 @@ export default function ExportToExcel({
             {/* Modal Body */}
             <div className="p-5 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
               
-              {/* Date Filtering Options (if date records exist) */}
-              {dateStats.hasDates ? (
+              {/* 1. Date & Time Filtering Options (if date records exist) */}
+              {dateStats.hasDates && (
                 <div className="flex flex-col gap-3">
                   <label className="text-xs font-bold uppercase tracking-wider text-text-secondary">
                     Date & Time Filter Range
@@ -412,14 +441,53 @@ export default function ExportToExcel({
                   )}
 
                 </div>
-              ) : (
-                <div className="p-3 bg-surface-elevated border border-border rounded-xl text-xs text-text-secondary">
-                  Exporting {data.length} records to spreadsheet.
-                </div>
               )}
 
-              {/* Product Images Embed Option */}
-              {hasImageCol && (
+              {/* 2. Select Columns Section */}
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-text-secondary">
+                    Select Columns ({selectedColumnKeys.length} of {columns.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={selectAllColumns}
+                    className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    Select All
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-3 bg-surface-elevated/50 border border-border rounded-xl max-h-36 overflow-y-auto">
+                  {columns.map((col) => {
+                    const key = col.key || col.header;
+                    const isSelected = selectedColumnKeys.includes(key);
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleColumn(key)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-left cursor-pointer border ${
+                          isSelected
+                            ? 'bg-primary/10 border-primary/30 text-primary font-semibold'
+                            : 'bg-surface border-border text-text-muted hover:text-text-primary'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <CheckSquare size={13} className="text-primary shrink-0" />
+                        ) : (
+                          <Square size={13} className="text-text-muted shrink-0" />
+                        )}
+                        <span className="truncate">{col.header}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Product Photo Links Option */}
+              {hasImageCol && selectedColumnKeys.some(k => k === 'Image' || k === 'imageUrl' || k === 'Photo') && (
                 <label className="flex items-center gap-3 p-3 bg-surface-elevated/40 border border-border rounded-xl cursor-pointer hover:bg-surface-elevated/80 transition-colors">
                   <input
                     type="checkbox"
@@ -467,7 +535,7 @@ export default function ExportToExcel({
               <button
                 type="button"
                 onClick={executeExport}
-                disabled={filteredData.length === 0}
+                disabled={filteredData.length === 0 || selectedColumnKeys.length === 0}
                 className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Download size={14} />

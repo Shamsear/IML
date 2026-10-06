@@ -21,6 +21,8 @@ export async function GET(request) {
     const brandIdQuery = searchParams.get('brandId') || 'ALL';
     const categoryQuery = searchParams.get('category') || 'ALL';
     const searchQuery = searchParams.get('search') || '';
+    const colsQuery = searchParams.get('cols');
+    const visibleCols = colsQuery ? colsQuery.split(',') : null;
 
     // Fetch Brand and Category metadata
     let brandName = 'All Brands';
@@ -37,6 +39,7 @@ export async function GET(request) {
         select: {
           id: true,
           name: true,
+          imageUrl: true,
           itemCode: true,
           category: true,
           brandId: true,
@@ -170,6 +173,7 @@ export async function GET(request) {
         products={filteredProducts}
         summary={summary}
         showImages={showImages}
+        visibleCols={visibleCols}
       />
     );
 

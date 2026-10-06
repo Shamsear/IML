@@ -15,12 +15,14 @@ import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ClientReturnsLedgerClient({ transactions, totalCount, totalPages, page, brands }) {
   const router = useRouter();
   const toast = useToast();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isReadOnly } = usePermissions();
 
   const [lightboxImage, setLightboxImage] = useState(null);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dispatched');

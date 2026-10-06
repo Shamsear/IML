@@ -1,8 +1,10 @@
 import { getProductsSlim } from '@/app/actions/products';
 import { getBrands } from '@/app/actions/brands';
 import { getTransactionsByDeliveryNote } from '@/app/actions/transactions';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect, notFound } from 'next/navigation';
 import ClientReturnsClient from '../../ClientReturnsClient';
-import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -14,6 +16,13 @@ export const metadata = {
 };
 
 export default async function EditClientReturnPage({ params }) {
+  const session = await getServerSession(authOptions);
+  if (!session) redirect('/login');
+  const role = session?.user?.role?.toUpperCase();
+  if (role === 'VIEWER' || role === 'READ_ONLY' || role === 'READONLY') {
+    redirect('/dashboard/client-returns');
+  }
+
   const { dn } = await params;
   const decodedDn = decodeURIComponent(dn);
 

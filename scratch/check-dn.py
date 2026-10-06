@@ -3,7 +3,9 @@ from dotenv import dotenv_values
 
 env = dotenv_values('.env')
 db_url = env.get('DATABASE_URL')
-conn = psycopg2.connect(db_url)
+if 'sslmode=' in db_url:
+    db_url = db_url.split('?')[0] + '?sslmode=require'
+conn = psycopg2.connect(db_url, sslmode='verify-full', sslrootcert='system')
 cur = conn.cursor()
 
 cur.execute("""

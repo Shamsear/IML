@@ -413,27 +413,31 @@ export default function RebrandLedgerClient({
             ]}
             filename="IML-Rebrand-Ledger"
           />
-          <Link
-            href="/dashboard/rebrand/receive"
-            className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-success/10 hover:bg-success/20 text-success border border-success/30 font-semibold text-xs sm:text-sm rounded-lg transition-all duration-200 whitespace-nowrap cursor-pointer"
-          >
-            <ArrowDownLeft size={16} />
-            <span>Receive Stock</span>
-          </Link>
-          <Link
-            href="/dashboard/rebrand/give-back"
-            className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 font-semibold text-xs sm:text-sm rounded-lg transition-all duration-200 whitespace-nowrap cursor-pointer"
-          >
-            <RotateCcw size={16} />
-            <span>Give Back</span>
-          </Link>
-          <Link
-            href="/dashboard/rebrand/new"
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-sm hover:shadow transition-all duration-200 whitespace-nowrap cursor-pointer"
-          >
-            <Plus size={16} />
-            <span>New Rebranding Map</span>
-          </Link>
+          {!isReadOnly && (
+            <>
+              <Link
+                href="/dashboard/rebrand/receive"
+                className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-success/10 hover:bg-success/20 text-success border border-success/30 font-semibold text-xs sm:text-sm rounded-lg transition-all duration-200 whitespace-nowrap cursor-pointer"
+              >
+                <ArrowDownLeft size={16} />
+                <span>Receive Stock</span>
+              </Link>
+              <Link
+                href="/dashboard/rebrand/give-back"
+                className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 font-semibold text-xs sm:text-sm rounded-lg transition-all duration-200 whitespace-nowrap cursor-pointer"
+              >
+                <RotateCcw size={16} />
+                <span>Give Back</span>
+              </Link>
+              <Link
+                href="/dashboard/rebrand/new"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 bg-primary hover:bg-primary-hover text-white font-semibold text-xs sm:text-sm rounded-lg shadow-sm hover:shadow transition-all duration-200 whitespace-nowrap cursor-pointer"
+              >
+                <Plus size={16} />
+                <span>New Rebranding Map</span>
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -569,6 +573,8 @@ export default function RebrandLedgerClient({
             <p className="text-sm max-w-xs">
               {searchTerm || typeFilter !== 'ALL' || activeTab !== 'ALL'
                 ? 'Try adjusting your search or filters.'
+                : isReadOnly
+                ? 'No rebranding logs recorded.'
                 : 'Click "New Rebranding Map" to execute rebranding transfers.'}
             </p>
             {(searchTerm || typeFilter !== 'ALL' || activeTab !== 'ALL') && (
@@ -696,7 +702,7 @@ export default function RebrandLedgerClient({
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {isPendingOrPartial && (
+                        {!isReadOnly && isPendingOrPartial && (
                           <Link
                             href={`/dashboard/rebrand/receive?txId=${tx.id}`}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-[11px] transition-colors cursor-pointer"
@@ -706,7 +712,7 @@ export default function RebrandLedgerClient({
                             <span>Receive Stock</span>
                           </Link>
                         )}
-                        {isPendingOrPartial && (
+                        {!isReadOnly && isPendingOrPartial && (
                           <Link
                             href={`/dashboard/rebrand/give-back?txId=${tx.id}`}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/20 font-bold text-[10px] transition-colors cursor-pointer"
@@ -716,7 +722,7 @@ export default function RebrandLedgerClient({
                             <span>Give Back</span>
                           </Link>
                         )}
-                        {canRevert && (
+                        {!isReadOnly && canRevert && (
                           <Link
                             href={`/dashboard/rebrand/revert?txId=${tx.id}`}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-[10px] transition-colors cursor-pointer"
@@ -756,7 +762,11 @@ export default function RebrandLedgerClient({
                       <SortableHeader field="quantity" currentField={sortField} direction={sortDirection} onSort={handleSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-center">Quantity</SortableHeader>
                       <SortableHeader field="serials" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Associated Serials</SortableHeader>
                       <SortableHeader field="notes" currentField={sortField} direction={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
-                      <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
+                      {!isReadOnly ? (
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
+                      ) : (
+                        <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Status</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-text-primary">
@@ -885,7 +895,7 @@ export default function RebrandLedgerClient({
                                 {tx.returnStatus === 'REVERTED' || isReverted ? 'REVERTED' : `${tx.returnStatus} (${tx.returnedQty || 0}/${tx.quantity})`}
                               </span>
                             )}
-                            {isPendingOrPartial && (
+                            {!isReadOnly && isPendingOrPartial && (
                               <Link
                                 href={`/dashboard/rebrand/receive?txId=${tx.id}`}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-success/10 hover:bg-success/20 text-success border border-success/20 font-bold text-xs transition-colors cursor-pointer shadow-2xs"
@@ -895,7 +905,7 @@ export default function RebrandLedgerClient({
                                 <span>Receive Stock</span>
                               </Link>
                             )}
-                            {isPendingOrPartial && (
+                            {!isReadOnly && isPendingOrPartial && (
                               <Link
                                 href={`/dashboard/rebrand/give-back?txId=${tx.id}`}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/20 font-bold text-xs transition-colors cursor-pointer shadow-2xs"
@@ -905,7 +915,7 @@ export default function RebrandLedgerClient({
                                 <span>Give Back</span>
                               </Link>
                             )}
-                            {canRevert && (
+                            {!isReadOnly && canRevert && (
                               <Link
                                 href={`/dashboard/rebrand/revert?txId=${tx.id}`}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs transition-colors cursor-pointer shadow-2xs"

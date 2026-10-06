@@ -13,6 +13,7 @@ import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function LossLedgerClient({
   transactions = [],
@@ -24,6 +25,7 @@ export default function LossLedgerClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isReadOnly } = usePermissions();
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('q') || '');
@@ -214,13 +216,15 @@ export default function LossLedgerClient({
             ]}
             filename="IML-Loss-Ledger"
           />
-          <Link
-            href="/dashboard/loss/new"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-warning hover:bg-warning/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-          >
-            <AlertCircle size={15} />
-            <span>Report Loss</span>
-          </Link>
+          {!isReadOnly && (
+            <Link
+              href="/dashboard/loss/new"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-warning hover:bg-warning/90 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              <AlertCircle size={15} />
+              <span>Report Loss</span>
+            </Link>
+          )}
         </div>
       </header>
 
@@ -300,6 +304,8 @@ export default function LossLedgerClient({
             <p className="text-sm max-w-xs">
               {searchQuery || brandFilter !== 'ALL' || categoryFilter !== 'ALL' || sourceFilter !== 'ALL'
                 ? 'Try adjusting your search or filters.'
+                : isReadOnly
+                ? 'No loss reports recorded.'
                 : 'Click "Report Loss" to log a missing or lost item.'}
             </p>
             {(searchQuery || brandFilter !== 'ALL' || categoryFilter !== 'ALL' || sourceFilter !== 'ALL') && (
@@ -410,7 +416,7 @@ export default function LossLedgerClient({
                     <SortableHeader field="quantity" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} align="center" className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Quantity</SortableHeader>
                     <SortableHeader field="deliveryNote" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Loss Note</SortableHeader>
                     <SortableHeader field="notes" currentField={sortField} currentDirection={sortDirection} onSort={handleSort} className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5">Remarks</SortableHeader>
-                    <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>
+                    {!isReadOnly && <th className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-text-primary">
@@ -483,16 +489,18 @@ export default function LossLedgerClient({
                         >
                           {tx.notes || '---'}
                         </td>
-                        <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
-                          <TransactionActions
-                            txId={tx.id}
-                            deliveryNote={tx.deliveryNote}
-                            notes={tx.notes || ''}
-                            showDeliveryNote={false}
-                            copyType="loss"
-                            transactionType="LOST"
-                          />
-                        </td>
+                        {!isReadOnly && (
+                          <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right">
+                            <TransactionActions
+                              txId={tx.id}
+                              deliveryNote={tx.deliveryNote}
+                              notes={tx.notes || ''}
+                              showDeliveryNote={false}
+                              copyType="loss"
+                              transactionType="LOST"
+                            />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
