@@ -590,6 +590,29 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================================
+   TABLE HORIZONTAL SCROLLBAR
+   ============================================================ */
+.table-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+.table-scrollbar::-webkit-scrollbar-track {
+  background: var(--bg-surface-elevated);
+  border-radius: 9999px;
+}
+.table-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-color-strong);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+.table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+.table-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color-strong) var(--bg-surface-elevated);
+}
+
+/* ============================================================
    PREMIUM CUSTOM TOOLTIP UI/UX STYLING (position:fixed)
    ============================================================ */
 .has-tooltip {

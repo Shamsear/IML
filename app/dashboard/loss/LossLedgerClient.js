@@ -8,6 +8,7 @@ import TransactionActions from '@/components/TransactionActions';
 import ExportToExcel from '@/components/ExportToExcel';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import CustomSelect from '@/components/CustomSelect';
 import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
@@ -405,7 +406,7 @@ export default function LossLedgerClient({
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
+            <ScrollableTable containerClassName="hidden md:block">
               <table className="min-w-full divide-y divide-border text-xs">
                 <thead>
                   <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
@@ -506,7 +507,7 @@ export default function LossLedgerClient({
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
 
             <div className="p-4 border-t border-border bg-surface-elevated/20">
               <Pagination

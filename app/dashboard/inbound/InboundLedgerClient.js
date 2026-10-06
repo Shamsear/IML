@@ -14,6 +14,7 @@ import Pagination from '@/components/Pagination';
 import DeliveryNoteGroup from '@/components/DeliveryNoteGroup';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -340,7 +341,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                <ScrollableTable>
                   <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
@@ -426,7 +427,7 @@ export default function InboundLedgerClient({ transactions = [], totalCount = 0,
                       })}
                     </tbody>
                   </table>
-                </div>
+                </ScrollableTable>
 
                 {totalPages > 1 && !productFilter && !brandId && (
                   <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-elevated/20 text-xs">

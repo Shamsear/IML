@@ -6,6 +6,7 @@ import { Search, AlertTriangle, CheckCircle, Clock, ArrowRight, Package } from '
 import ExportToExcel from '@/components/ExportToExcel';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import { useTableSort } from '@/hooks/useTableSort';
 
 export default function ExpiryClient({ initialBatches = [] }) {
@@ -294,7 +295,7 @@ export default function ExpiryClient({ initialBatches = [] }) {
             <p className="text-sm">Try modifying your query filters above.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <ScrollableTable>
             <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
               <thead>
                 <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
@@ -377,7 +378,7 @@ export default function ExpiryClient({ initialBatches = [] }) {
                 })}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
         )}
       </div>
 

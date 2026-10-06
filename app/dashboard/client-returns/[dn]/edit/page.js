@@ -9,9 +9,8 @@ import ClientReturnsClient from '../../ClientReturnsClient';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-
 export const metadata = {
-  title: 'Edit Stock Returned to Client - Inventory System',
+  title: 'Edit Client Return - Inventory System',
   description: 'Edit existing client return gate pass and items',
 };
 
@@ -40,21 +39,32 @@ export default async function EditClientReturnPage({ params }) {
     notFound();
   }
 
-  const clientReturnItems = initialItems.filter(t => t.transactionType === 'CLIENT_RETURN');
-  if (clientReturnItems.length === 0) {
-    // Gracefully route store returns or generic transactions to the transaction editor
-    const targetTx = initialItems.find(t => t.transactionType === 'RETURN') || initialItems[0];
-    if (targetTx) {
-      redirect(`/dashboard/transactions/${encodeURIComponent(targetTx.rawTxId || decodedDn)}/edit`);
-    }
-    notFound();
-  }
+  // Include CLIENT_RETURN, CLIENT_STOCK, or any brand/client involved transaction
+  const clientReturnItems = initialItems.filter(t => 
+    t.transactionType === 'CLIENT_RETURN' || 
+    t.transactionType === 'CLIENT_STOCK' ||
+    t.toEntityType === 'BRAND' || 
+    t.toEntityType === 'CLIENT' ||
+    t.fromEntityType === 'BRAND' || 
+    t.fromEntityType === 'CLIENT'
+  );
 
-  const initialBrandId = clientReturnItems[0].toEntityId || clientReturnItems[0].product?.brandId || '';
-  const initialReceivedBy = clientReturnItems[0].receivedBy || '';
-  const initialGlobalNotes = clientReturnItems[0].notes || '';
-  const initialSupervisorName = clientReturnItems[0].deliverySupervisorId || '';
-  const initialTransactionDate = clientReturnItems[0].timestamp || '';
+  const finalItems = clientReturnItems.length > 0 ? clientReturnItems : initialItems;
+
+  const isReturnFromClient = finalItems.some(t => 
+    t.fromEntityType === 'BRAND' || 
+    t.fromEntityType === 'CLIENT' || 
+    t.toEntityType === 'WAREHOUSE'
+  );
+
+  const initialBrandId = isReturnFromClient
+    ? (finalItems[0].fromEntityId || finalItems[0].product?.brandId || '')
+    : (finalItems[0].toEntityId || finalItems[0].product?.brandId || '');
+
+  const initialReceivedBy = finalItems[0].receivedBy || '';
+  const initialGlobalNotes = finalItems[0].notes || '';
+  const initialSupervisorName = finalItems[0].deliverySupervisorId || '';
+  const initialTransactionDate = finalItems[0].timestamp || '';
 
   return (
     <ClientReturnsClient 
@@ -62,8 +72,9 @@ export default async function EditClientReturnPage({ params }) {
       products={products}
       editMode={true}
       existingDn={decodedDn}
+      isReturnFromClient={isReturnFromClient}
       initialBrandId={initialBrandId}
-      initialItems={clientReturnItems}
+      initialItems={finalItems}
       initialGlobalNotes={initialGlobalNotes}
       initialSupervisorName={initialSupervisorName}
       initialReceivedBy={initialReceivedBy}

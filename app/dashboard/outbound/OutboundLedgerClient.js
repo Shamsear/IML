@@ -28,6 +28,7 @@ import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -472,7 +473,7 @@ export default function OutboundLedgerClient({
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                <ScrollableTable>
                   <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
@@ -569,7 +570,7 @@ export default function OutboundLedgerClient({
                       })}
                     </tbody>
                   </table>
-                </div>
+                </ScrollableTable>
 
                 {/* Bottom Pagination */}
                 <div className="p-4 border-t border-border bg-surface-elevated/20">

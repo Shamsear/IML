@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { uploadToImageKit } from '@/lib/imagekit';
-import { revalidateInventory } from '@/lib/revalidation';
+import { revalidateInventory, revalidateStores } from '@/lib/revalidation';
 
 function safeNotifyTransaction(payload) {
   import('@/lib/push')
@@ -1206,7 +1206,18 @@ export async function createBulkDamageTransactions(payload) {
     return createdTxs;
   }, { timeout: 20000 });
 
-  revalidateTransactionPaths();
+  revalidateTransactionPaths({
+    module: resolvedType === 'LOST' ? 'loss' : 'damage',
+    storeId: fromEntityType === 'STORE' ? fromEntityId : null,
+    extraPaths: [
+      '/dashboard/damage',
+      '/dashboard/loss',
+      fromEntityType === 'STORE' && fromEntityId ? `/dashboard/stores/${fromEntityId}` : null,
+    ].filter(Boolean)
+  });
+  if (fromEntityType === 'STORE' && fromEntityId) {
+    revalidateStores(fromEntityId);
+  }
 
   const totalQty = items.reduce((acc, curr) => acc + parseFloat(curr.quantity || 0), 0);
   const firstItemProduct = items[0] ? productsMap.get(items[0].productId) : null;
@@ -1742,7 +1753,18 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
     }
   }, { timeout: 25000 });
 
-  revalidateTransactionPaths({ module: 'damage' });
+  revalidateTransactionPaths({
+    module: resolvedType === 'LOST' ? 'loss' : 'damage',
+    storeId: fromEntityType === 'STORE' ? fromEntityId : null,
+    extraPaths: [
+      '/dashboard/damage',
+      '/dashboard/loss',
+      fromEntityType === 'STORE' && fromEntityId ? `/dashboard/stores/${fromEntityId}` : null,
+    ].filter(Boolean)
+  });
+  if (fromEntityType === 'STORE' && fromEntityId) {
+    revalidateStores(fromEntityId);
+  }
   return { success: true, deliveryNote };
 }
 
@@ -1784,12 +1806,16 @@ export async function deleteTransaction(id) {
   if (!txRecord) throw new Error('Transaction not found');
 
   await prisma.$transaction(async (tx) => {
-    // 1. If this is a RETURN transaction, revert the return effect on the original Outbound transaction & allocations
-    if (txRecord.transactionType === 'RETURN') {
+    // 1. Revert parent transaction tracking & uniform allocations
+    // Handles RETURN transactions as well as ISSUE transactions marked as USED from Outbound
+    const isOutboundReturn = txRecord.transactionType === 'RETURN';
+    const isOutboundUsed = txRecord.transactionType === 'ISSUE' && txRecord.notes && /from Outbound/i.test(txRecord.notes);
+
+    if (isOutboundReturn || isOutboundUsed) {
       let parentTx = null;
 
-      // A. Try matching parent transaction from notes: "Auto-generated Return from Outbound <ID>."
-      const outboundMatch = txRecord.notes?.match(/from Outbound ([a-zA-Z0-9-]+)/i);
+      // A. Try matching parent transaction from notes: "from Outbound <ID>"
+      const outboundMatch = txRecord.notes?.match(/(?:from Outbound|Marked as Used from Outbound) ([a-zA-Z0-9-]+)/i);
       if (outboundMatch && outboundMatch[1]) {
         parentTx = await tx.inventoryTransaction.findUnique({
           where: { id: outboundMatch[1] }
@@ -1826,14 +1852,17 @@ export async function deleteTransaction(id) {
       }
 
       if (parentTx) {
-        // Find other active return transactions for this parent transaction (excluding the one being deleted)
+        // Find other active return or used transactions for this parent transaction (excluding the one being deleted)
         const siblingReturns = await tx.inventoryTransaction.findMany({
           where: {
-            transactionType: 'RETURN',
             id: { not: txRecord.id },
             notes: { contains: parentTx.id },
+            OR: [
+              { transactionType: 'RETURN' },
+              { notes: { contains: 'Marked as Used from Outbound' } }
+            ]
           },
-          select: { quantity: true }
+          select: { quantity: true, transactionType: true, notes: true }
         });
 
         let newReturnedQty = 0;
@@ -1843,9 +1872,15 @@ export async function deleteTransaction(id) {
           newReturnedQty = Math.max(0, (parentTx.returnedQty || 0) - txRecord.quantity);
         }
 
-        const newStatus = newReturnedQty <= 0 
-          ? null 
-          : (newReturnedQty >= parentTx.quantity - 0.0001 ? 'RETURNED' : 'PARTIAL');
+        let newStatus = null;
+        if (newReturnedQty > 0) {
+          if (newReturnedQty >= parentTx.quantity - 0.0001) {
+            const hasUsed = siblingReturns.some(r => r.notes?.includes('Marked as Used'));
+            newStatus = hasUsed ? 'USED' : 'RETURNED';
+          } else {
+            newStatus = 'PARTIAL';
+          }
+        }
 
         await tx.inventoryTransaction.update({
           where: { id: parentTx.id },
@@ -1930,15 +1965,46 @@ export async function deleteTransaction(id) {
       }
     }
 
+    // Case B: Rebrand Inbound or Give-Back transaction deleted -> revert parent REBRAND / REBRAND_OUT tracking
+    if (txRecord.transactionType === 'REBRAND_IN') {
+      const sourceMatch = txRecord.notes?.match(/(?:Returned to source from|Received converted rebrand \()([a-zA-Z0-9-]+)/i);
+      const parentRef = sourceMatch ? sourceMatch[1] : txRecord.deliveryNote;
+      if (parentRef) {
+        const parentTxs = await tx.inventoryTransaction.findMany({
+          where: {
+            OR: [
+              { id: parentRef },
+              { deliveryNote: parentRef }
+            ],
+            transactionType: { in: ['REBRAND', 'REBRAND_OUT'] }
+          }
+        });
+
+        for (const parent of parentTxs) {
+          const newReturnedQty = Math.max(0, (parent.returnedQty || 0) - txRecord.quantity);
+          const newStatus = newReturnedQty <= 0
+            ? null
+            : (newReturnedQty >= parent.quantity - 0.0001 ? 'COMPLETED' : 'PARTIAL');
+          await tx.inventoryTransaction.update({
+            where: { id: parent.id },
+            data: {
+              returnedQty: newReturnedQty,
+              returnStatus: newStatus
+            }
+          });
+        }
+      }
+    }
+
     // 2. Serialized product handling
     if (txRecord.product.isSerialized && txRecord.serialNumbers.length > 0) {
       const oldSerials = txRecord.serialNumbers.map(s => s.serialNumber);
       
-      if (txRecord.transactionType === 'RECEIVE' || txRecord.transactionType === 'REBRAND_IN') {
+      if (txRecord.transactionType === 'RECEIVE' || (txRecord.transactionType === 'REBRAND_IN' && !txRecord.notes?.includes('Returned to source'))) {
         await tx.productSerialNumber.deleteMany({
           where: { id: { in: oldSerials.map(s => s.id) } }
         });
-      } else if (txRecord.transactionType === 'RETURN') {
+      } else if (txRecord.transactionType === 'RETURN' || (txRecord.transactionType === 'ISSUE' && txRecord.notes?.includes('Marked as Used from Outbound'))) {
         await tx.productSerialNumber.updateMany({
           where: { id: { in: oldSerials.map(s => s.id) } },
           data: {
@@ -1964,12 +2030,27 @@ export async function deleteTransaction(id) {
     await tx.inventoryTransaction.delete({ where: { id } });
   });
 
+  let resolvedModule = undefined;
+  if (txRecord.transactionType === 'RETURN') resolvedModule = 'returns';
+  else if (txRecord.transactionType === 'DAMAGE') resolvedModule = 'damage';
+  else if (txRecord.transactionType === 'LOST') resolvedModule = 'loss';
+  else if (txRecord.transactionType === 'USED' || txRecord.notes?.includes('Marked as Used')) resolvedModule = 'used';
+  else if (txRecord.transactionType?.startsWith('REBRAND')) resolvedModule = 'rebrand';
+  else if (txRecord.transactionType === 'RECEIVE') resolvedModule = 'inbound';
+  else if (txRecord.transactionType === 'ISSUE') resolvedModule = 'outbound';
+  else if (txRecord.transactionType === 'CLIENT_RETURN' || txRecord.transactionType === 'CLIENT_STOCK') resolvedModule = 'client-returns';
+
   revalidateTransactionPaths({
-    module: txRecord.transactionType === 'RETURN' ? 'returns' : undefined,
+    module: resolvedModule,
     productId: txRecord.productId,
     storeId: txRecord.fromEntityId || txRecord.toEntityId || null,
     extraPaths: [
       '/dashboard/returns',
+      '/dashboard/damage',
+      '/dashboard/loss',
+      '/dashboard/used',
+      '/dashboard/rebrand',
+      '/dashboard/client-returns',
       '/dashboard/stores',
       txRecord.fromEntityId ? `/dashboard/stores/${txRecord.fromEntityId}` : null,
       txRecord.toEntityId ? `/dashboard/stores/${txRecord.toEntityId}` : null,
@@ -1979,6 +2060,11 @@ export async function deleteTransaction(id) {
       '/dashboard'
     ].filter(Boolean)
   });
+
+  const involvedStoreId = txRecord.fromEntityType === 'STORE' ? txRecord.fromEntityId : txRecord.toEntityType === 'STORE' ? txRecord.toEntityId : null;
+  if (involvedStoreId) {
+    revalidateStores(involvedStoreId);
+  }
 
   return { success: true };
 }
@@ -1997,20 +2083,31 @@ export async function reconcileOutboundReturnStatuses() {
     }
   });
 
-  const allReturns = await prisma.inventoryTransaction.findMany({
-    where: { transactionType: 'RETURN' },
-    select: { id: true, productId: true, fromEntityType: true, fromEntityId: true, quantity: true, notes: true }
+  const allReturnsAndUsed = await prisma.inventoryTransaction.findMany({
+    where: {
+      OR: [
+        { transactionType: 'RETURN' },
+        { notes: { contains: 'Marked as Used from Outbound' } }
+      ]
+    },
+    select: { id: true, productId: true, fromEntityType: true, fromEntityId: true, quantity: true, notes: true, transactionType: true }
   });
 
   let updatedCount = 0;
   await prisma.$transaction(async (tx) => {
     for (const ob of outbounds) {
-      const matchingReturns = allReturns.filter(r => r.notes && r.notes.includes(ob.id));
-      const actualReturnedQty = matchingReturns.reduce((sum, r) => sum + r.quantity, 0);
+      const matching = allReturnsAndUsed.filter(r => r.notes && r.notes.includes(ob.id));
+      const actualReturnedQty = matching.reduce((sum, r) => sum + r.quantity, 0);
 
-      const expectedStatus = actualReturnedQty <= 0 
-        ? null 
-        : (actualReturnedQty >= ob.quantity - 0.0001 ? 'RETURNED' : 'PARTIAL');
+      let expectedStatus = null;
+      if (actualReturnedQty > 0) {
+        if (actualReturnedQty >= ob.quantity - 0.0001) {
+          const hasUsed = matching.some(r => r.notes?.includes('Marked as Used'));
+          expectedStatus = hasUsed ? 'USED' : 'RETURNED';
+        } else {
+          expectedStatus = 'PARTIAL';
+        }
+      }
 
       if (Math.abs((ob.returnedQty || 0) - actualReturnedQty) > 0.0001 || ob.returnStatus !== expectedStatus) {
         await tx.inventoryTransaction.update({
@@ -2029,6 +2126,9 @@ export async function reconcileOutboundReturnStatuses() {
   revalidateInventory({
     extraPaths: [
       '/dashboard/returns',
+      '/dashboard/damage',
+      '/dashboard/loss',
+      '/dashboard/used',
       '/dashboard/stores',
       '/dashboard/products',
       '/dashboard/transactions',
@@ -2639,6 +2739,660 @@ export async function processOutboundReturns(returnsPayload) {
   return { success: true };
 }
 
+// Fetch return transaction and associated outbound parent data for editing a return
+export async function getReturnTransactionForEdit(returnId) {
+  await checkAuth();
+
+  if (!returnId) return null;
+
+  const returnTx = await prisma.inventoryTransaction.findFirst({
+    where: {
+      OR: [
+        { id: returnId },
+        { deliveryNote: returnId }
+      ],
+      transactionType: 'RETURN'
+    },
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          category: true,
+          imageUrl: true,
+          isSerialized: true,
+          brandId: true,
+          brand: { select: { id: true, name: true } }
+        }
+      },
+      serialNumbers: {
+        include: {
+          serialNumber: {
+            select: {
+              id: true,
+              barcode: true,
+              status: true
+            }
+          }
+        }
+      },
+      deliverySupervisor: {
+        select: { id: true, name: true }
+      }
+    }
+  });
+
+  if (!returnTx) return null;
+
+  // Find parent outbound transaction if linked
+  let parentTx = null;
+  const outboundMatch = returnTx.notes?.match(/(?:from Outbound|Marked as Used from Outbound) ([a-zA-Z0-9-]+)/i);
+  if (outboundMatch && outboundMatch[1]) {
+    parentTx = await prisma.inventoryTransaction.findUnique({
+      where: { id: outboundMatch[1] },
+      select: {
+        id: true,
+        deliveryNote: true,
+        quantity: true,
+        returnedQty: true,
+        returnStatus: true,
+        timestamp: true,
+        notes: true,
+        deliverySupervisor: { select: { id: true, name: true } }
+      }
+    });
+  }
+
+  // Fallback: match by product and store with outbound status
+  if (!parentTx && returnTx.fromEntityType && returnTx.fromEntityId) {
+    parentTx = await prisma.inventoryTransaction.findFirst({
+      where: {
+        productId: returnTx.productId,
+        transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+        toEntityType: returnTx.fromEntityType,
+        toEntityId: returnTx.fromEntityId,
+        returnedQty: { gt: 0 }
+      },
+      orderBy: { timestamp: 'desc' },
+      select: {
+        id: true,
+        deliveryNote: true,
+        quantity: true,
+        returnedQty: true,
+        returnStatus: true,
+        timestamp: true,
+        notes: true,
+        deliverySupervisor: { select: { id: true, name: true } }
+      }
+    });
+  }
+
+  // Find store details
+  let store = null;
+  if (returnTx.fromEntityType === 'STORE' && returnTx.fromEntityId) {
+    store = await prisma.store.findUnique({
+      where: { id: returnTx.fromEntityId },
+      select: { id: true, name: true, location: true }
+    });
+  }
+
+  // Find sibling returns to calculate max allowed
+  let siblingTotal = 0;
+  if (parentTx) {
+    const siblingReturns = await prisma.inventoryTransaction.findMany({
+      where: {
+        id: { not: returnTx.id },
+        notes: { contains: parentTx.id },
+        OR: [
+          { transactionType: 'RETURN' },
+          { notes: { contains: 'Marked as Used from Outbound' } }
+        ]
+      },
+      select: { quantity: true }
+    });
+    siblingTotal = siblingReturns.reduce((sum, r) => sum + r.quantity, 0);
+  }
+
+  // Extract user's clean remark (without auto-generated prefix)
+  const cleanNotes = (returnTx.notes || '').replace(/^Auto-generated Return from Outbound [a-zA-Z0-9-]+\.\s*/i, '');
+
+  return {
+    returnTx,
+    parentTx,
+    store,
+    siblingTotal,
+    maxReturnableQty: parentTx ? Math.max(0, parentTx.quantity - siblingTotal) : null,
+    cleanNotes
+  };
+}
+
+// Update an existing return record and sync parent outbound transaction & stock
+export async function updateReturnTransaction(returnId, payload) {
+  await checkWriteAuth();
+
+  if (!returnId) throw new Error('Return ID is required');
+
+  const {
+    quantity,
+    deliverySupervisorId,
+    notes,
+    timestamp,
+    barcodes = []
+  } = payload;
+
+  const newQty = parseFloat(quantity);
+  if (isNaN(newQty) || newQty <= 0) {
+    throw new Error('Return quantity must be greater than 0');
+  }
+
+  // Find the return transaction
+  const returnTx = await prisma.inventoryTransaction.findFirst({
+    where: {
+      OR: [
+        { id: returnId },
+        { deliveryNote: returnId }
+      ],
+      transactionType: 'RETURN'
+    },
+    include: {
+      product: true,
+      serialNumbers: {
+        include: { serialNumber: true }
+      }
+    }
+  });
+
+  if (!returnTx) throw new Error('Return transaction not found');
+
+  // Find parent outbound transaction if linked
+  let parentTx = null;
+  const outboundMatch = returnTx.notes?.match(/(?:from Outbound|Marked as Used from Outbound) ([a-zA-Z0-9-]+)/i);
+  if (outboundMatch && outboundMatch[1]) {
+    parentTx = await prisma.inventoryTransaction.findUnique({
+      where: { id: outboundMatch[1] }
+    });
+  }
+
+  if (!parentTx && returnTx.fromEntityType && returnTx.fromEntityId) {
+    parentTx = await prisma.inventoryTransaction.findFirst({
+      where: {
+        productId: returnTx.productId,
+        transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+        toEntityType: returnTx.fromEntityType,
+        toEntityId: returnTx.fromEntityId,
+        returnedQty: { gt: 0 }
+      },
+      orderBy: { timestamp: 'desc' }
+    });
+  }
+
+  let siblingTotal = 0;
+  if (parentTx) {
+    // Other active returns or used records for this outbound dispatch (excluding the current one)
+    const siblingReturns = await prisma.inventoryTransaction.findMany({
+      where: {
+        id: { not: returnTx.id },
+        notes: { contains: parentTx.id },
+        OR: [
+          { transactionType: 'RETURN' },
+          { notes: { contains: 'Marked as Used from Outbound' } }
+        ]
+      },
+      select: { quantity: true, transactionType: true, notes: true }
+    });
+    siblingTotal = siblingReturns.reduce((sum, r) => sum + r.quantity, 0);
+
+    const maxAllowed = parentTx.quantity - siblingTotal;
+    if (newQty > maxAllowed + 0.0001) {
+      throw new Error(`Cannot return ${newQty}. Only ${maxAllowed} unreturned items remaining on original dispatch.`);
+    }
+  }
+
+  // Serialized product validation
+  if (returnTx.product.isSerialized) {
+    if (barcodes.length !== Math.round(newQty)) {
+      throw new Error(`Quantity (${newQty}) must match the number of scanned barcodes (${barcodes.length}).`);
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Update parent outbound transaction if linked
+    if (parentTx) {
+      const newTotalReturned = siblingTotal + newQty;
+      const isFullyReturned = newTotalReturned >= parentTx.quantity - 0.0001;
+      const newStatus = isFullyReturned ? 'RETURNED' : (newTotalReturned > 0 ? 'PARTIAL' : null);
+
+      await tx.inventoryTransaction.update({
+        where: { id: parentTx.id },
+        data: {
+          returnedQty: newTotalReturned,
+          returnStatus: newStatus
+        }
+      });
+
+      // 2. Keep associated promoter uniform allocation in sync
+      if (parentTx.deliveryNote) {
+        const allocations = await tx.staffUniformAllocation.findMany({
+          where: { ref: parentTx.deliveryNote }
+        });
+        for (const alloc of allocations) {
+          let dynamicItems = [];
+          if (alloc.allocatedItems) {
+            if (typeof alloc.allocatedItems === 'string') {
+              try { dynamicItems = JSON.parse(alloc.allocatedItems); } catch(e){}
+            } else if (Array.isArray(alloc.allocatedItems)) {
+              dynamicItems = alloc.allocatedItems;
+            }
+          }
+          const updatedItems = dynamicItems.map(item => {
+            if (item.productId === returnTx.productId) {
+              return { ...item, returned: isFullyReturned, returnedAt: isFullyReturned ? new Date().toISOString() : null };
+            }
+            return item;
+          });
+
+          await tx.staffUniformAllocation.update({
+            where: { id: alloc.id },
+            data: {
+              allocatedItems: updatedItems,
+              uniformReturned: isFullyReturned,
+              capReturned: isFullyReturned,
+              returnDate: isFullyReturned ? new Date() : null
+            }
+          });
+        }
+      }
+    }
+
+    // 3. Serialized Barcodes handling
+    if (returnTx.product.isSerialized) {
+      const currentSerials = returnTx.serialNumbers.map(s => s.serialNumber);
+      const currentBarcodes = currentSerials.map(s => s.barcode);
+
+      const removedBarcodes = currentBarcodes.filter(b => !barcodes.includes(b));
+      const addedBarcodes = barcodes.filter(b => !currentBarcodes.includes(b));
+
+      // Removed serials go back to store
+      if (removedBarcodes.length > 0) {
+        const removedIds = currentSerials.filter(s => removedBarcodes.includes(s.barcode)).map(s => s.id);
+        await tx.productSerialNumber.updateMany({
+          where: { id: { in: removedIds } },
+          data: {
+            currentLocationType: returnTx.fromEntityType || 'STORE',
+            currentLocationId: returnTx.fromEntityId || null,
+            status: 'AVAILABLE'
+          }
+        });
+        await tx.transactionSerialNumber.deleteMany({
+          where: {
+            transactionId: returnTx.id,
+            serialNumberId: { in: removedIds }
+          }
+        });
+      }
+
+      // Added serials go to warehouse
+      if (addedBarcodes.length > 0) {
+        const addedDbSerials = await tx.productSerialNumber.findMany({
+          where: { barcode: { in: addedBarcodes } }
+        });
+        const addedIds = addedDbSerials.map(s => s.id);
+        await tx.productSerialNumber.updateMany({
+          where: { id: { in: addedIds } },
+          data: {
+            currentLocationType: 'WAREHOUSE',
+            currentLocationId: null,
+            status: 'AVAILABLE'
+          }
+        });
+        await tx.transactionSerialNumber.createMany({
+          data: addedIds.map(serialNumberId => ({
+            transactionId: returnTx.id,
+            serialNumberId
+          })),
+          skipDuplicates: true
+        });
+      }
+    }
+
+    // 4. Update the return transaction record
+    // Preserve "Auto-generated Return from Outbound <ID>" prefix in notes
+    let updatedNotes = notes?.trim() || '';
+    if (parentTx) {
+      const cleanUserNote = updatedNotes.replace(/^Auto-generated Return from Outbound [a-zA-Z0-9-]+\.\s*/i, '');
+      updatedNotes = cleanUserNote ? `Auto-generated Return from Outbound ${parentTx.id}. ${cleanUserNote}` : `Auto-generated Return from Outbound ${parentTx.id}.`;
+    }
+
+    await tx.inventoryTransaction.update({
+      where: { id: returnTx.id },
+      data: {
+        quantity: newQty,
+        deliverySupervisorId: deliverySupervisorId || null,
+        notes: updatedNotes || null,
+        ...(timestamp ? { timestamp: new Date(timestamp) } : {})
+      }
+    });
+  });
+
+  // 5. Revalidate paths
+  revalidateInventory({
+    module: 'returns',
+    productId: returnTx.productId,
+    storeId: returnTx.fromEntityId,
+    extraPaths: [
+      '/dashboard/returns',
+      `/dashboard/returns/${encodeURIComponent(returnTx.deliveryNote || returnTx.id)}/edit`,
+      '/dashboard/stores',
+      returnTx.fromEntityId ? `/dashboard/stores/${returnTx.fromEntityId}` : null,
+      '/dashboard/products',
+      `/dashboard/products/${returnTx.productId}`,
+      '/dashboard/transactions',
+      '/dashboard'
+    ].filter(Boolean)
+  });
+
+  if (returnTx.fromEntityId) {
+    revalidateStores(returnTx.fromEntityId);
+  }
+
+  return { success: true };
+}
+
+// Fetch a consumed / used transaction and its parent outbound dispatch for dedicated editing
+export async function getUsedTransactionForEdit(idOrDn) {
+  await checkAuth();
+
+  if (!idOrDn) return null;
+
+  const usedTx = await prisma.inventoryTransaction.findFirst({
+    where: {
+      OR: [
+        { id: idOrDn },
+        { deliveryNote: idOrDn }
+      ],
+      AND: [
+        {
+          OR: [
+            { transactionType: 'USED' },
+            { deliveryNote: { startsWith: 'USD-' } },
+            { notes: { contains: 'Marked as Used from Outbound' } }
+          ]
+        }
+      ]
+    },
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          category: true,
+          imageUrl: true,
+          isSerialized: true,
+          brandId: true,
+          brand: { select: { id: true, name: true } }
+        }
+      },
+      serialNumbers: {
+        include: {
+          serialNumber: {
+            select: {
+              id: true,
+              barcode: true,
+              status: true
+            }
+          }
+        }
+      },
+      deliverySupervisor: {
+        select: { id: true, name: true }
+      }
+    }
+  });
+
+  if (!usedTx) return null;
+
+  // Find parent outbound transaction if linked
+  let parentTx = null;
+  const outboundMatch = usedTx.notes?.match(/(?:Marked as Used from Outbound|from Outbound)\s+([a-zA-Z0-9-]+)/i);
+  if (outboundMatch && outboundMatch[1]) {
+    parentTx = await prisma.inventoryTransaction.findUnique({
+      where: { id: outboundMatch[1] },
+      select: {
+        id: true,
+        deliveryNote: true,
+        quantity: true,
+        returnedQty: true,
+        returnStatus: true,
+        timestamp: true,
+        notes: true,
+        deliverySupervisor: { select: { id: true, name: true } }
+      }
+    });
+  }
+
+  // Fallback: match by product and store with outbound status
+  if (!parentTx && usedTx.fromEntityType && usedTx.fromEntityId) {
+    parentTx = await prisma.inventoryTransaction.findFirst({
+      where: {
+        productId: usedTx.productId,
+        transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+        toEntityType: usedTx.fromEntityType,
+        toEntityId: usedTx.fromEntityId,
+        returnedQty: { gt: 0 }
+      },
+      orderBy: { timestamp: 'desc' },
+      select: {
+        id: true,
+        deliveryNote: true,
+        quantity: true,
+        returnedQty: true,
+        returnStatus: true,
+        timestamp: true,
+        notes: true,
+        deliverySupervisor: { select: { id: true, name: true } }
+      }
+    });
+  }
+
+  // Find store details
+  let store = null;
+  if (usedTx.fromEntityType === 'STORE' && usedTx.fromEntityId) {
+    store = await prisma.store.findUnique({
+      where: { id: usedTx.fromEntityId },
+      select: { id: true, name: true, location: true }
+    });
+  }
+
+  // Find sibling returns or used records for calculating max allowed
+  let siblingTotal = 0;
+  if (parentTx) {
+    const siblingRecords = await prisma.inventoryTransaction.findMany({
+      where: {
+        id: { not: usedTx.id },
+        notes: { contains: parentTx.id },
+        OR: [
+          { transactionType: 'RETURN' },
+          { transactionType: 'USED' },
+          { notes: { contains: 'Marked as Used from Outbound' } }
+        ]
+      },
+      select: { quantity: true }
+    });
+    siblingTotal = siblingRecords.reduce((sum, r) => sum + r.quantity, 0);
+  }
+
+  // Clean user notes (strip prefix)
+  const cleanNotes = (usedTx.notes || '')
+    .replace(/^Marked as Used from Outbound [a-zA-Z0-9-]+\.\s*/i, '')
+    .trim();
+
+  return {
+    usedTx,
+    parentTx,
+    store,
+    siblingTotal,
+    maxUsableQty: parentTx ? Math.max(0, parentTx.quantity - siblingTotal) : null,
+    cleanNotes
+  };
+}
+
+// Update an existing consumed / used record and sync parent outbound transaction
+export async function updateUsedTransaction(idOrDn, payload) {
+  await checkWriteAuth();
+
+  if (!idOrDn) throw new Error('Transaction ID or Reference is required');
+
+  const {
+    quantity,
+    deliverySupervisorId,
+    notes,
+    timestamp
+  } = payload;
+
+  const newQty = parseFloat(quantity);
+  if (isNaN(newQty) || newQty <= 0) {
+    throw new Error('Consumed quantity must be greater than 0');
+  }
+
+  const usedTx = await prisma.inventoryTransaction.findFirst({
+    where: {
+      OR: [
+        { id: idOrDn },
+        { deliveryNote: idOrDn }
+      ],
+      AND: [
+        {
+          OR: [
+            { transactionType: 'USED' },
+            { deliveryNote: { startsWith: 'USD-' } },
+            { notes: { contains: 'Marked as Used from Outbound' } }
+          ]
+        }
+      ]
+    },
+    include: {
+      product: true
+    }
+  });
+
+  if (!usedTx) throw new Error('Consumed record not found');
+
+  // Find parent outbound transaction if linked
+  let parentTx = null;
+  const outboundMatch = usedTx.notes?.match(/(?:Marked as Used from Outbound|from Outbound)\s+([a-zA-Z0-9-]+)/i);
+  if (outboundMatch && outboundMatch[1]) {
+    parentTx = await prisma.inventoryTransaction.findUnique({
+      where: { id: outboundMatch[1] }
+    });
+  }
+
+  if (!parentTx && usedTx.fromEntityType && usedTx.fromEntityId) {
+    parentTx = await prisma.inventoryTransaction.findFirst({
+      where: {
+        productId: usedTx.productId,
+        transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+        toEntityType: usedTx.fromEntityType,
+        toEntityId: usedTx.fromEntityId,
+        returnedQty: { gt: 0 }
+      },
+      orderBy: { timestamp: 'desc' }
+    });
+  }
+
+  let siblingTotal = 0;
+  if (parentTx) {
+    const siblingRecords = await prisma.inventoryTransaction.findMany({
+      where: {
+        id: { not: usedTx.id },
+        notes: { contains: parentTx.id },
+        OR: [
+          { transactionType: 'RETURN' },
+          { transactionType: 'USED' },
+          { notes: { contains: 'Marked as Used from Outbound' } }
+        ]
+      },
+      select: { quantity: true }
+    });
+    siblingTotal = siblingRecords.reduce((sum, r) => sum + r.quantity, 0);
+
+    const maxAllowed = parentTx.quantity - siblingTotal;
+    if (newQty > maxAllowed + 0.0001) {
+      throw new Error(`Cannot consume ${newQty}. Only ${maxAllowed} remaining on original dispatch.`);
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Update parent outbound transaction if linked
+    if (parentTx) {
+      const newTotalReturned = siblingTotal + newQty;
+      const isFullyConsumed = newTotalReturned >= parentTx.quantity - 0.0001;
+      const newStatus = isFullyConsumed ? 'USED' : (newTotalReturned > 0 ? 'PARTIAL' : null);
+
+      await tx.inventoryTransaction.update({
+        where: { id: parentTx.id },
+        data: {
+          returnedQty: newTotalReturned,
+          returnStatus: newStatus
+        }
+      });
+
+      // Sync promoter uniform allocation if linked
+      if (parentTx.deliveryNote && isFullyConsumed) {
+        await tx.staffUniformAllocation.updateMany({
+          where: { ref: parentTx.deliveryNote },
+          data: {
+            uniformReturned: true,
+            capReturned: true,
+            returnDate: new Date()
+          }
+        });
+      }
+    }
+
+    // 2. Update the used transaction record
+    let updatedNotes = notes?.trim() || '';
+    if (parentTx) {
+      const cleanUserNote = updatedNotes.replace(/^Marked as Used from Outbound [a-zA-Z0-9-]+\.\s*/i, '');
+      updatedNotes = cleanUserNote ? `Marked as Used from Outbound ${parentTx.id}. ${cleanUserNote}` : `Marked as Used from Outbound ${parentTx.id}.`;
+    }
+
+    await tx.inventoryTransaction.update({
+      where: { id: usedTx.id },
+      data: {
+        quantity: newQty,
+        deliverySupervisorId: deliverySupervisorId || null,
+        notes: updatedNotes || null,
+        ...(timestamp ? { timestamp: new Date(timestamp) } : {})
+      }
+    });
+  });
+
+  // Revalidate paths
+  revalidateInventory({
+    module: 'used',
+    productId: usedTx.productId,
+    storeId: usedTx.fromEntityId,
+    extraPaths: [
+      '/dashboard/used',
+      `/dashboard/used/${encodeURIComponent(usedTx.deliveryNote || usedTx.id)}/edit`,
+      '/dashboard/stores',
+      usedTx.fromEntityId ? `/dashboard/stores/${usedTx.fromEntityId}` : null,
+      '/dashboard/products',
+      `/dashboard/products/${usedTx.productId}`,
+      '/dashboard/transactions',
+      '/dashboard'
+    ].filter(Boolean)
+  });
+
+  if (usedTx.fromEntityId) {
+    revalidateStores(usedTx.fromEntityId);
+  }
+
+  return { success: true, id: usedTx.id };
+}
+
 export async function updateBulkIssueTransactions(deliveryNote, payload) {
   await checkWriteAuth();
 
@@ -3217,8 +3971,8 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
   const oldTxs = await prisma.inventoryTransaction.findMany({
     where: {
       OR: [
-        { deliveryNote, transactionType: 'CLIENT_RETURN' },
-        { id: deliveryNote, transactionType: 'CLIENT_RETURN' }
+        { deliveryNote },
+        { id: deliveryNote }
       ]
     },
     include: {
@@ -3228,6 +3982,8 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
   });
 
   if (oldTxs.length === 0) throw new Error('Existing client return records not found');
+
+  const isFromClient = payload.direction === 'fromClient' || oldTxs.some(t => t.fromEntityType === 'BRAND' || t.fromEntityType === 'CLIENT' || t.toEntityType === 'WAREHOUSE');
 
   const productIds = [...new Set(items.map(i => i.productId))];
   const [brand, dbProducts] = await Promise.all([
@@ -3258,18 +4014,31 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
   }
 
   await prisma.$transaction(async (tx) => {
-    // 1. Revert old serials to AVAILABLE at WAREHOUSE
+    // 1. Revert old serials to appropriate status
     for (const oldTx of oldTxs) {
       if (oldTx.product.isSerialized && oldTx.serialNumbers.length > 0) {
         const oldSerials = oldTx.serialNumbers.map(s => s.serialNumber);
-        await tx.productSerialNumber.updateMany({
-          where: { id: { in: oldSerials.map(s => s.id) } },
-          data: {
-            currentLocationType: 'WAREHOUSE',
-            currentLocationId: 'MAIN',
-            status: 'AVAILABLE'
-          }
-        });
+        if (isFromClient) {
+          // Previously returned from client to warehouse -> revert to WITH_CLIENT
+          await tx.productSerialNumber.updateMany({
+            where: { id: { in: oldSerials.map(s => s.id) } },
+            data: {
+              currentLocationType: 'BRAND',
+              currentLocationId: brandId,
+              status: 'WITH_CLIENT'
+            }
+          });
+        } else {
+          // Previously dispatched to client -> revert to AVAILABLE at warehouse
+          await tx.productSerialNumber.updateMany({
+            where: { id: { in: oldSerials.map(s => s.id) } },
+            data: {
+              currentLocationType: 'WAREHOUSE',
+              currentLocationId: 'MAIN',
+              status: 'AVAILABLE'
+            }
+          });
+        }
       }
     }
 
@@ -3281,6 +4050,11 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
 
     // 2. Create updated transactions
     const parsedDate = transactionDate ? parseTransactionDate(transactionDate) : undefined;
+    const fromEntityType = isFromClient ? 'BRAND' : 'WAREHOUSE';
+    const fromEntityId = isFromClient ? brandId : 'MAIN';
+    const toEntityType = isFromClient ? 'WAREHOUSE' : 'BRAND';
+    const toEntityId = isFromClient ? 'MAIN' : brandId;
+
     for (const item of items) {
       const { productId, quantity, barcodes = [], notes, selectedBatches = [] } = item;
       const product = productsMap.get(productId);
@@ -3299,10 +4073,10 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
             data: {
               productId,
               transactionType: 'CLIENT_RETURN',
-              fromEntityType: 'WAREHOUSE',
-              fromEntityId: 'MAIN',
-              toEntityType: 'BRAND',
-              toEntityId: brandId,
+              fromEntityType,
+              fromEntityId,
+              toEntityType,
+              toEntityId,
               quantity: batch.quantity,
               deliveryNote,
               notes: baseNote,
@@ -3322,10 +4096,10 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
         data: {
           productId,
           transactionType: 'CLIENT_RETURN',
-          fromEntityType: 'WAREHOUSE',
-          fromEntityId: 'MAIN',
-          toEntityType: 'BRAND',
-          toEntityId: brandId,
+          fromEntityType,
+          fromEntityId,
+          toEntityType,
+          toEntityId,
           quantity,
           deliveryNote,
           notes: baseNote,
@@ -3343,9 +4117,9 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
         await tx.productSerialNumber.updateMany({
           where: { id: { in: serialIds } },
           data: {
-            status: 'WITH_CLIENT',
-            currentLocationType: 'BRAND',
-            currentLocationId: brandId
+            status: isFromClient ? 'AVAILABLE' : 'WITH_CLIENT',
+            currentLocationType: isFromClient ? 'WAREHOUSE' : 'BRAND',
+            currentLocationId: isFromClient ? 'MAIN' : brandId
           }
         });
 
@@ -3359,8 +4133,9 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
     }
   }, { timeout: 25000 });
 
-  revalidateTransactionPaths();
+  revalidateTransactionPaths({ module: 'client-returns', extraPaths: ['/dashboard/client-returns', '/dashboard/client-returns/balances'] });
   revalidatePath('/dashboard/client-returns');
+  revalidatePath('/dashboard/client-returns/balances');
   return { success: true, deliveryNote };
 }
 

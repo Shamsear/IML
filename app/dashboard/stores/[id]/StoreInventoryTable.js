@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Package, QrCode } from 'lucide-react';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import { useTableSort } from '@/hooks/useTableSort';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
@@ -108,7 +109,7 @@ export default function StoreInventoryTable({
             )}
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto -mx-5">
+            <ScrollableTable containerClassName="hidden md:block -mx-5">
               <div className="inline-block min-w-full align-middle px-5">
                 <table className="min-w-full divide-y divide-border text-sm">
                   <thead>
@@ -175,7 +176,7 @@ export default function StoreInventoryTable({
                   </tbody>
                 </table>
               </div>
-            </div>
+            </ScrollableTable>
 
             {/* Mobile Card View */}
             <div className="md:hidden flex flex-col gap-3">

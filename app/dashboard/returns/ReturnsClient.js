@@ -11,6 +11,7 @@ import ExportToExcel from '@/components/ExportToExcel';
 import PageHeader from '@/components/PageHeader';
 import Pagination from '@/components/Pagination';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import { useTableSort } from '@/hooks/useTableSort';
 import CustomSelect from '@/components/CustomSelect';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
@@ -575,7 +576,7 @@ export default function ReturnsClient({
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
+            <ScrollableTable containerClassName="hidden md:block">
               <table className="w-full text-left text-sm text-text-secondary border-collapse">
                 <thead className="text-xs uppercase bg-surface-elevated text-text-muted font-bold tracking-wider sticky top-0 z-10 border-b border-border shadow-sm">
                   <tr>
@@ -682,7 +683,7 @@ export default function ReturnsClient({
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
 
             {/* Bottom Pagination */}
             <div className="p-4 border-t border-border bg-surface-elevated/20">

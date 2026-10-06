@@ -11,6 +11,7 @@ import ExportToExcel from '@/components/ExportToExcel';
 import Pagination from '@/components/Pagination';
 import { useToast } from '@/components/Toast';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import { useTableSort } from '@/hooks/useTableSort';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import ImageLightbox from '@/components/ImageLightbox';
@@ -714,7 +715,7 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
 
       {/* Desktop Table View */}
       <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <ScrollableTable>
           <table className="min-w-full divide-y divide-border text-xs">
             <thead>
               <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
@@ -799,7 +800,7 @@ function FlatTransactionTable({ txs, brandOptions, productFilter, setProductFilt
               )}
             </tbody>
           </table>
-        </div>
+        </ScrollableTable>
 
         {/* Bottom Pagination */}
         {totalFlatPages > 1 && (

@@ -11,6 +11,7 @@ import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
 import ExportToExcel from '@/components/ExportToExcel';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import DeliveryNoteLink from '@/components/DeliveryNoteLink';
 import ImageLightbox from '@/components/ImageLightbox';
 import { getOptimizedImageUrl } from '@/lib/imagekit';
@@ -374,7 +375,7 @@ export default function TransactionsClient({
             </div>
           ) : (
             <>
-              <div className={`overflow-x-auto transition-opacity duration-150 ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
+              <ScrollableTable className={`transition-opacity duration-150 ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
                 <table className="min-w-full divide-y divide-border text-xs">
                   <thead>
                     <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
@@ -479,7 +480,7 @@ export default function TransactionsClient({
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollableTable>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (

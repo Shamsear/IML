@@ -18,6 +18,7 @@ export default function ClientReturnsClient({
   products,
   editMode = false,
   existingDn = null,
+  isReturnFromClient = false,
   initialBrandId = '',
   initialItems = null,
   initialGlobalNotes = '',
@@ -571,6 +572,7 @@ export default function ClientReturnsClient({
     try {
       const payload = {
         brandId,
+        direction: isReturnFromClient ? 'fromClient' : 'toClient',
         receivedBy: receivedBy.trim(),
         deliverySupervisorName: deliverySupervisorName?.trim() || null,
         transactionDate: transactionDate || null,
@@ -587,7 +589,10 @@ export default function ClientReturnsClient({
       let result;
       if (editMode && existingDn) {
         result = await updateBulkClientReturnTransactions(existingDn, payload);
-        setConfirmData({ title: 'Client Return Updated', message: `Gate pass updated for ${existingDn}. The PDF has been downloaded.` });
+        setConfirmData({
+          title: isReturnFromClient ? 'Return from Client Updated' : 'Client Return Updated',
+          message: `Gate pass updated for ${existingDn}. The PDF has been downloaded.`
+        });
       } else {
         result = await createBulkClientReturnTransactions(payload);
         if (result && result.length > 0) {
@@ -600,14 +605,17 @@ export default function ClientReturnsClient({
         const dateStr = transactionDate || new Date().toISOString().split('T')[0];
 
         // Download gate pass PDF
-        const url = `/api/dashboard/client-returns/gate-pass?dn=${encodeURIComponent(refNo)}&brandId=${brandId}&date=${dateStr}`;
+        const endpoint = isReturnFromClient ? 'return-gate-pass' : 'gate-pass';
+        const url = `/api/dashboard/client-returns/${endpoint}?dn=${encodeURIComponent(refNo)}&brandId=${brandId}&date=${dateStr}`;
         const pdfRes = await fetch(url);
         if (pdfRes.ok) {
           const blob = await pdfRes.blob();
           const fileUrl = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = fileUrl;
-          a.download = `IML-ClientReturn-GatePass-${refNo}.pdf`;
+          a.download = isReturnFromClient
+            ? `IML-ReturnToWarehouse-${refNo}.pdf`
+            : `IML-ClientReturn-GatePass-${refNo}.pdf`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -647,7 +655,9 @@ export default function ClientReturnsClient({
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
-                {editMode ? 'Edit Stock Returned to Client' : 'Return Stock to Client'}
+                {editMode
+                  ? (isReturnFromClient ? 'Edit Stock Returned from Client' : 'Edit Stock Returned to Client')
+                  : 'Return Stock to Client'}
               </h1>
               {editMode && existingDn && (
                 <span className="font-mono text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded">
@@ -657,7 +667,7 @@ export default function ClientReturnsClient({
             </div>
             <p className="text-text-secondary text-sm mt-1">
               {editMode
-                ? 'Modify return gate pass details, products, quantities, and serial numbers.'
+                ? (isReturnFromClient ? 'Modify returned items from client brand back to warehouse.' : 'Modify return gate pass details, products, quantities, and serial numbers.')
                 : 'Dispatch inventory items back to client brand owners.'}
             </p>
           </div>

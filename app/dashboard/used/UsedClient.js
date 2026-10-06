@@ -808,7 +808,15 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
 
                       {!isReadOnly && (
                         <div className="flex items-center justify-end pt-2 border-t border-border/50 text-[11px]">
-                          <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
+                          <TransactionActions
+                            txId={tx.id}
+                            deliveryNote={tx.deliveryNote}
+                            notes={tx.notes || ''}
+                            transactionType="USED"
+                            copyType="used"
+                            noteName="Consumed Record"
+                            showDeliveryNote={false}
+                          />
                         </div>
                       )}
                     </div>
@@ -877,7 +885,15 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                         <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-xs text-text-secondary max-w-xs truncate" title={tx.notes || ''}>{tx.notes || '---'}</td>
                         {!isReadOnly && (
                           <td className="py-2 sm:py-3 px-1.5 sm:px-3 md:px-5 text-right whitespace-nowrap">
-                            <TransactionActions txId={tx.id} notes={tx.notes || ''} showDeliveryNote={false} />
+                            <TransactionActions
+                              txId={tx.id}
+                              deliveryNote={tx.deliveryNote}
+                              notes={tx.notes || ''}
+                              transactionType="USED"
+                              copyType="used"
+                              noteName="Consumed Record"
+                              showDeliveryNote={false}
+                            />
                           </td>
                         )}
                       </tr>

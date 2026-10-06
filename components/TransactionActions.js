@@ -64,18 +64,24 @@ export default function TransactionActions({ txId, transactionId, deliveryNote, 
   };
 
   const resolvedModule = (() => {
-    if (copyType === 'inbound' || transactionType === 'RECEIVE') return 'inbound';
-    if (copyType === 'outbound' || transactionType === 'ISSUE') return 'outbound';
-    if (copyType === 'rebrand' || transactionType?.startsWith('REBRAND') || (deliveryNote && deliveryNote.startsWith('RBD-'))) return 'rebrand';
-    if (copyType === 'damage' || transactionType === 'DAMAGE' || (deliveryNote && (deliveryNote.startsWith('DAM-') || deliveryNote.startsWith('DMG-')))) return 'damage';
-    if (copyType === 'loss' || transactionType === 'LOST' || (deliveryNote && (deliveryNote.startsWith('LOS-') || deliveryNote.startsWith('LSS-')))) return 'loss';
-    if (copyType === 'returns' || transactionType === 'RETURN' || (deliveryNote && (deliveryNote.startsWith('RET-') || deliveryNote.startsWith('RTN-')))) return 'transactions';
-    if (copyType === 'client-returns' || transactionType === 'CLIENT_RETURN' || (deliveryNote && (deliveryNote.startsWith('CRN-') || deliveryNote.startsWith('CRR-') || deliveryNote.startsWith('CGP-') || deliveryNote.startsWith('CRP-') || deliveryNote.startsWith('CLT-')))) return 'client-returns';
+    if (copyType && ['used', 'client-returns', 'returns', 'damage', 'loss', 'rebrand', 'inbound', 'outbound', 'transactions'].includes(copyType)) {
+      return copyType;
+    }
+    if (transactionType === 'USED' || (deliveryNote && (deliveryNote.startsWith('USD-') || deliveryNote.startsWith('USE-'))) || (notes && notes.includes('Marked as Used'))) return 'used';
+    if (transactionType === 'CLIENT_RETURN' || transactionType === 'CLIENT_STOCK' || (deliveryNote && (deliveryNote.startsWith('CRN-') || deliveryNote.startsWith('CRR-') || deliveryNote.startsWith('CGP-') || deliveryNote.startsWith('CRP-') || deliveryNote.startsWith('CLT-')))) return 'client-returns';
+    if (transactionType === 'RETURN' || (deliveryNote && (deliveryNote.startsWith('RET-') || deliveryNote.startsWith('RTN-')))) return 'returns';
+    if (transactionType === 'RECEIVE') return 'inbound';
+    if (transactionType === 'ISSUE') return 'outbound';
+    if (transactionType?.startsWith('REBRAND') || (deliveryNote && deliveryNote.startsWith('RBD-'))) return 'rebrand';
+    if (transactionType === 'DAMAGE' || (deliveryNote && (deliveryNote.startsWith('DAM-') || deliveryNote.startsWith('DMG-')))) return 'damage';
+    if (transactionType === 'LOST' || (deliveryNote && (deliveryNote.startsWith('LOS-') || deliveryNote.startsWith('LSS-')))) return 'loss';
     return copyType || 'inbound';
   })();
 
   const dnParam = (resolvedModule === 'transactions' && activeId)
     ? encodeURIComponent(activeId)
+    : (resolvedModule === 'used' && activeId)
+    ? encodeURIComponent(deliveryNote || activeId)
     : (deliveryNote ? encodeURIComponent(deliveryNote) : encodeURIComponent(activeId || ''));
 
   const editHref = resolvedModule === 'transactions'
@@ -86,6 +92,10 @@ export default function TransactionActions({ txId, transactionId, deliveryNote, 
     ? `/dashboard/rebrand/new`
     : resolvedModule === 'transactions'
     ? `/dashboard/transactions/${encodeURIComponent(activeId || dnParam)}/edit?mode=copy`
+    : resolvedModule === 'returns'
+    ? `/dashboard/returns?dn=${encodeURIComponent(deliveryNote || '')}`
+    : resolvedModule === 'used'
+    ? `/dashboard/used?tab=transactions`
     : deliveryNote
     ? `/dashboard/${resolvedModule}/new?copyDn=${encodeURIComponent(deliveryNote)}`
     : `/dashboard/${resolvedModule}/new?copyTxId=${encodeURIComponent(activeId || '')}`;

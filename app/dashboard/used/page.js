@@ -28,7 +28,13 @@ export default async function UsedPage() {
     }),
     prisma.store.findMany({ select: { id: true, name: true } }),
     prisma.inventoryTransaction.findMany({
-      where: { transactionType: 'USED' },
+      where: {
+        OR: [
+          { transactionType: 'USED' },
+          { deliveryNote: { startsWith: 'USD-' } },
+          { notes: { contains: 'Marked as Used from Outbound' } }
+        ]
+      },
       include: {
         product: { select: { id: true, name: true, itemCode: true, imageUrl: true, brand: { select: { name: true } } } }
       },

@@ -24,6 +24,7 @@ import Pagination from '@/components/Pagination';
 import { useToast } from '@/components/Toast';
 import ConfirmModal from '@/components/ConfirmModal';
 import SortableHeader from '@/components/SortableHeader';
+import ScrollableTable from '@/components/ScrollableTable';
 import { useTableSort } from '@/hooks/useTableSort';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -1203,7 +1204,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                 actionHref={isReadOnly ? undefined : "/dashboard/products/new"}
               />
             ) : (
-              <div className="overflow-x-auto">
+              <ScrollableTable>
                 <table className="min-w-full divide-y divide-border text-[10px] sm:text-[11px] md:text-xs">
                     <thead>
                       <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface-elevated/40">
@@ -1381,7 +1382,7 @@ export default function ProductsClient({ initialProducts, brands, stores = [] })
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollableTable>
             )}
           </div>
 

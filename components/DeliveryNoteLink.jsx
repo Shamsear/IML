@@ -33,15 +33,14 @@ export function getDeliveryNotePdfUrl(tx) {
   }
   if (
     (typeof tx === 'object' && tx.fromEntityType === 'BRAND' && tx.toEntityType === 'WAREHOUSE') ||
-    dn.startsWith('CRP-') || dn.startsWith('CRN-') || dn.startsWith('CRR-') || dn.startsWith('CLT-') ||
-    txType === 'CLIENT_RETURN'
+    dn.startsWith('CRR-')
   ) {
     return `/api/dashboard/client-returns/return-gate-pass?${qs}`;
   }
   if (
     (typeof tx === 'object' && (tx.toEntityType === 'BRAND' || tx.fromEntityType === 'BRAND')) ||
-    dn.startsWith('CGP-') || dn.startsWith('GP-') ||
-    txType === 'CLIENT_STOCK'
+    dn.startsWith('CGP-') || dn.startsWith('CRN-') || dn.startsWith('CRP-') || dn.startsWith('CLT-') || dn.startsWith('GP-') ||
+    txType === 'CLIENT_STOCK' || txType === 'CLIENT_RETURN'
   ) {
     return `/api/dashboard/client-returns/gate-pass?${qs}`;
   }
