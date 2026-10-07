@@ -1236,14 +1236,14 @@ export async function createBulkDamageTransactions(payload) {
   const {
     fromEntityType,
     fromEntityId,
-    transactionType = 'DAMAGE', // 'DAMAGE' or 'LOST'
+    transactionType = 'DAMAGE', // 'DAMAGE', 'LOST', or 'USED'
     items = [], // Array of { productId, quantity, barcodes, notes }
   } = payload;
 
-  const resolvedType = transactionType === 'LOST' ? 'LOST' : 'DAMAGE';
-  const serialStatus = resolvedType === 'LOST' ? 'LOST' : 'DAMAGED';
+  const resolvedType = transactionType === 'LOST' ? 'LOST' : (transactionType === 'USED' ? 'USED' : 'DAMAGE');
+  const serialStatus = resolvedType === 'LOST' ? 'LOST' : (resolvedType === 'USED' ? 'USED' : 'DAMAGED');
 
-  if (items.length === 0) throw new Error('At least one product item is required for damage logging');
+  if (items.length === 0) throw new Error(`At least one product item is required for ${resolvedType.toLowerCase()} logging`);
 
   // 1. Batch Product Query
   const productIds = [...new Set(items.map(i => i.productId))];
@@ -1328,7 +1328,7 @@ export async function createBulkDamageTransactions(payload) {
     }
 
     for (const [brandName, brandItems] of Object.entries(itemsByBrand)) {
-      const typeCode = resolvedType === 'LOST' ? 'LOS' : 'DAM';
+      const typeCode = resolvedType === 'LOST' ? 'LOS' : (resolvedType === 'USED' ? 'USD' : 'DAM');
       const deliveryNote = await generateCustomRef(tx, typeCode, brandName);
 
       for (const item of brandItems) {
@@ -1401,7 +1401,7 @@ export async function createBulkDamageTransactions(payload) {
           transactionType: resolvedType,
           fromEntityType,
           fromEntityId: fromEntityId || null,
-          toEntityType: null,
+          toEntityType: resolvedType === 'USED' ? 'STAFF' : null,
           toEntityId: null,
           quantity,
           notes: finalItemNotes,
@@ -1852,16 +1852,16 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
   } = payload;
 
   if (!deliveryNote) throw new Error('Delivery Note is required for update');
-  if (items.length === 0) throw new Error('At least one product item is required for damage update');
+  if (items.length === 0) throw new Error(`At least one product item is required for ${transactionType.toLowerCase()} update`);
 
-  const resolvedType = transactionType === 'LOST' ? 'LOST' : 'DAMAGE';
-  const serialStatus = resolvedType === 'LOST' ? 'LOST' : 'DAMAGED';
+  const resolvedType = transactionType === 'LOST' ? 'LOST' : (transactionType === 'USED' ? 'USED' : 'DAMAGE');
+  const serialStatus = resolvedType === 'LOST' ? 'LOST' : (resolvedType === 'USED' ? 'USED' : 'DAMAGED');
 
   const oldTxs = await prisma.inventoryTransaction.findMany({
     where: {
       OR: [
-        { deliveryNote, transactionType: { in: ['DAMAGE', 'LOST'] } },
-        { id: deliveryNote, transactionType: { in: ['DAMAGE', 'LOST'] } }
+        { deliveryNote, transactionType: { in: ['DAMAGE', 'LOST', 'USED'] } },
+        { id: deliveryNote, transactionType: { in: ['DAMAGE', 'LOST', 'USED'] } }
       ]
     },
     include: {
@@ -2016,7 +2016,7 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
               transactionType: resolvedType,
               fromEntityType,
               fromEntityId: fromEntityId || null,
-              toEntityType: null,
+              toEntityType: resolvedType === 'USED' ? 'STAFF' : null,
               toEntityId: null,
               quantity: batch.quantity,
               notes: finalItemNotes,
@@ -2037,7 +2037,7 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
           transactionType: resolvedType,
           fromEntityType,
           fromEntityId: fromEntityId || null,
-          toEntityType: null,
+          toEntityType: resolvedType === 'USED' ? 'STAFF' : null,
           toEntityId: null,
           quantity,
           notes: finalItemNotes,

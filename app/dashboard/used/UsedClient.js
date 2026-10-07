@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Package, Search, Store, Trash2, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, X } from 'lucide-react';
+import { Package, Search, Store, Trash2, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, X, Plus } from 'lucide-react';
 import { processOutboundReturns } from '@/app/actions/transactions';
 import TransactionActions from '@/components/TransactionActions';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -66,7 +66,8 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
   }, [stores]);
 
   const storeOptions = useMemo(() => [
-    { value: '', label: 'All Stores' },
+    { value: '', label: 'All Sources' },
+    { value: 'WAREHOUSE', label: 'Central Warehouse' },
     ...stores.map(s => ({ value: s.id, label: s.name }))
   ], [stores]);
 
@@ -141,7 +142,11 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
     const q = (searchQuery || '').toLowerCase().trim();
 
     return (pastUsed || []).filter(tx => {
-      const matchStore = !searchStore || tx.fromEntityId === searchStore;
+      const matchStore = !searchStore || (
+        searchStore === 'WAREHOUSE'
+          ? tx.fromEntityType === 'WAREHOUSE'
+          : tx.fromEntityId === searchStore
+      );
       const matchBrand = !searchBrand || tx.product?.brandId === searchBrand;
       const matchCategory = !searchCategory || tx.product?.category === searchCategory;
 
@@ -153,7 +158,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
       const cName = tx.product?.category?.toLowerCase() || '';
       const sku = tx.product?.itemCode?.toLowerCase() || '';
       const dn = tx.deliveryNote?.toLowerCase() || '';
-      const fromStore = (storeMap[tx.fromEntityId] || tx.fromEntityType || '').toLowerCase();
+      const fromStore = (tx.fromEntityType === 'WAREHOUSE' ? 'Central Warehouse' : (storeMap[tx.fromEntityId] || tx.fromEntityType || '')).toLowerCase();
       const notes = tx.notes?.toLowerCase() || '';
       const barcode = tx.barcode?.toLowerCase() || '';
 
@@ -206,7 +211,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
   const historyCustomGetters = useMemo(() => ({
     date: (tx) => tx.timestamp,
     product: (tx) => tx.product?.name || '',
-    store: (tx) => storeMap[tx.fromEntityId] || tx.fromEntityType || '',
+    store: (tx) => tx.fromEntityType === 'WAREHOUSE' ? 'Central Warehouse' : (storeMap[tx.fromEntityId] || tx.fromEntityType || ''),
     quantity: (tx) => tx.quantity ?? 0,
     notes: (tx) => tx.notes || '',
   }), [storeMap]);
@@ -302,6 +307,15 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
         title="Mark as Used / Consumed"
         description="Mark disposable items as fully used. Stock will not return to warehouse."
         actions={<>
+          {!isReadOnly && (
+            <Link
+              href="/dashboard/used/new"
+              className="inline-flex items-center justify-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-white font-semibold text-xs sm:text-sm rounded-lg shadow-sm hover:shadow transition-all duration-200"
+            >
+              <Plus size={15} />
+              <span>Mark Warehouse Stock as Used</span>
+            </Link>
+          )}
           <ExportToExcel
             data={activeTab === 'history' ? filteredHistory.map(tx => ({
               _rawTimestamp: tx.timestamp,
@@ -310,7 +324,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
               SKU: tx.product?.itemCode || '',
               Brand: tx.product?.brand?.name || '',
               Category: tx.product?.category || '',
-              Store: storeMap[tx.fromEntityId] || tx.fromEntityType || '',
+              Store: tx.fromEntityType === 'WAREHOUSE' ? 'Central Warehouse' : (storeMap[tx.fromEntityId] || tx.fromEntityType || ''),
               Quantity: tx.quantity,
               'Delivery Note': tx.deliveryNote || '',
               Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
@@ -901,7 +915,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                 </div>
               ) : (
                 paginatedHistory.map(tx => {
-                  const fromStore = storeMap[tx.fromEntityId] || tx.fromEntityType || 'Store';
+                  const fromStore = tx.fromEntityType === 'WAREHOUSE' ? 'Central Warehouse' : (storeMap[tx.fromEntityId] || tx.fromEntityType || 'Store');
                   const dateStr = new Date(tx.timestamp).toLocaleString('en-AE', {
                     timeZone: 'Asia/Dubai',
                     day: 'numeric',
@@ -951,7 +965,8 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
 
                       <div className="flex items-center justify-between text-xs text-text-secondary">
                         <span className="font-medium text-[11px] text-text-secondary truncate max-w-[60%]">
-                          Store: <strong className="text-text-primary">{fromStore}</strong>
+                          {tx.fromEntityType === 'WAREHOUSE' ? 'Source: ' : 'Store: '}
+                          <strong className="text-text-primary">{fromStore}</strong>
                         </span>
                         <span className="text-[11px] text-text-muted">{dateStr}</span>
                       </div>
@@ -1000,7 +1015,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No consumed logs found.</span></div>
                     </td></tr>
                   ) : paginatedHistory.map(tx => {
-                    const fromStore = storeMap[tx.fromEntityId] || tx.fromEntityType || 'Store';
+                    const fromStore = tx.fromEntityType === 'WAREHOUSE' ? 'Central Warehouse' : (storeMap[tx.fromEntityId] || tx.fromEntityType || 'Store');
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
                         <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[240px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">

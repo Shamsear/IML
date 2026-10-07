@@ -222,7 +222,7 @@ export default function EditUsedClient({
                   <Store size={13} /> Source Store:
                 </span>
                 <span className="font-bold text-text-primary">
-                  {store?.name || usedTx.fromEntityType || 'Store'}
+                  {store?.name || (usedTx.fromEntityType === 'WAREHOUSE' ? 'Central Warehouse' : usedTx.fromEntityType || 'Store')}
                 </span>
               </div>
               <div className="flex items-center justify-between">

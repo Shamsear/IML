@@ -55,7 +55,9 @@ function DamageFormContent({
     if (lockedType) return lockedType;
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('type');
-      return p === 'LOST' ? 'LOST' : 'DAMAGE';
+      if (p === 'LOST') return 'LOST';
+      if (p === 'USED') return 'USED';
+      return 'DAMAGE';
     }
     return 'DAMAGE';
   });
@@ -870,7 +872,7 @@ function DamageFormContent({
       }
 
       if (itemsPayload.length === 0) {
-        setError(`Please enter a quantity (> 0) for at least one product before submitting ${reportType === 'LOST' ? 'loss' : 'damage'} report.`);
+        setError(`Please enter a quantity (> 0) for at least one product before submitting ${reportType === 'LOST' ? 'loss' : reportType === 'USED' ? 'used' : 'damage'} report.`);
         setLoading(false);
         return;
       }
@@ -883,10 +885,14 @@ function DamageFormContent({
           items: itemsPayload
         });
         const totalUnits = itemsPayload.reduce((a, b) => a + b.quantity, 0);
-        const label = reportType === 'LOST' ? 'Loss Report Filed' : 'Damage Report Filed';
+        const label = reportType === 'LOST' 
+          ? 'Loss Report Filed' 
+          : reportType === 'USED' 
+          ? 'Used / Consumed Stock Logged' 
+          : 'Damage Report Filed';
         setConfirmData({
           title: label,
-          message: `${itemsPayload.length} product item(s) (${totalUnits} total unit${totalUnits > 1 ? 's' : ''}) have been recorded as ${reportType === 'LOST' ? 'lost' : 'damaged'} and deducted directly from store dispatches.`
+          message: `${itemsPayload.length} product item(s) (${totalUnits} total unit${totalUnits > 1 ? 's' : ''}) have been recorded as ${reportType === 'LOST' ? 'lost' : reportType === 'USED' ? 'used' : 'damaged'} and deducted directly from store dispatches.`
         });
         setConfirmOpen(true);
       } catch (err) {
@@ -962,7 +968,7 @@ function DamageFormContent({
           transactionType: reportType,
           items: itemsPayload
         });
-        const label = reportType === 'LOST' ? 'Loss Report Updated' : 'Damage Report Updated';
+        const label = reportType === 'LOST' ? 'Loss Report Updated' : reportType === 'USED' ? 'Used Report Updated' : 'Damage Report Updated';
         setConfirmData({ title: label, message: `${items.length} product(s) have been updated.` });
       } else {
         await createBulkDamageTransactions({
@@ -971,8 +977,15 @@ function DamageFormContent({
           transactionType: reportType,
           items: itemsPayload
         });
-        const label = reportType === 'LOST' ? 'Loss Report Filed' : 'Damage Report Filed';
-        setConfirmData({ title: label, message: `${items.length} product(s) have been recorded as ${reportType === 'LOST' ? 'lost' : 'damaged'}.` });
+        const label = reportType === 'LOST' 
+          ? 'Loss Report Filed' 
+          : reportType === 'USED' 
+          ? 'Used / Consumed Stock Logged' 
+          : 'Damage Report Filed';
+        setConfirmData({ 
+          title: label, 
+          message: `${items.length} product(s) have been recorded as ${reportType === 'LOST' ? 'lost' : reportType === 'USED' ? 'used' : 'damaged'}.` 
+        });
       }
       setConfirmOpen(true);
     } catch (err) {
@@ -994,7 +1007,7 @@ function DamageFormContent({
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border">
         <div className="flex items-center gap-4">
           <Link
-            href={lockedType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
+            href={lockedType === 'USED' ? '/dashboard/used' : lockedType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
             className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none transition-colors"
           >
             <ArrowLeft size={16} />
@@ -1003,8 +1016,8 @@ function DamageFormContent({
             <div className="flex items-center gap-2.5">
               <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary tracking-tight">
                 {editMode 
-                  ? (lockedType === 'LOST' ? 'Edit Loss Report' : 'Edit Damage Report')
-                  : (lockedType === 'LOST' ? 'Report Loss / Missing' : 'Report Damage & Wastage')}
+                  ? (lockedType === 'LOST' ? 'Edit Loss Report' : lockedType === 'USED' ? 'Edit Used / Consumed Report' : 'Edit Damage Report')
+                  : (lockedType === 'LOST' ? 'Report Loss / Missing' : lockedType === 'USED' ? 'Mark as Used / Consumed' : 'Report Damage & Wastage')}
               </h1>
               {editMode && existingDn && (
                 <span className="font-mono text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded">
@@ -1014,9 +1027,11 @@ function DamageFormContent({
             </div>
             <p className="text-text-secondary text-sm mt-1">
               {editMode
-                ? 'Modify damaged or lost items, quantities, reasons, and serial numbers.'
+                ? 'Modify damaged, lost, or used items, quantities, reasons, and serial numbers.'
                 : lockedType === 'LOST'
                 ? 'Log items that are missing, stolen, or cannot be accounted for.'
+                : lockedType === 'USED'
+                ? 'Log items or serial numbers used or consumed directly from Central Warehouse stock or store placements.'
                 : 'Log damaged items or serial numbers to discard them from Central Warehouse stock.'}
             </p>
           </div>
@@ -1053,7 +1068,7 @@ function DamageFormContent({
         open={confirmOpen}
         onClose={() => { 
           setConfirmOpen(false); 
-          router.push((lockedType === 'LOST' || reportType === 'LOST') ? '/dashboard/loss' : '/dashboard/damage'); 
+          router.push((lockedType === 'USED' || reportType === 'USED') ? '/dashboard/used?tab=history' : (lockedType === 'LOST' || reportType === 'LOST') ? '/dashboard/loss' : '/dashboard/damage'); 
           router.refresh(); 
         }}
         type="success"
@@ -1103,8 +1118,8 @@ function DamageFormContent({
         {/* Source Selection Header */}
         <div className="bg-surface-elevated/40 border border-border rounded-xl p-5 shadow-sm">
           <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-            <AlertCircle size={15} className="text-danger animate-pulse" />
-            <span>Report Source / Location</span>
+            <AlertCircle size={15} className={reportType === 'USED' ? 'text-primary' : 'text-danger animate-pulse'} />
+            <span>{reportType === 'USED' ? 'Source Stock Location' : 'Report Source / Location'}</span>
           </h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -1237,7 +1252,7 @@ function DamageFormContent({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-display font-bold text-lg text-text-primary">
-              {reportType === 'LOST' ? 'Lost / Missing Products' : 'Damaged Products Ledger'}
+              {reportType === 'LOST' ? 'Lost / Missing Products' : reportType === 'USED' ? 'Used / Consumed Products Ledger' : 'Damaged Products Ledger'}
             </h3>
             {fromType === 'STORE' && fromId && !isFetchingOutbounds && storeOutboundNotes.length > 0 && (
               <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
@@ -1472,7 +1487,7 @@ function DamageFormContent({
                           key={group.key}
                           className={`border rounded-2xl overflow-hidden transition-all duration-200 ${
                             groupMarkedUnits > 0
-                              ? (reportType === 'LOST' ? 'border-warning/50 bg-warning/5 shadow-sm' : 'border-danger/50 bg-danger/5 shadow-sm')
+                              ? (reportType === 'LOST' ? 'border-warning/50 bg-warning/5 shadow-sm' : reportType === 'USED' ? 'border-primary/50 bg-primary/5 shadow-sm' : 'border-danger/50 bg-danger/5 shadow-sm')
                               : 'border-border bg-surface shadow-sm'
                           }`}
                         >
@@ -1535,6 +1550,8 @@ function DamageFormContent({
                                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full font-mono ${
                                   reportType === 'LOST'
                                     ? 'bg-warning/20 text-warning border border-warning/30'
+                                    : reportType === 'USED'
+                                    ? 'bg-primary/20 text-primary border border-primary/30'
                                     : 'bg-danger/20 text-danger border border-danger/30'
                                 }`}>
                                   {groupMarkedUnits} unit{groupMarkedUnits > 1 ? 's' : ''} marked
@@ -1558,7 +1575,7 @@ function DamageFormContent({
                                     key={item.outboundTxId}
                                     className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
                                       isItemMarked
-                                        ? (reportType === 'LOST' ? 'bg-warning/5' : 'bg-danger/5')
+                                        ? (reportType === 'LOST' ? 'bg-warning/5' : reportType === 'USED' ? 'bg-primary/5' : 'bg-danger/5')
                                         : 'hover:bg-surface-elevated/20'
                                     }`}
                                   >
@@ -1659,6 +1676,8 @@ function DamageFormContent({
                                                       isSelected
                                                         ? (reportType === 'LOST'
                                                             ? 'bg-warning/20 border-warning text-warning'
+                                                            : reportType === 'USED'
+                                                            ? 'bg-primary/20 border-primary text-primary'
                                                             : 'bg-danger/20 border-danger text-danger')
                                                         : 'bg-surface-elevated/60 border-border text-text-secondary hover:text-text-primary hover:border-primary/40'
                                                     }`}
@@ -1684,7 +1703,7 @@ function DamageFormContent({
                                                 disabled={item.remainingQty <= 0}
                                                 className={`w-full px-3 py-1.5 bg-surface text-text-primary border rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-primary/20 ${
                                                   currentQty > 0
-                                                    ? (reportType === 'LOST' ? 'border-warning focus:border-warning' : 'border-danger focus:border-danger')
+                                                    ? (reportType === 'LOST' ? 'border-warning focus:border-warning' : reportType === 'USED' ? 'border-primary focus:border-primary' : 'border-danger focus:border-danger')
                                                     : 'border-border focus:border-primary'
                                                 }`}
                                               />
@@ -1740,7 +1759,7 @@ function DamageFormContent({
                 <div className="sticky bottom-4 z-20 p-4 bg-surface/95 backdrop-blur-md border border-border rounded-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-slide-up">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-text-secondary">
-                      Marked for {reportType === 'LOST' ? 'Loss' : 'Damage'}:
+                      Marked for {reportType === 'LOST' ? 'Loss' : reportType === 'USED' ? 'Usage' : 'Damage'}:
                     </span>
                     <span className="font-mono font-bold text-sm text-text-primary">
                       {storeSelectedCount.count} product{storeSelectedCount.count !== 1 ? 's' : ''} ({storeSelectedCount.units} unit{storeSelectedCount.units !== 1 ? 's' : ''})
@@ -1749,7 +1768,7 @@ function DamageFormContent({
 
                   <div className="flex items-center gap-3">
                     <Link
-                      href={reportType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
+                      href={reportType === 'USED' ? '/dashboard/used' : reportType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
                       className="px-4 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-xl text-xs font-semibold transition-colors"
                     >
                       Cancel
@@ -1758,12 +1777,12 @@ function DamageFormContent({
                       type="submit"
                       disabled={loading || storeSelectedCount.units === 0}
                       className={`inline-flex items-center justify-center gap-2 px-5 py-2 text-white font-semibold text-xs rounded-xl shadow-md hover:shadow-lg transition-colors ${
-                        reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : 'bg-danger hover:bg-danger/90'
+                        reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : reportType === 'USED' ? 'bg-primary hover:bg-primary/90' : 'bg-danger hover:bg-danger/90'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {loading && <Loader2 size={14} className="animate-spin" />}
                       <span>
-                        {reportType === 'LOST' ? 'Submit Loss Report' : 'Submit Damage Logs'}
+                        {reportType === 'LOST' ? 'Submit Loss Report' : reportType === 'USED' ? 'Submit Used Logs' : 'Submit Damage Logs'}
                         {storeSelectedCount.units > 0 ? ` (${storeSelectedCount.units})` : ''}
                       </span>
                     </button>
@@ -1881,7 +1900,7 @@ function DamageFormContent({
                       <div className="flex flex-col gap-1.5 md:col-span-1">
                         <div className="flex items-center justify-between">
                           <label className="text-xs font-semibold text-text-secondary">
-                            {!selectedProd?.isSerialized ? (reportType === 'LOST' ? 'Quantity Lost' : 'Quantity Damaged') : 'Quantity (Selected)'}
+                            {!selectedProd?.isSerialized ? (reportType === 'LOST' ? 'Quantity Lost' : reportType === 'USED' ? 'Quantity Used' : 'Quantity Damaged') : 'Quantity (Selected)'}
                           </label>
                           {selectedProd && !selectedProd.isSerialized && (
                             <span className="text-[10px] font-mono text-text-muted">
@@ -2119,18 +2138,18 @@ function DamageFormContent({
               </button>
 
               <div className="flex items-center gap-3">
-                <Link href={reportType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'} className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200">
+                <Link href={reportType === 'USED' ? '/dashboard/used' : reportType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'} className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200">
                   Cancel
                 </Link>
                 <button 
                   type="submit" 
                   className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors shadow duration-200 ${
-                    reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : 'bg-danger hover:bg-danger/90'
+                    reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : reportType === 'USED' ? 'bg-primary hover:bg-primary/90' : 'bg-danger hover:bg-danger/90'
                   }`}
                   disabled={loading || items.length === 0}
                 >
                   {loading && <Loader2 size={16} className="animate-spin" />}
-                  <span>{reportType === 'LOST' ? 'Submit Loss Report' : 'Submit Damage Logs'}</span>
+                  <span>{reportType === 'LOST' ? 'Submit Loss Report' : reportType === 'USED' ? 'Submit Used Logs' : 'Submit Damage Logs'}</span>
                 </button>
               </div>
             </div>
