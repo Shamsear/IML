@@ -58,8 +58,13 @@ export default async function ExpiryPage() {
     } else if (agg.fromEntityType === 'WAREHOUSE' && ['ISSUE', 'DAMAGE', 'LOST', 'REBRAND_OUT', 'CLIENT_STOCK'].includes(agg.transactionType)) {
       current -= qty;
     }
-    warehouseStockMap.set(pid, Math.max(0, current));
+    warehouseStockMap.set(pid, current);
   });
+
+  // Clamp any negative balances to 0 after all movements have been netted
+  for (const [pid, val] of warehouseStockMap.entries()) {
+    warehouseStockMap.set(pid, Math.max(0, val));
+  }
 
   // Map transactions to batch objects — group by product, keep earliest expiry
   const productBatchMap = new Map();

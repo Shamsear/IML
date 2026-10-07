@@ -66,7 +66,7 @@ export default function ReportsClient({ initialProducts = [], brands = [] }) {
 
   // Compile products list with computed metrics
   const productsWithStock = (initialProducts || []).map(p => {
-    const stock = getProductStock(p.transactions);
+    const stock = p.stock ? { ...p.stock } : getProductStock(p.transactions);
     if (p.isSerialized && p.serialStats) {
       stock.warehouse = p.serialStats.warehouse;
       stock.withClient = p.serialStats.withClient;

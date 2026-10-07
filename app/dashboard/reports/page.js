@@ -114,6 +114,7 @@ export default async function ReportsPage() {
     return {
       ...product,
       stock,
+      transactions: productTxs,
     };
   });
 
