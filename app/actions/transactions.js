@@ -613,9 +613,12 @@ export async function getStoreOutboundNotes(storeId) {
       isSerialized: prod.isSerialized,
       trackExpiry: prod.trackExpiry,
       originalQty: ob.quantity,
+      issuedQty: ob.quantity,
       returnedQty: ob.returnedQty || 0,
+      cutQty: ob.returnedQty || 0,
       remainingQty: remainingQty,
       availableBarcodes,
+      storeBarcodes: availableBarcodes,
       notes: ob.notes || ''
     });
   }

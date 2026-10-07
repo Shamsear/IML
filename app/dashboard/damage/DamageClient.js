@@ -71,7 +71,6 @@ function DamageFormContent({
   const [isFetchingStoreInventory, setIsFetchingStoreInventory] = useState(false);
   const [storeOutboundNotes, setStoreOutboundNotes] = useState([]);
   const [isFetchingOutbounds, setIsFetchingOutbounds] = useState(false);
-  const [storeViewMode, setStoreViewMode] = useState('DN_GROUPED'); // 'DN_GROUPED' | 'MANUAL'
   const [dnSearchQuery, setDnSearchQuery] = useState('');
   const [dnBrandFilter, setDnBrandFilter] = useState('ALL');
   const [dnCategoryFilter, setDnCategoryFilter] = useState('ALL');
@@ -292,7 +291,7 @@ function DamageFormContent({
   const [items, setItems] = useState([]);
 
   // Warn before navigating away with unsaved items
-  const hasUnsavedChanges = (fromType === 'STORE' && storeViewMode === 'DN_GROUPED')
+  const hasUnsavedChanges = fromType === 'STORE'
     ? storeSelectedCount.units > 0
     : items.length > 0;
   useUnsavedChanges(hasUnsavedChanges && !loading);
@@ -843,7 +842,7 @@ function DamageFormContent({
     }
 
     // Branch A: Store Grouped by Delivery Note submission
-    if (fromType === 'STORE' && storeViewMode === 'DN_GROUPED') {
+    if (fromType === 'STORE') {
       const itemsPayload = [];
       for (const group of storeOutboundNotes) {
         for (const item of group.items) {
@@ -1077,49 +1076,11 @@ function DamageFormContent({
       />
 
       <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
-        {/* Report Type Toggle — hidden when type is locked by page */}
-        {!lockedType && (
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Report Type</label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setReportType('DAMAGE')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-bold transition-all ${
-                reportType === 'DAMAGE'
-                  ? 'bg-danger text-white border-danger shadow-md'
-                  : 'bg-surface border-border text-text-secondary hover:border-danger/50 hover:text-danger'
-              }`}
-            >
-              <ShieldAlert size={15} />
-              Damage / Wastage
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportType('LOST')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-bold transition-all ${
-                reportType === 'LOST'
-                  ? 'bg-warning text-white border-warning shadow-md'
-                  : 'bg-surface border-border text-text-secondary hover:border-warning/50 hover:text-warning'
-              }`}
-            >
-              <AlertCircle size={15} />
-              Lost / Missing
-            </button>
-          </div>
-          <p className="text-[11px] text-text-muted">
-            {reportType === 'DAMAGE'
-              ? 'Use for physically damaged, broken, or wasted items that are being written off.'
-              : 'Use for items that are missing, stolen, or cannot be accounted for.'}
-          </p>
-        </div>
-        )}
-
         {/* Source Selection Header */}
         <div className="bg-surface-elevated/40 border border-border rounded-xl p-5 shadow-sm">
           <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2 pb-3 border-b border-border">
-            <AlertCircle size={15} className={reportType === 'USED' ? 'text-primary' : 'text-danger animate-pulse'} />
-            <span>{reportType === 'USED' ? 'Source Stock Location' : 'Report Source / Location'}</span>
+            <AlertCircle size={15} className={reportType === 'USED' ? 'text-primary' : reportType === 'LOST' ? 'text-warning' : 'text-danger animate-pulse'} />
+            <span>{reportType === 'USED' ? 'Source Stock Location' : reportType === 'LOST' ? 'Loss Source / Location' : 'Damage Source / Location'}</span>
           </h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -1261,47 +1222,18 @@ function DamageFormContent({
             )}
           </div>
 
-          {fromType === 'STORE' && fromId && (
-            <div className="inline-flex items-center bg-surface-elevated/70 p-1 rounded-xl border border-border text-xs font-semibold self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setStoreViewMode('DN_GROUPED')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                  storeViewMode === 'DN_GROUPED'
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                <FileText size={13} />
-                <span>By Delivery Note</span>
-                {storeOutboundNotes.length > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${storeViewMode === 'DN_GROUPED' ? 'bg-white/20 text-white' : 'bg-surface border border-border text-text-secondary'}`}>
-                    {storeOutboundNotes.length}
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStoreViewMode('MANUAL')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                  storeViewMode === 'MANUAL'
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                <span>Manual Rows</span>
-                {items.length > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${storeViewMode === 'MANUAL' ? 'bg-white/20 text-white' : 'bg-surface border border-border text-text-secondary'}`}>
-                    {items.length}
-                  </span>
-                )}
-              </button>
+          {fromType === 'STORE' && fromId && !isFetchingOutbounds && storeOutboundNotes.length > 0 && (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1.5">
+                <FileText size={12} />
+                <span>{storeOutboundNotes.length} Delivery Note{storeOutboundNotes.length > 1 ? 's' : ''} Active</span>
+              </span>
             </div>
           )}
         </div>
 
-        {/* View Mode 1: Store Outbound Notes Grouped (Active when fromType === 'STORE' and storeViewMode === 'DN_GROUPED') */}
-        {fromType === 'STORE' && storeViewMode === 'DN_GROUPED' ? (
+        {/* View Mode: Exclusively Grouped by Delivery Notes when fromType === 'STORE' */}
+        {fromType === 'STORE' ? (
           <div className="flex flex-col gap-5">
             {!fromId ? (
               <div className="p-8 text-center bg-surface-elevated/30 border border-dashed border-border rounded-2xl flex flex-col items-center justify-center gap-3">
@@ -1325,7 +1257,7 @@ function DamageFormContent({
                 <AlertCircle size={28} className="text-text-muted" />
                 <h4 className="text-sm font-bold text-text-primary">No Active Dispatches at this Store</h4>
                 <p className="text-xs text-text-secondary max-w-md">
-                  No active outbound records with remaining balance were found for this store. You can switch to "Manual Rows" if you need to report an ad-hoc adjustment.
+                  No active outbound records with remaining balance were found for this store. All items previously issued have either been returned, marked as used, or written off.
                 </p>
               </div>
             ) : (
@@ -1630,9 +1562,9 @@ function DamageFormContent({
 
                                         {/* Dispatched info */}
                                         <div className="flex items-center gap-2 text-[11px] text-text-muted mt-0.5">
-                                          <span>Issued: <strong className="text-text-primary">{item.issuedQty}</strong></span>
+                                          <span>Issued: <strong className="text-text-primary">{item.issuedQty ?? item.originalQty ?? 0}</strong></span>
                                           <span>•</span>
-                                          <span>Cut / Ret: <strong className="text-text-primary">{item.cutQty}</strong></span>
+                                          <span>Cut / Ret: <strong className="text-text-primary">{item.cutQty ?? item.returnedQty ?? 0}</strong></span>
                                         </div>
                                       </div>
                                     </div>
@@ -1656,16 +1588,16 @@ function DamageFormContent({
                                           <div className="flex items-center justify-between text-[10px] font-bold text-text-secondary uppercase">
                                             <span>Select Barcode(s) at Store</span>
                                             <span className="font-mono text-primary">
-                                              {currentBarcodes.length} of {item.storeBarcodes?.length || 0} selected
+                                              {currentBarcodes.length} of {(item.storeBarcodes || item.availableBarcodes || []).length} selected
                                             </span>
                                           </div>
-                                          {(!item.storeBarcodes || item.storeBarcodes.length === 0) ? (
+                                          {((item.storeBarcodes || item.availableBarcodes || []).length === 0) ? (
                                             <span className="text-[11px] text-danger font-semibold">
                                               No available barcodes found in store for this item.
                                             </span>
                                           ) : (
                                             <div className="flex flex-wrap gap-1.5 max-h-[90px] overflow-y-auto p-1">
-                                              {item.storeBarcodes.map(s => {
+                                              {(item.storeBarcodes || item.availableBarcodes || []).map(s => {
                                                 const isSelected = currentBarcodes.includes(s.barcode);
                                                 return (
                                                   <button
@@ -1782,7 +1714,7 @@ function DamageFormContent({
                     >
                       {loading && <Loader2 size={14} className="animate-spin" />}
                       <span>
-                        {reportType === 'LOST' ? 'Submit Loss Report' : reportType === 'USED' ? 'Submit Used Logs' : 'Submit Damage Logs'}
+                        {reportType === 'LOST' ? 'Submit Loss Logs' : reportType === 'USED' ? 'Submit Used Logs' : 'Submit Damage Logs'}
                         {storeSelectedCount.units > 0 ? ` (${storeSelectedCount.units})` : ''}
                       </span>
                     </button>
@@ -2149,7 +2081,7 @@ function DamageFormContent({
                   disabled={loading || items.length === 0}
                 >
                   {loading && <Loader2 size={16} className="animate-spin" />}
-                  <span>{reportType === 'LOST' ? 'Submit Loss Report' : reportType === 'USED' ? 'Submit Used Logs' : 'Submit Damage Logs'}</span>
+                  <span>{reportType === 'LOST' ? 'Submit Loss Logs' : reportType === 'USED' ? 'Submit Used Logs' : 'Submit Damage Logs'}</span>
                 </button>
               </div>
             </div>

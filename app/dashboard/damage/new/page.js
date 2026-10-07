@@ -12,8 +12,8 @@ export const revalidate = 0;
 
 
 export const metadata = {
-  title: 'New Damage Report - Inventory System',
-  description: 'Log and report damaged/lost warehouse inventory items',
+  title: 'Report Damage - Inventory System',
+  description: 'Log physically broken or damaged inventory items to write off from stock',
 };
 
 export default async function NewDamagePage({ searchParams }) {
