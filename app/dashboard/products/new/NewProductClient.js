@@ -250,7 +250,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
               trackExpiry: product.trackExpiry,
               isPublic: product.isPublic,
               includeInbound: false,
-              inbounds: [createEmptyInboundEntry(0)],
+              inbounds: [],
               imageFile: null,
               imagePreview: '',
               imageUrl: product.imageUrl || '',
@@ -747,7 +747,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
         } else if (item.imageUrl) {
           formData.append('imageUrl', item.imageUrl);
         }
-        await updateProduct(editId, formData);
+        await updateProduct(item.id || editId, formData);
         setConfirmData({ title: 'Product Updated', message: `"${item.name}" has been updated successfully.` });
         setConfirmOpen(true);
       } else {
@@ -893,16 +893,17 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
             }, 0) : 0;
 
             const brandObj = brands.find(b => b.id === item.brandId);
+            const isItemExpanded = editId ? true : item.isExpanded;
 
             return (
               <div 
                 key={item.id} 
                 className={`bg-surface border rounded-2xl shadow-sm transition-all duration-200 overflow-hidden
-                  ${item.isExpanded ? 'border-primary ring-2 ring-primary/5' : 'border-border hover:border-text-secondary/30'}
+                  ${isItemExpanded ? 'border-primary ring-2 ring-primary/5' : 'border-border hover:border-text-secondary/30'}
                 `}
               >
-                {/* 1. COLLAPSED VIEW CARD */}
-                {!item.isExpanded && (
+                {/* 1. COLLAPSED VIEW CARD - only in create batch mode */}
+                {!editId && !isItemExpanded && (
                   <div 
                     onClick={() => handleExpandItem(idx)}
                     className="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer hover:bg-surface-elevated/10 transition-colors"
@@ -933,12 +934,14 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                     </div>
 
                     <div className="flex items-center gap-4 flex-shrink-0">
-                      <div className="text-right hidden sm:block">
-                        <span className="text-[10px] font-bold uppercase text-text-secondary block">Total Inbound Stock</span>
-                        <span className={`text-xs font-bold ${hasInbound ? 'text-primary' : 'text-text-muted'}`}>
-                          {totalQty} items ({item.inbounds.length} Shipments)
-                        </span>
-                      </div>
+                      {item.includeInbound && (
+                        <div className="text-right hidden sm:block">
+                          <span className="text-[10px] font-bold uppercase text-text-secondary block">Total Inbound Stock</span>
+                          <span className={`text-xs font-bold ${hasInbound ? 'text-primary' : 'text-text-muted'}`}>
+                            {totalQty} items ({item.inbounds.length} Shipments)
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
@@ -948,7 +951,7 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                         >
                           <Edit2 size={14} />
                         </button>
-                        {!editId && items.length > 1 && (
+                        {items.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(idx)}
@@ -964,10 +967,12 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                 )}
 
                 {/* 2. EXPANDED FORM CARD */}
-                {item.isExpanded && (
+                {(editId || isItemExpanded) && (
                   <div className="p-6 sm:p-8 flex flex-col gap-6">
                     <div className="flex items-center justify-between pb-3 border-b border-border">
-                      <span className="text-xs font-bold text-primary uppercase tracking-wider">Item Details Entry #{idx + 1}</span>
+                      <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                        {editId ? 'Product Catalog Details' : `Item Details Entry #${idx + 1}`}
+                      </span>
                       {!editId && items.length > 1 && (
                         <button
                           type="button"
@@ -1781,15 +1786,17 @@ export default function NewProductClient({ brands, stores = [], editId: propEdit
                       </div>
                     )}
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-border mt-3">
-                      <button
-                        type="button"
-                        onClick={() => handleFinishItem(idx)}
-                        className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow cursor-pointer"
-                      >
-                        Finish &amp; Collapse Card
-                      </button>
-                    </div>
+                    {!editId && (
+                      <div className="flex justify-end gap-3 pt-4 border-t border-border mt-3">
+                        <button
+                          type="button"
+                          onClick={() => handleFinishItem(idx)}
+                          className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg shadow cursor-pointer"
+                        >
+                          Finish &amp; Collapse Card
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

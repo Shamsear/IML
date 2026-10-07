@@ -21,12 +21,27 @@ export default async function UsedPage() {
         ]
       },
       include: {
-        product: { select: { id: true, name: true, itemCode: true, imageUrl: true, isReturnable: true, isDisposable: true, isSerialized: true, brand: { select: { name: true } } } }
+        product: {
+          select: {
+            id: true,
+            name: true,
+            itemCode: true,
+            imageUrl: true,
+            category: true,
+            isReturnable: true,
+            isDisposable: true,
+            isSerialized: true,
+            brandId: true,
+            brand: { select: { id: true, name: true } }
+          }
+        }
       },
       orderBy: { timestamp: 'desc' },
-      take: 200,
     }),
-    prisma.store.findMany({ select: { id: true, name: true } }),
+    prisma.store.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' }
+    }),
     prisma.inventoryTransaction.findMany({
       where: {
         OR: [
@@ -36,10 +51,19 @@ export default async function UsedPage() {
         ]
       },
       include: {
-        product: { select: { id: true, name: true, itemCode: true, imageUrl: true, brand: { select: { name: true } } } }
+        product: {
+          select: {
+            id: true,
+            name: true,
+            itemCode: true,
+            imageUrl: true,
+            category: true,
+            brandId: true,
+            brand: { select: { id: true, name: true } }
+          }
+        }
       },
       orderBy: { timestamp: 'desc' },
-      take: 100
     })
   ]);
 

@@ -48,11 +48,19 @@ export async function GET(request) {
         },
         orderBy: { name: 'asc' }
       }),
-      prisma.inventoryTransaction.groupBy({
-        by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType', 'returnStatus'],
-        _sum: {
+      prisma.inventoryTransaction.findMany({
+        select: {
+          productId: true,
+          transactionType: true,
           quantity: true,
+          fromEntityType: true,
+          toEntityType: true,
+          returnStatus: true,
+          deliveryNote: true,
+          notes: true,
+          timestamp: true,
         },
+        orderBy: { timestamp: 'asc' }
       }),
       prisma.productSerialNumber.groupBy({
         by: ['productId', 'status', 'currentLocationType'],
@@ -60,13 +68,13 @@ export async function GET(request) {
       })
     ]);
 
-    // Map database aggregates to products
-    const aggsMap = new Map();
-    aggregates.forEach(agg => {
-      if (!aggsMap.has(agg.productId)) {
-        aggsMap.set(agg.productId, []);
+    // Group transactions by product in chronological sequence
+    const txMap = new Map();
+    aggregates.forEach(t => {
+      if (!txMap.has(t.productId)) {
+        txMap.set(t.productId, []);
       }
-      aggsMap.get(agg.productId).push(agg);
+      txMap.get(t.productId).push(t);
     });
 
     const serialsMap = new Map();
@@ -105,16 +113,9 @@ export async function GET(request) {
 
     // Compute stock calculations for each product
     const computedProducts = products.map(product => {
-      const productAggs = aggsMap.get(product.id) || [];
-      const fakeTransactions = productAggs.map(agg => ({
-        transactionType: agg.transactionType,
-        quantity: agg._sum.quantity || 0,
-        fromEntityType: agg.fromEntityType,
-        toEntityType: agg.toEntityType,
-        returnStatus: agg.returnStatus,
-      }));
+      const productTxs = txMap.get(product.id) || [];
+      const stock = getProductStock(productTxs);
 
-      const stock = getProductStock(fakeTransactions);
       if (product.isSerialized && serialsMap.has(product.id)) {
         const sStats = serialsMap.get(product.id);
         stock.warehouse = sStats.warehouse;

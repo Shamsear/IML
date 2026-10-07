@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import ReportsClient from './ReportsClient';
+import { getProductStock } from '@/lib/stock';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,8 +14,8 @@ export default async function ReportsPage() {
     redirect('/login');
   }
 
-  // Fetch brands, products, ledger aggregates, and serial aggregates concurrently
-  const [brands, products, aggregates, serialAggs] = await Promise.all([
+  // Fetch brands, products, ledger transactions, and serial aggregates concurrently
+  const [brands, products, transactions, serialAggs] = await Promise.all([
     prisma.brand.findMany({
       select: { id: true, name: true },
       orderBy: { name: 'asc' }
@@ -32,11 +33,19 @@ export default async function ReportsPage() {
       },
       orderBy: { name: 'asc' }
     }),
-    prisma.inventoryTransaction.groupBy({
-      by: ['productId', 'transactionType', 'fromEntityType', 'toEntityType', 'returnStatus'],
-      _sum: {
+    prisma.inventoryTransaction.findMany({
+      select: {
+        productId: true,
+        transactionType: true,
         quantity: true,
+        fromEntityType: true,
+        toEntityType: true,
+        returnStatus: true,
+        deliveryNote: true,
+        notes: true,
+        timestamp: true,
       },
+      orderBy: { timestamp: 'asc' }
     }),
     prisma.productSerialNumber.groupBy({
       by: ['productId', 'status', 'currentLocationType'],
@@ -44,13 +53,13 @@ export default async function ReportsPage() {
     })
   ]);
 
-  // Map database aggregates back to the products in the format the component expects
-  const aggsMap = new Map();
-  aggregates.forEach(agg => {
-    if (!aggsMap.has(agg.productId)) {
-      aggsMap.set(agg.productId, []);
+  // Group transactions by product in chronological sequence
+  const txMap = new Map();
+  transactions.forEach(t => {
+    if (!txMap.has(t.productId)) {
+      txMap.set(t.productId, []);
     }
-    aggsMap.get(agg.productId).push(agg);
+    txMap.get(t.productId).push(t);
   });
 
   const serialsMap = new Map();
@@ -87,26 +96,30 @@ export default async function ReportsPage() {
     }
   });
 
-  const productsWithTransactions = products.map(product => {
-    const productAggs = aggsMap.get(product.id) || [];
-    const fakeTransactions = productAggs.map(agg => ({
-      transactionType: agg.transactionType,
-      quantity: agg._sum.quantity || 0,
-      fromEntityType: agg.fromEntityType,
-      toEntityType: agg.toEntityType,
-      returnStatus: agg.returnStatus,
-    }));
+  const productsWithStock = products.map(product => {
+    const productTxs = txMap.get(product.id) || [];
+    const stock = getProductStock(productTxs);
+
+    if (product.isSerialized && serialsMap.has(product.id)) {
+      const stats = serialsMap.get(product.id);
+      stock.warehouse = stats.warehouse;
+      stock.withClient = stats.withClient;
+      stock.damage = stats.damage;
+      stock.lost = stats.lost;
+      stock.issued = stats.issued;
+      stock.used = stats.used;
+      stock.total = stats.warehouse;
+    }
 
     return {
       ...product,
-      transactions: fakeTransactions,
-      serialStats: product.isSerialized ? (serialsMap.get(product.id) || null) : null,
+      stock,
     };
   });
 
   return (
     <ReportsClient 
-      initialProducts={productsWithTransactions} 
+      initialProducts={productsWithStock} 
       brands={brands} 
     />
   );

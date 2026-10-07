@@ -367,6 +367,17 @@ export async function createProduct(formData) {
 export async function updateProduct(id, formData) {
   await requireWritePermission();
 
+  const existing = await prisma.product.findFirst({
+    where: {
+      OR: [
+        { id },
+        { itemCode: id }
+      ]
+    },
+    select: { id: true }
+  });
+  if (!existing) throw new Error('Product not found');
+
   const name = formData.get('name');
   const brandId = formData.get('brandId');
   const itemCode = formData.get('itemCode') || null;
@@ -395,7 +406,7 @@ export async function updateProduct(id, formData) {
   if (!brandId) throw new Error('Associated Brand is required');
 
   await prisma.product.update({
-    where: { id },
+    where: { id: existing.id },
     data: {
       name,
       brandId,
@@ -771,8 +782,13 @@ export async function findProductByBarcode(barcode) {
 export async function getProductById(id) {
   await requireAuth();
   if (!id) return null;
-  return prisma.product.findUnique({
-    where: { id },
+  return prisma.product.findFirst({
+    where: {
+      OR: [
+        { id },
+        { itemCode: id }
+      ]
+    },
     include: {
       brand: { select: { id: true, name: true } }
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Package, Search, Store, Trash2, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, List, History, X } from 'lucide-react';
@@ -34,8 +34,10 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
       window.history.replaceState(null, '', `${pathname}?${params.toString()}`);
     }
   };
-  const [searchDN, setSearchDN] = useState(initialDN);
+  const [searchQuery, setSearchQuery] = useState(initialDN);
   const [searchStore, setSearchStore] = useState('');
+  const [searchBrand, setSearchBrand] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
   const [selectedIds, setSelectedIds] = useState({});  // { [txId]: { notes: '' } }
   const [expandedGroups, setExpandedGroups] = useState(initialDN ? { [initialDN]: true } : {});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,25 +52,131 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
   const [historyPage, setHistoryPage] = useState(1);
   const itemsPerPage = 25;
 
-  // Reset pages on filter
-  const filteredTransactions = useMemo(() => (transactions || []).filter(tx => {
-    const matchDN = !searchDN || tx.deliveryNote?.toLowerCase().includes(searchDN.toLowerCase());
-    const matchStore = !searchStore || tx.toEntityId === searchStore;
-    return matchDN && matchStore;
-  }), [transactions, searchDN, searchStore]);
+  // Reset pagination on filter change
+  useEffect(() => {
+    setTxPage(1);
+    setGroupPage(1);
+    setHistoryPage(1);
+  }, [searchQuery, searchStore, searchBrand, searchCategory]);
+
+  const storeMap = useMemo(() => {
+    const map = {};
+    stores.forEach(s => { map[s.id] = s.name; });
+    return map;
+  }, [stores]);
 
   const storeOptions = useMemo(() => [
     { value: '', label: 'All Stores' },
     ...stores.map(s => ({ value: s.id, label: s.name }))
   ], [stores]);
 
+  const brandOptions = useMemo(() => {
+    const map = new Map();
+    transactions.forEach(tx => {
+      if (tx.product?.brandId && tx.product?.brand?.name) {
+        map.set(tx.product.brandId, tx.product.brand.name);
+      }
+    });
+    pastUsed.forEach(tx => {
+      if (tx.product?.brandId && tx.product?.brand?.name) {
+        map.set(tx.product.brandId, tx.product.brand.name);
+      }
+    });
+    return [
+      { value: '', label: 'All Brands' },
+      ...Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1])).map(([id, name]) => ({ value: id, label: name }))
+    ];
+  }, [transactions, pastUsed]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set();
+    transactions.forEach(tx => {
+      if (tx.product?.category) set.add(tx.product.category);
+    });
+    pastUsed.forEach(tx => {
+      if (tx.product?.category) set.add(tx.product.category);
+    });
+    return [
+      { value: '', label: 'All Categories' },
+      ...Array.from(set).sort().map(cat => ({ value: cat, label: cat }))
+    ];
+  }, [transactions, pastUsed]);
+
+  // Filter pending outbound transactions
+  const filteredTransactions = useMemo(() => {
+    const q = (searchQuery || '').toLowerCase().trim();
+
+    return (transactions || []).filter(tx => {
+      const matchStore = !searchStore || tx.toEntityId === searchStore;
+      const matchBrand = !searchBrand || tx.product?.brandId === searchBrand;
+      const matchCategory = !searchCategory || tx.product?.category === searchCategory;
+
+      if (!matchStore || !matchBrand || !matchCategory) return false;
+      if (!q) return true;
+
+      const pName = tx.product?.name?.toLowerCase() || '';
+      const bName = tx.product?.brand?.name?.toLowerCase() || '';
+      const cName = tx.product?.category?.toLowerCase() || '';
+      const sku = tx.product?.itemCode?.toLowerCase() || '';
+      const dn = tx.deliveryNote?.toLowerCase() || '';
+      const storeName = (storeMap[tx.toEntityId] || '').toLowerCase();
+      const notes = tx.notes?.toLowerCase() || '';
+      const barcode = tx.barcode?.toLowerCase() || '';
+
+      return (
+        pName.includes(q) ||
+        bName.includes(q) ||
+        cName.includes(q) ||
+        sku.includes(q) ||
+        dn.includes(q) ||
+        storeName.includes(q) ||
+        notes.includes(q) ||
+        barcode.includes(q)
+      );
+    });
+  }, [transactions, searchQuery, searchStore, searchBrand, searchCategory, storeMap]);
+
+  // Filter consumed history records
+  const filteredHistory = useMemo(() => {
+    const q = (searchQuery || '').toLowerCase().trim();
+
+    return (pastUsed || []).filter(tx => {
+      const matchStore = !searchStore || tx.fromEntityId === searchStore;
+      const matchBrand = !searchBrand || tx.product?.brandId === searchBrand;
+      const matchCategory = !searchCategory || tx.product?.category === searchCategory;
+
+      if (!matchStore || !matchBrand || !matchCategory) return false;
+      if (!q) return true;
+
+      const pName = tx.product?.name?.toLowerCase() || '';
+      const bName = tx.product?.brand?.name?.toLowerCase() || '';
+      const cName = tx.product?.category?.toLowerCase() || '';
+      const sku = tx.product?.itemCode?.toLowerCase() || '';
+      const dn = tx.deliveryNote?.toLowerCase() || '';
+      const fromStore = (storeMap[tx.fromEntityId] || tx.fromEntityType || '').toLowerCase();
+      const notes = tx.notes?.toLowerCase() || '';
+      const barcode = tx.barcode?.toLowerCase() || '';
+
+      return (
+        pName.includes(q) ||
+        bName.includes(q) ||
+        cName.includes(q) ||
+        sku.includes(q) ||
+        dn.includes(q) ||
+        fromStore.includes(q) ||
+        notes.includes(q) ||
+        barcode.includes(q)
+      );
+    });
+  }, [pastUsed, searchQuery, searchStore, searchBrand, searchCategory, storeMap]);
+
   const txCustomGetters = useMemo(() => ({
     product: (tx) => tx.product?.name || '',
     date: (tx) => tx.timestamp,
-    store: (tx) => stores.find(s => s.id === tx.toEntityId)?.name || '',
+    store: (tx) => storeMap[tx.toEntityId] || '',
     available: (tx) => tx.quantity - (tx.returnedQty || 0),
     remarks: (tx) => tx.notes || '',
-  }), [stores]);
+  }), [storeMap]);
 
   const {
     sortedItems: sortedTransactions,
@@ -85,12 +193,12 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
     filteredTransactions.forEach(tx => {
       const key = tx.deliveryNote || 'No DN';
       if (!groups[key]) {
-        groups[key] = { dn: key, storeName: stores.find(s => s.id === tx.toEntityId)?.name || 'Unknown', storeId: tx.toEntityId, timestamp: tx.timestamp, items: [] };
+        groups[key] = { dn: key, storeName: storeMap[tx.toEntityId] || 'Unknown', storeId: tx.toEntityId, timestamp: tx.timestamp, items: [] };
       }
       groups[key].items.push(tx);
     });
     return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  }, [filteredTransactions, stores]);
+  }, [filteredTransactions, storeMap]);
 
   const totalGroupPages = Math.ceil(deliveryNoteGroups.length / itemsPerPage);
   const paginatedGroups = deliveryNoteGroups.slice((groupPage - 1) * itemsPerPage, groupPage * itemsPerPage);
@@ -98,17 +206,17 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
   const historyCustomGetters = useMemo(() => ({
     date: (tx) => tx.timestamp,
     product: (tx) => tx.product?.name || '',
-    store: (tx) => stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || '',
+    store: (tx) => storeMap[tx.fromEntityId] || tx.fromEntityType || '',
     quantity: (tx) => tx.quantity ?? 0,
     notes: (tx) => tx.notes || '',
-  }), [stores]);
+  }), [storeMap]);
 
   const {
     sortedItems: sortedHistory,
     sortField: historySortField,
     sortDirection: historySortDirection,
     handleSort: handleHistorySort,
-  } = useTableSort(pastUsed, 'date', 'desc', historyCustomGetters);
+  } = useTableSort(filteredHistory, 'date', 'desc', historyCustomGetters);
 
   const totalHistoryPages = Math.ceil(sortedHistory.length / itemsPerPage);
   const paginatedHistory = sortedHistory.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage);
@@ -147,7 +255,14 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
     });
   };
 
-  const toggleGroup = (dn) => setExpandedGroups(prev => ({ ...prev, [dn]: !prev[dn] }));
+  const isGroupExpanded = (dn) => {
+    if (searchQuery.trim().length > 0) {
+      return expandedGroups[dn] !== undefined ? expandedGroups[dn] : true;
+    }
+    return !!expandedGroups[dn];
+  };
+
+  const toggleGroup = (dn) => setExpandedGroups(prev => ({ ...prev, [dn]: !isGroupExpanded(dn) }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -188,26 +303,26 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
         description="Mark disposable items as fully used. Stock will not return to warehouse."
         actions={<>
           <ExportToExcel
-            data={activeTab === 'history' ? pastUsed.map(tx => ({
+            data={activeTab === 'history' ? filteredHistory.map(tx => ({
               _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',
               Brand: tx.product?.brand?.name || '',
               Category: tx.product?.category || '',
-              Store: stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || '',
+              Store: storeMap[tx.fromEntityId] || tx.fromEntityType || '',
               Quantity: tx.quantity,
               'Delivery Note': tx.deliveryNote || '',
               Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
               Notes: tx.notes || '',
-            })) : transactions.map(tx => ({
+            })) : filteredTransactions.map(tx => ({
               _rawTimestamp: tx.timestamp,
               Image: tx.product?.imageUrl || '',
               Product: tx.product?.name || '',
               SKU: tx.product?.itemCode || '',
               Brand: tx.product?.brand?.name || '',
               Category: tx.product?.category || '',
-              Store: stores.find(s => s.id === tx.toEntityId)?.name || tx.toEntityId || '',
+              Store: storeMap[tx.toEntityId] || tx.toEntityId || '',
               Quantity: tx.quantity,
               'Delivery Note': tx.deliveryNote || '',
               Date: new Date(tx.timestamp).toLocaleString('en-AE', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
@@ -263,47 +378,78 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
       </div>
 
       <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        {/* Filters */}
-        {activeTab !== 'history' && (
-          <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col gap-3">
-            <div className="relative w-full">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input type="text" placeholder="Search Delivery Note or store..." value={searchDN}
-                onChange={(e) => setSearchDN(e.target.value)}
-                className="w-full bg-surface text-text-primary border border-border rounded-xl pl-10 pr-9 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold font-mono shadow-xs" />
-              {searchDN && (
-                <button
-                  type="button"
-                  onClick={() => setSearchDN('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
-                >
-                  <X size={15} />
-                </button>
-              )}
+        {/* Filters — visible on all tabs */}
+        <div className="p-4 border-b border-border bg-surface-elevated/30 flex flex-col gap-3">
+          <div className="relative w-full">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search product name, SKU, brand, delivery note, store..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-surface text-text-primary border border-border rounded-xl pl-10 pr-9 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold shadow-xs"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-0.5 rounded-full hover:bg-surface-elevated transition-colors"
+                title="Clear search"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-center">
+            <div className="w-full">
+              <CustomSelect
+                options={storeOptions}
+                value={searchStore}
+                onChange={(val) => setSearchStore(val)}
+                placeholder="All Stores"
+              />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+            {brandOptions.length > 1 && (
               <div className="w-full">
                 <CustomSelect
-                  options={storeOptions}
-                  value={searchStore}
-                  onChange={(val) => setSearchStore(val)}
-                  placeholder="All Stores"
+                  options={brandOptions}
+                  value={searchBrand}
+                  onChange={(val) => setSearchBrand(val)}
+                  placeholder="All Brands"
                 />
               </div>
-              {(searchDN || searchStore) && (
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => { setSearchDN(''); setSearchStore(''); }}
-                    className="px-3 py-2.5 text-xs font-semibold text-text-secondary hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              )}
-            </div>
+            )}
+            {categoryOptions.length > 1 && (
+              <div className="w-full">
+                <CustomSelect
+                  options={categoryOptions}
+                  value={searchCategory}
+                  onChange={(val) => setSearchCategory(val)}
+                  placeholder="All Categories"
+                />
+              </div>
+            )}
           </div>
-        )}
+          {(searchQuery || searchStore || searchBrand || searchCategory) && (
+            <div className="flex items-center justify-between pt-1 text-xs">
+              <span className="text-text-muted font-medium">
+                Found {activeTab === 'history' ? filteredHistory.length : filteredTransactions.length} matching {activeTab === 'history' ? 'record(s)' : 'item(s)'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSearchStore('');
+                  setSearchBrand('');
+                  setSearchCategory('');
+                }}
+                className="px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-danger hover:bg-danger/10 border border-border rounded-lg transition-all"
+              >
+                Clear Filters
+              </button>
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col">
 
@@ -736,6 +882,16 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
           {/* ── TAB: CONSUMED HISTORY ── */}
           {activeTab === 'history' && (
             <>
+            {/* Top Pagination */}
+            <Pagination
+              currentPage={historyPage}
+              totalPages={totalHistoryPages}
+              totalItems={filteredHistory.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setHistoryPage}
+              itemLabel="entries"
+            />
+
             {/* Mobile Card View */}
             <div className="md:hidden flex flex-col divide-y divide-border">
               {sortedHistory.length === 0 ? (
@@ -745,7 +901,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                 </div>
               ) : (
                 paginatedHistory.map(tx => {
-                  const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
+                  const fromStore = storeMap[tx.fromEntityId] || tx.fromEntityType || 'Store';
                   const dateStr = new Date(tx.timestamp).toLocaleString('en-AE', {
                     timeZone: 'Asia/Dubai',
                     day: 'numeric',
@@ -844,7 +1000,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
                       <div className="flex flex-col items-center gap-2"><Package size={32} className="opacity-20" /><span>No consumed logs found.</span></div>
                     </td></tr>
                   ) : paginatedHistory.map(tx => {
-                    const fromStore = stores.find(s => s.id === tx.fromEntityId)?.name || tx.fromEntityType || 'Store';
+                    const fromStore = storeMap[tx.fromEntityId] || tx.fromEntityType || 'Store';
                     return (
                       <tr key={tx.id} className="hover:bg-surface-elevated/20 transition-colors group/row">
                         <td className="py-2 sm:py-3 pl-4 sm:pl-5 pr-3 sm:pr-4 min-w-[240px] sticky left-0 bg-surface group-hover/row:bg-surface-elevated z-10 border-r border-border shadow-sm">
@@ -908,7 +1064,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
               <Pagination
                 currentPage={historyPage}
                 totalPages={totalHistoryPages}
-                totalItems={pastUsed.length}
+                totalItems={filteredHistory.length}
                 itemsPerPage={itemsPerPage}
                 onPageChange={setHistoryPage}
                 itemLabel="entries"
