@@ -1741,30 +1741,37 @@ function DamageFormContent({
                       <Trash2 size={16} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mr-8">
-                      <div className="flex flex-col gap-1.5 md:col-span-2">
-                        <label className="text-xs font-semibold text-text-secondary">Product Item</label>
-                        {/* Brand and Category filter pills */}
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-bold text-text-secondary uppercase">Brand:</span>
-                            <button
-                              type="button"
-                              onClick={() => setBrandFilter('ALL')}
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                            >All</button>
-                            {availableBrands.map(b => (
+                    {/* Brand and Category filter pills */}
+                    {(availableBrands.length > 0 || uniqueCategories.length > 0) && (
+                      <div className="flex flex-col gap-2 p-2.5 bg-surface-elevated/30 border border-border/60 rounded-xl mr-8">
+                        {availableBrands.length > 0 && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex-shrink-0 flex items-center gap-1">
+                              <Tag size={10} /> Brand:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
                               <button
-                                key={b.id}
                                 type="button"
-                                onClick={() => setBrandFilter(b.id)}
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                              >{b.name}</button>
-                            ))}
+                                onClick={() => setBrandFilter('ALL')}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              >All</button>
+                              {availableBrands.map(b => (
+                                <button
+                                  key={b.id}
+                                  type="button"
+                                  onClick={() => setBrandFilter(b.id)}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                                >{b.name}</button>
+                              ))}
+                            </div>
                           </div>
-                          {uniqueCategories.length > 0 && (
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] font-bold text-text-secondary uppercase">Cat:</span>
+                        )}
+                        {uniqueCategories.length > 0 && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider flex-shrink-0 flex items-center gap-1">
+                              <Layers size={10} /> Cat:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => setCategoryFilter('ALL')}
@@ -1779,8 +1786,14 @@ function DamageFormContent({
                                 >{cat}</button>
                               ))}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start mr-8">
+                      <div className="flex flex-col gap-1.5 md:col-span-2">
+                        <label className="text-xs font-semibold text-text-secondary">Product Item</label>
                         <CustomSelect
                           options={selectableProducts
                             .filter(p => (brandFilter === 'ALL' || p.brand?.id === brandFilter || p.brandId === brandFilter) && (categoryFilter === 'ALL' || p.category === categoryFilter))
