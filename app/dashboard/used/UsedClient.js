@@ -313,7 +313,7 @@ export default function UsedClient({ transactions = [], stores = [], pastUsed = 
               className="inline-flex items-center justify-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-white font-semibold text-xs sm:text-sm rounded-lg shadow-sm hover:shadow transition-all duration-200"
             >
               <Plus size={15} />
-              <span>Mark Warehouse Stock as Used</span>
+              <span>Mark as Used</span>
             </Link>
           )}
           <ExportToExcel
