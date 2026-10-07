@@ -203,6 +203,7 @@ export default function TransactionsClient({
                   { value: 'RECEIVE', label: 'Inbound (Receive)' },
                   { value: 'ISSUE', label: 'Outbound (Dispatch)' },
                   { value: 'RETURN', label: 'Return' },
+                  { value: 'USED', label: 'Used / Consumed' },
                   { value: 'DAMAGE', label: 'Damage' },
                   { value: 'REBRAND_OUT', label: 'Rebrand Out' },
                   { value: 'REBRAND_IN', label: 'Rebrand In' },
@@ -337,6 +338,7 @@ export default function TransactionsClient({
                   <span className={`badge text-[10px] flex-shrink-0 ${
                     tx.transactionType === 'RECEIVE' || tx.transactionType === 'REBRAND_IN' ? 'badge-success' :
                     tx.transactionType === 'ISSUE' ? 'badge-info' : 
+                    tx.transactionType === 'USED' ? 'badge-warning' :
                     tx.transactionType === 'DAMAGE' || tx.transactionType === 'LOST' ? 'badge-danger' : 'badge-warning'
                   }`}>
                     {tx.transactionType}
@@ -346,7 +348,7 @@ export default function TransactionsClient({
                   <span className="text-text-secondary">
                     {tx.fromEntityType === 'WAREHOUSE' ? 'Warehouse' : (entityNames[tx.fromEntityId] || tx.fromEntityId || '---')}
                     {' → '}
-                    {tx.toEntityType === 'WAREHOUSE' ? 'Warehouse' : (entityNames[tx.toEntityId] || tx.toEntityId || '---')}
+                    {tx.toEntityType === 'WAREHOUSE' ? 'Warehouse' : tx.toEntityType === 'CONSUMED' ? 'Consumed' : (entityNames[tx.toEntityId] || tx.toEntityId || tx.toEntityType || '---')}
                   </span>
                   <span className="font-mono font-bold text-sm">{tx.quantity}</span>
                 </div>
@@ -432,6 +434,7 @@ export default function TransactionsClient({
                           <span className={`badge ${
                             tx.transactionType === 'RECEIVE' || tx.transactionType === 'REBRAND_IN' ? 'badge-success' :
                             tx.transactionType === 'ISSUE' ? 'badge-info' : 
+                            tx.transactionType === 'USED' ? 'badge-warning' :
                             tx.transactionType === 'DAMAGE' || tx.transactionType === 'LOST' ? 'badge-danger' : 'badge-warning'
                           }`}>
                             {tx.transactionType}
@@ -457,9 +460,11 @@ export default function TransactionsClient({
                             {tx.toEntityType === 'STAFF' && <User size={14} className="text-success" />}
                             {tx.toEntityType === 'SUPERVISOR' && <UserCheck size={14} className="text-warning" />}
                             {tx.toEntityType === 'CLIENT' && <User size={14} className="text-text-primary" />}
+                            {tx.toEntityType === 'CONSUMED' && <ClipboardList size={14} className="text-warning" />}
                             <span className="text-text-primary">
                               {tx.toEntityType === 'WAREHOUSE' ? 'Warehouse' :
                                tx.toEntityType === 'CLIENT' ? (tx.toEntityId || 'Client') :
+                               tx.toEntityType === 'CONSUMED' ? 'Consumed' :
                                (entityNames[tx.toEntityId] || tx.toEntityType || 'N/A')}
                             </span>
                           </div>

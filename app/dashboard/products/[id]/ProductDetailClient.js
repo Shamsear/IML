@@ -234,6 +234,7 @@ export default function ProductDetailClient({ product }) {
       RECEIVE: { bg: 'bg-success/10 text-success', icon: ArrowDownLeft },
       ISSUE: { bg: 'bg-primary/10 text-primary', icon: ArrowUpRight },
       RETURN: { bg: 'bg-warning/10 text-warning', icon: RefreshCw },
+      USED: { bg: 'bg-purple-500/10 text-purple-600', icon: CheckCircle },
       DAMAGE: { bg: 'bg-danger/10 text-danger', icon: ShieldAlert },
       LOST: { bg: 'bg-danger/10 text-danger', icon: AlertCircle },
       REBRAND_OUT: { bg: 'bg-secondary/10 text-secondary', icon: RefreshCw },

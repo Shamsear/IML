@@ -3023,14 +3023,14 @@ export async function processOutboundReturns(returnsPayload) {
 
         const deliveryNote = await generateCustomRef(tx, 'USD', brandName);
 
-        // 2. Create USED transaction to move stock from Store to Staff (Used)
+        // 2. Create USED transaction to record stock as used/consumed
         await tx.inventoryTransaction.create({
           data: {
             productId: originalTx.productId,
-            transactionType: 'ISSUE',
+            transactionType: 'USED',
             fromEntityType: originalTx.toEntityType,
             fromEntityId: originalTx.toEntityId,
-            toEntityType: 'STAFF',
+            toEntityType: 'CONSUMED',
             toEntityId: null,
             quantity: useQty,
             notes: `Marked as Used from Outbound ${transactionId}. ${notes || ''}`,
@@ -3057,6 +3057,7 @@ export async function processOutboundReturns(returnsPayload) {
   }, { timeout: 20000 });
 
   revalidateTransactionPaths({ module: 'returns' });
+  revalidateTransactionPaths({ module: 'used' });
 
   safeNotifyTransaction({
     type: 'RETURN',

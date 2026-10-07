@@ -97,12 +97,15 @@ export async function GET(request) {
     // Determine transaction nature
     const isReturn = txs.some(t => t.transactionType === 'RETURN') || (dnQuery && (dnQuery.startsWith('RET-') || dnQuery.includes('-RET-')));
     const isSupplierReceive = txs.some(t => t.transactionType === 'RECEIVE' || t.fromEntityType === 'SUPPLIER' || t.fromEntityType === 'VENDOR') || (dnQuery && (dnQuery.startsWith('REC-') || dnQuery.startsWith('IN-')));
+    const isUsed = txs.some(t => t.transactionType === 'USED') || (dnQuery && (dnQuery.startsWith('USD-') || dnQuery.startsWith('USE-')));
     
     let docTitle = 'DELIVERY NOTE';
     if (isReturn) {
       docTitle = 'RETURN NOTE';
     } else if (isSupplierReceive) {
       docTitle = 'RECEIVE NOTE';
+    } else if (isUsed) {
+      docTitle = 'USAGE NOTE';
     }
 
     // Resolve Store Name
@@ -238,13 +241,13 @@ export async function GET(request) {
     const inventory = Object.values(productGroups);
     const cleanDateStr = dateQuery ? dateQuery.split('T')[0] : new Date(txs[0].timestamp).toISOString().split('T')[0];
     const dateStr = formatDate(cleanDateStr);
-    const docNo = (dnQuery && dnQuery !== 'UNASSIGNED') ? dnQuery : `IML-${isReturn ? 'RTN' : (isSupplierReceive ? 'REC' : 'DN')}-${cleanDateStr.replace(/-/g, '')}`;
+    const docNo = (dnQuery && dnQuery !== 'UNASSIGNED') ? dnQuery : `IML-${isReturn ? 'RTN' : (isSupplierReceive ? 'REC' : (isUsed ? 'USD' : 'DN'))}-${cleanDateStr.replace(/-/g, '')}`;
 
     const leftMeta = [
       { label: 'Warehouse', value: 'IML Warehouse Al Quoz' },
       { label: 'Brand', value: brandName },
       ...(isSupplierReceive && supplierName ? [{ label: 'Supplier / Vendor', value: supplierName }] : []),
-      ...(storeName ? [{ label: isReturn ? 'Store' : 'Store Name', value: storeName }] : []),
+      ...(storeName ? [{ label: isReturn ? 'Store' : (isUsed ? 'Store / Location' : 'Store Name'), value: storeName }] : []),
       ...(supervisorName ? [{ label: 'Supervisor', value: supervisorName }] : []),
       ...(notes ? [{ label: 'Notes', value: notes }] : []),
     ];
@@ -262,11 +265,15 @@ export async function GET(request) {
       { label: 'DELIVERED BY (SUPPLIER)' },
       { label: 'CHECKED BY' },
       { label: 'RECEIVED BY (WH)' },
+    ] : (isUsed ? [
+      { label: 'USED / CONSUMED BY' },
+      { label: 'VERIFIED BY' },
+      { label: 'APPROVED BY' },
     ] : [
       { label: 'PREPARED BY' },
       { label: 'CHECKED BY' },
       { label: 'RECEIVED BY' },
-    ]);
+    ]));
 
     const showImages = searchParams.get('images') === '1' || searchParams.get('images') === 'true' || searchParams.get('showImages') === 'true';
 
