@@ -40,7 +40,7 @@ export default async function ReturnsPage({ searchParams }) {
           ],
           OR: [
             { returnStatus: null },
-            { returnStatus: { notIn: ['RETURNED', 'USED'] } }
+            { returnStatus: { notIn: ['RETURNED', 'USED', 'DAMAGED', 'LOST', 'COMPLETED'] } }
           ],
           product: {
             OR: [

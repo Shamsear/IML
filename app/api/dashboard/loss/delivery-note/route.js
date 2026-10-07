@@ -48,6 +48,14 @@ export async function GET(request) {
       return new NextResponse('No matching loss transactions found.', { status: 404 });
     }
 
+    let sourceName = 'IML Central Warehouse';
+    if (txs[0]?.fromEntityType === 'STORE' && txs[0]?.fromEntityId) {
+      const storeObj = await prisma.store.findUnique({ where: { id: txs[0].fromEntityId } });
+      sourceName = storeObj ? `Store: ${storeObj.name}` : `Store: ${txs[0].fromEntityId}`;
+    } else if (txs[0]?.fromEntityType === 'STAFF' || txs[0]?.fromEntityType === 'DIRECT') {
+      sourceName = `Promoter / Staff: ${txs[0].fromEntityId || 'N/A'}`;
+    }
+
     const notes = txs[0]?.notes?.split(' | ')[0] || '';
 
     const productGroups = {};
@@ -81,6 +89,7 @@ export async function GET(request) {
       <DeliveryNoteDocument
         title="LOSS NOTE"
         brandName={brandName}
+        supplierName={sourceName}
         inventory={inventory}
         dateStr={dateStr}
         docNo={docNo}

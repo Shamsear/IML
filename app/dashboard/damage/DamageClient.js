@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } fr
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone, ShieldAlert, CheckCircle, Tag, Layers } from 'lucide-react';
 import Link from 'next/link';
-import { createBulkDamageTransactions, updateBulkDamageTransactions } from '@/app/actions/transactions';
+import { createBulkDamageTransactions, updateBulkDamageTransactions, getStoreInventory } from '@/app/actions/transactions';
 import { getAvailableBarcodes, getProductStockAtLocation, getProductBatchesAtLocation, findProductByBarcode } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -38,7 +38,6 @@ function DamageFormContent({
   // Brand and category filters for product selection
   const [brandFilter, setBrandFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const uniqueCategories = useMemo(() => Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort(), [products]);
 
   // Report type: locked by prop, or preset via ?type= URL param
   const [reportType, setReportType] = useState(() => {
@@ -53,6 +52,69 @@ function DamageFormContent({
   const [fromId, setFromId] = useState(initialFromId || '');
   const [showDirectSellerSuggestions, setShowDirectSellerSuggestions] = useState(false);
   const [highlightedSellerIdx, setHighlightedSellerIdx] = useState(-1);
+
+  // Store inventory state when fromType === 'STORE'
+  const [storeInventory, setStoreInventory] = useState([]);
+  const [isFetchingStoreInventory, setIsFetchingStoreInventory] = useState(false);
+
+  // Fetch store inventory whenever store selection changes
+  useEffect(() => {
+    let active = true;
+    if (fromType === 'STORE' && fromId) {
+      setIsFetchingStoreInventory(true);
+      getStoreInventory(fromId)
+        .then(inv => {
+          if (active) setStoreInventory(inv || []);
+        })
+        .catch(err => {
+          console.error('Failed to load store inventory:', err);
+          if (active) setStoreInventory([]);
+        })
+        .finally(() => {
+          if (active) setIsFetchingStoreInventory(false);
+        });
+    } else {
+      setStoreInventory([]);
+    }
+    return () => { active = false; };
+  }, [fromType, fromId]);
+
+  // Selectable products strictly constrained by location
+  const selectableProducts = useMemo(() => {
+    if (fromType === 'STORE') {
+      if (!fromId) return [];
+      const storeItemMap = new Map();
+      storeInventory.forEach(item => {
+        if (item.quantity > 0) {
+          storeItemMap.set(item.productId, item);
+        }
+      });
+      return products
+        .filter(p => storeItemMap.has(p.id) || (editMode && initialItems?.some(it => it.productId === p.id)))
+        .map(p => {
+          const storeItem = storeItemMap.get(p.id);
+          return {
+            ...p,
+            storeStock: storeItem ? storeItem.quantity : 0,
+            storeOutbounds: storeItem ? (storeItem.outbounds || []) : [],
+            storeSerials: storeItem ? (storeItem.serials || []) : []
+          };
+        });
+    }
+    if (fromType === 'WAREHOUSE') {
+      return products.filter(p => (p.warehouseStock || 0) > 0 || editMode || (initialItems?.some(it => it.productId === p.id)));
+    }
+    return products;
+  }, [fromType, fromId, storeInventory, products, editMode, initialItems]);
+
+  const availableBrands = useMemo(() => {
+    const brandIds = new Set(selectableProducts.map(p => p.brand?.id || p.brandId).filter(Boolean));
+    return brands.filter(b => brandIds.has(b.id));
+  }, [selectableProducts, brands]);
+
+  const uniqueCategories = useMemo(() => {
+    return Array.from(new Set(selectableProducts.map(p => p.category).filter(Boolean))).sort();
+  }, [selectableProducts]);
 
   // State for bulk damage items
   const [items, setItems] = useState([]);
@@ -229,9 +291,35 @@ function DamageFormContent({
         let available = [];
         let currentStock = 0;
         let batches = [];
+        let outbounds = [];
+        let outboundTxId = item.outboundTxId || '';
         
         if (prod) {
-          if (prod.isSerialized) {
+          if (fromType === 'STORE') {
+            const storeItem = storeInventory.find(it => it.productId === item.productId);
+            if (storeItem && storeItem.quantity > 0) {
+              currentStock = storeItem.quantity;
+              available = prod.isSerialized ? (storeItem.serials || []) : [];
+              outbounds = storeItem.outbounds || [];
+              if (!outboundTxId && outbounds.length === 1) {
+                outboundTxId = outbounds[0].id;
+              }
+            } else if (!editMode && fromId) {
+              // Product does not exist at this store! Reset this row so it doesn't show invalid stock warning
+              return {
+                ...item,
+                productId: '',
+                quantity: 1,
+                currentStock: 0,
+                availableBarcodes: [],
+                selectedBarcodes: [],
+                availableBatches: [],
+                selectedBatches: [],
+                outbounds: [],
+                outboundTxId: ''
+              };
+            }
+          } else if (prod.isSerialized) {
             try {
               available = await getAvailableBarcodes(item.productId, fromType, fromId || null);
               currentStock = available.length;
@@ -261,7 +349,9 @@ function DamageFormContent({
           quantity: prod?.isSerialized ? 0 : 1,
           currentStock,
           availableBatches: batches || [],
-          selectedBatches: []
+          selectedBatches: [],
+          outbounds,
+          outboundTxId
         };
       }));
       setItems(updated);
@@ -270,7 +360,7 @@ function DamageFormContent({
     if (items.length > 0) {
       reloadLocationData();
     }
-  }, [fromType, fromId]);
+  }, [fromType, fromId, storeInventory]);
 
   const handleAddRow = async () => {
     setItems(prev => [...prev, { 
@@ -281,7 +371,9 @@ function DamageFormContent({
       currentStock: 0,
       notes: '',
       availableBatches: [],
-      selectedBatches: []
+      selectedBatches: [],
+      outbounds: [],
+      outboundTxId: ''
     }]);
   };
 
@@ -309,9 +401,21 @@ function DamageFormContent({
     let available = [];
     let currentStock = 0;
     let batches = [];
+    let outbounds = [];
+    let defaultOutboundId = '';
 
     if (prod) {
-      if (prod.isSerialized) {
+      if (fromType === 'STORE') {
+        const storeItem = storeInventory.find(it => it.productId === productId);
+        if (storeItem) {
+          currentStock = storeItem.quantity;
+          available = prod.isSerialized ? (storeItem.serials || []) : [];
+          outbounds = storeItem.outbounds || [];
+          if (outbounds.length === 1) {
+            defaultOutboundId = outbounds[0].id;
+          }
+        }
+      } else if (prod.isSerialized) {
         try {
           available = await getAvailableBarcodes(productId, fromType, fromId || null);
           currentStock = available.length;
@@ -343,7 +447,9 @@ function DamageFormContent({
       currentStock,
       notes: '',
       availableBatches: batches || [],
-      selectedBatches: []
+      selectedBatches: [],
+      outbounds,
+      outboundTxId: defaultOutboundId
     } : x));
   };
 
@@ -592,7 +698,8 @@ function DamageFormContent({
             barcodes: [],
             manufactureDate: batch.manufactureDate,
             expiryDate: batch.expiryDate,
-            notes: item.notes
+            notes: item.notes,
+            outboundTxId: item.outboundTxId || null
           });
         });
       } else {
@@ -600,7 +707,8 @@ function DamageFormContent({
           productId: item.productId,
           quantity: prod?.isSerialized ? item.selectedBarcodes.length : item.quantity,
           barcodes: prod?.isSerialized ? item.selectedBarcodes : [],
-          notes: item.notes
+          notes: item.notes,
+          outboundTxId: item.outboundTxId || null
         });
       }
     }
@@ -778,7 +886,19 @@ function DamageFormContent({
             <div className="flex flex-col gap-1.5">
               {fromType === 'STORE' && (
                 <>
-                  <label className="text-xs font-semibold text-text-secondary">Select Retail Store</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-text-secondary">Select Retail Store</label>
+                    {isFetchingStoreInventory && (
+                      <span className="text-[10px] text-primary flex items-center gap-1 font-semibold">
+                        <Loader2 size={11} className="animate-spin" /> Fetching store stock...
+                      </span>
+                    )}
+                    {!isFetchingStoreInventory && fromId && (
+                      <span className="text-[10px] text-text-muted font-medium">
+                        {selectableProducts.length} product(s) in store
+                      </span>
+                    )}
+                  </div>
                   <CustomSelect
                     options={stores.map(s => ({ value: s.id, label: s.name }))}
                     value={fromId}
@@ -786,6 +906,11 @@ function DamageFormContent({
                     placeholder="-- Select Retail Store --"
                     required
                   />
+                  {fromId && !isFetchingStoreInventory && selectableProducts.length === 0 && (
+                    <span className="text-[11px] text-amber-500 font-semibold animate-fade-in">
+                      ⚠️ Note: This store currently has 0 available inventory items.
+                    </span>
+                  )}
                 </>
               )}
               {fromType === 'DIRECT' && (
@@ -900,7 +1025,7 @@ function DamageFormContent({
                           onClick={() => setBrandFilter('ALL')}
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
                         >All</button>
-                        {brands.map(b => (
+                        {availableBrands.map(b => (
                           <button
                             key={b.id}
                             type="button"
@@ -929,30 +1054,62 @@ function DamageFormContent({
                       )}
                     </div>
                     <CustomSelect
-                      options={products
-                        .filter(p => (brandFilter === 'ALL' || p.brand?.id === brandFilter) && (categoryFilter === 'ALL' || p.category === categoryFilter))
+                      options={selectableProducts
+                        .filter(p => (brandFilter === 'ALL' || p.brand?.id === brandFilter || p.brandId === brandFilter) && (categoryFilter === 'ALL' || p.category === categoryFilter))
                         .map(p => ({
                           value: p.id,
-                          label: `${p.name} (${p.category})`,
+                          label: `${p.name} (${p.category})${fromType === 'STORE' ? ` — (${p.storeStock ?? 0} in store)` : (fromType === 'WAREHOUSE' ? ` — (${p.warehouseStock ?? 0} in warehouse)` : '')}`,
                           imageUrl: p.imageUrl,
-                          warehouseStock: p.warehouseStock,
+                          warehouseStock: fromType === 'STORE' ? (p.storeStock ?? 0) : p.warehouseStock,
                           disabled: p.isSerialized && items.filter((_, i) => i !== index).map(it => it.productId).filter(Boolean).includes(p.id)
                         }))}
                       value={item.productId}
                       onChange={(id) => handleProductChange(index, id)}
-                      placeholder="Choose product..."
+                      placeholder={
+                        fromType === 'STORE' && !fromId 
+                          ? "Select a retail store above first..." 
+                          : isFetchingStoreInventory 
+                          ? "Loading store inventory..." 
+                          : fromType === 'STORE' && selectableProducts.length === 0
+                          ? "No products available in this store"
+                          : "Choose product..."
+                      }
+                      disabled={fromType === 'STORE' && (!fromId || isFetchingStoreInventory || selectableProducts.length === 0)}
                       required
                     />
+
+                    {/* Source Delivery Note selector when source is STORE */}
+                    {fromType === 'STORE' && item.outbounds && item.outbounds.length > 0 && (
+                      <div className="flex flex-col gap-1 mt-1 p-2 bg-surface-elevated/40 border border-border rounded-lg animate-fade-in">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-text-secondary uppercase">
+                          <span>Source Delivery Note (Where cut from)</span>
+                          <span className="text-primary font-mono font-normal lowercase">{item.outbounds.length} note{item.outbounds.length > 1 ? 's' : ''}</span>
+                        </div>
+                        <select
+                          value={item.outboundTxId || ''}
+                          onChange={(e) => handleFieldChange(index, 'outboundTxId', e.target.value)}
+                          className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs font-mono font-medium focus:outline-none focus:border-primary"
+                        >
+                          <option value="">Auto (FIFO — Cut from oldest outbound)</option>
+                          {item.outbounds.map(ob => (
+                            <option key={ob.id} value={ob.id}>
+                              {ob.deliveryNote} — ({ob.remainingQty} remaining at store)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-1.5 md:col-span-1">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-semibold text-text-secondary">
-                        {!selectedProd?.isSerialized ? 'Quantity Damaged' : 'Quantity (Selected)'}
+                        {!selectedProd?.isSerialized ? (reportType === 'LOST' ? 'Quantity Lost' : 'Quantity Damaged') : 'Quantity (Selected)'}
                       </label>
                       {selectedProd && !selectedProd.isSerialized && (
                         <span className="text-[10px] font-mono text-text-muted">
-                          In Stock: <strong className="text-primary">{item.currentStock || 0}</strong>
+                          {fromType === 'STORE' ? 'In Store: ' : 'In Stock: '}
+                          <strong className="text-primary">{item.currentStock || 0}</strong>
                         </span>
                       )}
                     </div>
@@ -1035,11 +1192,11 @@ function DamageFormContent({
                     </div>
 
                     <label className="text-xs font-semibold text-text-secondary flex items-center gap-1 pb-1">
-                      <span>Available Barcodes ({item.availableBarcodes?.length || 0} in Warehouse)</span>
+                      <span>Available Barcodes ({item.availableBarcodes?.length || 0} in {fromType === 'STORE' ? 'Store' : fromType === 'DIRECT' ? 'Staff' : 'Warehouse'})</span>
                     </label>
                     
                     {item.availableBarcodes?.length === 0 ? (
-                      <span className="text-xs text-danger font-semibold py-1">No available barcodes found in the Warehouse for this product.</span>
+                      <span className="text-xs text-danger font-semibold py-1">No available barcodes found in the {fromType === 'STORE' ? 'Store' : fromType === 'DIRECT' ? 'Staff' : 'Warehouse'} for this product.</span>
                     ) : (
                       <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto p-2 bg-surface-elevated/20 border border-border rounded-md mt-1">
                         {item.availableBarcodes.map(s => {

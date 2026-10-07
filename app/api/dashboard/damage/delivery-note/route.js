@@ -48,12 +48,20 @@ export async function GET(request) {
       return new NextResponse('No matching damage transactions found.', { status: 404 });
     }
 
+    let sourceName = 'IML Central Warehouse';
+    if (txs[0]?.fromEntityType === 'STORE' && txs[0]?.fromEntityId) {
+      const storeObj = await prisma.store.findUnique({ where: { id: txs[0].fromEntityId } });
+      sourceName = storeObj ? `Store: ${storeObj.name}` : `Store: ${txs[0].fromEntityId}`;
+    } else if (txs[0]?.fromEntityType === 'STAFF' || txs[0]?.fromEntityType === 'DIRECT') {
+      sourceName = `Promoter / Staff: ${txs[0].fromEntityId || 'N/A'}`;
+    }
+
     const notes = txs[0]?.notes?.split(' | ')[0] || '';
 
     const productGroups = {};
     for (const tx of txs) {
       const prod = tx.product;
-      const parsedItemNotes = tx.notes?.includes(' | ') ? tx.notes.split(' | ')[1] || '' : (tx.notes || '');
+      const parsedItemNotes = tx.notes || '';
       if (!productGroups[prod.id]) {
         productGroups[prod.id] = {
           name: prod.name,
@@ -81,6 +89,7 @@ export async function GET(request) {
       <DeliveryNoteDocument
         title="DAMAGE NOTE"
         brandName={brandName}
+        supplierName={sourceName}
         inventory={inventory}
         dateStr={dateStr}
         docNo={docNo}

@@ -352,6 +352,7 @@ export async function getStoreInventory(storeId) {
       status: 'AVAILABLE',
     },
     select: {
+      id: true,
       barcode: true,
       secondaryBarcode: true,
       status: true,
@@ -362,8 +363,11 @@ export async function getStoreInventory(storeId) {
           name: true,
           itemCode: true,
           imageUrl: true,
+          category: true,
           isSerialized: true,
-          brand: { select: { name: true } }
+          trackExpiry: true,
+          brandId: true,
+          brand: { select: { id: true, name: true } }
         }
       }
     },
@@ -408,15 +412,53 @@ export async function getStoreInventory(storeId) {
     }
   }
 
-  const bulkProducts = await prisma.product.findMany({
-    where: { id: { in: activeBulkProductIds } },
-    select: {
-      id: true,
-      name: true,
-      imageUrl: true,
-      brand: { select: { name: true } }
+  const [bulkProducts, activeOutbounds] = await Promise.all([
+    prisma.product.findMany({
+      where: { id: { in: activeBulkProductIds } },
+      select: {
+        id: true,
+        name: true,
+        itemCode: true,
+        imageUrl: true,
+        category: true,
+        isSerialized: true,
+        trackExpiry: true,
+        brandId: true,
+        brand: { select: { id: true, name: true } }
+      }
+    }),
+    prisma.inventoryTransaction.findMany({
+      where: {
+        toEntityType: 'STORE',
+        toEntityId: storeId,
+        transactionType: { in: ['ISSUE', 'OUTBOUND'] }
+      },
+      select: {
+        id: true,
+        deliveryNote: true,
+        productId: true,
+        quantity: true,
+        returnedQty: true,
+        timestamp: true,
+      },
+      orderBy: { timestamp: 'asc' }
+    })
+  ]);
+
+  const outboundsByProd = {};
+  for (const ob of activeOutbounds) {
+    const rem = Math.max(0, ob.quantity - (ob.returnedQty || 0));
+    if (rem > 0) {
+      if (!outboundsByProd[ob.productId]) outboundsByProd[ob.productId] = [];
+      outboundsByProd[ob.productId].push({
+        id: ob.id,
+        deliveryNote: ob.deliveryNote || 'UNASSIGNED',
+        remainingQty: rem,
+        originalQty: ob.quantity,
+        timestamp: ob.timestamp ? ob.timestamp.toISOString() : null,
+      });
     }
-  });
+  }
 
   const inventoryMap = {};
 
@@ -426,16 +468,23 @@ export async function getStoreInventory(storeId) {
     if (!inventoryMap[prodId]) {
       inventoryMap[prodId] = {
         productId: prodId,
+        id: prodId,
         name: s.product.name,
+        itemCode: s.product.itemCode,
         imageUrl: s.product.imageUrl || null,
+        category: s.product.category,
+        brandId: s.product.brandId || s.product.brand?.id,
         brandName: s.product.brand?.name || 'No Brand',
         isSerialized: true,
+        trackExpiry: !!s.product.trackExpiry,
         quantity: 0,
-        serials: []
+        serials: [],
+        outbounds: outboundsByProd[prodId] || []
       };
     }
     inventoryMap[prodId].quantity += 1;
     inventoryMap[prodId].serials.push({
+      id: s.id,
       barcode: s.barcode,
       secondaryBarcode: s.secondaryBarcode,
       status: s.status
@@ -446,12 +495,18 @@ export async function getStoreInventory(storeId) {
   bulkProducts.forEach(p => {
     inventoryMap[p.id] = {
       productId: p.id,
+      id: p.id,
       name: p.name,
+      itemCode: p.itemCode,
       imageUrl: p.imageUrl || null,
+      category: p.category,
+      brandId: p.brandId || p.brand?.id,
       brandName: p.brand?.name || 'No Brand',
       isSerialized: false,
+      trackExpiry: !!p.trackExpiry,
       quantity: netQuantities.get(p.id) || 0,
-      serials: []
+      serials: [],
+      outbounds: outboundsByProd[p.id] || []
     };
   });
 
@@ -1158,7 +1213,66 @@ export async function createBulkDamageTransactions(payload) {
       const typeCode = resolvedType === 'LOST' ? 'LOS' : 'DAM';
       const deliveryNote = await generateCustomRef(tx, typeCode, brandName);
 
-      // A. Create core transaction
+      // A. If cutting from a Store, allocate and deduct from the store's active outbound transactions
+      let cutFromNotes = [];
+      if (fromEntityType === 'STORE' && fromEntityId) {
+        let neededQty = quantity;
+
+        let candidateOutbounds = await tx.inventoryTransaction.findMany({
+          where: {
+            productId,
+            toEntityType: 'STORE',
+            toEntityId: fromEntityId,
+            transactionType: { in: ['ISSUE', 'OUTBOUND'] }
+          },
+          orderBy: { timestamp: 'asc' }
+        });
+
+        if (item.outboundTxId) {
+          candidateOutbounds = [
+            ...candidateOutbounds.filter(o => o.id === item.outboundTxId),
+            ...candidateOutbounds.filter(o => o.id !== item.outboundTxId)
+          ];
+        } else if (item.outboundDn) {
+          candidateOutbounds = [
+            ...candidateOutbounds.filter(o => o.deliveryNote === item.outboundDn),
+            ...candidateOutbounds.filter(o => o.deliveryNote !== item.outboundDn)
+          ];
+        }
+
+        for (const parent of candidateOutbounds) {
+          if (neededQty <= 0) break;
+          const remaining = Math.max(0, parent.quantity - (parent.returnedQty || 0));
+          if (remaining <= 0) continue;
+
+          const alloc = Math.min(remaining, neededQty);
+          const newReturnedQty = (parent.returnedQty || 0) + alloc;
+          const isFull = newReturnedQty >= parent.quantity - 0.0001;
+          const newStatus = isFull ? (resolvedType === 'LOST' ? 'LOST' : 'DAMAGED') : 'PARTIAL';
+          const newNotes = parent.returnNotes
+            ? `${parent.returnNotes} | ${resolvedType === 'LOST' ? 'Lost' : 'Damaged'} (${alloc})`
+            : `${resolvedType === 'LOST' ? 'Lost' : 'Damaged'} (${alloc})`;
+
+          await tx.inventoryTransaction.update({
+            where: { id: parent.id },
+            data: {
+              returnedQty: newReturnedQty,
+              returnStatus: newStatus,
+              returnNotes: newNotes,
+            }
+          });
+
+          cutFromNotes.push(`Cut from Outbound ${parent.id} (${parent.deliveryNote || 'UNASSIGNED'})`);
+          neededQty -= alloc;
+        }
+      }
+
+      let finalItemNotes = notes ? notes.trim() : null;
+      if (cutFromNotes.length > 0) {
+        finalItemNotes = finalItemNotes ? `${finalItemNotes} | ${cutFromNotes.join(' | ')}` : cutFromNotes.join(' | ');
+      }
+
+      // B. Create core transaction
       const invTx = await tx.inventoryTransaction.create({
         data: {
           productId,
@@ -1168,7 +1282,7 @@ export async function createBulkDamageTransactions(payload) {
           toEntityType: null,
           toEntityId: null,
           quantity,
-          notes: notes ? notes.trim() : null,
+          notes: finalItemNotes,
           deliveryStatus: 'Delivered',
           deliveryNote,
           manufactureDate: item.manufactureDate ? parseTransactionDate(item.manufactureDate) : null,
@@ -1678,6 +1792,27 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
       });
     }
 
+    // Revert parent outbound returnedQty if old transactions were cut from outbounds
+    for (const oldTx of oldTxs) {
+      if (oldTx.fromEntityType === 'STORE' && oldTx.notes && /(?:from Outbound|Cut from Outbound)/i.test(oldTx.notes)) {
+        const outboundMatch = oldTx.notes.match(/(?:from Outbound|Cut from Outbound) ([a-zA-Z0-9-]+)/i);
+        if (outboundMatch && outboundMatch[1]) {
+          const parent = await tx.inventoryTransaction.findUnique({ where: { id: outboundMatch[1] } });
+          if (parent) {
+            const revertedQty = Math.max(0, (parent.returnedQty || 0) - oldTx.quantity);
+            const revertedStatus = revertedQty <= 0 ? null : (revertedQty >= parent.quantity - 0.0001 ? 'COMPLETED' : 'PARTIAL');
+            await tx.inventoryTransaction.update({
+              where: { id: parent.id },
+              data: {
+                returnedQty: revertedQty,
+                returnStatus: revertedStatus
+              }
+            });
+          }
+        }
+      }
+    }
+
     // Delete old transactions
     const oldTxIds = oldTxs.map(t => t.id);
     await tx.inventoryTransaction.deleteMany({
@@ -1689,6 +1824,65 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
     for (const item of items) {
       const { productId, quantity, barcodes = [], notes, selectedBatches = [] } = item;
       const product = productsMap.get(productId);
+
+      // Allocate to candidate outbounds if from STORE
+      let cutFromNotes = [];
+      if (fromEntityType === 'STORE' && fromEntityId) {
+        let neededQty = quantity;
+
+        let candidateOutbounds = await tx.inventoryTransaction.findMany({
+          where: {
+            productId,
+            toEntityType: 'STORE',
+            toEntityId: fromEntityId,
+            transactionType: { in: ['ISSUE', 'OUTBOUND'] }
+          },
+          orderBy: { timestamp: 'asc' }
+        });
+
+        if (item.outboundTxId) {
+          candidateOutbounds = [
+            ...candidateOutbounds.filter(o => o.id === item.outboundTxId),
+            ...candidateOutbounds.filter(o => o.id !== item.outboundTxId)
+          ];
+        } else if (item.outboundDn) {
+          candidateOutbounds = [
+            ...candidateOutbounds.filter(o => o.deliveryNote === item.outboundDn),
+            ...candidateOutbounds.filter(o => o.deliveryNote !== item.outboundDn)
+          ];
+        }
+
+        for (const parent of candidateOutbounds) {
+          if (neededQty <= 0) break;
+          const remaining = Math.max(0, parent.quantity - (parent.returnedQty || 0));
+          if (remaining <= 0) continue;
+
+          const alloc = Math.min(remaining, neededQty);
+          const newReturnedQty = (parent.returnedQty || 0) + alloc;
+          const isFull = newReturnedQty >= parent.quantity - 0.0001;
+          const newStatus = isFull ? (resolvedType === 'LOST' ? 'LOST' : 'DAMAGED') : 'PARTIAL';
+          const newNotes = parent.returnNotes
+            ? `${parent.returnNotes} | ${resolvedType === 'LOST' ? 'Lost' : 'Damaged'} (${alloc})`
+            : `${resolvedType === 'LOST' ? 'Lost' : 'Damaged'} (${alloc})`;
+
+          await tx.inventoryTransaction.update({
+            where: { id: parent.id },
+            data: {
+              returnedQty: newReturnedQty,
+              returnStatus: newStatus,
+              returnNotes: newNotes,
+            }
+          });
+
+          cutFromNotes.push(`Cut from Outbound ${parent.id} (${parent.deliveryNote || 'UNASSIGNED'})`);
+          neededQty -= alloc;
+        }
+      }
+
+      let finalItemNotes = notes ? notes.trim() : null;
+      if (cutFromNotes.length > 0) {
+        finalItemNotes = finalItemNotes ? `${finalItemNotes} | ${cutFromNotes.join(' | ')}` : cutFromNotes.join(' | ');
+      }
 
       if (product.trackExpiry && !product.isSerialized && selectedBatches.length > 0) {
         for (const batch of selectedBatches) {
@@ -1702,7 +1896,7 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
               toEntityType: null,
               toEntityId: null,
               quantity: batch.quantity,
-              notes: notes ? notes.trim() : null,
+              notes: finalItemNotes,
               deliveryNote,
               deliveryStatus: 'Delivered',
               manufactureDate: batch.manufactureDate ? new Date(batch.manufactureDate) : null,
@@ -1723,7 +1917,7 @@ export async function updateBulkDamageTransactions(deliveryNote, payload) {
           toEntityType: null,
           toEntityId: null,
           quantity,
-          notes: notes ? notes.trim() : null,
+          notes: finalItemNotes,
           deliveryNote,
           deliveryStatus: 'Delivered',
           timestamp: parsedDate,
@@ -1807,15 +2001,16 @@ export async function deleteTransaction(id) {
 
   await prisma.$transaction(async (tx) => {
     // 1. Revert parent transaction tracking & uniform allocations
-    // Handles RETURN transactions as well as ISSUE transactions marked as USED from Outbound
+    // Handles RETURN transactions as well as ISSUE transactions marked as USED from Outbound, or DAMAGE/LOST from Outbound
     const isOutboundReturn = txRecord.transactionType === 'RETURN';
     const isOutboundUsed = txRecord.transactionType === 'ISSUE' && txRecord.notes && /from Outbound/i.test(txRecord.notes);
+    const isOutboundDamageOrLoss = (txRecord.transactionType === 'DAMAGE' || txRecord.transactionType === 'LOST') && txRecord.notes && /(?:from Outbound|Cut from Outbound)/i.test(txRecord.notes);
 
-    if (isOutboundReturn || isOutboundUsed) {
+    if (isOutboundReturn || isOutboundUsed || isOutboundDamageOrLoss) {
       let parentTx = null;
 
       // A. Try matching parent transaction from notes: "from Outbound <ID>"
-      const outboundMatch = txRecord.notes?.match(/(?:from Outbound|Marked as Used from Outbound) ([a-zA-Z0-9-]+)/i);
+      const outboundMatch = txRecord.notes?.match(/(?:from Outbound|Marked as Used from Outbound|Cut from Outbound) ([a-zA-Z0-9-]+)/i);
       if (outboundMatch && outboundMatch[1]) {
         parentTx = await tx.inventoryTransaction.findUnique({
           where: { id: outboundMatch[1] }
@@ -1852,14 +2047,17 @@ export async function deleteTransaction(id) {
       }
 
       if (parentTx) {
-        // Find other active return or used transactions for this parent transaction (excluding the one being deleted)
+        // Find other active return, used, damage, or loss transactions for this parent transaction (excluding the one being deleted)
         const siblingReturns = await tx.inventoryTransaction.findMany({
           where: {
             id: { not: txRecord.id },
             notes: { contains: parentTx.id },
             OR: [
               { transactionType: 'RETURN' },
-              { notes: { contains: 'Marked as Used from Outbound' } }
+              { notes: { contains: 'Marked as Used from Outbound' } },
+              { notes: { contains: 'Cut from Outbound' } },
+              { notes: { contains: 'Damage from Outbound' } },
+              { notes: { contains: 'Loss from Outbound' } }
             ]
           },
           select: { quantity: true, transactionType: true, notes: true }
@@ -2087,7 +2285,10 @@ export async function reconcileOutboundReturnStatuses() {
     where: {
       OR: [
         { transactionType: 'RETURN' },
-        { notes: { contains: 'Marked as Used from Outbound' } }
+        { notes: { contains: 'Marked as Used from Outbound' } },
+        { notes: { contains: 'Cut from Outbound' } },
+        { notes: { contains: 'Damage from Outbound' } },
+        { notes: { contains: 'Loss from Outbound' } }
       ]
     },
     select: { id: true, productId: true, fromEntityType: true, fromEntityId: true, quantity: true, notes: true, transactionType: true }
@@ -2103,7 +2304,9 @@ export async function reconcileOutboundReturnStatuses() {
       if (actualReturnedQty > 0) {
         if (actualReturnedQty >= ob.quantity - 0.0001) {
           const hasUsed = matching.some(r => r.notes?.includes('Marked as Used'));
-          expectedStatus = hasUsed ? 'USED' : 'RETURNED';
+          const hasDamaged = matching.some(r => r.transactionType === 'DAMAGE' || r.notes?.includes('Damaged'));
+          const hasLost = matching.some(r => r.transactionType === 'LOST' || r.notes?.includes('Lost'));
+          expectedStatus = hasUsed ? 'USED' : (hasDamaged ? 'DAMAGED' : (hasLost ? 'LOST' : 'RETURNED'));
         } else {
           expectedStatus = 'PARTIAL';
         }

@@ -21,8 +21,8 @@ export default async function StoreDetailPage({ params }) {
   const { id } = await params;
   const pageSize = 15;
 
-  // Fetch Store info, staff, and dispatches
-  const [store, staff, inventory, dispatches] = await Promise.all([
+  // Fetch Store info, staff, dispatches, and outward adjustments
+  const [store, staff, inventory, dispatches, storeOutward] = await Promise.all([
     prisma.store.findUnique({ where: { id } }),
     prisma.staff.findMany({ where: { storeId: id } }),
     getStoreInventory(id),
@@ -37,6 +37,35 @@ export default async function StoreDetailPage({ params }) {
         quantity: true,
         deliveryNote: true,
         timestamp: true,
+        product: {
+          select: {
+            id: true,
+            brand: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        timestamp: 'desc'
+      },
+    }),
+    prisma.inventoryTransaction.findMany({
+      where: {
+        fromEntityType: 'STORE',
+        fromEntityId: id,
+        transactionType: { in: ['RETURN', 'DAMAGE', 'LOST'] },
+      },
+      select: {
+        id: true,
+        transactionType: true,
+        quantity: true,
+        deliveryNote: true,
+        timestamp: true,
+        notes: true,
         product: {
           select: {
             id: true,
@@ -92,6 +121,35 @@ export default async function StoreDetailPage({ params }) {
   }
 
   const groupedDispatches = Object.values(groupedDispatchesMap).sort((a, b) => b.date.localeCompare(a.date));
+
+  // Group store returns, damage, and loss in memory
+  const groupedOutwardMap = {};
+  for (const tx of (storeOutward || [])) {
+    const dateStr = tx.timestamp.toISOString().split('T')[0];
+    const brand = tx.product?.brand || { id: 'BRND-GEN', name: 'General' };
+    const brandId = brand.id;
+    const brandName = brand.name;
+    const dn = tx.deliveryNote || 'UNASSIGNED';
+    const type = tx.transactionType;
+
+    const groupKey = `${type}_${dateStr}_${brandId}_${dn}`;
+    if (!groupedOutwardMap[groupKey]) {
+      groupedOutwardMap[groupKey] = {
+        type,
+        date: dateStr,
+        brandId,
+        brandName,
+        deliveryNote: dn,
+        itemCount: 0,
+        totalQuantity: 0,
+        notes: tx.notes || ''
+      };
+    }
+    groupedOutwardMap[groupKey].itemCount += 1;
+    groupedOutwardMap[groupKey].totalQuantity += tx.quantity;
+  }
+
+  const groupedOutward = Object.values(groupedOutwardMap).sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <div className="flex flex-col gap-6">
@@ -181,15 +239,16 @@ export default async function StoreDetailPage({ params }) {
           </div>
         </div>
 
-        {/* Delivery Notes (Dispatches) Panel */}
+        {/* Outlet Activity & Delivery Notes Panel */}
         <div className="bg-surface border border-border rounded-xl p-5 shadow-sm flex flex-col gap-4">
           <div className="flex items-center gap-2 pb-3 border-b border-border">
             <Printer size={18} className="text-success" />
-            <h3 className="font-display font-bold text-sm text-text-primary">Delivery Notes (Dispatches)</h3>
+            <h3 className="font-display font-bold text-sm text-text-primary">Outlet Activity & Notes</h3>
           </div>
           <StoreDispatchesList
             storeId={id}
             groupedDispatches={groupedDispatches}
+            groupedOutward={groupedOutward}
             pageSize={pageSize}
           />
         </div>
