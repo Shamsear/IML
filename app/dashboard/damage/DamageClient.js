@@ -2,9 +2,18 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, Smartphone, ShieldAlert, CheckCircle, Tag, Layers } from 'lucide-react';
+import { 
+  ArrowLeft, Trash2, Plus, Loader2, AlertCircle, Camera, QrCode, X, 
+  Smartphone, ShieldAlert, CheckCircle, Tag, Layers, ChevronDown, 
+  ChevronRight, FileText, Search, UserCheck, Store, ExternalLink
+} from 'lucide-react';
 import Link from 'next/link';
-import { createBulkDamageTransactions, updateBulkDamageTransactions, getStoreInventory } from '@/app/actions/transactions';
+import { 
+  createBulkDamageTransactions, 
+  updateBulkDamageTransactions, 
+  getStoreInventory, 
+  getStoreOutboundNotes 
+} from '@/app/actions/transactions';
 import { getAvailableBarcodes, getProductStockAtLocation, getProductBatchesAtLocation, findProductByBarcode } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
 import ConfirmModal from '@/components/ConfirmModal';
@@ -13,6 +22,8 @@ import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 import { playBeep } from '@/lib/audio';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
+import { getOptimizedImageUrl } from '@/lib/imagekit';
+import ImageLightbox from '@/components/ImageLightbox';
 
 function DamageFormContent({ 
   products, 
@@ -53,28 +64,56 @@ function DamageFormContent({
   const [showDirectSellerSuggestions, setShowDirectSellerSuggestions] = useState(false);
   const [highlightedSellerIdx, setHighlightedSellerIdx] = useState(-1);
 
-  // Store inventory state when fromType === 'STORE'
+  // Store inventory & delivery notes state when fromType === 'STORE'
   const [storeInventory, setStoreInventory] = useState([]);
   const [isFetchingStoreInventory, setIsFetchingStoreInventory] = useState(false);
+  const [storeOutboundNotes, setStoreOutboundNotes] = useState([]);
+  const [isFetchingOutbounds, setIsFetchingOutbounds] = useState(false);
+  const [storeViewMode, setStoreViewMode] = useState('DN_GROUPED'); // 'DN_GROUPED' | 'MANUAL'
+  const [dnSearchQuery, setDnSearchQuery] = useState('');
+  const [dnBrandFilter, setDnBrandFilter] = useState('ALL');
+  const [dnCategoryFilter, setDnCategoryFilter] = useState('ALL');
+  const [hideZeroRemaining, setHideZeroRemaining] = useState(true);
+  const [expandedNotes, setExpandedNotes] = useState({});
+  const [storeInputValues, setStoreInputValues] = useState({});
+  const [lightboxImage, setLightboxImage] = useState(null);
 
-  // Fetch store inventory whenever store selection changes
+  // Fetch store inventory and delivery notes whenever store selection changes
   useEffect(() => {
     let active = true;
     if (fromType === 'STORE' && fromId) {
       setIsFetchingStoreInventory(true);
-      getStoreInventory(fromId)
-        .then(inv => {
-          if (active) setStoreInventory(inv || []);
+      setIsFetchingOutbounds(true);
+      Promise.all([
+        getStoreInventory(fromId),
+        getStoreOutboundNotes(fromId)
+      ])
+        .then(([inv, notes]) => {
+          if (!active) return;
+          setStoreInventory(inv || []);
+          setStoreOutboundNotes(notes || []);
+          // Automatically expand all delivery note sections
+          const exp = {};
+          (notes || []).forEach(n => { exp[n.key] = true; });
+          setExpandedNotes(exp);
         })
         .catch(err => {
-          console.error('Failed to load store inventory:', err);
-          if (active) setStoreInventory([]);
+          console.error('Failed to load store inventory & outbounds:', err);
+          if (active) {
+            setStoreInventory([]);
+            setStoreOutboundNotes([]);
+          }
         })
         .finally(() => {
-          if (active) setIsFetchingStoreInventory(false);
+          if (active) {
+            setIsFetchingStoreInventory(false);
+            setIsFetchingOutbounds(false);
+          }
         });
     } else {
       setStoreInventory([]);
+      setStoreOutboundNotes([]);
+      setStoreInputValues({});
     }
     return () => { active = false; };
   }, [fromType, fromId]);
@@ -116,11 +155,145 @@ function DamageFormContent({
     return Array.from(new Set(selectableProducts.map(p => p.category).filter(Boolean))).sort();
   }, [selectableProducts]);
 
+  const storeSelectedCount = useMemo(() => {
+    let count = 0;
+    let units = 0;
+    for (const val of Object.values(storeInputValues)) {
+      if (val && val.qty > 0) {
+        count += 1;
+        units += val.qty;
+      }
+    }
+    return { count, units };
+  }, [storeInputValues]);
+
+  const filteredOutboundGroups = useMemo(() => {
+    if (!storeOutboundNotes || storeOutboundNotes.length === 0) return [];
+    const q = (dnSearchQuery || '').toLowerCase().trim();
+
+    return storeOutboundNotes
+      .map(group => {
+        const matchBrand = dnBrandFilter === 'ALL' || group.brandId === dnBrandFilter || group.items.some(i => i.brandId === dnBrandFilter);
+        if (!matchBrand) return null;
+
+        const filteredItems = group.items.filter(item => {
+          if (hideZeroRemaining && item.remainingQty <= 0) return false;
+          if (dnCategoryFilter !== 'ALL' && item.category !== dnCategoryFilter) return false;
+          if (dnBrandFilter !== 'ALL' && item.brandId !== dnBrandFilter) return false;
+          if (!q) return true;
+
+          return (
+            group.deliveryNote.toLowerCase().includes(q) ||
+            item.productName.toLowerCase().includes(q) ||
+            (item.itemCode || '').toLowerCase().includes(q) ||
+            (item.category || '').toLowerCase().includes(q)
+          );
+        });
+
+        if (filteredItems.length === 0 && q && !group.deliveryNote.toLowerCase().includes(q)) {
+          return null;
+        }
+
+        return {
+          ...group,
+          filteredItems
+        };
+      })
+      .filter(Boolean);
+  }, [storeOutboundNotes, dnSearchQuery, dnBrandFilter, dnCategoryFilter, hideZeroRemaining]);
+
+  const storeAvailableBrands = useMemo(() => {
+    const brandMap = new Map();
+    storeOutboundNotes.forEach(g => {
+      g.items.forEach(i => {
+        if (i.brandId && i.brandName) {
+          brandMap.set(i.brandId, i.brandName);
+        }
+      });
+    });
+    return Array.from(brandMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [storeOutboundNotes]);
+
+  const storeAvailableCategories = useMemo(() => {
+    const cats = new Set();
+    storeOutboundNotes.forEach(g => {
+      g.items.forEach(i => {
+        if (i.category) cats.add(i.category);
+      });
+    });
+    return Array.from(cats).sort();
+  }, [storeOutboundNotes]);
+
+  const toggleGroupExpand = (key) => {
+    setExpandedNotes(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const handleExpandAll = () => {
+    const exp = {};
+    storeOutboundNotes.forEach(g => { exp[g.key] = true; });
+    setExpandedNotes(exp);
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedNotes({});
+  };
+
+  const handleClearAllStoreInputs = () => {
+    setStoreInputValues({});
+  };
+
+  const handleStoreQtyChange = (outboundTxId, value, max) => {
+    const parsed = parseInt(value, 10);
+    const validQty = isNaN(parsed) ? 0 : Math.max(0, Math.min(parsed, max));
+    setStoreInputValues(prev => ({
+      ...prev,
+      [outboundTxId]: {
+        ...(prev[outboundTxId] || {}),
+        qty: validQty
+      }
+    }));
+  };
+
+  const handleStoreNotesChange = (outboundTxId, notes) => {
+    setStoreInputValues(prev => ({
+      ...prev,
+      [outboundTxId]: {
+        ...(prev[outboundTxId] || {}),
+        notes
+      }
+    }));
+  };
+
+  const handleStoreBarcodeToggle = (outboundTxId, barcode) => {
+    setStoreInputValues(prev => {
+      const current = prev[outboundTxId] || {};
+      const currentBarcodes = current.barcodes || [];
+      const isSelected = currentBarcodes.includes(barcode);
+      const newBarcodes = isSelected
+        ? currentBarcodes.filter(b => b !== barcode)
+        : [...currentBarcodes, barcode];
+      return {
+        ...prev,
+        [outboundTxId]: {
+          ...current,
+          barcodes: newBarcodes,
+          qty: newBarcodes.length
+        }
+      };
+    });
+  };
+
   // State for bulk damage items
   const [items, setItems] = useState([]);
 
   // Warn before navigating away with unsaved items
-  useUnsavedChanges(items.length > 0 && !loading);
+  const hasUnsavedChanges = (fromType === 'STORE' && storeViewMode === 'DN_GROUPED')
+    ? storeSelectedCount.units > 0
+    : items.length > 0;
+  useUnsavedChanges(hasUnsavedChanges && !loading);
 
   // Scanning inputs states (one per row index)
   const [scanInputs, setScanInputs] = useState({});
@@ -656,6 +829,74 @@ function DamageFormContent({
     setError('');
     setSuccessMsg('');
 
+    if (fromType === 'STORE' && !fromId) {
+      setError('Please select a retail store location.');
+      setLoading(false);
+      return;
+    }
+    if (fromType === 'DIRECT' && !fromId) {
+      setError('Please enter or select a direct seller / promoter name.');
+      setLoading(false);
+      return;
+    }
+
+    // Branch A: Store Grouped by Delivery Note submission
+    if (fromType === 'STORE' && storeViewMode === 'DN_GROUPED') {
+      const itemsPayload = [];
+      for (const group of storeOutboundNotes) {
+        for (const item of group.items) {
+          const input = storeInputValues[item.outboundTxId];
+          if (input && input.qty > 0) {
+            if (item.isSerialized && (!input.barcodes || input.barcodes.length === 0)) {
+              setError(`Please select specific barcode(s) for serialized product "${item.productName}" on note ${item.deliveryNote}`);
+              setLoading(false);
+              return;
+            }
+            if (input.qty > item.remainingQty) {
+              setError(`Quantity for "${item.productName}" on note ${item.deliveryNote} exceeds remaining stock (${item.remainingQty})`);
+              setLoading(false);
+              return;
+            }
+            itemsPayload.push({
+              productId: item.productId,
+              quantity: item.isSerialized ? input.barcodes.length : input.qty,
+              barcodes: item.isSerialized ? input.barcodes : [],
+              notes: input.notes || '',
+              outboundTxId: item.outboundTxId,
+              outboundDn: item.deliveryNote
+            });
+          }
+        }
+      }
+
+      if (itemsPayload.length === 0) {
+        setError(`Please enter a quantity (> 0) for at least one product before submitting ${reportType === 'LOST' ? 'loss' : 'damage'} report.`);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        await createBulkDamageTransactions({
+          fromEntityType: fromType,
+          fromEntityId: fromId,
+          transactionType: reportType,
+          items: itemsPayload
+        });
+        const totalUnits = itemsPayload.reduce((a, b) => a + b.quantity, 0);
+        const label = reportType === 'LOST' ? 'Loss Report Filed' : 'Damage Report Filed';
+        setConfirmData({
+          title: label,
+          message: `${itemsPayload.length} product item(s) (${totalUnits} total unit${totalUnits > 1 ? 's' : ''}) have been recorded as ${reportType === 'LOST' ? 'lost' : 'damaged'} and deducted directly from store dispatches.`
+        });
+        setConfirmOpen(true);
+      } catch (err) {
+        setError(err.message || 'Failed to complete transaction.');
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Branch B: Standard manual row-by-row submission
     for (const item of items) {
       const prod = products.find(p => p.id === item.productId);
       if (prod?.isSerialized && item.selectedBarcodes.length === 0) {
@@ -992,371 +1233,909 @@ function DamageFormContent({
           </div>
         </div>
 
-        {/* Destination Header */}
-        <h3 className="font-display font-bold text-lg text-text-primary pb-3 border-b border-border font-semibold">
-          {reportType === 'LOST' ? 'Lost / Missing Products' : 'Damaged Products Ledger'}
-        </h3>
+        {/* Destination Header & View Mode Switcher */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-display font-bold text-lg text-text-primary">
+              {reportType === 'LOST' ? 'Lost / Missing Products' : 'Damaged Products Ledger'}
+            </h3>
+            {fromType === 'STORE' && fromId && !isFetchingOutbounds && storeOutboundNotes.length > 0 && (
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {storeOutboundNotes.length} Delivery Note{storeOutboundNotes.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
 
-        {/* Dynamic products rows */}
-        <div className="flex flex-col gap-6">
-          {items.map((item, index) => {
-            const selectedProd = products.find(p => p.id === item.productId);
-            return (
-              <div key={index} className="relative p-5 bg-surface-elevated/40 border border-black/5 rounded-xl flex flex-col gap-4">
-                <button 
-                  type="button" 
-                  className="absolute top-4 right-4 p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" 
-                  onClick={() => handleRemoveRow(index)}
-                  disabled={items.length === 1}
-                  title="Remove item"
-                >
-                  <Trash2 size={16} />
-                </button>
+          {fromType === 'STORE' && fromId && (
+            <div className="inline-flex items-center bg-surface-elevated/70 p-1 rounded-xl border border-border text-xs font-semibold self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setStoreViewMode('DN_GROUPED')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                  storeViewMode === 'DN_GROUPED'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <FileText size={13} />
+                <span>By Delivery Note</span>
+                {storeOutboundNotes.length > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${storeViewMode === 'DN_GROUPED' ? 'bg-white/20 text-white' : 'bg-surface border border-border text-text-secondary'}`}>
+                    {storeOutboundNotes.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStoreViewMode('MANUAL')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                  storeViewMode === 'MANUAL'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <span>Manual Rows</span>
+                {items.length > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${storeViewMode === 'MANUAL' ? 'bg-white/20 text-white' : 'bg-surface border border-border text-text-secondary'}`}>
+                    {items.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mr-8">
-                  <div className="flex flex-col gap-1.5 md:col-span-2">
-                    <label className="text-xs font-semibold text-text-secondary">Product Item</label>
-                    {/* Brand and Category filter pills */}
-                    <div className="flex flex-col gap-1.5">
+        {/* View Mode 1: Store Outbound Notes Grouped (Active when fromType === 'STORE' and storeViewMode === 'DN_GROUPED') */}
+        {fromType === 'STORE' && storeViewMode === 'DN_GROUPED' ? (
+          <div className="flex flex-col gap-5">
+            {!fromId ? (
+              <div className="p-8 text-center bg-surface-elevated/30 border border-dashed border-border rounded-2xl flex flex-col items-center justify-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                  <Store size={24} />
+                </div>
+                <div className="flex flex-col gap-1 max-w-md">
+                  <h4 className="text-sm font-bold text-text-primary">Select a Retail Store / Placement Above</h4>
+                  <p className="text-xs text-text-secondary">
+                    Choose a store to automatically see all products dispatched to that location, grouped by their delivery notes.
+                  </p>
+                </div>
+              </div>
+            ) : isFetchingOutbounds ? (
+              <div className="p-12 text-center bg-surface-elevated/30 border border-border rounded-2xl flex flex-col items-center justify-center gap-3">
+                <Loader2 size={28} className="animate-spin text-primary" />
+                <p className="text-sm font-medium text-text-secondary">Loading store delivery notes and products...</p>
+              </div>
+            ) : storeOutboundNotes.length === 0 ? (
+              <div className="p-8 text-center bg-surface-elevated/30 border border-border rounded-2xl flex flex-col items-center justify-center gap-3">
+                <AlertCircle size={28} className="text-text-muted" />
+                <h4 className="text-sm font-bold text-text-primary">No Active Dispatches at this Store</h4>
+                <p className="text-xs text-text-secondary max-w-md">
+                  No active outbound records with remaining balance were found for this store. You can switch to "Manual Rows" if you need to report an ad-hoc adjustment.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Search & Filter Controls */}
+                <div className="p-4 bg-surface-elevated/40 border border-border rounded-2xl flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <div className="relative flex-1">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                      <input
+                        type="text"
+                        value={dnSearchQuery}
+                        onChange={(e) => setDnSearchQuery(e.target.value)}
+                        placeholder="Search by DN, product name, SKU, or category..."
+                        className="w-full pl-9 pr-3 py-2 bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-xl text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      />
+                      {dnSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setDnSearchQuery('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary text-xs"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-text-secondary hover:text-text-primary font-medium">
+                        <input
+                          type="checkbox"
+                          checked={hideZeroRemaining}
+                          onChange={(e) => setHideZeroRemaining(e.target.checked)}
+                          className="rounded border-border text-primary focus:ring-0 w-3.5 h-3.5"
+                        />
+                        <span>Active items only</span>
+                      </label>
+                      <span className="text-border">|</span>
+                      <button
+                        type="button"
+                        onClick={handleExpandAll}
+                        className="px-2 py-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors text-[11px] font-semibold"
+                      >
+                        Expand All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCollapseAll}
+                        className="px-2 py-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors text-[11px] font-semibold"
+                      >
+                        Collapse All
+                      </button>
+                      {storeSelectedCount.units > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleClearAllStoreInputs}
+                          className="px-2 py-1 rounded-md text-danger hover:bg-danger/10 transition-colors text-[11px] font-semibold"
+                        >
+                          Reset ({storeSelectedCount.units})
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Brand & Category pills */}
+                  <div className="flex flex-col gap-2 pt-2 border-t border-border/60">
+                    {storeAvailableBrands.length > 1 && (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] font-bold text-text-secondary uppercase">Brand:</span>
                         <button
                           type="button"
-                          onClick={() => setBrandFilter('ALL')}
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                        >All</button>
-                        {availableBrands.map(b => (
+                          onClick={() => setDnBrandFilter('ALL')}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                            dnBrandFilter === 'ALL'
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                          }`}
+                        >
+                          All
+                        </button>
+                        {storeAvailableBrands.map(b => (
                           <button
                             key={b.id}
                             type="button"
-                            onClick={() => setBrandFilter(b.id)}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                          >{b.name}</button>
+                            onClick={() => setDnBrandFilter(b.id)}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                              dnBrandFilter === b.id
+                                ? 'bg-primary text-white border-primary'
+                                : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                            }`}
+                          >
+                            {b.name}
+                          </button>
                         ))}
                       </div>
-                      {uniqueCategories.length > 0 && (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-bold text-text-secondary uppercase">Cat:</span>
-                          <button
-                            type="button"
-                            onClick={() => setCategoryFilter('ALL')}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${categoryFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                          >All</button>
-                          {uniqueCategories.map(cat => (
-                            <button
-                              key={cat}
-                              type="button"
-                              onClick={() => setCategoryFilter(cat)}
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${categoryFilter === cat ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
-                            >{cat}</button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <CustomSelect
-                      options={selectableProducts
-                        .filter(p => (brandFilter === 'ALL' || p.brand?.id === brandFilter || p.brandId === brandFilter) && (categoryFilter === 'ALL' || p.category === categoryFilter))
-                        .map(p => ({
-                          value: p.id,
-                          label: `${p.name} (${p.category})${fromType === 'STORE' ? ` — (${p.storeStock ?? 0} in store)` : (fromType === 'WAREHOUSE' ? ` — (${p.warehouseStock ?? 0} in warehouse)` : '')}`,
-                          imageUrl: p.imageUrl,
-                          warehouseStock: fromType === 'STORE' ? (p.storeStock ?? 0) : p.warehouseStock,
-                          disabled: p.isSerialized && items.filter((_, i) => i !== index).map(it => it.productId).filter(Boolean).includes(p.id)
-                        }))}
-                      value={item.productId}
-                      onChange={(id) => handleProductChange(index, id)}
-                      placeholder={
-                        fromType === 'STORE' && !fromId 
-                          ? "Select a retail store above first..." 
-                          : isFetchingStoreInventory 
-                          ? "Loading store inventory..." 
-                          : fromType === 'STORE' && selectableProducts.length === 0
-                          ? "No products available in this store"
-                          : "Choose product..."
-                      }
-                      disabled={fromType === 'STORE' && (!fromId || isFetchingStoreInventory || selectableProducts.length === 0)}
-                      required
-                    />
+                    )}
 
-                    {/* Source Delivery Note selector when source is STORE */}
-                    {fromType === 'STORE' && item.outbounds && item.outbounds.length > 0 && (
-                      <div className="flex flex-col gap-1 mt-1 p-2 bg-surface-elevated/40 border border-border rounded-lg animate-fade-in">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-text-secondary uppercase">
-                          <span>Source Delivery Note (Where cut from)</span>
-                          <span className="text-primary font-mono font-normal lowercase">{item.outbounds.length} note{item.outbounds.length > 1 ? 's' : ''}</span>
-                        </div>
-                        <select
-                          value={item.outboundTxId || ''}
-                          onChange={(e) => handleFieldChange(index, 'outboundTxId', e.target.value)}
-                          className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs font-mono font-medium focus:outline-none focus:border-primary"
+                    {storeAvailableCategories.length > 1 && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-text-secondary uppercase">Cat:</span>
+                        <button
+                          type="button"
+                          onClick={() => setDnCategoryFilter('ALL')}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                            dnCategoryFilter === 'ALL'
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                          }`}
                         >
-                          <option value="">Auto (FIFO — Cut from oldest outbound)</option>
-                          {item.outbounds.map(ob => (
-                            <option key={ob.id} value={ob.id}>
-                              {ob.deliveryNote} — ({ob.remainingQty} remaining at store)
-                            </option>
-                          ))}
-                        </select>
+                          All
+                        </button>
+                        {storeAvailableCategories.map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setDnCategoryFilter(cat)}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                              dnCategoryFilter === cat
+                                ? 'bg-primary text-white border-primary'
+                                : 'bg-surface border-border text-text-secondary hover:border-primary/50'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
                       </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-1.5 md:col-span-1">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-text-secondary">
-                        {!selectedProd?.isSerialized ? (reportType === 'LOST' ? 'Quantity Lost' : 'Quantity Damaged') : 'Quantity (Selected)'}
-                      </label>
-                      {selectedProd && !selectedProd.isSerialized && (
-                        <span className="text-[10px] font-mono text-text-muted">
-                          {fromType === 'STORE' ? 'In Store: ' : 'In Stock: '}
-                          <strong className="text-primary">{item.currentStock || 0}</strong>
-                        </span>
-                      )}
-                    </div>
-                    {!selectedProd?.isSerialized ? (
-                      <div className="flex flex-col gap-1.5 w-full">
-                         <input 
-                           type="number" 
-                           className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200" 
-                           min={1} 
-                           max={item.currentStock || 0}
-                           value={item.quantity}
-                           onChange={(e) => handleFieldChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
-                           disabled={selectedProd?.trackExpiry}
-                           required 
-                         />
-                         {selectedProd?.trackExpiry && (
-                           <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected batch quantities below.</span>
-                         )}
-                         {!selectedProd?.trackExpiry && item.quantity > (item.currentStock || 0) && (
-                           <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse block">
-                             ⚠️ Warning: Quantity exceeds available stock ({item.currentStock || 0})!
-                           </span>
-                         )}
-                         {!selectedProd?.trackExpiry && item.quantity <= 0 && (
-                           <span className="text-[10px] font-semibold text-danger mt-1 block">
-                             ⚠️ Warning: Quantity must be greater than 0.
-                           </span>
-                         )}
-                       </div>
-                    ) : (
-                      <input 
-                        type="number" 
-                        className="w-full bg-surface-elevated text-danger border border-border rounded-lg px-3 py-2.5 text-sm font-bold font-mono"
-                        value={item.quantity}
-                        disabled
-                      />
                     )}
                   </div>
                 </div>
 
-                {selectedProd?.isSerialized && (
-                  <div className="flex flex-col gap-1.5 mt-2 bg-surface p-4 border border-border rounded-lg">
-                    {/* Scan Input Header */}
-                    <div className="flex flex-col gap-1.5 mb-3">
-                      <label className="text-xs font-semibold text-text-primary flex items-center gap-1">
-                        <QrCode size={14} className="text-primary" />
-                        <span>Scan / Enter Barcode to Select</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
-                          value={scanInputs[index] || ''}
-                          onChange={(e) => setScanInputs(prev => ({ ...prev, [index]: e.target.value }))}
-                          onKeyDown={(e) => handleScanInputKeyDown(e, index, item.availableBarcodes, item.selectedBarcodes)}
-                          placeholder="Scan barcode to select, then press Enter..."
-                        />
-                        <div className="flex gap-1 flex-shrink-0">
-                          <button
-                            type="button"
-                            className="px-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
-                            onClick={() => { setActiveCameraRow(index); setIsCameraOpen(true); }}
-                            title="Scan via PC Webcam"
-                          >
-                            <Camera size={13} />
-                            <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
-                          </button>
-                          
-                          <button
-                            type="button"
-                            className="px-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
-                            onClick={() => handleOpenMobileScanner(index)}
-                            title="Pair Wireless Mobile phone camera"
-                          >
-                            <Smartphone size={13} className="text-primary" />
-                            <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <label className="text-xs font-semibold text-text-secondary flex items-center gap-1 pb-1">
-                      <span>Available Barcodes ({item.availableBarcodes?.length || 0} in {fromType === 'STORE' ? 'Store' : fromType === 'DIRECT' ? 'Staff' : 'Warehouse'})</span>
-                    </label>
-                    
-                    {item.availableBarcodes?.length === 0 ? (
-                      <span className="text-xs text-danger font-semibold py-1">No available barcodes found in the {fromType === 'STORE' ? 'Store' : fromType === 'DIRECT' ? 'Staff' : 'Warehouse'} for this product.</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto p-2 bg-surface-elevated/20 border border-border rounded-md mt-1">
-                        {item.availableBarcodes.map(s => {
-                          const isSelected = item.selectedBarcodes.includes(s.barcode);
-                          return (
-                            <label 
-                              key={s.id} 
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-semibold cursor-pointer transition-all duration-200 select-none
-                                ${isSelected 
-                                  ? 'bg-danger/10 border-danger text-danger' 
-                                  : 'bg-surface border-border text-text-secondary hover:border-text-primary hover:text-text-primary'
-                                }
-                              `}
-                            >
-                              <input 
-                                type="checkbox"
-                                className="sr-only"
-                                checked={isSelected}
-                                onChange={() => {
-                                  const newSelected = isSelected
-                                    ? item.selectedBarcodes.filter(b => b !== s.barcode)
-                                    : [...item.selectedBarcodes, s.barcode];
-                                  handleFieldChange(index, 'selectedBarcodes', newSelected);
-                                }}
-                              />
-                              <span>{s.barcode}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
+                {/* Delivery Notes Accordions */}
+                {filteredOutboundGroups.length === 0 ? (
+                  <div className="p-8 text-center bg-surface-elevated/30 border border-border rounded-xl">
+                    <p className="text-xs text-text-muted">No delivery notes or items match your search/filter criteria.</p>
                   </div>
-                )}
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {filteredOutboundGroups.map((group) => {
+                      const isExpanded = expandedNotes[group.key] !== false;
+                      // Calculate marked units in this group
+                      let groupMarkedUnits = 0;
+                      for (const item of group.items) {
+                        const val = storeInputValues[item.outboundTxId];
+                        if (val && val.qty > 0) {
+                          groupMarkedUnits += val.qty;
+                        }
+                      }
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-text-secondary">Item Specific Remarks / Notes</label>
-                  <input 
-                    type="text" 
-                    className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200" 
-                    value={item.notes}
-                    onChange={(e) => handleFieldChange(index, 'notes', e.target.value)}
-                    placeholder="e.g. Scratched panel, Damaged packaging..."
-                  />
-                </div>
+                      const formattedDate = group.date
+                        ? new Date(group.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : '';
+                      const pdfDateStr = group.date
+                        ? (typeof group.date === 'string' && group.date.includes('T') ? group.date.split('T')[0] : new Date(group.date).toISOString().split('T')[0])
+                        : '';
+                      const previewUrl = `/pdf-preview?url=${encodeURIComponent(`/api/dashboard/stores/${fromId}/delivery-note?date=${pdfDateStr}&brandId=${group.brandId || ''}&dn=${encodeURIComponent(group.deliveryNote)}`)}&title=${encodeURIComponent(group.deliveryNote)}`;
 
-                {/* Expiry Batch selection section */}
-                {selectedProd?.trackExpiry && !selectedProd?.isSerialized && (
-                  <div className="flex flex-col gap-3 mt-2 bg-surface p-4 border border-border rounded-lg">
-                    <label className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Quantities by Expiry Batch</label>
-                    <div className="flex flex-col gap-2">
-                      {(!item.availableBatches || item.availableBatches.length === 0) ? (
-                        <div className="text-xs text-text-muted italic p-2 bg-surface border border-border rounded-lg">
-                          No available stock batches found at this location for this product.
-                        </div>
-                      ) : (
-                        item.availableBatches.map((batch, bIdx) => {
-                          const mDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString() : 'N/A';
-                          const eDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A';
-                          const now = new Date();
-                          const isExpired = batch.expiryDate && new Date(batch.expiryDate) < now;
+                      return (
+                        <div
+                          key={group.key}
+                          className={`border rounded-2xl overflow-hidden transition-all duration-200 ${
+                            groupMarkedUnits > 0
+                              ? (reportType === 'LOST' ? 'border-warning/50 bg-warning/5 shadow-sm' : 'border-danger/50 bg-danger/5 shadow-sm')
+                              : 'border-border bg-surface shadow-sm'
+                          }`}
+                        >
+                          {/* Note Header / Accordion trigger */}
+                          <div className="p-4 bg-surface-elevated/40 border-b border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={() => toggleGroupExpand(group.key)}
+                                className="w-7 h-7 rounded-lg border border-border bg-surface hover:bg-surface-elevated text-text-secondary flex items-center justify-center transition-colors"
+                                title={isExpanded ? 'Collapse note' : 'Expand note'}
+                              >
+                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              </button>
 
-                          const selectedQty = item.selectedBatches?.find(b => 
-                            b.manufactureDate === batch.manufactureDate && 
-                            b.expiryDate === batch.expiryDate
-                          )?.quantity || '';
-
-                          return (
-                            <div key={bIdx} className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface border border-border rounded-xl shadow-sm">
-                              <div className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs font-bold text-text-primary">Expires: {eDateStr}</span>
-                                  {isExpired && (
-                                    <span className="px-1.5 py-0.5 text-[8px] font-bold bg-danger/10 text-danger rounded uppercase">Expired</span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-text-secondary">Mfg: {mDateStr} | Available: <strong className="text-primary">{batch.quantity} units</strong></span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono font-bold text-sm text-text-primary tracking-tight">
+                                  {group.deliveryNote}
+                                </span>
+                                {group.deliveryNote && (
+                                  <a
+                                    href={previewUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline hover:text-primary-focus bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20"
+                                    title="View Delivery Note PDF"
+                                  >
+                                    <span>DN PDF</span>
+                                    <ExternalLink size={10} />
+                                  </a>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <label className="text-[10px] font-bold text-text-secondary uppercase">Qty:</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={batch.quantity}
-                                  className="w-20 bg-surface border border-border rounded px-2.5 py-1 text-xs text-center focus:outline-none focus:border-primary font-bold text-text-primary"
-                                  value={selectedQty}
-                                  placeholder="0"
-                                  onChange={(e) => {
-                                    const enteredVal = e.target.value;
-                                    const valInt = parseInt(enteredVal, 10) || 0;
-                                    const cappedVal = Math.min(valInt, batch.quantity);
-                                    
-                                    const currentSelected = item.selectedBatches || [];
-                                    const existingIdx = currentSelected.findIndex(b => 
-                                      b.manufactureDate === batch.manufactureDate && 
-                                      b.expiryDate === batch.expiryDate
-                                    );
 
-                                    let nextSelected = [...currentSelected];
-                                    if (existingIdx !== -1) {
-                                      if (cappedVal > 0) {
-                                        nextSelected[existingIdx] = { ...nextSelected[existingIdx], quantity: cappedVal };
-                                      } else {
-                                        nextSelected = nextSelected.filter((_, i) => i !== existingIdx);
-                                      }
-                                    } else if (cappedVal > 0) {
-                                      nextSelected.push({
-                                        manufactureDate: batch.manufactureDate,
-                                        expiryDate: batch.expiryDate,
-                                        quantity: cappedVal
-                                      });
-                                    }
+                              {formattedDate && (
+                                <span className="text-xs text-text-muted font-medium">
+                                  {formattedDate}
+                                </span>
+                              )}
 
-                                    const totalQty = nextSelected.reduce((sum, b) => sum + b.quantity, 0);
-                                    
-                                    setItems(prev => prev.map((x, idx) => idx === index ? {
-                                      ...x,
-                                      selectedBatches: nextSelected,
-                                      quantity: totalQty
-                                    } : x));
-                                  }}
-                                />
-                              </div>
+                              {group.brandName && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface border border-border text-text-secondary uppercase">
+                                  {group.brandName}
+                                </span>
+                              )}
+
+                              {group.issuedByName && (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-text-secondary">
+                                  <UserCheck size={11} className="text-text-muted" />
+                                  <span>{group.issuedByName}</span>
+                                </span>
+                              )}
                             </div>
-                          );
-                        })
-                      )}
-                    </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                              <span className="text-xs text-text-muted font-mono">
+                                {group.filteredItems.length} product{group.filteredItems.length !== 1 ? 's' : ''}
+                              </span>
+                              {groupMarkedUnits > 0 && (
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full font-mono ${
+                                  reportType === 'LOST'
+                                    ? 'bg-warning/20 text-warning border border-warning/30'
+                                    : 'bg-danger/20 text-danger border border-danger/30'
+                                }`}>
+                                  {groupMarkedUnits} unit{groupMarkedUnits > 1 ? 's' : ''} marked
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Accordion Content */}
+                          {isExpanded && (
+                            <div className="divide-y divide-border/60">
+                              {group.filteredItems.map((item) => {
+                                const input = storeInputValues[item.outboundTxId] || {};
+                                const currentQty = input.qty || 0;
+                                const currentBarcodes = input.barcodes || [];
+                                const currentNotes = input.notes || '';
+                                const isItemMarked = currentQty > 0;
+
+                                return (
+                                  <div
+                                    key={item.outboundTxId}
+                                    className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
+                                      isItemMarked
+                                        ? (reportType === 'LOST' ? 'bg-warning/5' : 'bg-danger/5')
+                                        : 'hover:bg-surface-elevated/20'
+                                    }`}
+                                  >
+                                    {/* Left: Product Info & Image */}
+                                    <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                                      {item.imageUrl ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => setLightboxImage({ url: item.imageUrl, name: item.productName })}
+                                          className="relative w-12 h-12 rounded-xl overflow-hidden border border-border bg-surface-elevated flex-shrink-0 group cursor-pointer hover:border-primary transition-colors"
+                                          title="Click to zoom image"
+                                        >
+                                          <img
+                                            src={getOptimizedImageUrl(item.imageUrl, { width: 96, height: 96 })}
+                                            alt={item.productName}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                          />
+                                        </button>
+                                      ) : (
+                                        <div className="w-12 h-12 rounded-xl border border-border bg-surface-elevated flex-shrink-0 flex items-center justify-center text-text-muted">
+                                          <Tag size={16} />
+                                        </div>
+                                      )}
+
+                                      <div className="flex flex-col gap-1 min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-semibold text-sm text-text-primary leading-tight">
+                                            {item.productName}
+                                          </span>
+                                          {item.category && (
+                                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-surface-elevated text-text-secondary border border-border">
+                                              {item.category}
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center gap-3 text-xs text-text-muted flex-wrap">
+                                          <span className="font-mono text-[11px] text-text-secondary font-medium">
+                                            SKU: {item.itemCode}
+                                          </span>
+                                          {item.isSerialized && (
+                                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20 uppercase">
+                                              Serialized
+                                            </span>
+                                          )}
+                                          {item.trackExpiry && (
+                                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20 uppercase">
+                                              Expiry Tracked
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {/* Dispatched info */}
+                                        <div className="flex items-center gap-2 text-[11px] text-text-muted mt-0.5">
+                                          <span>Issued: <strong className="text-text-primary">{item.issuedQty}</strong></span>
+                                          <span>•</span>
+                                          <span>Cut / Ret: <strong className="text-text-primary">{item.cutQty}</strong></span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Middle: Store Remaining Stock Badge */}
+                                    <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-1 flex-shrink-0 px-2 py-1 md:py-0 bg-surface-elevated/40 md:bg-transparent rounded-lg border md:border-0 border-border">
+                                      <span className="text-[10px] font-bold uppercase text-text-muted">In Store Balance</span>
+                                      <span className={`font-mono font-bold text-sm px-2.5 py-0.5 rounded-lg border ${
+                                        item.remainingQty > 0
+                                          ? 'bg-primary/10 text-primary border-primary/20'
+                                          : 'bg-surface-elevated text-text-muted border-border'
+                                      }`}>
+                                        {item.remainingQty} unit{item.remainingQty !== 1 ? 's' : ''}
+                                      </span>
+                                    </div>
+
+                                    {/* Right: Quantity Input & Remarks */}
+                                    <div className="flex flex-col gap-2 w-full md:w-80 flex-shrink-0">
+                                      {item.isSerialized ? (
+                                        <div className="flex flex-col gap-1.5 p-2 bg-surface border border-border rounded-xl">
+                                          <div className="flex items-center justify-between text-[10px] font-bold text-text-secondary uppercase">
+                                            <span>Select Barcode(s) at Store</span>
+                                            <span className="font-mono text-primary">
+                                              {currentBarcodes.length} of {item.storeBarcodes?.length || 0} selected
+                                            </span>
+                                          </div>
+                                          {(!item.storeBarcodes || item.storeBarcodes.length === 0) ? (
+                                            <span className="text-[11px] text-danger font-semibold">
+                                              No available barcodes found in store for this item.
+                                            </span>
+                                          ) : (
+                                            <div className="flex flex-wrap gap-1.5 max-h-[90px] overflow-y-auto p-1">
+                                              {item.storeBarcodes.map(s => {
+                                                const isSelected = currentBarcodes.includes(s.barcode);
+                                                return (
+                                                  <button
+                                                    key={s.barcode}
+                                                    type="button"
+                                                    onClick={() => handleStoreBarcodeToggle(item.outboundTxId, s.barcode)}
+                                                    className={`px-2 py-1 rounded-md text-[11px] font-mono font-semibold border transition-colors select-none ${
+                                                      isSelected
+                                                        ? (reportType === 'LOST'
+                                                            ? 'bg-warning/20 border-warning text-warning'
+                                                            : 'bg-danger/20 border-danger text-danger')
+                                                        : 'bg-surface-elevated/60 border-border text-text-secondary hover:text-text-primary hover:border-primary/40'
+                                                    }`}
+                                                  >
+                                                    {s.barcode}
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex-1 flex flex-col gap-0.5">
+                                            <div className="flex items-center gap-1.5">
+                                              <input
+                                                type="number"
+                                                min={0}
+                                                max={item.remainingQty}
+                                                value={currentQty > 0 ? currentQty : ''}
+                                                onChange={(e) => handleStoreQtyChange(item.outboundTxId, e.target.value, item.remainingQty)}
+                                                placeholder="0"
+                                                disabled={item.remainingQty <= 0}
+                                                className={`w-full px-3 py-1.5 bg-surface text-text-primary border rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-primary/20 ${
+                                                  currentQty > 0
+                                                    ? (reportType === 'LOST' ? 'border-warning focus:border-warning' : 'border-danger focus:border-danger')
+                                                    : 'border-border focus:border-primary'
+                                                }`}
+                                              />
+                                              <button
+                                                type="button"
+                                                onClick={() => handleStoreQtyChange(item.outboundTxId, currentQty + 1, item.remainingQty)}
+                                                disabled={item.remainingQty <= 0 || currentQty >= item.remainingQty}
+                                                className="px-2 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-40 rounded-lg text-xs font-bold text-text-secondary transition-colors"
+                                                title="Add 1"
+                                              >
+                                                +1
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleStoreQtyChange(item.outboundTxId, item.remainingQty, item.remainingQty)}
+                                                disabled={item.remainingQty <= 0 || currentQty === item.remainingQty}
+                                                className="px-2.5 py-1.5 bg-surface border border-border hover:bg-surface-elevated disabled:opacity-40 rounded-lg text-[11px] font-bold text-primary transition-colors"
+                                                title="Set to max remaining quantity"
+                                              >
+                                                Max
+                                              </button>
+                                            </div>
+                                            {currentQty > item.remainingQty && (
+                                              <span className="text-[10px] text-danger font-semibold">
+                                                Exceeds store balance ({item.remainingQty})!
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Remarks Input */}
+                                      <input
+                                        type="text"
+                                        value={currentNotes}
+                                        onChange={(e) => handleStoreNotesChange(item.outboundTxId, e.target.value)}
+                                        placeholder="Item remarks / condition notes..."
+                                        className="w-full px-3 py-1.5 bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-              </div>
-            );
-          })}
-        </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mt-4 pt-5 border-t border-border">
-          <button 
-            type="button" 
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200" 
-            onClick={handleAddRow}
-          >
-            <Plus size={15} /> 
-            <span>Add Product Row</span>
-          </button>
+                {/* Sticky Bottom Action Bar for Store Grouped Mode */}
+                <div className="sticky bottom-4 z-20 p-4 bg-surface/95 backdrop-blur-md border border-border rounded-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-slide-up">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-text-secondary">
+                      Marked for {reportType === 'LOST' ? 'Loss' : 'Damage'}:
+                    </span>
+                    <span className="font-mono font-bold text-sm text-text-primary">
+                      {storeSelectedCount.count} product{storeSelectedCount.count !== 1 ? 's' : ''} ({storeSelectedCount.units} unit{storeSelectedCount.units !== 1 ? 's' : ''})
+                    </span>
+                  </div>
 
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard/damage" className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200">
-              Cancel
-            </Link>
-            <button 
-              type="submit" 
-              className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors shadow duration-200 ${
-                reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : 'bg-danger hover:bg-danger/90'
-              }`}
-              disabled={loading || items.length === 0}
-            >
-              {loading && <Loader2 size={16} className="animate-spin" />}
-              <span>{reportType === 'LOST' ? 'Submit Loss Report' : 'Submit Damage Logs'}</span>
-            </button>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={reportType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'}
+                      className="px-4 py-2 bg-surface border border-border hover:bg-surface-elevated text-text-secondary hover:text-text-primary rounded-xl text-xs font-semibold transition-colors"
+                    >
+                      Cancel
+                    </Link>
+                    <button
+                      type="submit"
+                      disabled={loading || storeSelectedCount.units === 0}
+                      className={`inline-flex items-center justify-center gap-2 px-5 py-2 text-white font-semibold text-xs rounded-xl shadow-md hover:shadow-lg transition-colors ${
+                        reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : 'bg-danger hover:bg-danger/90'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {loading && <Loader2 size={14} className="animate-spin" />}
+                      <span>
+                        {reportType === 'LOST' ? 'Submit Loss Report' : 'Submit Damage Logs'}
+                        {storeSelectedCount.units > 0 ? ` (${storeSelectedCount.units})` : ''}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        ) : (
+          /* View Mode 2: Manual Rows (Active for Warehouse, Direct, or when manually chosen) */
+          <>
+            <div className="flex flex-col gap-6">
+              {items.map((item, index) => {
+                const selectedProd = products.find(p => p.id === item.productId);
+                return (
+                  <div key={index} className="relative p-5 bg-surface-elevated/40 border border-black/5 rounded-xl flex flex-col gap-4">
+                    <button 
+                      type="button" 
+                      className="absolute top-4 right-4 p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors" 
+                      onClick={() => handleRemoveRow(index)}
+                      disabled={items.length === 1}
+                      title="Remove item"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mr-8">
+                      <div className="flex flex-col gap-1.5 md:col-span-2">
+                        <label className="text-xs font-semibold text-text-secondary">Product Item</label>
+                        {/* Brand and Category filter pills */}
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-bold text-text-secondary uppercase">Brand:</span>
+                            <button
+                              type="button"
+                              onClick={() => setBrandFilter('ALL')}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                            >All</button>
+                            {availableBrands.map(b => (
+                              <button
+                                key={b.id}
+                                type="button"
+                                onClick={() => setBrandFilter(b.id)}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${brandFilter === b.id ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              >{b.name}</button>
+                            ))}
+                          </div>
+                          {uniqueCategories.length > 0 && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold text-text-secondary uppercase">Cat:</span>
+                              <button
+                                type="button"
+                                onClick={() => setCategoryFilter('ALL')}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${categoryFilter === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              >All</button>
+                              {uniqueCategories.map(cat => (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => setCategoryFilter(cat)}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${categoryFilter === cat ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                                >{cat}</button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <CustomSelect
+                          options={selectableProducts
+                            .filter(p => (brandFilter === 'ALL' || p.brand?.id === brandFilter || p.brandId === brandFilter) && (categoryFilter === 'ALL' || p.category === categoryFilter))
+                            .map(p => ({
+                              value: p.id,
+                              label: `${p.name} (${p.category})${fromType === 'STORE' ? ` — (${p.storeStock ?? 0} in store)` : (fromType === 'WAREHOUSE' ? ` — (${p.warehouseStock ?? 0} in warehouse)` : '')}`,
+                              imageUrl: p.imageUrl,
+                              warehouseStock: fromType === 'STORE' ? (p.storeStock ?? 0) : p.warehouseStock,
+                              disabled: p.isSerialized && items.filter((_, i) => i !== index).map(it => it.productId).filter(Boolean).includes(p.id)
+                            }))}
+                          value={item.productId}
+                          onChange={(id) => handleProductChange(index, id)}
+                          placeholder={
+                            fromType === 'STORE' && !fromId 
+                              ? "Select a retail store above first..." 
+                              : isFetchingStoreInventory 
+                              ? "Loading store inventory..." 
+                              : fromType === 'STORE' && selectableProducts.length === 0
+                              ? "No products available in this store"
+                              : "Choose product..."
+                          }
+                          disabled={fromType === 'STORE' && (!fromId || isFetchingStoreInventory || selectableProducts.length === 0)}
+                          required
+                        />
+
+                        {/* Source Delivery Note selector when source is STORE */}
+                        {fromType === 'STORE' && item.outbounds && item.outbounds.length > 0 && (
+                          <div className="flex flex-col gap-1 mt-1 p-2 bg-surface-elevated/40 border border-border rounded-lg animate-fade-in">
+                            <div className="flex items-center justify-between text-[10px] font-bold text-text-secondary uppercase">
+                              <span>Source Delivery Note (Where cut from)</span>
+                              <span className="text-primary font-mono font-normal lowercase">{item.outbounds.length} note{item.outbounds.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <select
+                              value={item.outboundTxId || ''}
+                              onChange={(e) => handleFieldChange(index, 'outboundTxId', e.target.value)}
+                              className="w-full bg-surface text-text-primary border border-border rounded-md px-2.5 py-1.5 text-xs font-mono font-medium focus:outline-none focus:border-primary"
+                            >
+                              <option value="">Auto (FIFO — Cut from oldest outbound)</option>
+                              {item.outbounds.map(ob => (
+                                <option key={ob.id} value={ob.id}>
+                                  {ob.deliveryNote} — ({ob.remainingQty} remaining at store)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-1.5 md:col-span-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-text-secondary">
+                            {!selectedProd?.isSerialized ? (reportType === 'LOST' ? 'Quantity Lost' : 'Quantity Damaged') : 'Quantity (Selected)'}
+                          </label>
+                          {selectedProd && !selectedProd.isSerialized && (
+                            <span className="text-[10px] font-mono text-text-muted">
+                              {fromType === 'STORE' ? 'In Store: ' : 'In Stock: '}
+                              <strong className="text-primary">{item.currentStock || 0}</strong>
+                            </span>
+                          )}
+                        </div>
+                        {!selectedProd?.isSerialized ? (
+                          <div className="flex flex-col gap-1.5 w-full">
+                             <input 
+                               type="number" 
+                               className="w-full bg-surface text-text-primary border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200" 
+                               min={1} 
+                               max={item.currentStock || 0}
+                               value={item.quantity}
+                               onChange={(e) => handleFieldChange(index, 'quantity', parseInt(e.target.value, 10) || 1)}
+                               disabled={selectedProd?.trackExpiry}
+                               required 
+                             />
+                             {selectedProd?.trackExpiry && (
+                               <span className="text-[10px] text-text-muted mt-0.5">Quantity is computed automatically from selected batch quantities below.</span>
+                             )}
+                             {!selectedProd?.trackExpiry && item.quantity > (item.currentStock || 0) && (
+                               <span className="text-[10px] font-semibold text-danger mt-1 animate-pulse block">
+                                 ⚠️ Warning: Quantity exceeds available stock ({item.currentStock || 0})!
+                               </span>
+                             )}
+                             {!selectedProd?.trackExpiry && item.quantity <= 0 && (
+                               <span className="text-[10px] font-semibold text-danger mt-1 block">
+                                 ⚠️ Warning: Quantity must be greater than 0.
+                               </span>
+                             )}
+                           </div>
+                        ) : (
+                          <input 
+                            type="number" 
+                            className="w-full bg-surface-elevated text-danger border border-border rounded-lg px-3 py-2.5 text-sm font-bold font-mono"
+                            value={item.quantity}
+                            disabled
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedProd?.isSerialized && (
+                      <div className="flex flex-col gap-1.5 mt-2 bg-surface p-4 border border-border rounded-lg">
+                        {/* Scan Input Header */}
+                        <div className="flex flex-col gap-1.5 mb-3">
+                          <label className="text-xs font-semibold text-text-primary flex items-center gap-1">
+                            <QrCode size={14} className="text-primary" />
+                            <span>Scan / Enter Barcode to Select</span>
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-colors"
+                              value={scanInputs[index] || ''}
+                              onChange={(e) => setScanInputs(prev => ({ ...prev, [index]: e.target.value }))}
+                              onKeyDown={(e) => handleScanInputKeyDown(e, index, item.availableBarcodes, item.selectedBarcodes)}
+                              placeholder="Scan barcode to select, then press Enter..."
+                            />
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button
+                                type="button"
+                                className="px-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
+                                onClick={() => { setActiveCameraRow(index); setIsCameraOpen(true); }}
+                                title="Scan via PC Webcam"
+                              >
+                                <Camera size={13} />
+                                <span className="text-[10px] font-bold uppercase hidden sm:inline">Camera</span>
+                              </button>
+                              
+                              <button
+                                type="button"
+                                className="px-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none rounded-lg text-text-secondary hover:text-text-primary transition-colors flex items-center justify-center gap-1"
+                                onClick={() => handleOpenMobileScanner(index)}
+                                title="Pair Wireless Mobile phone camera"
+                              >
+                                <Smartphone size={13} className="text-primary" />
+                                <span className="text-[10px] font-bold uppercase hidden sm:inline">Mobile</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <label className="text-xs font-semibold text-text-secondary flex items-center gap-1 pb-1">
+                          <span>Available Barcodes ({item.availableBarcodes?.length || 0} in {fromType === 'STORE' ? 'Store' : fromType === 'DIRECT' ? 'Staff' : 'Warehouse'})</span>
+                        </label>
+                        
+                        {item.availableBarcodes?.length === 0 ? (
+                          <span className="text-xs text-danger font-semibold py-1">No available barcodes found in the {fromType === 'STORE' ? 'Store' : fromType === 'DIRECT' ? 'Staff' : 'Warehouse'} for this product.</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-2 max-h-[140px] overflow-y-auto p-2 bg-surface-elevated/20 border border-border rounded-md mt-1">
+                            {item.availableBarcodes.map(s => {
+                              const isSelected = item.selectedBarcodes.includes(s.barcode);
+                              return (
+                                <label 
+                                  key={s.id} 
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono font-semibold cursor-pointer transition-all duration-200 select-none
+                                    ${isSelected 
+                                      ? 'bg-danger/10 border-danger text-danger' 
+                                      : 'bg-surface border-border text-text-secondary hover:border-text-primary hover:text-text-primary'
+                                    }
+                                  `}
+                                >
+                                  <input 
+                                    type="checkbox"
+                                    className="sr-only"
+                                    checked={isSelected}
+                                    onChange={() => {
+                                      const newSelected = isSelected
+                                        ? item.selectedBarcodes.filter(b => b !== s.barcode)
+                                        : [...item.selectedBarcodes, s.barcode];
+                                      handleFieldChange(index, 'selectedBarcodes', newSelected);
+                                    }}
+                                  />
+                                  <span>{s.barcode}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-text-secondary">Item Specific Remarks / Notes</label>
+                      <input 
+                        type="text" 
+                        className="w-full bg-surface text-text-primary placeholder:text-text-muted border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors duration-200" 
+                        value={item.notes}
+                        onChange={(e) => handleFieldChange(index, 'notes', e.target.value)}
+                        placeholder="e.g. Scratched panel, Damaged packaging..."
+                      />
+                    </div>
+
+                    {/* Expiry Batch selection section */}
+                    {selectedProd?.trackExpiry && !selectedProd?.isSerialized && (
+                      <div className="flex flex-col gap-3 mt-2 bg-surface p-4 border border-border rounded-lg">
+                        <label className="text-xs font-bold text-text-primary uppercase tracking-wider">Select Quantities by Expiry Batch</label>
+                        <div className="flex flex-col gap-2">
+                          {(!item.availableBatches || item.availableBatches.length === 0) ? (
+                            <div className="text-xs text-text-muted italic p-2 bg-surface border border-border rounded-lg">
+                              No available stock batches found at this location for this product.
+                            </div>
+                          ) : (
+                            item.availableBatches.map((batch, bIdx) => {
+                              const mDateStr = batch.manufactureDate ? new Date(batch.manufactureDate).toLocaleDateString() : 'N/A';
+                              const eDateStr = batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString() : 'N/A';
+                              const now = new Date();
+                              const isExpired = batch.expiryDate && new Date(batch.expiryDate) < now;
+
+                              const selectedQty = item.selectedBatches?.find(b => 
+                                b.manufactureDate === batch.manufactureDate && 
+                                b.expiryDate === batch.expiryDate
+                              )?.quantity || '';
+
+                              return (
+                                <div key={bIdx} className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface border border-border rounded-xl shadow-sm">
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-xs font-bold text-text-primary">Expires: {eDateStr}</span>
+                                      {isExpired && (
+                                        <span className="px-1.5 py-0.5 text-[8px] font-bold bg-danger/10 text-danger rounded uppercase">Expired</span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-text-secondary">Mfg: {mDateStr} | Available: <strong className="text-primary">{batch.quantity} units</strong></span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-[10px] font-bold text-text-secondary uppercase">Qty:</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={batch.quantity}
+                                      className="w-20 bg-surface border border-border rounded px-2.5 py-1 text-xs text-center focus:outline-none focus:border-primary font-bold text-text-primary"
+                                      value={selectedQty}
+                                      placeholder="0"
+                                      onChange={(e) => {
+                                        const enteredVal = e.target.value;
+                                        const valInt = parseInt(enteredVal, 10) || 0;
+                                        const cappedVal = Math.min(valInt, batch.quantity);
+                                        
+                                        const currentSelected = item.selectedBatches || [];
+                                        const existingIdx = currentSelected.findIndex(b => 
+                                          b.manufactureDate === batch.manufactureDate && 
+                                          b.expiryDate === batch.expiryDate
+                                        );
+
+                                        let nextSelected = [...currentSelected];
+                                        if (existingIdx !== -1) {
+                                          if (cappedVal > 0) {
+                                            nextSelected[existingIdx] = { ...nextSelected[existingIdx], quantity: cappedVal };
+                                          } else {
+                                            nextSelected = nextSelected.filter((_, i) => i !== existingIdx);
+                                          }
+                                        } else if (cappedVal > 0) {
+                                          nextSelected.push({
+                                            manufactureDate: batch.manufactureDate,
+                                            expiryDate: batch.expiryDate,
+                                            quantity: cappedVal
+                                          });
+                                        }
+
+                                        const totalQty = nextSelected.reduce((sum, b) => sum + b.quantity, 0);
+                                        
+                                        setItems(prev => prev.map((x, idx) => idx === index ? {
+                                          ...x,
+                                          selectedBatches: nextSelected,
+                                          quantity: totalQty
+                                        } : x));
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mt-4 pt-5 border-t border-border">
+              <button 
+                type="button" 
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200" 
+                onClick={handleAddRow}
+              >
+                <Plus size={15} /> 
+                <span>Add Product Row</span>
+              </button>
+
+              <div className="flex items-center gap-3">
+                <Link href={reportType === 'LOST' ? '/dashboard/loss' : '/dashboard/damage'} className="px-5 py-2.5 bg-surface border border-border hover:bg-surface-elevated focus:bg-surface-elevated focus:outline-none text-text-secondary hover:text-text-primary rounded-lg text-sm font-semibold transition-colors duration-200">
+                  Cancel
+                </Link>
+                <button 
+                  type="submit" 
+                  className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-colors shadow duration-200 ${
+                    reportType === 'LOST' ? 'bg-warning hover:bg-warning/90' : 'bg-danger hover:bg-danger/90'
+                  }`}
+                  disabled={loading || items.length === 0}
+                >
+                  {loading && <Loader2 size={16} className="animate-spin" />}
+                  <span>{reportType === 'LOST' ? 'Submit Loss Report' : 'Submit Damage Logs'}</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </form>
 
       {/* Floating Webcam Scanner Panel */}
@@ -1456,6 +2235,12 @@ function DamageFormContent({
             </div>
         </div>
       )}
+
+      {/* Product Image Lightbox Modal */}
+      <ImageLightbox
+        image={lightboxImage}
+        onClose={() => setLightboxImage(null)}
+      />
     </div>
   );
 }

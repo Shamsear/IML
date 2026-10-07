@@ -513,6 +513,116 @@ export async function getStoreInventory(storeId) {
   return Object.values(inventoryMap);
 }
 
+// 5b. Fetch store outbound delivery notes with issued products and active remaining quantities
+export async function getStoreOutboundNotes(storeId) {
+  await checkAuth();
+  if (!storeId) return [];
+
+  const outbounds = await prisma.inventoryTransaction.findMany({
+    where: {
+      toEntityType: 'STORE',
+      toEntityId: storeId,
+      transactionType: { in: ['ISSUE', 'OUTBOUND'] },
+      OR: [
+        { returnStatus: null },
+        { returnStatus: { notIn: ['RETURNED', 'DAMAGED', 'LOST', 'COMPLETED'] } }
+      ]
+    },
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          itemCode: true,
+          imageUrl: true,
+          category: true,
+          isSerialized: true,
+          trackExpiry: true,
+          brandId: true,
+          brand: { select: { id: true, name: true } }
+        }
+      },
+      deliverySupervisor: {
+        select: { id: true, name: true }
+      }
+    },
+    orderBy: { timestamp: 'desc' }
+  });
+
+  const storeSerials = await prisma.productSerialNumber.findMany({
+    where: {
+      currentLocationType: 'STORE',
+      currentLocationId: storeId,
+      status: 'AVAILABLE'
+    },
+    select: {
+      id: true,
+      barcode: true,
+      secondaryBarcode: true,
+      productId: true
+    },
+    orderBy: { barcode: 'asc' }
+  });
+
+  const serialsByProd = {};
+  for (const s of storeSerials) {
+    if (!serialsByProd[s.productId]) serialsByProd[s.productId] = [];
+    serialsByProd[s.productId].push({
+      id: s.id,
+      barcode: s.barcode,
+      secondaryBarcode: s.secondaryBarcode
+    });
+  }
+
+  const groupsMap = {};
+  for (const ob of outbounds) {
+    const dn = ob.deliveryNote || 'UNASSIGNED';
+    const dateStr = ob.timestamp ? ob.timestamp.toISOString().split('T')[0] : '';
+    const groupKey = `${dn}___${dateStr}`;
+
+    const prod = ob.product;
+    if (!prod) continue;
+
+    const remainingQty = Math.max(0, ob.quantity - (ob.returnedQty || 0));
+
+    if (!groupsMap[groupKey]) {
+      groupsMap[groupKey] = {
+        key: groupKey,
+        deliveryNote: dn,
+        date: dateStr,
+        timestamp: ob.timestamp ? ob.timestamp.toISOString() : null,
+        supervisorName: ob.deliverySupervisor?.name || '',
+        brandName: prod.brand?.name || 'General',
+        brandId: prod.brandId || '',
+        items: []
+      };
+    }
+
+    const availableBarcodes = prod.isSerialized ? (serialsByProd[prod.id] || []) : [];
+
+    groupsMap[groupKey].items.push({
+      outboundTxId: ob.id,
+      deliveryNote: dn,
+      productId: prod.id,
+      productName: prod.name,
+      itemCode: prod.itemCode,
+      imageUrl: prod.imageUrl,
+      category: prod.category,
+      brandName: prod.brand?.name || 'General',
+      brandId: prod.brandId || '',
+      isSerialized: prod.isSerialized,
+      trackExpiry: prod.trackExpiry,
+      originalQty: ob.quantity,
+      returnedQty: ob.returnedQty || 0,
+      remainingQty: remainingQty,
+      availableBarcodes,
+      notes: ob.notes || ''
+    });
+  }
+
+  return Object.values(groupsMap).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+
 // 6. Create multiple issue transactions atomically in a single batch
 export async function createBulkIssueTransactions(payload) {
   await checkWriteAuth();
@@ -1206,39 +1316,51 @@ export async function createBulkDamageTransactions(payload) {
   const transactions = await prisma.$transaction(async (tx) => {
     const createdTxs = [];
 
+    // Group items by brand name so a bulk submission shares the same delivery note per brand
+    const itemsByBrand = {};
     for (const item of items) {
-      const { productId, quantity, barcodes = [], notes } = item;
-      const product = productsMap.get(productId);
-      const brandName = product.brand?.name || 'General';
+      const product = productsMap.get(item.productId);
+      const brandName = product?.brand?.name || 'General';
+      if (!itemsByBrand[brandName]) {
+        itemsByBrand[brandName] = [];
+      }
+      itemsByBrand[brandName].push(item);
+    }
+
+    for (const [brandName, brandItems] of Object.entries(itemsByBrand)) {
       const typeCode = resolvedType === 'LOST' ? 'LOS' : 'DAM';
       const deliveryNote = await generateCustomRef(tx, typeCode, brandName);
 
-      // A. If cutting from a Store, allocate and deduct from the store's active outbound transactions
-      let cutFromNotes = [];
-      if (fromEntityType === 'STORE' && fromEntityId) {
-        let neededQty = quantity;
+      for (const item of brandItems) {
+        const { productId, quantity, barcodes = [], notes, outboundTxId, outboundDn } = item;
+        const product = productsMap.get(productId);
 
-        let candidateOutbounds = await tx.inventoryTransaction.findMany({
-          where: {
-            productId,
-            toEntityType: 'STORE',
-            toEntityId: fromEntityId,
-            transactionType: { in: ['ISSUE', 'OUTBOUND'] }
-          },
-          orderBy: { timestamp: 'asc' }
-        });
+        // A. If cutting from a Store, allocate and deduct from the store's active outbound transactions
+        let cutFromNotes = [];
+        if (fromEntityType === 'STORE' && fromEntityId) {
+          let neededQty = quantity;
 
-        if (item.outboundTxId) {
-          candidateOutbounds = [
-            ...candidateOutbounds.filter(o => o.id === item.outboundTxId),
-            ...candidateOutbounds.filter(o => o.id !== item.outboundTxId)
-          ];
-        } else if (item.outboundDn) {
-          candidateOutbounds = [
-            ...candidateOutbounds.filter(o => o.deliveryNote === item.outboundDn),
-            ...candidateOutbounds.filter(o => o.deliveryNote !== item.outboundDn)
-          ];
-        }
+          let candidateOutbounds = await tx.inventoryTransaction.findMany({
+            where: {
+              productId,
+              toEntityType: 'STORE',
+              toEntityId: fromEntityId,
+              transactionType: { in: ['ISSUE', 'OUTBOUND'] }
+            },
+            orderBy: { timestamp: 'asc' }
+          });
+
+          if (outboundTxId) {
+            const specificMatch = candidateOutbounds.filter(o => o.id === outboundTxId);
+            if (specificMatch.length > 0) {
+              candidateOutbounds = specificMatch;
+            }
+          } else if (outboundDn) {
+            const dnMatch = candidateOutbounds.filter(o => o.deliveryNote === outboundDn);
+            if (dnMatch.length > 0) {
+              candidateOutbounds = dnMatch;
+            }
+          }
 
         for (const parent of candidateOutbounds) {
           if (neededQty <= 0) break;
@@ -1316,8 +1438,9 @@ export async function createBulkDamageTransactions(payload) {
 
       createdTxs.push(invTx);
     }
+  }
 
-    return createdTxs;
+  return createdTxs;
   }, { timeout: 20000 });
 
   revalidateTransactionPaths({
