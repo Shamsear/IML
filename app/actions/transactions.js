@@ -654,8 +654,8 @@ export async function createBulkIssueTransactions(payload) {
   // Validate all product existences and quantities
   for (const item of items) {
     if (!item.productId) throw new Error('Product ID is required for all items');
-    const qty = parseInt(item.quantity, 10);
-    if (!qty || qty <= 0) throw new Error('Quantity must be a positive integer greater than 0');
+    const qty = parseFloat(item.quantity);
+    if (isNaN(qty) || qty <= 0) throw new Error('Quantity must be greater than 0');
     item.quantity = qty;
     const product = productsMap.get(item.productId);
     if (!product) throw new Error(`Product not found for ID: ${item.productId}`);
@@ -714,7 +714,12 @@ export async function createBulkIssueTransactions(payload) {
 
       if (fromEntityType) {
         const invalidSerials = foundSerials.filter(
-          (s) => s.currentLocationType !== fromEntityType || s.currentLocationId !== fromEntityId
+          (s) => {
+            const isWarehouse = fromEntityType === 'WAREHOUSE';
+            const matchesLoc = s.currentLocationType === fromEntityType || (isWarehouse && !s.currentLocationType);
+            const matchesId = isWarehouse ? true : s.currentLocationId === fromEntityId;
+            return !matchesLoc || !matchesId;
+          }
         );
         if (invalidSerials.length > 0) {
           throw new Error(`Some barcodes for "${product.name}" are not present at the source location (${fromEntityType}).`);
@@ -922,7 +927,12 @@ export async function createBulkIssueTransactions(payload) {
             throw new Error(`Barcodes moved or missing (concurrent edit?): ${missing.join(', ')}`);
           }
           const invalidLocation = itemSerials.filter(
-            s => s.currentLocationType !== fromEntityType || s.currentLocationId !== fromEntityId
+            s => {
+              const isWarehouse = fromEntityType === 'WAREHOUSE';
+              const matchesLoc = s.currentLocationType === fromEntityType || (isWarehouse && !s.currentLocationType);
+              const matchesId = isWarehouse ? true : s.currentLocationId === fromEntityId;
+              return !matchesLoc || !matchesId;
+            }
           );
           if (invalidLocation.length > 0) {
             throw new Error(`Some barcodes are no longer at the source location (concurrent edit?)`);
@@ -968,7 +978,7 @@ export async function createBulkIssueTransactions(payload) {
     }
 
     return createdTxs;
-  }, { timeout: 20000 });
+  }, { timeout: 45000 });
 
   revalidateTransactionPaths();
 

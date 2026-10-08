@@ -894,7 +894,10 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
         setConfirmOpen(true);
       }
     } catch (err) {
-      setError(err.message || 'Failed to complete outbound transaction.');
+      console.error('Outbound dispatch error:', err);
+      const errMsg = typeof err === 'string' ? err : (err?.message || 'Failed to complete outbound transaction.');
+      setError(errMsg);
+      toast.error('Dispatch Failed', errMsg);
       setLoading(false);
     }
   };
@@ -938,7 +941,7 @@ function OutboundFormContent({ products, stores, supervisors, directSellers = []
       {error && (
         <div className="bg-danger/10 border border-danger/20 text-danger rounded-lg p-4 text-sm font-semibold flex items-center gap-2.5 animate-slide-down">
           <AlertCircle size={16} className="flex-shrink-0" />
-          <span>{error}</span>
+          <span>{typeof error === 'string' ? error : (error?.message || JSON.stringify(error))}</span>
         </div>
       )}
       
