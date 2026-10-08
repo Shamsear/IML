@@ -87,6 +87,7 @@ const noStoreHeaders = [
 ];
 
 const nextConfig = {
+  output: 'standalone',
   experimental: {
     staleTimes: {
       dynamic: 0,

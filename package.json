@@ -6,6 +6,7 @@
     "dev": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
+    "deploy": "node scripts/deploy.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -34,6 +35,7 @@
     "playwright": "^1.63.0",
     "postcss": "^8.4.35",
     "prisma": "^7.9.1",
+    "ssh2": "^1.17.0",
     "tailwindcss": "^3.4.1"
   }
 }

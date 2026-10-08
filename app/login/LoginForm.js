@@ -164,8 +164,9 @@ export default function LoginForm() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-secondary hover:bg-surface-hover rounded-lg transition-colors cursor-pointer"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-secondary hover:bg-surface-hover rounded-lg transition-colors cursor-pointer z-10"
                   disabled={loading}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >

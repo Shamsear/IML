@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { revalidateInventory } from '@/lib/revalidation';
 
 import { requireAuth, requireAdmin, requireWritePermission } from '@/lib/auth-guard';
-import { uploadToImageKit } from '@/lib/imagekit';
+import { uploadToImageKit } from '@/lib/image-upload';
 import { generateCustomRef, generateSkuCode } from '@/lib/ledger';
 import { getProductStock } from '@/lib/stock';
 

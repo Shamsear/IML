@@ -39,16 +39,16 @@ export default async function NewOutboundPage({ searchParams }) {
     staff,
     initialItems
   ] = await Promise.all([
-    getProductsSlim(),
-    getStores(),
-    getBrands(),
-    getSupervisors(),
-    getRecentDirectSellers(),
-    getStaffSlim(),
+    getProductsSlim().catch(err => { console.error('Error fetching products:', err); return []; }),
+    getStores().catch(err => { console.error('Error fetching stores:', err); return []; }),
+    getBrands().catch(err => { console.error('Error fetching brands:', err); return []; }),
+    getSupervisors().catch(err => { console.error('Error fetching supervisors:', err); return []; }),
+    getRecentDirectSellers().catch(err => { console.error('Error fetching direct sellers:', err); return []; }),
+    getStaffSlim().catch(err => { console.error('Error fetching staff:', err); return []; }),
     copyDn
-      ? getTransactionsByDeliveryNote(copyDn)
+      ? getTransactionsByDeliveryNote(copyDn).catch(err => { console.error('Error fetching copyDn:', err); return []; })
       : copyTxId
-        ? getTransactionById(copyTxId).then(tx => (tx ? [tx] : []))
+        ? getTransactionById(copyTxId).then(tx => (tx ? [tx] : [])).catch(err => { console.error('Error fetching copyTxId:', err); return []; })
         : Promise.resolve([])
   ]);
 

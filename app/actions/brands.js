@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { revalidateBrands } from '@/lib/revalidation';
 
 import { requireAuth, requireAdmin, requireWritePermission } from '@/lib/auth-guard';
-import { uploadToImageKit } from '@/lib/imagekit';
+import { uploadToImageKit } from '@/lib/image-upload';
 import { generateId } from '@/lib/idGenerator';
 import { generateBatchTxIds } from '@/lib/ledger';
 import { generateBrandJWT, verifyBrandJWT } from '@/lib/jwt';

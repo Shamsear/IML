@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { uploadToImageKit } from '@/lib/imagekit';
+import { uploadToImageKit } from '@/lib/image-upload';
 import { revalidateInventory, revalidateStores } from '@/lib/revalidation';
 
 function safeNotifyTransaction(payload) {
@@ -4093,14 +4093,22 @@ export async function updateBulkReceiveTransactions(deliveryNote, formData) {
 
 export async function getRecentDirectSellers() {
   await checkAuth();
-  const transactions = await prisma.inventoryTransaction.findMany({
-    where: { toEntityType: 'DIRECT' },
-    select: { toEntityId: true },
-    distinct: ['toEntityId'],
-    orderBy: { timestamp: 'desc' },
-    take: 20
-  });
-  return transactions.map(t => t.toEntityId).filter(Boolean);
+  try {
+    const transactions = await prisma.inventoryTransaction.findMany({
+      where: {
+        toEntityType: 'DIRECT',
+        toEntityId: { not: null }
+      },
+      select: { toEntityId: true },
+      orderBy: { timestamp: 'desc' },
+      take: 100
+    });
+    const uniqueSellers = [...new Set(transactions.map(t => t.toEntityId?.trim()).filter(Boolean))];
+    return uniqueSellers.slice(0, 20);
+  } catch (err) {
+    console.error('Error in getRecentDirectSellers:', err);
+    return [];
+  }
 }
 
 export async function createBulkClientReturnTransactions(payload) {

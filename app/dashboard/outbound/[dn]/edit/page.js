@@ -38,13 +38,13 @@ export default async function EditOutboundPage({ params }) {
     staff,
     initialItems
   ] = await Promise.all([
-    getProductsSlim(),
-    getStores(),
-    getBrands(),
-    getSupervisors(),
-    getRecentDirectSellers(),
-    getStaff(),
-    getTransactionsByDeliveryNote(decodedDn)
+    getProductsSlim().catch(err => { console.error('Error fetching products:', err); return []; }),
+    getStores().catch(err => { console.error('Error fetching stores:', err); return []; }),
+    getBrands().catch(err => { console.error('Error fetching brands:', err); return []; }),
+    getSupervisors().catch(err => { console.error('Error fetching supervisors:', err); return []; }),
+    getRecentDirectSellers().catch(err => { console.error('Error fetching direct sellers:', err); return []; }),
+    getStaff().catch(err => { console.error('Error fetching staff:', err); return []; }),
+    getTransactionsByDeliveryNote(decodedDn).catch(err => { console.error('Error fetching transactions:', err); return []; })
   ]);
 
   if (!initialItems || initialItems.length === 0) {
