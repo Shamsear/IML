@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck, ArrowUpDown } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck, ArrowUpDown, Layers, Tag } from 'lucide-react';
 import { createBulkClientReturnTransactions, updateBulkClientReturnTransactions } from '@/app/actions/transactions';
 import { getProductBatchesAtLocation, getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
@@ -633,17 +633,15 @@ export default function ClientReturnsClient({
     }
   };
 
-  // Helper to filter products by selected brand filter
-  const filteredProducts = products.filter(p => !brandId || p.brandId === brandId);
-  const productOptions = [
-    { value: '', label: 'Select product...' },
-    ...filteredProducts.map(p => ({
-      value: p.id,
-      label: `${p.name} (${p.itemCode || 'No SKU'})`,
-      imageUrl: p.imageUrl ? getOptimizedImageUrl(p.imageUrl, 50, 50) : null,
-      warehouseStock: p.warehouseStock
-    }))
-  ];
+  // Available products for selected brand
+  const availableProductsForBrand = useMemo(() => {
+    return (products || []).filter(p => !brandId || p.brandId === brandId || p.brand?.id === brandId);
+  }, [products, brandId]);
+
+  // Unique categories within the available products
+  const uniqueCategories = useMemo(() => {
+    return Array.from(new Set(availableProductsForBrand.map(p => p.category).filter(Boolean))).sort();
+  }, [availableProductsForBrand]);
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6 font-sans relative">
@@ -772,7 +770,7 @@ export default function ClientReturnsClient({
             const selectedProd = products.find(p => p.id === item.productId);
             const isSerialized = selectedProd?.isSerialized || false;
             const displayTitle = selectedProd 
-              ? `${selectedProd.brand.name} - ${selectedProd.name}` 
+              ? `${selectedProd.brand?.name || ''}${selectedProd.brand?.name ? ' - ' : ''}${selectedProd.name}` 
               : `Return Item #${idx + 1}`;
 
             return (
@@ -835,10 +833,48 @@ export default function ClientReturnsClient({
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex flex-col gap-1.5 sm:col-span-2">
                         <label className="text-xs font-semibold text-text-secondary">Product Name / Code</label>
+
+                        {/* Category Filter Pills */}
+                        {uniqueCategories.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            <span className="text-[10px] font-bold text-text-secondary uppercase flex items-center gap-1">
+                              <Layers size={11} /> Cat:
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateItemField(idx, 'categoryFilter', 'ALL')}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${(item.categoryFilter || 'ALL') === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                            >
+                              All
+                            </button>
+                            {uniqueCategories.map(cat => (
+                              <button
+                                key={cat}
+                                type="button"
+                                onClick={() => updateItemField(idx, 'categoryFilter', cat)}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${item.categoryFilter === cat ? 'bg-primary text-white border-primary' : 'bg-surface border-border text-text-secondary hover:border-primary/50'}`}
+                              >
+                                {cat}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                         <CustomSelect
-                          options={productOptions}
+                          options={[
+                            { value: '', label: 'Select product...' },
+                            ...availableProductsForBrand
+                              .filter(p => (item.categoryFilter || 'ALL') === 'ALL' || p.category === item.categoryFilter)
+                              .map(p => ({
+                                value: p.id,
+                                label: `${p.name} (${p.category || 'General'})${p.itemCode ? ` · [${p.itemCode}]` : ''}`,
+                                imageUrl: p.imageUrl ? getOptimizedImageUrl(p.imageUrl, 50, 50) : null,
+                                warehouseStock: p.warehouseStock
+                              }))
+                          ]}
                           value={item.productId}
                           onChange={(val) => updateItemField(idx, 'productId', val)}
+                          placeholder="Choose product..."
                         />
                       </div>
                       

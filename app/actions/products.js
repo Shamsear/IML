@@ -156,6 +156,7 @@ export async function getProductsSlim() {
     orderBy: { name: 'asc' },
     select: {
       id: true,
+      brandId: true,
       name: true,
       itemCode: true,
       isSerialized: true,
