@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma';
 import { getProductsSlim } from '@/app/actions/products';
 import { getBrands } from '@/app/actions/brands';
 import { getTransactionsByDeliveryNote } from '@/app/actions/transactions';
@@ -28,10 +29,15 @@ export default async function EditClientReturnPage({ params }) {
   const [
     products, 
     brands,
+    stores,
     initialItems
   ] = await Promise.all([
     getProductsSlim(),
     getBrands(),
+    prisma.store.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, location: true }
+    }),
     getTransactionsByDeliveryNote(decodedDn)
   ]);
 
@@ -68,8 +74,14 @@ export default async function EditClientReturnPage({ params }) {
     ? (clientReturnItems[0].fromEntityId || clientReturnItems[0].product?.brandId || '')
     : (clientReturnItems[0].toEntityId || clientReturnItems[0].product?.brandId || '');
 
+  // Extract store if noted in notes e.g. [Store: Store Name]
+  const storeMatch = clientReturnItems[0].notes?.match(/\[Store:\s*([^\]]+)\]/i);
+  const matchedStoreName = storeMatch ? storeMatch[1].trim().toLowerCase() : '';
+  const initialStore = stores.find(s => s.name.toLowerCase() === matchedStoreName);
+  const initialStoreId = initialStore ? initialStore.id : '';
+
   const initialReceivedBy = clientReturnItems[0].receivedBy || '';
-  const initialGlobalNotes = clientReturnItems[0].notes || '';
+  const initialGlobalNotes = clientReturnItems[0].notes ? clientReturnItems[0].notes.replace(/\[Store:\s*[^\]]+\]/gi, '').trim() : '';
   const initialSupervisorName = clientReturnItems[0].deliverySupervisorId || '';
   const initialTransactionDate = clientReturnItems[0].timestamp || '';
 
@@ -77,10 +89,12 @@ export default async function EditClientReturnPage({ params }) {
     <ClientReturnsClient 
       brands={brands}
       products={products}
+      stores={stores}
       editMode={true}
       existingDn={decodedDn}
       isReturnFromClient={isReturnFromClient}
       initialBrandId={initialBrandId}
+      initialStoreId={initialStoreId}
       initialItems={clientReturnItems}
       initialGlobalNotes={initialGlobalNotes}
       initialSupervisorName={initialSupervisorName}

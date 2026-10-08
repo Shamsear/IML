@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft, Edit2, ExternalLink, Package } from 'lucide-react';
+import { Undo2, Plus, Search, ChevronDown, ChevronRight, FileText, BarChart3, Loader2, ArrowLeft, Calendar, ArrowUpRight, ArrowDownLeft, Edit2, ExternalLink, Package, Store } from 'lucide-react';
 import TransactionActions from '@/components/TransactionActions';
 import CopyDeliveryNoteButton from '@/components/CopyDeliveryNoteButton';
 import CustomSelect from '@/components/CustomSelect';
@@ -84,17 +84,23 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
         const direction = isFromClient ? 'fromClient' : 'toClient';
         const brandId = isFromClient ? tx.fromEntityId : tx.toEntityId;
         const key = `${tx.deliveryNote}_${brandId || 'unknown'}_${direction}`;
+        const storeMatch = tx.notes?.match(/\[Store:\s*([^\]]+)\]/i);
+        const storeName = storeMatch ? storeMatch[1].trim() : null;
+
         if (!groups[key]) {
           groups[key] = {
             deliveryNote: tx.deliveryNote,
             brandId: brandId,
             direction,
             brandName: tx.product?.brand?.name || 'Client',
+            storeName: storeName || null,
             timestamp: tx.timestamp,
             receivedBy: tx.receivedBy,
             supervisorName: tx.deliverySupervisor?.name || '',
             items: []
           };
+        } else if (!groups[key].storeName && storeName) {
+          groups[key].storeName = storeName;
         }
         groups[key].items.push(tx);
       }
@@ -108,14 +114,16 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
   const filteredDispatchedGroups = useMemo(() => {
     return dispatchedGroups.filter(g =>
       g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) ||
-      g.brandName.toLowerCase().includes(dnSearch.toLowerCase())
+      g.brandName.toLowerCase().includes(dnSearch.toLowerCase()) ||
+      (g.storeName && g.storeName.toLowerCase().includes(dnSearch.toLowerCase()))
     );
   }, [dispatchedGroups, dnSearch]);
 
   const filteredReturnedGroups = useMemo(() => {
     return returnedGroups.filter(g =>
       g.deliveryNote.toLowerCase().includes(dnSearch.toLowerCase()) ||
-      g.brandName.toLowerCase().includes(dnSearch.toLowerCase())
+      g.brandName.toLowerCase().includes(dnSearch.toLowerCase()) ||
+      (g.storeName && g.storeName.toLowerCase().includes(dnSearch.toLowerCase()))
     );
   }, [returnedGroups, dnSearch]);
 
@@ -245,8 +253,14 @@ export default function ClientReturnsLedgerClient({ transactions, totalCount, to
                     </div>
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <span className="text-xs font-bold text-text-primary uppercase tracking-wider font-mono truncate">{group.deliveryNote}</span>
-                      <span className="text-[10px] text-text-secondary font-semibold">
-                        Date: {dateStr} · Client: <strong className="text-primary">{group.brandName}</strong>
+                      <span className="text-[10px] text-text-secondary font-semibold flex items-center flex-wrap gap-1.5">
+                        <span>Date: {dateStr} · Client: <strong className="text-primary">{group.brandName}</strong></span>
+                        {group.storeName && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-semibold">
+                            <Store size={10} />
+                            <span>{group.storeName}</span>
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>

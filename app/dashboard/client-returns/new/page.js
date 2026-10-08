@@ -22,18 +22,23 @@ export default async function NewClientReturnPage() {
     redirect('/dashboard/client-returns');
   }
 
-  const [brands, products] = await Promise.all([
+  const [brands, products, stores] = await Promise.all([
     prisma.brand.findMany({
       orderBy: { name: 'asc' },
       select: { id: true, name: true }
     }),
-    getProductsSlim()
+    getProductsSlim(),
+    prisma.store.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, location: true }
+    })
   ]);
 
   return (
     <ClientReturnsClient
       brands={brands}
       products={products}
+      stores={stores}
     />
   );
 }

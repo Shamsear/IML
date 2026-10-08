@@ -4108,6 +4108,7 @@ export async function createBulkClientReturnTransactions(payload) {
 
   const {
     brandId,
+    storeId,
     receivedBy,
     deliverySupervisorId,
     deliverySupervisorName,
@@ -4132,6 +4133,12 @@ export async function createBulkClientReturnTransactions(payload) {
       });
       supervisorId = created.id;
     }
+  }
+
+  let storeName = null;
+  if (storeId) {
+    const store = await prisma.store.findUnique({ where: { id: storeId }, select: { name: true } });
+    if (store) storeName = store.name;
   }
 
   // 1. Batch Product and Brand Query
@@ -4192,8 +4199,13 @@ export async function createBulkClientReturnTransactions(payload) {
       const baseNote = (() => {
         const itemNote = notes?.trim() || '';
         const gNotes = globalNotes?.trim() || '';
-        if (gNotes && itemNote) return `${gNotes} | ${itemNote}`;
-        return gNotes || itemNote || null;
+        let noteText = '';
+        if (gNotes && itemNote) noteText = `${gNotes} | ${itemNote}`;
+        else noteText = gNotes || itemNote || '';
+        if (storeName) {
+          noteText = `[Store: ${storeName}] ${noteText}`.trim();
+        }
+        return noteText || null;
       })();
 
       // For expiry-tracked products with batch selection, create one transaction per batch
@@ -4280,6 +4292,7 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
 
   const {
     brandId,
+    storeId,
     receivedBy,
     deliverySupervisorId,
     deliverySupervisorName,
@@ -4304,6 +4317,12 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
       });
       supervisorId = created.id;
     }
+  }
+
+  let storeName = null;
+  if (storeId) {
+    const store = await prisma.store.findUnique({ where: { id: storeId }, select: { name: true } });
+    if (store) storeName = store.name;
   }
 
   const oldTxs = await prisma.inventoryTransaction.findMany({
@@ -4400,8 +4419,13 @@ export async function updateBulkClientReturnTransactions(deliveryNote, payload) 
       const baseNote = (() => {
         const itemNote = notes?.trim() || '';
         const gNotes = globalNotes?.trim() || '';
-        if (gNotes && itemNote) return `${gNotes} | ${itemNote}`;
-        return gNotes || itemNote || null;
+        let noteText = '';
+        if (gNotes && itemNote) noteText = `${gNotes} | ${itemNote}`;
+        else noteText = gNotes || itemNote || '';
+        if (storeName) {
+          noteText = `[Store: ${storeName}] ${noteText}`.trim();
+        }
+        return noteText || null;
       })();
 
       if (product.trackExpiry && !product.isSerialized && selectedBatches.length > 0) {

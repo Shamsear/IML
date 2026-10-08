@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck, ArrowUpDown, Layers, Tag } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Loader2, CheckCircle, AlertCircle, Camera, QrCode, X, Smartphone, ClipboardCheck, ArrowUpDown, Layers, Tag, Store } from 'lucide-react';
 import { createBulkClientReturnTransactions, updateBulkClientReturnTransactions } from '@/app/actions/transactions';
 import { getProductBatchesAtLocation, getAvailableBarcodes, findProductByBarcode } from '@/app/actions/products';
 import CustomSelect from '@/components/CustomSelect';
@@ -16,10 +16,12 @@ import { getClientScanCompanionUrl } from '@/lib/scan-companion-url';
 export default function ClientReturnsClient({ 
   brands, 
   products,
+  stores = [],
   editMode = false,
   existingDn = null,
   isReturnFromClient = false,
   initialBrandId = '',
+  initialStoreId = '',
   initialItems = null,
   initialGlobalNotes = '',
   initialSupervisorName = '',
@@ -31,6 +33,7 @@ export default function ClientReturnsClient({
 
   // Core Form States
   const [brandId, setBrandId] = useState(initialBrandId || '');
+  const [storeId, setStoreId] = useState(initialStoreId || '');
   const [receivedBy, setReceivedBy] = useState(initialReceivedBy || ''); // Client Rep. Name
   const [deliverySupervisorName, setDeliverySupervisorName] = useState(initialSupervisorName || '');
   const [transactionDate, setTransactionDate] = useState(() => {
@@ -572,6 +575,7 @@ export default function ClientReturnsClient({
     try {
       const payload = {
         brandId,
+        storeId: storeId || null,
         direction: isReturnFromClient ? 'fromClient' : 'toClient',
         receivedBy: receivedBy.trim(),
         deliverySupervisorName: deliverySupervisorName?.trim() || null,
@@ -737,7 +741,20 @@ export default function ClientReturnsClient({
             />
           </div>
 
-
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+              <span>Store / Promoter (Optional)</span>
+              <span className="text-[10px] text-text-muted font-normal">Permanent Promoter</span>
+            </label>
+            <CustomSelect
+              options={[
+                { value: '', label: 'Direct from Warehouse (No Store)' },
+                ...stores.map(s => ({ value: s.id, label: s.location ? `${s.name} (${s.location})` : s.name }))
+              ]}
+              value={storeId}
+              onChange={setStoreId}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-border/40">

@@ -106,13 +106,17 @@ export async function GET(request) {
 
     const receiverName = firstTx.receivedBy || firstTx.toEntityId || '';
     const supervisorName = firstTx.deliverySupervisor?.name || '';
-    const notes = cleanNotes(firstTx.notes || '');
+    const rawNotes = firstTx.notes || '';
+    const storeMatch = rawNotes.match(/\[Store:\s*([^\]]+)\]/i);
+    const storeName = storeMatch ? storeMatch[1].trim() : null;
+    const notes = cleanNotes(rawNotes.replace(/\[Store:\s*[^\]]+\]/gi, '').trim());
 
     // Group items by product
     const productGroups = {};
     for (const tx of txs) {
       const prod = tx.product;
-      const parsedItemNotes = cleanNotes(tx.notes || '');
+      const rawItemNotes = tx.notes || '';
+      const parsedItemNotes = cleanNotes(rawItemNotes.replace(/\[Store:\s*[^\]]+\]/gi, '').trim());
       
       if (!productGroups[prod.id]) {
         productGroups[prod.id] = {
@@ -159,7 +163,7 @@ export async function GET(request) {
           left: [
             { label: 'Warehouse', value: 'IML Warehouse Al Quoz' },
             { label: 'Brand', value: brandName },
-            { label: 'Destination', value: 'Client Dispatched' },
+            ...(storeName ? [{ label: 'Store / Location', value: storeName }] : [{ label: 'Destination', value: 'Client Dispatched' }]),
             ...(supervisorName ? [{ label: 'Supervisor', value: supervisorName }] : []),
           ],
           right: [
